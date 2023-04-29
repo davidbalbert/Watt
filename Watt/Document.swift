@@ -8,7 +8,7 @@
 import Cocoa
 
 class Document: NSDocument {
-    var contents: String = ""
+    var storage: AttributedStringStorage = ""
 
     enum DocumentError: Error {
         case load
@@ -20,14 +20,14 @@ class Document: NSDocument {
     }
 
     override func makeWindowControllers() {
-        let w = NSWindow(contentViewController: TextViewController(self))
+        let w = NSWindow(contentViewController: TextViewController(storage))
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
         addWindowController(c)
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = contents.data(using: .utf8) else {
+        guard let data = storage.string.data(using: .utf8) else {
             throw DocumentError.save
         }
 
@@ -39,7 +39,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.contents = contents
+        self.storage = AttributedStringStorage(contents)
     }
 }
 
