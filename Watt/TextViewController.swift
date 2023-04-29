@@ -20,8 +20,8 @@ class TextViewController: NSViewController {
     }
 
     override func loadView() {
-        let scrollView = TextView.scrollableTextView()
-        let textView = scrollView.documentView as! TextView
+        let scrollView = TextView<AttributedStringStorage>.scrollableTextView()
+        let textView = scrollView.documentView as! TextView<AttributedStringStorage>
         textView.storage = storage
 
         view = scrollView
