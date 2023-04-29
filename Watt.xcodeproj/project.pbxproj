@@ -48,6 +48,9 @@
 		637288A729FD8E1A005B95E5 /* WattUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		637288AB29FD8E1A005B95E5 /* WattUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITests.swift; sourceTree = "<group>"; };
 		637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		637288BA29FD9002005B95E5 /* Watt.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Watt.xcconfig; sourceTree = "<group>"; };
+		637288BB29FD9069005B95E5 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +81,9 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
+				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
+				637288BB29FD9069005B95E5 /* .gitignore */,
+				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
 				6372888A29FD8E19005B95E5 /* Watt */,
 				637288A029FD8E1A005B95E5 /* WattTests */,
 				637288AA29FD8E1A005B95E5 /* WattUITests */,
@@ -316,6 +322,7 @@
 /* Begin XCBuildConfiguration section */
 		637288AF29FD8E1A005B95E5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 637288BA29FD9002005B95E5 /* Watt.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -376,6 +383,7 @@
 		};
 		637288B029FD8E1A005B95E5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 637288BA29FD9002005B95E5 /* Watt.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -436,7 +444,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Watt/Info.plist;
@@ -464,7 +471,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Watt/Info.plist;
@@ -490,7 +496,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				MARKETING_VERSION = 1.0;
@@ -509,7 +514,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				MARKETING_VERSION = 1.0;
@@ -527,7 +531,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattUITests;
@@ -544,7 +547,6 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 9K689XE65M;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattUITests;
