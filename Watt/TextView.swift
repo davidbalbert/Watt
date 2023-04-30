@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextView<Storage>: NSView where Storage: TextStorage {
+class TextView: NSView {
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
@@ -20,14 +20,14 @@ class TextView<Storage>: NSView where Storage: TextStorage {
         return scrollView
     }
 
-    var storage: Storage {
+    var storage: TextStorage {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             storage.addLayoutManager(layoutManager)
         }
     }
 
-    var layoutManager: LayoutManager<Storage> {
+    var layoutManager: LayoutManager {
         didSet {
             oldValue.delegate = nil
             storage.removeLayoutManager(oldValue)
@@ -38,14 +38,14 @@ class TextView<Storage>: NSView where Storage: TextStorage {
     }
 
     required init() {
-        storage = Storage("")
+        storage = NullTextStorage()
         layoutManager = LayoutManager()
         super.init(frame: .zero)
         commonInit()
     }
 
     required init?(coder: NSCoder) {
-        storage = Storage("")
+        storage = NullTextStorage()
         layoutManager = LayoutManager()
         super.init(coder: coder)
         commonInit()
@@ -58,9 +58,5 @@ class TextView<Storage>: NSView where Storage: TextStorage {
 
     override func updateLayer() {
         // No-op. Here to ensure we're layer-backed.
-    }
-
-    override func layout() {
-        layoutManager.layoutViewport()
     }
 }

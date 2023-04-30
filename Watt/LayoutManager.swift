@@ -7,26 +7,19 @@
 
 import Foundation
 
-protocol LayoutManagerDelegate<Storage>: AnyObject {
-    associatedtype Storage: TextStorage
-
-    func viewportBounds(for layoutManager: LayoutManager<Storage>) -> CGRect
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>)
-    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment)
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>)
+protocol LayoutManagerDelegate: AnyObject {
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment)
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager)
 }
 
-class LayoutManager<Storage> where Storage: TextStorage {
+class LayoutManager {
     var viewportBounds: CGRect = .zero
-    weak var delegate: (any LayoutManagerDelegate<Storage>)?
-    weak var storage: Storage? {
-        didSet {
-            oldValue?.removeLayoutManager(self)
-            storage?.addLayoutManager(self)
-        }
-    }
+    weak var delegate: LayoutManagerDelegate?
+    weak var storage: TextStorage?
 
-    var heightEstimates: [CGFloat] = []
+    lazy var heightEstimates: [CGFloat] = initialHeightEstimates()
 
     func layoutViewport() {
         guard let delegate else {
@@ -37,20 +30,40 @@ class LayoutManager<Storage> where Storage: TextStorage {
 
         delegate.layoutManagerWillLayout(self)
 
+        let viewportRange = textRange(for: viewportBounds)
+
+        enumerateLayoutFragments(from: viewportRange.start, options: .ensuresLayout) { layoutFragment in
+            delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
+
+            return !layoutFragment.textRange.contains(viewportRange.end)
+        }
 
 
         delegate.layoutManagerDidLayout(self)
     }
 
-    func updateHeightEstimates() {
-//        guard let storage else {
-//            heightEstimates = []
-//            return
-//        }
-//
-//        let count = storage.textElements(for: storage.documentRange).count
-//        let lineHeight: CGFloat = 10
-//
-//        heightEstimates = Array(repeating: lineHeight, count: count)
+    func initialHeightEstimates() -> [CGFloat] {
+        guard let storage else {
+            return []
+        }
+
+        let count = storage.textElements(for: storage.documentRange).count
+        let lineHeight: CGFloat = 10
+
+        return Array(repeating: lineHeight, count: count)
+    }
+
+    func textRange(for rect: CGRect) -> TextRange {
+        storage?.documentRange ?? NullTextRange()
+    }
+
+    func enumerateLayoutFragments(from location: TextLocation, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
+        guard let storage else {
+            return
+        }
+
+        storage.enumerateTextElements(from: location) { el in
+            return true
+        }
     }
 }

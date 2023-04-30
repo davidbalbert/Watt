@@ -2,20 +2,31 @@
 //  TextStorage.swift
 //  Watt
 //
-//  Created by David Albert on 4/29/23.
+//  Created by David Albert on 4/30/23.
 //
 
 import Foundation
 
 protocol TextStorage: AnyObject {
-//    associatedtype Index: Comparable
-//    associatedtype R: TextRange<Index>
+    var documentRange: TextRange { get }
+    func enumerateTextElements(from textLocation: TextLocation, using block: (TextElement) -> Bool)
+    func addLayoutManager(_ layoutManager: LayoutManager)
+    func removeLayoutManager(_ layoutManager: LayoutManager)
+}
 
-    init(_ string: String)
+extension TextStorage {
+    func textElements(for range: TextRange) -> [TextElement] {
+        var res: [TextElement] = []
 
-    func addLayoutManager(_ layoutManager: LayoutManager<Self>)
-    func removeLayoutManager(_ layoutManager: LayoutManager<Self>)
+        enumerateTextElements(from: range.start) { element in
+            if range.end.compare(element.textRange.start) == .orderedAscending {
+                return false
+            }
 
-//    var documentRange: R { get }
-//    func textElements(for range: R) -> [TextElement]
+            res.append(element)
+            return true
+        }
+
+        return res
+    }
 }

@@ -8,7 +8,11 @@
 import Foundation
 
 extension TextView: LayoutManagerDelegate {
-    func viewportBounds(for layoutManager: LayoutManager<Storage>) -> CGRect {
+    override func layout() {
+        layoutManager.layoutViewport()
+    }
+
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
         var viewportBounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             viewportBounds = preparedContentRect.union(visibleRect)
@@ -21,15 +25,15 @@ extension TextView: LayoutManagerDelegate {
         return viewportBounds
     }
 
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>) {
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager) {
         print("willLayout")
     }
 
-    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
         print("configureRenderingSurface")
     }
 
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>) {
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager) {
         print("didLayout")
     }
 }

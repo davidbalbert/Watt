@@ -7,9 +7,14 @@
 
 import Foundation
 
-//protocol TextRange<Location> {
-//    associatedtype Location: TextLocation
-//
-//    var start: Self.Location { get }
-//    var end: Self.Location { get }
-//}
+protocol TextRange {
+    var start: TextLocation { get }
+    var end: TextLocation { get }
+    var isEmpty: Bool { get }
+}
+
+extension TextRange {
+    func contains(_ location: TextLocation) -> Bool {
+        (start.compare(location) == .orderedAscending || start.compare(location) == .orderedSame) && location.compare(end) == .orderedAscending
+    }
+}

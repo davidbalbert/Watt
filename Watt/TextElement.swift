@@ -8,4 +8,5 @@
 import Foundation
 
 struct TextElement {
+    let textRange: TextRange
 }

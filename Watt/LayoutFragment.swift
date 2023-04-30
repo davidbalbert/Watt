@@ -8,4 +8,11 @@
 import Foundation
 
 struct LayoutFragment {
+    struct EnumerationOptions: OptionSet {
+        let rawValue: Int
+
+        static let ensuresLayout = EnumerationOptions(rawValue: 1 << 0)
+    }
+
+    var textRange: TextRange
 }

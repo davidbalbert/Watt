@@ -8,7 +8,7 @@
 import Cocoa
 
 class Document: NSDocument {
-    var storage: AttributedStringStorage = ""
+    var storage: AttributedStringTextStorage = "foo\nbar\nbaz"
 
     enum DocumentError: Error {
         case load
@@ -39,7 +39,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.storage = AttributedStringStorage(contents)
+        self.storage = AttributedStringTextStorage(contents)
     }
 }
 
