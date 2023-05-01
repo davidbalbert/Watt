@@ -72,7 +72,7 @@ class AttributedStringTextStorage: TextStorage, ExpressibleByStringLiteral {
             let next = s.index(afterCharacter: i)
             let end = s.index(afterCharacter: s.characters[next...].firstIndex(of: "\n") ?? last)
 
-            let el = TextElement(textRange: i..<end)
+            let el = TextElement(textStorage: self, textRange: i..<end)
 
             if !block(el) {
                 break
@@ -80,6 +80,15 @@ class AttributedStringTextStorage: TextStorage, ExpressibleByStringLiteral {
 
             i = end
         }
+    }
 
+    func attributedString(for textElement: TextElement) -> NSAttributedString {
+        let start = textElement.textRange.start as! AttributedString.Index
+        let end = textElement.textRange.end as! AttributedString.Index
+
+        let substr = s[start..<end]
+
+        // TODO: is there a way to do this with a single copy instead of two?
+        return NSAttributedString(AttributedString(substr))
     }
 }

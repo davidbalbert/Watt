@@ -35,6 +35,10 @@ class NullTextStorage: TextStorage {
     func enumerateTextElements(from textLocation: TextLocation, using block: (TextElement) -> Bool) {
     }
 
+    func attributedString(for textElement: TextElement) -> NSAttributedString {
+        NSAttributedString()
+    }
+
     func addLayoutManager(_ layoutManager: LayoutManager) {
     }
 

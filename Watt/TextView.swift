@@ -20,6 +20,14 @@ class TextView: NSView {
         return scrollView
     }
 
+//    override var isFlipped: Bool {
+//        true
+//    }
+
+    override var isOpaque: Bool {
+        true
+    }
+
     var storage: TextStorage {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
@@ -36,6 +44,8 @@ class TextView: NSView {
             storage.addLayoutManager(layoutManager)
         }
     }
+
+    var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
         storage = NullTextStorage()
@@ -57,6 +67,6 @@ class TextView: NSView {
     }
 
     override func updateLayer() {
-        // No-op. Here to ensure we're layer-backed.
+        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
     }
 }

@@ -28,6 +28,9 @@
 		63DB4F3429FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3329FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift */; };
 		63DB4F3629FEC0A600B97B39 /* TextStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3529FEC0A600B97B39 /* TextStorage.swift */; };
 		63DB4F3829FEC17300B97B39 /* NullTextStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */; };
+		63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */; };
+		63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */; };
+		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +80,9 @@
 		63DB4F3329FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttributedString.Index+TextLocation.swift"; sourceTree = "<group>"; };
 		63DB4F3529FEC0A600B97B39 /* TextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorage.swift; sourceTree = "<group>"; };
 		63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NullTextStorage.swift; path = Watt/NullTextStorage.swift; sourceTree = "<group>"; };
+		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NonAnimatingLayer.swift; path = Watt/NonAnimatingLayer.swift; sourceTree = "<group>"; };
+		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TextLayer.swift; path = Watt/TextLayer.swift; sourceTree = "<group>"; };
+		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LineFragment.swift; path = Watt/LineFragment.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -107,6 +113,9 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
+				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
+				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
+				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
 				63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */,
 				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
@@ -304,12 +313,15 @@
 				63DB4F3429FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift in Sources */,
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */,
+				63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
 				63B61A2629FDB6BA00787BB9 /* TextLocation.swift in Sources */,
 				63DB4F3829FEC17300B97B39 /* NullTextStorage.swift in Sources */,
 				63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */,
 				63B61A1229FD965800787BB9 /* WindowController.swift in Sources */,
 				6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */,
+				63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */,
+				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringTextStorage.swift in Sources */,

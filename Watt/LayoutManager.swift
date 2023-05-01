@@ -63,7 +63,13 @@ class LayoutManager {
         }
 
         storage.enumerateTextElements(from: location) { el in
-            return true
+            var frag = LayoutFragment(textElement: el)
+
+            if options.contains(.ensuresLayout) {
+                frag.layout()
+            }
+
+            return block(frag)
         }
     }
 }

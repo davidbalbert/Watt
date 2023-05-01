@@ -10,6 +10,8 @@ import Foundation
 protocol TextStorage: AnyObject {
     var documentRange: TextRange { get }
     func enumerateTextElements(from textLocation: TextLocation, using block: (TextElement) -> Bool)
+    func attributedString(for textElement: TextElement) -> NSAttributedString
+
     func addLayoutManager(_ layoutManager: LayoutManager)
     func removeLayoutManager(_ layoutManager: LayoutManager)
 }

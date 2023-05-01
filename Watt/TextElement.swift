@@ -8,5 +8,14 @@
 import Foundation
 
 struct TextElement {
+    weak var textStorage: TextStorage?
     let textRange: TextRange
+
+    var attributedString: NSAttributedString {
+        guard let textStorage else {
+            return NSAttributedString("")
+        }
+
+        return textStorage.attributedString(for: self)
+    }
 }
