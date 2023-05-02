@@ -77,11 +77,17 @@ class LayoutFragment {
         }
 
         ctx.saveGState()
-
         ctx.translateBy(x: point.x, y: point.y)
 
+        let isFlipped = ctx.ctm.d < 0
         for lineFragment in lineFragments {
-            lineFragment.draw(at: lineFragment.bounds.origin, in: ctx)
+            var origin = lineFragment.bounds.origin
+            if !isFlipped {
+                // TODO: not quite right. They don't line up in a non-flipped view.
+                origin.y = bounds.height - lineFragment.bounds.height - origin.y
+            }
+
+            lineFragment.draw(at: origin, in: ctx)
         }
 
         ctx.restoreGState()
