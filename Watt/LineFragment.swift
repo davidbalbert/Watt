@@ -10,5 +10,26 @@ import CoreText
 
 struct LineFragment {
     var line: CTLine
-    var origin: CGPoint
+    var bounds: CGRect
+
+    func draw(at point: CGPoint, in ctx: CGContext) {
+        ctx.saveGState()
+
+        ctx.textMatrix = .identity
+
+        var origin = CGPoint(x: point.x, y: point.y + bounds.height)
+
+        let isFlipped = ctx.ctm.d < 0
+        if isFlipped {
+            let t = CGAffineTransform(translationX: 0, y: bounds.height).scaledBy(x: 1, y: -1)
+            origin = origin.applying(t)
+
+            ctx.translateBy(x: 0, y: bounds.height)
+            ctx.scaleBy(x: 1, y: -1)
+        }
+
+        ctx.textPosition = origin
+        CTLineDraw(line, ctx)
+        ctx.restoreGState()
+    }
 }

@@ -8,7 +8,7 @@
 import Foundation
 import CoreText
 
-struct LayoutFragment {
+class LayoutFragment {
     struct EnumerationOptions: OptionSet {
         let rawValue: Int
 
@@ -21,60 +21,68 @@ struct LayoutFragment {
         textElement.textRange
     }
 
+    var lineFragments: [LineFragment]?
     var frame: CTFrame?
-    var lines: [CTLine]?
     var bounds: CGRect = .zero
 
-    mutating func layout() {
+    init(textElement: TextElement) {
+        self.textElement = textElement
+    }
+
+    func layout() {
         let s = textElement.attributedString
 
-        // TODO: docs say f can be NULL, but this returns a CTFramesetter, not a CTFramesetter? What happens if this returns NULL?
-        let framesetter = CTFramesetterCreateWithAttributedString(s)
+        // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
+        let typesetter = CTTypesetterCreateWithAttributedString(s)
 
-        let range = CFRange(location: 0, length: s.length)
-        let container = CGRect(origin: .zero, size: CGSize(width: 200, height: 200))
-        let path = CGPath(rect: container, transform: nil)
-
-        let frame = CTFramesetterCreateFrame(framesetter, range, path, nil)
-        let lines = CTFrameGetLines(frame) as! [CTLine]
-
-
-
+        var lineFragments: [LineFragment] = []
         var width: CGFloat = 0
         var height: CGFloat = 0
-        for line in lines {
+        var i = 0
+
+        while i < s.length {
+            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, 200) // TODO: 200 -> width of viewport
+            let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
+
             var ascent: CGFloat = 0
             var descent: CGFloat = 0
             var leading: CGFloat = 0
-            let w = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let lineWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
 
-            width = max(width, w)
-            height += ascent + descent + leading
+
+            var lineHeight = ascent + descent
+
+            if leading <= 0 {
+                leading = lineHeight * 0.2
+            }
+
+            lineHeight += leading
+
+            let bounds = CGRect(origin: CGPoint(x: 0, y: height), size: CGSize(width: lineWidth, height: lineHeight))
+
+            lineFragments.append(LineFragment(line: line, bounds: bounds))
+
+            i = next
+            width = max(width, lineWidth)
+            height += lineHeight
         }
 
+        self.lineFragments = lineFragments
         self.bounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
-        self.lines = lines
-        self.frame = frame
     }
 
     func draw(at point: CGPoint, in ctx: CGContext) {
-        guard let frame else {
+        guard let lineFragments else {
             return
         }
 
         ctx.saveGState()
 
-        let isFlipped = ctx.ctm.d < 0
-        print("isFlipped", isFlipped, bounds)
+        ctx.translateBy(x: point.x, y: point.y)
 
-//        ctx.textMatrix = .identity
-
-        if isFlipped {
-            ctx.translateBy(x: 0, y: 200)
-            ctx.scaleBy(x: 1, y: -1)
+        for lineFragment in lineFragments {
+            lineFragment.draw(at: lineFragment.bounds.origin, in: ctx)
         }
-
-        CTFrameDraw(frame, ctx)
 
         ctx.restoreGState()
     }

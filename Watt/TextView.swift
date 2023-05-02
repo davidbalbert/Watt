@@ -20,9 +20,9 @@ class TextView: NSView {
         return scrollView
     }
 
-//    override var isFlipped: Bool {
-//        true
-//    }
+    override var isFlipped: Bool {
+        true
+    }
 
     override var isOpaque: Bool {
         true

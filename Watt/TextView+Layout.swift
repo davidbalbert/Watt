@@ -7,7 +7,7 @@
 
 import AppKit
 
-extension TextView: LayoutManagerDelegate {
+extension TextView: LayoutManagerDelegate, NSViewLayerContentScaleDelegate {
     override func layout() {
         guard let layer else {
             return
@@ -42,9 +42,14 @@ extension TextView: LayoutManagerDelegate {
     func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
 
         let l = TextLayer(layoutFragment: layoutFragment)
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
         textLayer.addSublayer(l)
     }
 
     func layoutManagerDidLayout(_ layoutManager: LayoutManager) {
+    }
+
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
     }
 }
