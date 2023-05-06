@@ -29,7 +29,7 @@ class LayoutFragment {
         self.textElement = textElement
     }
 
-    func layout() {
+    func layout(in textContainer: TextContainer) {
         let s = textElement.attributedString
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
@@ -41,30 +41,24 @@ class LayoutFragment {
         var i = 0
 
         while i < s.length {
-            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, 200) // TODO: 200 -> width of viewport
+            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
             let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
-            var ascent: CGFloat = 0
-            var descent: CGFloat = 0
-            var leading: CGFloat = 0
-            let lineWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let b = CTLineGetBoundsWithOptions(line, [])
+            let glyphOrigin = CGPoint(x: textContainer.lineFragmentPadding, y: b.height + b.minY)
 
+            let bounds = CGRect(
+                x: 0,
+                y: height,
+                width: b.width + 2*textContainer.lineFragmentPadding,
+                height: b.height
+            )
 
-            var lineHeight = ascent + descent
-
-            if leading <= 0 {
-                leading = lineHeight * 0.2
-            }
-
-            lineHeight += leading
-
-            let bounds = CGRect(origin: CGPoint(x: 0, y: height), size: CGSize(width: lineWidth, height: lineHeight))
-
-            lineFragments.append(LineFragment(line: line, bounds: bounds))
+            lineFragments.append(LineFragment(line: line, bounds: bounds, glyphOrigin: glyphOrigin))
 
             i = next
-            width = max(width, lineWidth)
-            height += lineHeight
+            width = max(width, bounds.width)
+            height += bounds.height
         }
 
         self.lineFragments = lineFragments
@@ -79,15 +73,8 @@ class LayoutFragment {
         ctx.saveGState()
         ctx.translateBy(x: point.x, y: point.y)
 
-        let isFlipped = ctx.ctm.d < 0
         for lineFragment in lineFragments {
-            var origin = lineFragment.bounds.origin
-            if !isFlipped {
-                // TODO: not quite right. They don't line up in a non-flipped view.
-                origin.y = bounds.height - lineFragment.bounds.height - origin.y
-            }
-
-            lineFragment.draw(at: origin, in: ctx)
+            lineFragment.draw(at: lineFragment.bounds.origin, in: ctx)
         }
 
         ctx.restoreGState()

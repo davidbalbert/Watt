@@ -45,11 +45,22 @@ class TextView: NSView {
         }
     }
 
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+
+        if (textContainer.size.width != frame.width) {
+            textContainer.size = CGSize(width: frame.width, height: 0)
+        }
+    }
+
+    var textContainer: TextContainer
+
     var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
         storage = NullTextStorage()
         layoutManager = LayoutManager()
+        textContainer = TextContainer()
         super.init(frame: .zero)
         commonInit()
     }
@@ -57,12 +68,15 @@ class TextView: NSView {
     required init?(coder: NSCoder) {
         storage = NullTextStorage()
         layoutManager = LayoutManager()
+        textContainer = TextContainer()
         super.init(coder: coder)
         commonInit()
     }
 
     func commonInit() {
+        textContainer.size = CGSize(width: bounds.width, height: 0)
         layoutManager.delegate = self
+        layoutManager.textContainer = textContainer
         storage.addLayoutManager(layoutManager)
     }
 

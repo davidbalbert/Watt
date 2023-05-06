@@ -11,13 +11,14 @@ import CoreText
 struct LineFragment {
     var line: CTLine
     var bounds: CGRect
+    var glyphOrigin: CGPoint
 
     func draw(at point: CGPoint, in ctx: CGContext) {
         ctx.saveGState()
 
         ctx.textMatrix = .identity
 
-        var origin = CGPoint(x: point.x, y: point.y + bounds.height)
+        var origin = CGPoint(x: point.x + glyphOrigin.x, y: point.y + glyphOrigin.y)
 
         let isFlipped = ctx.ctm.d < 0
         if isFlipped {

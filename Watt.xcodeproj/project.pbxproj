@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
 		6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888B29FD8E19005B95E5 /* AppDelegate.swift */; };
 		6372888E29FD8E19005B95E5 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888D29FD8E19005B95E5 /* Document.swift */; };
 		6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6372889229FD8E1A005B95E5 /* Assets.xcassets */; };
@@ -51,6 +52,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TextContainer.swift; path = Watt/TextContainer.swift; sourceTree = "<group>"; };
 		6372888829FD8E19005B95E5 /* Watt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Watt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6372888B29FD8E19005B95E5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6372888D29FD8E19005B95E5 /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
@@ -79,10 +81,10 @@
 		63DB4F3129FEBF9800B97B39 /* Range+TextRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+TextRange.swift"; sourceTree = "<group>"; };
 		63DB4F3329FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AttributedString.Index+TextLocation.swift"; sourceTree = "<group>"; };
 		63DB4F3529FEC0A600B97B39 /* TextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorage.swift; sourceTree = "<group>"; };
-		63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NullTextStorage.swift; path = Watt/NullTextStorage.swift; sourceTree = "<group>"; };
-		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NonAnimatingLayer.swift; path = Watt/NonAnimatingLayer.swift; sourceTree = "<group>"; };
-		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TextLayer.swift; path = Watt/TextLayer.swift; sourceTree = "<group>"; };
-		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LineFragment.swift; path = Watt/LineFragment.swift; sourceTree = "<group>"; };
+		63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NullTextStorage.swift; sourceTree = "<group>"; };
+		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonAnimatingLayer.swift; sourceTree = "<group>"; };
+		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLayer.swift; sourceTree = "<group>"; };
+		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,10 +115,7 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
-				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
-				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
-				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
-				63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */,
+				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
 				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
 				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
@@ -148,8 +147,12 @@
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
+				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
+				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
+				63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */,
 				63DB4F3129FEBF9800B97B39 /* Range+TextRange.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
+				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
 				63B61A2529FDB6B900787BB9 /* TextLocation.swift */,
 				63B61A2729FDB72400787BB9 /* TextRange.swift */,
 				63DB4F3529FEC0A600B97B39 /* TextStorage.swift */,
@@ -314,6 +317,7 @@
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */,
 				63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */,
+				6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
 				63B61A2629FDB6BA00787BB9 /* TextLocation.swift in Sources */,
 				63DB4F3829FEC17300B97B39 /* NullTextStorage.swift in Sources */,

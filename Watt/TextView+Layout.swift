@@ -40,7 +40,6 @@ extension TextView: LayoutManagerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
-
         let l = TextLayer(layoutFragment: layoutFragment)
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         textLayer.addSublayer(l)

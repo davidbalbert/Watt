@@ -14,8 +14,8 @@ class TextLayer: NonAnimatingLayer {
         self.layoutFragment = layoutFragment
         super.init()
         anchorPoint = .zero
-        bounds = CGRect(x: 0, y: 0, width: 200, height: 200)
         borderColor = NSColor.purple.cgColor
+        bounds = layoutFragment.bounds
         borderWidth = 1
         setNeedsDisplay()
     }

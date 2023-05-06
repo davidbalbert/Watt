@@ -16,6 +16,7 @@ protocol LayoutManagerDelegate: AnyObject {
 
 class LayoutManager {
     var viewportBounds: CGRect = .zero
+    var textContainer: TextContainer?
     weak var delegate: LayoutManagerDelegate?
     weak var storage: TextStorage?
 
@@ -58,7 +59,7 @@ class LayoutManager {
     }
 
     func enumerateLayoutFragments(from location: TextLocation, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
-        guard let storage else {
+        guard let storage, let textContainer else {
             return
         }
 
@@ -66,10 +67,14 @@ class LayoutManager {
             let frag = LayoutFragment(textElement: el)
 
             if options.contains(.ensuresLayout) {
-                frag.layout()
+                frag.layout(in: textContainer)
             }
 
             return block(frag)
         }
+    }
+
+    func invalidateLayout() {
+        // todo
     }
 }
