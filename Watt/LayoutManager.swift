@@ -16,11 +16,19 @@ protocol LayoutManagerDelegate: AnyObject {
 
 class LayoutManager {
     var viewportBounds: CGRect = .zero
-    var textContainer: TextContainer?
+    var textContainer: TextContainer? {
+        willSet {
+            textContainer?.layoutManager = nil
+        }
+        didSet {
+            textContainer?.layoutManager = self
+        }
+    }
     weak var delegate: LayoutManagerDelegate?
     weak var storage: TextStorage?
 
     lazy var heightEstimates: [CGFloat] = initialHeightEstimates()
+    var layoutFragments: [LayoutFragment]?
 
     func layoutViewport() {
         guard let delegate else {
@@ -63,6 +71,17 @@ class LayoutManager {
             return
         }
 
+        if let layoutFragments {
+            for frag in layoutFragments {
+                if !block(frag) {
+                    return
+                }
+            }
+            return
+        }
+
+        var fragments: [LayoutFragment] = []
+
         storage.enumerateTextElements(from: location) { el in
             let frag = LayoutFragment(textElement: el)
 
@@ -70,11 +89,15 @@ class LayoutManager {
                 frag.layout(in: textContainer)
             }
 
+            fragments.append(frag)
+
             return block(frag)
         }
+
+        layoutFragments = fragments
     }
 
     func invalidateLayout() {
-        // todo
+        layoutFragments = nil
     }
 }

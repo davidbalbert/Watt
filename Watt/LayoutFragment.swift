@@ -80,7 +80,7 @@ class LayoutFragment {
 
     // returns glyphOrigin, typographicBounds
     func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
-        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
+        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, []).pixelAligned
 
         let paddingWidth = 2*textContainer.lineFragmentPadding
 
