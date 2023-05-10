@@ -8,7 +8,17 @@
 import Cocoa
 
 class Document: NSDocument {
-    var storage: AttributedStringTextStorage = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    var storage: AttributedStringTextStorage = {
+        if let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt") {
+            let text = try! String(contentsOf: url)
+
+            let s = text.split(separator: "\n")[0..<10].joined(separator: "\n")
+
+            return AttributedStringTextStorage(s)
+        }
+
+        return AttributedStringTextStorage("Couldn't load")
+    }()
 
     enum DocumentError: Error {
         case load

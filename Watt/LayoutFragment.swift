@@ -24,12 +24,13 @@ class LayoutFragment {
     var lineFragments: [LineFragment]?
     var typographicBounds: CGRect = .zero
 
-    var position: CGPoint = .zero
+    var position: CGPoint
     var frame: CGRect {
         CGRect(origin: position, size: typographicBounds.size)
     }
 
-    init(textElement: TextElement) {
+    init(position: CGPoint, textElement: TextElement) {
+        self.position = position
         self.textElement = textElement
     }
 
@@ -80,7 +81,7 @@ class LayoutFragment {
 
     // returns glyphOrigin, typographicBounds
     func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
-        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, []).pixelAligned
+        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
 
         let paddingWidth = 2*textContainer.lineFragmentPadding
 
@@ -91,11 +92,11 @@ class LayoutFragment {
         assert(ctTypographicBounds.minX == 0)
 
         // defined to have the origin in the upper left corner
-        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: ctTypographicBounds.height)
+        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: floor(ctTypographicBounds.height))
 
         let glyphOrigin = CGPoint(
             x: ctTypographicBounds.minX + textContainer.lineFragmentPadding,
-            y: ctTypographicBounds.height + ctTypographicBounds.minY
+            y: floor(ctTypographicBounds.height + ctTypographicBounds.minY)
         )
 
         return (glyphOrigin, typographicBounds)

@@ -14,9 +14,8 @@ class TextLayer: NonAnimatingLayer {
         self.layoutFragment = layoutFragment
         super.init()
         anchorPoint = .zero
-        borderColor = NSColor.purple.cgColor
         bounds = layoutFragment.typographicBounds
-        borderWidth = 1
+        position = layoutFragment.position
         setNeedsDisplay()
     }
 
@@ -32,5 +31,10 @@ class TextLayer: NonAnimatingLayer {
 
     override func draw(in ctx: CGContext) {
         layoutFragment.draw(at: .zero, in: ctx)
+
+        ctx.saveGState()
+        ctx.setStrokeColor(NSColor.systemPurple.cgColor)
+        ctx.stroke(layoutFragment.typographicBounds.insetBy(dx: 0.5, dy: 0.5), width: 1)
+        ctx.restoreGState()
     }
 }

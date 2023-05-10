@@ -81,13 +81,15 @@ class LayoutManager {
         }
 
         var fragments: [LayoutFragment] = []
+        var y: CGFloat = 0
 
         storage.enumerateTextElements(from: location) { el in
-            let frag = LayoutFragment(textElement: el)
+            let frag = LayoutFragment(position: CGPoint(x: 0, y: y), textElement: el)
 
             if options.contains(.ensuresLayout) {
                 frag.layout(in: textContainer)
             }
+            y += frag.typographicBounds.height
 
             fragments.append(frag)
 
