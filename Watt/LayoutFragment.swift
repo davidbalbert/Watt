@@ -22,8 +22,8 @@ class LayoutFragment {
     }
 
     var lineFragments: [LineFragment]?
-    var frame: CTFrame?
-    var bounds: CGRect = .zero
+    var frame: CGRect = .zero
+    var typographicBounds: CGRect = .zero
 
     init(textElement: TextElement) {
         self.textElement = textElement
@@ -44,25 +44,21 @@ class LayoutFragment {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
             let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
-            let b = CTLineGetBoundsWithOptions(line, [])
-            let glyphOrigin = CGPoint(x: textContainer.lineFragmentPadding, y: b.height + b.minY)
+            let position = CGPoint(x: 0, y: height)
+            let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
 
-            let bounds = CGRect(
-                x: 0,
-                y: height,
-                width: b.width + 2*textContainer.lineFragmentPadding,
-                height: b.height
-            )
+            print(position, glyphOrigin, typographicBounds)
 
-            lineFragments.append(LineFragment(line: line, bounds: bounds, glyphOrigin: glyphOrigin))
+            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: position, typographicBounds: typographicBounds)
+            lineFragments.append(lineFragment)
 
             i = next
-            width = max(width, bounds.width)
-            height += bounds.height
+            width = max(width, typographicBounds.width)
+            height += typographicBounds.height
         }
 
         self.lineFragments = lineFragments
-        self.bounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
+        self.typographicBounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
     }
 
     func draw(at point: CGPoint, in ctx: CGContext) {
@@ -74,9 +70,46 @@ class LayoutFragment {
         ctx.translateBy(x: point.x, y: point.y)
 
         for lineFragment in lineFragments {
-            lineFragment.draw(at: lineFragment.bounds.origin, in: ctx)
+            lineFragment.draw(at: lineFragment.frame.origin, in: ctx)
         }
 
         ctx.restoreGState()
+    }
+
+    // returns glyphOrigin, typographicBounds
+    func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
+        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
+
+        let paddingWidth = 2*textContainer.lineFragmentPadding
+
+        // ctTypographicBounds's coordinate system has the glyph origin at (0,0).
+        // Here, we assume that the glyph origin lies on the left edge of
+        // ctTypographicBounds. If it doesn't, we'd have to change our calculation
+        // of typographicBounds's origin, though everything else should just work.
+        assert(ctTypographicBounds.minX == 0)
+
+        // defined to have the origin in the upper left corner
+        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: ctTypographicBounds.height)
+
+        let glyphOrigin = CGPoint(
+            x: ctTypographicBounds.minX + textContainer.lineFragmentPadding,
+            y: ctTypographicBounds.height + ctTypographicBounds.minY
+        )
+
+        return (glyphOrigin, typographicBounds)
+
+        // Leave out renderingSurfaceBounds for now. With monospaced fonts, we won't need it.
+        
+        // let ctGlyphBounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+        // let ctRenderingSurfaceBounds = ctTypographicBounds.union(ctGlyphBounds)
+
+        // we're looking for the upper left corner of the rendering surface bounds, which
+        // is in the typographicBounds' coordinate space. Because we know typographicBounds's
+        // origin will be (0,0), we can just use the difference between the Core Text origins.
+        // let x = ctRenderingSurfaceBounds.origin.x - ctTypographicBounds.origin.x
+        // let y = ctRenderingSurfaceBounds.origin.y - ctTypographicBounds.origin.y
+        // let renderingSurfaceBounds = CGRect(x: x, y: y, width: ctRenderingSurfaceBounds.width + paddingWidth, height: ctRenderingSurfaceBounds.height)
+
+        // let ctRenderingSurfaceBounds = ctTypographicBounds.union(ctGlyphBounds)
     }
 }

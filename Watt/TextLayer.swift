@@ -15,7 +15,7 @@ class TextLayer: NonAnimatingLayer {
         super.init()
         anchorPoint = .zero
         borderColor = NSColor.purple.cgColor
-        bounds = layoutFragment.bounds
+        bounds = layoutFragment.typographicBounds
         borderWidth = 1
         setNeedsDisplay()
     }
