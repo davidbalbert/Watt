@@ -22,8 +22,12 @@ class LayoutFragment {
     }
 
     var lineFragments: [LineFragment]?
-    var frame: CGRect = .zero
     var typographicBounds: CGRect = .zero
+
+    var position: CGPoint = .zero
+    var frame: CGRect {
+        CGRect(origin: position, size: typographicBounds.size)
+    }
 
     init(textElement: TextElement) {
         self.textElement = textElement
@@ -46,8 +50,6 @@ class LayoutFragment {
 
             let position = CGPoint(x: 0, y: height)
             let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
-
-            print(position, glyphOrigin, typographicBounds)
 
             let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: position, typographicBounds: typographicBounds)
             lineFragments.append(lineFragment)
@@ -99,7 +101,7 @@ class LayoutFragment {
         return (glyphOrigin, typographicBounds)
 
         // Leave out renderingSurfaceBounds for now. With monospaced fonts, we won't need it.
-        
+
         // let ctGlyphBounds = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
         // let ctRenderingSurfaceBounds = ctTypographicBounds.union(ctGlyphBounds)
 
