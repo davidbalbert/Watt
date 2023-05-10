@@ -12,9 +12,25 @@ class Document: NSDocument {
         if let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt") {
             let text = try! String(contentsOf: url)
 
-            let s = text.split(separator: "\n")[0..<10].joined(separator: "\n")
+            let maxLines = 10
+            var line = 0
+            var i = text.startIndex
+            while true {
+                if let newline = text[i...].firstIndex(of: "\n") {
+                    i = text.index(after: newline)
+                } else {
+                    i = text.endIndex
+                }
+                line += 1
 
-            return AttributedStringTextStorage(s)
+                if i == text.endIndex || line >= maxLines {
+                    break
+                }
+            }
+
+            let s = text[text.startIndex..<i]
+
+            return AttributedStringTextStorage(String(s))
         }
 
         return AttributedStringTextStorage("Couldn't load")

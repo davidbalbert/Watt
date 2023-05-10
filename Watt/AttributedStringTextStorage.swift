@@ -66,19 +66,21 @@ class AttributedStringTextStorage: TextStorage, ExpressibleByStringLiteral {
             i = s.startIndex
         }
 
-        let last = s.index(s.startIndex, offsetByCharacters: s.characters.count-1)
-
         while i < s.endIndex {
-            let next = s.index(afterCharacter: i)
-            let end = s.index(afterCharacter: s.characters[next...].firstIndex(of: "\n") ?? last)
+            let next: AttributedString.Index
+            if let newline = s[i...].characters.firstIndex(of: "\n") {
+                next = s.index(afterCharacter: newline)
+            } else {
+                next = s.endIndex
+            }
 
-            let el = TextElement(textStorage: self, textRange: i..<end)
+            let el = TextElement(textStorage: self, textRange: i..<next)
 
             if !block(el) {
                 break
             }
 
-            i = end
+            i = next
         }
     }
 
