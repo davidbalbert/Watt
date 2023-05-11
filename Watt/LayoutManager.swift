@@ -44,28 +44,23 @@ class LayoutManager {
 
         delegate.layoutManagerWillLayout(self)
 
-        guard let firstElement = textElement(for: viewportBounds.origin) else {
+        guard let (lineno, textRange) = heightEstimates.lineNumberAndRange(for: viewportBounds.origin) else {
             delegate.layoutManagerDidLayout(self)
             return
         }
 
-        enumerateLayoutFragments(from: firstElement.textRange.start, options: .ensuresLayout) { layoutFragment in
+        var i = lineno
+        enumerateLayoutFragments(from: textRange.start, options: .ensuresLayout) { layoutFragment in
             delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
 
-            let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
+            heightEstimates.updateFragmentHeight(at: i, with: layoutFragment.typographicBounds.height)
+            i += 1
 
+            let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
             return !layoutFragment.frame.contains(lowerLeftCorner)
         }
 
         delegate.layoutManagerDidLayout(self)
-    }
-
-    func textElement(for position: CGPoint) -> TextElement? {
-        guard let textRange = heightEstimates.textRange(for: position) else {
-            return nil
-        }
-
-        return storage?.firstTextElement(in: textRange)
     }
 
     func initialHeightEstimates() -> [CGFloat] {

@@ -17,17 +17,6 @@ protocol TextStorage: AnyObject {
 }
 
 extension TextStorage {
-    func firstTextElement(in range: TextRange) -> TextElement? {
-        var element: TextElement? = nil
-
-        enumerateTextElements(from: range.start) { el in
-            element = el
-            return false
-        }
-
-        return element
-    }
-
     func textElements(for range: TextRange) -> [TextElement] {
         var res: [TextElement] = []
 

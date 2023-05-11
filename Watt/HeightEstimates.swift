@@ -46,7 +46,7 @@ struct HeightEstimates {
         return ys[i] + heights[i]
     }
 
-    func textRange(for position: CGPoint) -> TextRange? {
+    func lineNumberAndRange(for position: CGPoint) -> (Int, TextRange)? {
         var low = 0
         var high = ys.count
 
@@ -74,9 +74,27 @@ struct HeightEstimates {
 
         // position.y is already >= ys[i]
         if position.y <= maxY {
-            return ranges[i]
+            return (i, ranges[i])
         } else {
             return nil
         }
+    }
+
+    mutating func updateFragmentHeight(at index: Int, with newHeight: CGFloat) {
+        if index < 0 || index > heights.count {
+            return
+        }
+
+        if abs(heights[index] - newHeight) < 1e-10 {
+            return
+        }
+
+        let delta = newHeight - heights[index]
+
+        for i in (index+1)..<heights.count {
+            ys[i] += delta
+        }
+
+        heights[index] = newHeight
     }
 }
