@@ -46,7 +46,30 @@ struct HeightEstimates {
         return ys[i] + heights[i]
     }
 
-    func lineNumberAndRange(for position: CGPoint) -> (Int, TextRange)? {
+    func lineNumberAndOffset(containing location: TextLocation) -> (Int, CGFloat)? {
+        var low = 0
+        var high = ranges.count
+
+        // binary search to find the first range that contains location
+        while low < high {
+            let mid = low + (high - low)/2
+            let range = ranges[mid]
+
+            if range.contains(location) {
+                return (mid, ys[mid])
+            } else if range.start.compare(location) == .orderedDescending {
+                // range.start > location
+                high = mid
+            } else {
+                // range.end <= location
+                low = mid + 1
+            }
+        }
+
+        return nil
+    }
+
+    func textRange(for position: CGPoint) -> TextRange? {
         var low = 0
         var high = ys.count
 
@@ -74,7 +97,7 @@ struct HeightEstimates {
 
         // position.y is already >= ys[i]
         if position.y <= maxY {
-            return (i, ranges[i])
+            return ranges[i]
         } else {
             return nil
         }

@@ -47,17 +47,13 @@ class LayoutManager {
 
         delegate.layoutManagerWillLayout(self)
 
-        guard let (lineno, textRange) = heightEstimates.lineNumberAndRange(for: viewportBounds.origin) else {
+        guard let textRange = heightEstimates.textRange(for: viewportBounds.origin) else {
             delegate.layoutManagerDidLayout(self)
             return
         }
 
-        var i = lineno
         enumerateLayoutFragments(from: textRange.start, options: .ensuresLayout) { layoutFragment in
             delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
-
-            heightEstimates.updateFragmentHeight(at: i, with: layoutFragment.typographicBounds.height)
-            i += 1
 
             let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
             return !layoutFragment.frame.contains(lowerLeftCorner)
@@ -82,19 +78,24 @@ class LayoutManager {
             return
         }
 
-        var fragments: [LayoutFragment] = []
+        var lineno: Int = 0
         var y: CGFloat = 0
 
+        if options.contains(.ensuresLayout), let (line, offset) = heightEstimates.lineNumberAndOffset(containing: location) {
+            lineno = line
+            y = offset
+        }
+
         storage.enumerateTextElements(from: location) { el in
-            let frag = LayoutFragment(position: CGPoint(x: 0, y: y), textElement: el)
+            let frag = LayoutFragment(textElement: el)
 
             if options.contains(.ensuresLayout) {
-                frag.layout(in: textContainer)
+                frag.layout(at: CGPoint(x: 0, y: y), in: textContainer)
+                let height = frag.typographicBounds.height
+                heightEstimates.updateFragmentHeight(at: lineno, with: height)
+                y += height
+                lineno += 1
             }
-            // TODO: this assumes we're actually doing layout
-            y += frag.typographicBounds.height
-
-            fragments.append(frag)
 
             return block(frag)
         }

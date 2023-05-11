@@ -24,17 +24,18 @@ class LayoutFragment {
     var lineFragments: [LineFragment]?
     var typographicBounds: CGRect = .zero
 
-    var position: CGPoint
+    var position: CGPoint = .zero
     var frame: CGRect {
         CGRect(origin: position, size: typographicBounds.size)
     }
 
-    init(position: CGPoint, textElement: TextElement) {
-        self.position = position
+    init(textElement: TextElement) {
         self.textElement = textElement
     }
 
-    func layout(in textContainer: TextContainer) {
+    func layout(at position: CGPoint, in textContainer: TextContainer) {
+        self.position = position
+
         let s = textElement.attributedString
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
@@ -49,10 +50,10 @@ class LayoutFragment {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
             let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
-            let position = CGPoint(x: 0, y: height)
+            let p = CGPoint(x: 0, y: height)
             let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
 
-            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: position, typographicBounds: typographicBounds)
+            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds)
             lineFragments.append(lineFragment)
 
             i = next
