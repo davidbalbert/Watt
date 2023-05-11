@@ -25,9 +25,14 @@ class LayoutManager {
         }
     }
     weak var delegate: LayoutManagerDelegate?
-    weak var storage: TextStorage?
 
-    lazy var heightEstimates: [CGFloat] = initialHeightEstimates()
+    weak var storage: TextStorage? {
+        didSet {
+            heightEstimates = HeightEstimates(storage: storage)
+        }
+    }
+
+    lazy var heightEstimates: HeightEstimates = HeightEstimates(storage: storage)
     var layoutFragments: [LayoutFragment]?
 
     func layoutViewport() {
@@ -39,16 +44,28 @@ class LayoutManager {
 
         delegate.layoutManagerWillLayout(self)
 
-        let viewportRange = textRange(for: viewportBounds)
-
-        enumerateLayoutFragments(from: viewportRange.start, options: .ensuresLayout) { layoutFragment in
-            delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
-
-            return !layoutFragment.textRange.contains(viewportRange.end)
+        guard let firstElement = textElement(for: viewportBounds.origin) else {
+            delegate.layoutManagerDidLayout(self)
+            return
         }
 
+        enumerateLayoutFragments(from: firstElement.textRange.start, options: .ensuresLayout) { layoutFragment in
+            delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
+
+            let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
+
+            return !layoutFragment.frame.contains(lowerLeftCorner)
+        }
 
         delegate.layoutManagerDidLayout(self)
+    }
+
+    func textElement(for position: CGPoint) -> TextElement? {
+        guard let textRange = heightEstimates.textRange(for: position) else {
+            return nil
+        }
+
+        return storage?.firstTextElement(in: textRange)
     }
 
     func initialHeightEstimates() -> [CGFloat] {
@@ -62,15 +79,12 @@ class LayoutManager {
         return Array(repeating: lineHeight, count: count)
     }
 
-    func textRange(for rect: CGRect) -> TextRange {
-        storage?.documentRange ?? NullTextRange()
-    }
-
     func enumerateLayoutFragments(from location: TextLocation, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let storage, let textContainer else {
             return
         }
 
+        // TODO: right now, we're just caching everything. Things can't stay this way.
         if let layoutFragments {
             for frag in layoutFragments {
                 if !block(frag) {
@@ -89,6 +103,7 @@ class LayoutManager {
             if options.contains(.ensuresLayout) {
                 frag.layout(in: textContainer)
             }
+            // TODO: this assumes we're actually doing layout
             y += frag.typographicBounds.height
 
             fragments.append(frag)
