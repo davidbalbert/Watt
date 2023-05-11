@@ -33,7 +33,10 @@ class LayoutManager {
     }
 
     lazy var heightEstimates: HeightEstimates = HeightEstimates(storage: storage)
-    var layoutFragments: [LayoutFragment]?
+
+    var documentHeight: CGFloat {
+        heightEstimates.documentHeight
+    }
 
     func layoutViewport() {
         guard let delegate else {
@@ -79,16 +82,6 @@ class LayoutManager {
             return
         }
 
-        // TODO: right now, we're just caching everything. Things can't stay this way.
-        if let layoutFragments {
-            for frag in layoutFragments {
-                if !block(frag) {
-                    return
-                }
-            }
-            return
-        }
-
         var fragments: [LayoutFragment] = []
         var y: CGFloat = 0
 
@@ -105,11 +98,8 @@ class LayoutManager {
 
             return block(frag)
         }
-
-        layoutFragments = fragments
     }
 
     func invalidateLayout() {
-        layoutFragments = nil
     }
 }
