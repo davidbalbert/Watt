@@ -17,6 +17,7 @@
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
 		63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */; };
+		63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
@@ -72,6 +73,7 @@
 		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimates.swift; sourceTree = "<group>"; };
+		63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerDelegate.swift; sourceTree = "<group>"; };
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
@@ -149,8 +151,10 @@
 				63DB4F3329FEBFF500B97B39 /* AttributedString.Index+TextLocation.swift */,
 				63B61A1929FDA62D00787BB9 /* AttributedStringTextStorage.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
+				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
 				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
+				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				63DB4F3729FEC17300B97B39 /* NullTextStorage.swift */,
@@ -167,7 +171,6 @@
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
-				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
 			);
 			path = Watt;
 			sourceTree = "<group>";
@@ -340,6 +343,7 @@
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63DB4F3229FEBF9800B97B39 /* Range+TextRange.swift in Sources */,
 				63DB4F3629FEC0A600B97B39 /* TextStorage.swift in Sources */,
+				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
 				63B61A2829FDB72400787BB9 /* TextRange.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

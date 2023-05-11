@@ -7,13 +7,6 @@
 
 import Foundation
 
-protocol LayoutManagerDelegate: AnyObject {
-    func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment)
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager)
-}
-
 class LayoutManager {
     var viewportBounds: CGRect = .zero
     var textContainer: TextContainer? {
