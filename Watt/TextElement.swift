@@ -9,7 +9,7 @@ import Foundation
 
 struct TextElement {
     weak var textStorage: TextStorage?
-    let textRange: TextRange
+    let textRange: Range<AttributedString.Index>
 
     var attributedString: NSAttributedString {
         guard let textStorage else {

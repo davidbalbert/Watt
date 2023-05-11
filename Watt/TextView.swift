@@ -58,7 +58,7 @@ class TextView: NSView {
     var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
-        storage = NullTextStorage()
+        storage = TextStorage()
         layoutManager = LayoutManager()
         textContainer = TextContainer()
         super.init(frame: .zero)
@@ -66,7 +66,7 @@ class TextView: NSView {
     }
 
     required init?(coder: NSCoder) {
-        storage = NullTextStorage()
+        storage = TextStorage()
         layoutManager = LayoutManager()
         textContainer = TextContainer()
         super.init(coder: coder)

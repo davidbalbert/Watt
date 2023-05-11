@@ -45,7 +45,7 @@ class LayoutManager {
             return
         }
 
-        enumerateLayoutFragments(from: textRange.start, options: .ensuresLayout) { layoutFragment in
+        enumerateLayoutFragments(from: textRange.lowerBound, options: .ensuresLayout) { layoutFragment in
             delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
 
             let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
@@ -66,7 +66,7 @@ class LayoutManager {
         return Array(repeating: lineHeight, count: count)
     }
 
-    func enumerateLayoutFragments(from location: TextLocation, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
+    func enumerateLayoutFragments(from location: AttributedString.Index, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let storage, let textContainer else {
             return
         }

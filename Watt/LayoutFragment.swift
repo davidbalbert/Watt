@@ -17,7 +17,7 @@ class LayoutFragment {
 
     let textElement: TextElement
 
-    var textRange: TextRange {
+    var textRange: Range<AttributedString.Index> {
         textElement.textRange
     }
 

@@ -8,9 +8,9 @@
 import Cocoa
 
 class TextViewController: NSViewController {
-    var storage: AttributedStringTextStorage
+    var storage: TextStorage
 
-    init(_ storage: AttributedStringTextStorage) {
+    init(_ storage: TextStorage) {
         self.storage = storage
         super.init(nibName: nil, bundle: nil)
     }

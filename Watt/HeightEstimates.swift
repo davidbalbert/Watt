@@ -11,7 +11,7 @@ struct HeightEstimates {
     // assume heights, ys, and ranges are all the same length
     var heights: [CGFloat]
     var ys: [CGFloat]
-    var ranges: [TextRange]
+    var ranges: [Range<AttributedString.Index>]
 
     init(storage: TextStorage?) {
         heights = []
@@ -23,7 +23,7 @@ struct HeightEstimates {
         }
 
         var y: CGFloat = 0
-        storage.enumerateTextElements(from: storage.documentRange.start) { el in
+        storage.enumerateTextElements(from: storage.documentRange.lowerBound) { el in
             let h: CGFloat = 10 // TODO: better estimate
 
             heights.append(h)
@@ -46,7 +46,7 @@ struct HeightEstimates {
         return ys[i] + heights[i]
     }
 
-    func lineNumberAndOffset(containing location: TextLocation) -> (Int, CGFloat)? {
+    func lineNumberAndOffset(containing location: AttributedString.Index) -> (Int, CGFloat)? {
         var low = 0
         var high = ranges.count
 
@@ -57,8 +57,7 @@ struct HeightEstimates {
 
             if range.contains(location) {
                 return (mid, ys[mid])
-            } else if range.start.compare(location) == .orderedDescending {
-                // range.start > location
+            } else if range.lowerBound > location {
                 high = mid
             } else {
                 // range.end <= location
@@ -69,7 +68,7 @@ struct HeightEstimates {
         return nil
     }
 
-    func textRange(for position: CGPoint) -> TextRange? {
+    func textRange(for position: CGPoint) -> Range<AttributedString.Index>? {
         var low = 0
         var high = ys.count
 
