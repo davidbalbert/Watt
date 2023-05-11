@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextView: NSView {
+class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: TextStorage {
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
@@ -28,14 +28,14 @@ class TextView: NSView {
         true
     }
 
-    var storage: TextStorage {
+    var storage: Storage {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             storage.addLayoutManager(layoutManager)
         }
     }
 
-    var layoutManager: LayoutManager {
+    var layoutManager: LayoutManager<Storage> {
         didSet {
             oldValue.delegate = nil
             storage.removeLayoutManager(oldValue)
@@ -53,21 +53,21 @@ class TextView: NSView {
         }
     }
 
-    var textContainer: TextContainer
+    var textContainer: TextContainer<Storage>
 
     var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
-        storage = TextStorage()
-        layoutManager = LayoutManager()
+        storage = Storage("")
+        layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
         super.init(frame: .zero)
         commonInit()
     }
 
     required init?(coder: NSCoder) {
-        storage = TextStorage()
-        layoutManager = LayoutManager()
+        storage = Storage("")
+        layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
         super.init(coder: coder)
         commonInit()
@@ -82,5 +82,28 @@ class TextView: NSView {
 
     override func updateLayer() {
         layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+    }
+
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
+    }
+
+    override func layout() {
+        guard let layer else {
+            return
+        }
+
+        if textLayer.superlayer == nil {
+            textLayer.anchorPoint = .zero
+            textLayer.bounds = layer.bounds
+            layer.addSublayer(textLayer)
+        }
+
+        layoutManager.layoutViewport()
+    }
+
+    override func prepareContent(in rect: NSRect) {
+        super.prepareContent(in: rect)
+        layoutManager.layoutViewport()
     }
 }

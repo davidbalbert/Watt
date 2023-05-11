@@ -18,10 +18,11 @@
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
 		63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */; };
 		63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */; };
+		63A6186E2A0D901600E70B0E /* TextStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A6186D2A0D901600E70B0E /* TextStorage.swift */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
-		63B61A1A29FDA62D00787BB9 /* TextStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1929FDA62D00787BB9 /* TextStorage.swift */; };
+		63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */; };
 		63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */; };
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2129FDB09600787BB9 /* LayoutFragment.swift */; };
@@ -68,10 +69,11 @@
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimates.swift; sourceTree = "<group>"; };
 		63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerDelegate.swift; sourceTree = "<group>"; };
+		63A6186D2A0D901600E70B0E /* TextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorage.swift; sourceTree = "<group>"; };
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
-		63B61A1929FDA62D00787BB9 /* TextStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorage.swift; sourceTree = "<group>"; };
+		63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringStorage.swift; sourceTree = "<group>"; };
 		63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B61A2129FDB09600787BB9 /* LayoutFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragment.swift; sourceTree = "<group>"; };
@@ -136,7 +138,7 @@
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				63B61A1929FDA62D00787BB9 /* TextStorage.swift */,
+				63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
 				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
@@ -146,6 +148,7 @@
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
+				63A6186D2A0D901600E70B0E /* TextStorage.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
@@ -316,9 +319,10 @@
 				6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */,
 				63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */,
 				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
+				63A6186E2A0D901600E70B0E /* TextStorage.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
-				63B61A1A29FDA62D00787BB9 /* TextStorage.swift in Sources */,
+				63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
 			);

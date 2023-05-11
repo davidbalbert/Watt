@@ -7,9 +7,11 @@
 
 import Foundation
 
-protocol LayoutManagerDelegate: AnyObject {
-    func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment)
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager)
+protocol LayoutManagerDelegate<Storage>: AnyObject {
+    associatedtype Storage: TextStorage
+
+    func viewportBounds(for layoutManager: LayoutManager<Storage>) -> CGRect
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>)
+    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment<Storage>)
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>)
 }

@@ -7,10 +7,10 @@
 
 import Cocoa
 
-class TextLayer: NonAnimatingLayer {
-    var layoutFragment: LayoutFragment
+class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
+    var layoutFragment: LayoutFragment<Storage>
 
-    init(layoutFragment: LayoutFragment) {
+    init(layoutFragment: LayoutFragment<Storage>) {
         self.layoutFragment = layoutFragment
         super.init()
         anchorPoint = .zero

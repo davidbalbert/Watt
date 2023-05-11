@@ -7,7 +7,7 @@
 
 import Foundation
 
-class TextContainer {
+class TextContainer<Storage> where Storage: TextStorage {
     var size: CGSize = .zero {
         didSet {
             layoutManager?.invalidateLayout()
@@ -27,5 +27,5 @@ class TextContainer {
     }
     
     var lineFragmentPadding: CGFloat = 5
-    weak var layoutManager: LayoutManager?
+    weak var layoutManager: LayoutManager<Storage>?
 }

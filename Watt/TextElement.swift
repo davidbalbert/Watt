@@ -7,9 +7,9 @@
 
 import Foundation
 
-struct TextElement {
-    weak var textStorage: TextStorage?
-    let textRange: Range<AttributedString.Index>
+struct TextElement<Storage> where Storage: TextStorage {
+    weak var textStorage: Storage?
+    let textRange: Range<Storage.Location>
 
     var attributedString: NSAttributedString {
         guard let textStorage else {

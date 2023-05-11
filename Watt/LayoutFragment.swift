@@ -8,16 +8,16 @@
 import Foundation
 import CoreText
 
-class LayoutFragment {
-    struct EnumerationOptions: OptionSet {
-        let rawValue: Int
+struct LayoutFragmentEnumerationOptions: OptionSet {
+    let rawValue: Int
 
-        static let ensuresLayout = EnumerationOptions(rawValue: 1 << 0)
-    }
+    static let ensuresLayout = LayoutFragmentEnumerationOptions(rawValue: 1 << 0)
+}
 
-    let textElement: TextElement
+class LayoutFragment<Storage> where Storage: TextStorage {
+    let textElement: TextElement<Storage>
 
-    var textRange: Range<AttributedString.Index> {
+    var textRange: Range<Storage.Location> {
         textElement.textRange
     }
 
@@ -29,11 +29,11 @@ class LayoutFragment {
         CGRect(origin: position, size: typographicBounds.size)
     }
 
-    init(textElement: TextElement) {
+    init(textElement: TextElement<Storage>) {
         self.textElement = textElement
     }
 
-    func layout(at position: CGPoint, in textContainer: TextContainer) {
+    func layout(at position: CGPoint, in textContainer: TextContainer<Storage>) {
         self.position = position
 
         let s = textElement.attributedString
@@ -81,7 +81,7 @@ class LayoutFragment {
     }
 
     // returns glyphOrigin, typographicBounds
-    func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
+    func lineMetrics(for line: CTLine, in textContainer: TextContainer<Storage>) -> (CGPoint, CGRect) {
         let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
 
         let paddingWidth = 2*textContainer.lineFragmentPadding

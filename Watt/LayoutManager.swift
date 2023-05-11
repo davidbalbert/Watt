@@ -7,9 +7,11 @@
 
 import Foundation
 
-class LayoutManager {
+class LayoutManager<Storage> where Storage: TextStorage {
+    typealias Location = Storage.Location
+
     var viewportBounds: CGRect = .zero
-    var textContainer: TextContainer? {
+    var textContainer: TextContainer<Storage>? {
         willSet {
             textContainer?.layoutManager = nil
         }
@@ -17,9 +19,9 @@ class LayoutManager {
             textContainer?.layoutManager = self
         }
     }
-    weak var delegate: LayoutManagerDelegate?
+    weak var delegate: (any LayoutManagerDelegate<Storage>)?
 
-    weak var storage: TextStorage? {
+    weak var storage: Storage? {
         didSet {
             heightEstimates = HeightEstimates(storage: storage)
         }
@@ -66,7 +68,7 @@ class LayoutManager {
         return Array(repeating: lineHeight, count: count)
     }
 
-    func enumerateLayoutFragments(from location: AttributedString.Index, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
+    func enumerateLayoutFragments(from location: Location, options: LayoutFragmentEnumerationOptions = [], using block: (LayoutFragment<Storage>) -> Bool) {
         guard let storage, let textContainer else {
             return
         }
@@ -80,7 +82,7 @@ class LayoutManager {
         }
 
         storage.enumerateTextElements(from: location) { el in
-            let frag = LayoutFragment(textElement: el)
+            let frag = LayoutFragment<Storage>(textElement: el)
 
             if options.contains(.ensuresLayout) {
                 frag.layout(at: CGPoint(x: 0, y: y), in: textContainer)

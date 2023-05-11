@@ -7,13 +7,15 @@
 
 import Foundation
 
-struct HeightEstimates {
+struct HeightEstimates<Storage> where Storage: TextStorage {
+    typealias Location = Storage.Location
+
     // assume heights, ys, and ranges are all the same length
     var heights: [CGFloat]
     var ys: [CGFloat]
-    var ranges: [Range<AttributedString.Index>]
+    var ranges: [Range<Location>]
 
-    init(storage: TextStorage?) {
+    init(storage: Storage?) {
         heights = []
         ys = []
         ranges = []
@@ -46,7 +48,7 @@ struct HeightEstimates {
         return ys[i] + heights[i]
     }
 
-    func lineNumberAndOffset(containing location: AttributedString.Index) -> (Int, CGFloat)? {
+    func lineNumberAndOffset(containing location: Location) -> (Int, CGFloat)? {
         var low = 0
         var high = ranges.count
 
@@ -68,7 +70,7 @@ struct HeightEstimates {
         return nil
     }
 
-    func textRange(for position: CGPoint) -> Range<AttributedString.Index>? {
+    func textRange(for position: CGPoint) -> Range<Location>? {
         var low = 0
         var high = ys.count
 
