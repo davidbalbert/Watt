@@ -74,7 +74,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
         return Array(repeating: lineHeight, count: count)
     }
 
-    func enumerateLayoutFragments(from location: Location, options: LayoutFragmentEnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
+    func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let storage, let textContainer else {
             return
         }

@@ -8,13 +8,13 @@
 import Foundation
 import CoreText
 
-struct LayoutFragmentEnumerationOptions: OptionSet {
-    let rawValue: Int
-
-    static let ensuresLayout = LayoutFragmentEnumerationOptions(rawValue: 1 << 0)
-}
-
 extension LayoutManager {
+    struct EnumerationOptions: OptionSet {
+        let rawValue: Int
+
+        static var ensuresLayout: Self { EnumerationOptions(rawValue: 1 << 0) }
+    }
+
     class LayoutFragment {
         let textElement: TextElement
 
