@@ -9,21 +9,22 @@ import Foundation
 
 protocol TextStorage: AnyObject {
     associatedtype Location: Comparable
+    typealias TextElement = LayoutManager<Self>.TextElement
 
     init<S>(_ s: S) where S: StringProtocol
 
     var documentRange: Range<Location> { get }
-    func enumerateTextElements(from location: Location, using block: (TextElement<Self>) -> Bool)
+    func enumerateTextElements(from location: Location, using block: (TextElement) -> Bool)
 
     func addLayoutManager(_ layoutManager: LayoutManager<Self>)
     func removeLayoutManager(_ layoutManager: LayoutManager<Self>)
 
-    func attributedString(for textElement: TextElement<Self>) -> NSAttributedString
+    func attributedString(for textElement: TextElement) -> NSAttributedString
 }
 
 extension TextStorage {
-    func textElements(for range: Range<Location>) -> [TextElement<Self>] {
-        var res: [TextElement<Self>] = []
+    func textElements(for range: Range<Location>) -> [TextElement] {
+        var res: [TextElement] = []
 
         enumerateTextElements(from: range.lowerBound) { element in
             if element.textRange.lowerBound >= range.upperBound {

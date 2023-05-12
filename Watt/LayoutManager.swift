@@ -11,7 +11,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
     typealias Location = Storage.Location
 
     var viewportBounds: CGRect = .zero
-    var textContainer: TextContainer<Storage>? {
+    var textContainer: TextContainer? {
         willSet {
             textContainer?.layoutManager = nil
         }
@@ -68,7 +68,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
         return Array(repeating: lineHeight, count: count)
     }
 
-    func enumerateLayoutFragments(from location: Location, options: LayoutFragmentEnumerationOptions = [], using block: (LayoutFragment<Storage>) -> Bool) {
+    func enumerateLayoutFragments(from location: Location, options: LayoutFragmentEnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let storage, let textContainer else {
             return
         }
@@ -82,7 +82,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
         }
 
         storage.enumerateTextElements(from: location) { el in
-            let frag = LayoutFragment<Storage>(textElement: el)
+            let frag = LayoutFragment(textElement: el)
 
             if options.contains(.ensuresLayout) {
                 frag.layout(at: CGPoint(x: 0, y: y), in: textContainer)

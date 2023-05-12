@@ -25,7 +25,7 @@ extension TextView: LayoutManagerDelegate {
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment<Storage>) {
+    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
         let l = TextLayer(layoutFragment: layoutFragment)
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         textLayer.addSublayer(l)

@@ -9,6 +9,7 @@ import Foundation
 
 final class AttributedStringStorage: TextStorage {
     typealias Location = AttributedString.Index
+    typealias TextElement = LayoutManager<AttributedStringStorage>.TextElement
 
     var s: AttributedString
     var layoutManagers: [LayoutManager<AttributedStringStorage>] = []
@@ -52,7 +53,7 @@ final class AttributedStringStorage: TextStorage {
         s.startIndex..<s.endIndex
     }
 
-    func enumerateTextElements(from textLocation: AttributedString.Index, using block: (TextElement<AttributedStringStorage>) -> Bool) {
+    func enumerateTextElements(from textLocation: AttributedString.Index, using block: (TextElement) -> Bool) {
         var i: AttributedString.Index
         if textLocation != s.startIndex, let lineEnd = s.characters[...textLocation].lastIndex(of: "\n") {
             i = s.index(afterCharacter: lineEnd)
@@ -78,7 +79,7 @@ final class AttributedStringStorage: TextStorage {
         }
     }
 
-    func attributedString(for textElement: TextElement<AttributedStringStorage>) -> NSAttributedString {
+    func attributedString(for textElement: TextElement) -> NSAttributedString {
         let substr = s[textElement.textRange]
 
         // TODO: is there a way to do this with a single copy instead of two?

@@ -12,6 +12,6 @@ protocol LayoutManagerDelegate<Storage>: AnyObject {
 
     func viewportBounds(for layoutManager: LayoutManager<Storage>) -> CGRect
     func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>)
-    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment<Storage>)
+    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutManager<Storage>.LayoutFragment)
     func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>)
 }

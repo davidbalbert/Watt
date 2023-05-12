@@ -7,15 +7,17 @@
 
 import Foundation
 
-struct TextElement<Storage> where Storage: TextStorage {
-    weak var textStorage: Storage?
-    let textRange: Range<Storage.Location>
+extension LayoutManager {
+    struct TextElement {
+        weak var textStorage: Storage?
+        let textRange: Range<Location>
 
-    var attributedString: NSAttributedString {
-        guard let textStorage else {
-            return NSAttributedString("")
+        var attributedString: NSAttributedString {
+            guard let textStorage else {
+                return NSAttributedString("")
+            }
+
+            return textStorage.attributedString(for: self)
         }
-
-        return textStorage.attributedString(for: self)
     }
 }

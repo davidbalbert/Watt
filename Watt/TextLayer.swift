@@ -8,9 +8,11 @@
 import Cocoa
 
 class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
-    var layoutFragment: LayoutFragment<Storage>
+    typealias LayoutFragment = LayoutManager<Storage>.LayoutFragment
 
-    init(layoutFragment: LayoutFragment<Storage>) {
+    var layoutFragment: LayoutFragment
+
+    init(layoutFragment: LayoutFragment) {
         self.layoutFragment = layoutFragment
         super.init()
         anchorPoint = .zero

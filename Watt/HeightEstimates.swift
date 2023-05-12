@@ -7,118 +7,118 @@
 
 import Foundation
 
-struct HeightEstimates<Storage> where Storage: TextStorage {
-    typealias Location = Storage.Location
+extension LayoutManager {
+    struct HeightEstimates {
+        // assume heights, ys, and ranges are all the same length
+        var heights: [CGFloat]
+        var ys: [CGFloat]
+        var ranges: [Range<Location>]
 
-    // assume heights, ys, and ranges are all the same length
-    var heights: [CGFloat]
-    var ys: [CGFloat]
-    var ranges: [Range<Location>]
+        init(storage: Storage?) {
+            heights = []
+            ys = []
+            ranges = []
 
-    init(storage: Storage?) {
-        heights = []
-        ys = []
-        ranges = []
+            guard let storage else {
+                return
+            }
 
-        guard let storage else {
-            return
-        }
+            var y: CGFloat = 0
+            storage.enumerateTextElements(from: storage.documentRange.lowerBound) { el in
+                let h: CGFloat = 10 // TODO: better estimate
 
-        var y: CGFloat = 0
-        storage.enumerateTextElements(from: storage.documentRange.lowerBound) { el in
-            let h: CGFloat = 10 // TODO: better estimate
+                heights.append(h)
+                ys.append(y)
+                ranges.append(el.textRange)
 
-            heights.append(h)
-            ys.append(y)
-            ranges.append(el.textRange)
+                y += h
 
-            y += h
-
-            return true
-        }
-    }
-
-    var documentHeight: CGFloat {
-        if ys.count == 0 {
-            return 0
-        }
-
-        let i = ys.count-1
-
-        return ys[i] + heights[i]
-    }
-
-    func lineNumberAndOffset(containing location: Location) -> (Int, CGFloat)? {
-        var low = 0
-        var high = ranges.count
-
-        // binary search to find the first range that contains location
-        while low < high {
-            let mid = low + (high - low)/2
-            let range = ranges[mid]
-
-            if range.contains(location) {
-                return (mid, ys[mid])
-            } else if range.lowerBound > location {
-                high = mid
-            } else {
-                // range.end <= location
-                low = mid + 1
+                return true
             }
         }
 
-        return nil
-    }
+        var documentHeight: CGFloat {
+            if ys.count == 0 {
+                return 0
+            }
 
-    func textRange(for position: CGPoint) -> Range<Location>? {
-        var low = 0
-        var high = ys.count
+            let i = ys.count-1
 
-        // binary search to find the first y that's less than or equal to position.minY
-        while low < high {
-            let mid = low + (high - low)/2
-            let y = ys[mid]
+            return ys[i] + heights[i]
+        }
 
-            if y > position.y {
-                high = mid
+        func lineNumberAndOffset(containing location: Location) -> (Int, CGFloat)? {
+            var low = 0
+            var high = ranges.count
+
+            // binary search to find the first range that contains location
+            while low < high {
+                let mid = low + (high - low)/2
+                let range = ranges[mid]
+
+                if range.contains(location) {
+                    return (mid, ys[mid])
+                } else if range.lowerBound > location {
+                    high = mid
+                } else {
+                    // range.end <= location
+                    low = mid + 1
+                }
+            }
+
+            return nil
+        }
+
+        func textRange(for position: CGPoint) -> Range<Location>? {
+            var low = 0
+            var high = ys.count
+
+            // binary search to find the first y that's less than or equal to position.minY
+            while low < high {
+                let mid = low + (high - low)/2
+                let y = ys[mid]
+
+                if y > position.y {
+                    high = mid
+                } else {
+                    low = mid + 1
+                }
+            }
+
+            // if we didn't find anything, return nil
+            if low == 0 {
+                return nil
+            }
+
+            // if we found something, check if it's within the range
+            let i = low - 1
+
+            let maxY = ys[i] + heights[i]
+
+            // position.y is already >= ys[i]
+            if position.y <= maxY {
+                return ranges[i]
             } else {
-                low = mid + 1
+                return nil
             }
         }
 
-        // if we didn't find anything, return nil
-        if low == 0 {
-            return nil
+        mutating func updateFragmentHeight(at index: Int, with newHeight: CGFloat) {
+            if index < 0 || index > heights.count {
+                return
+            }
+
+            if abs(heights[index] - newHeight) < 1e-10 {
+                return
+            }
+
+            let delta = newHeight - heights[index]
+
+            for i in (index+1)..<heights.count {
+                ys[i] += delta
+            }
+
+            heights[index] = newHeight
         }
-
-        // if we found something, check if it's within the range
-        let i = low - 1
-
-        let maxY = ys[i] + heights[i]
-
-        // position.y is already >= ys[i]
-        if position.y <= maxY {
-            return ranges[i]
-        } else {
-            return nil
-        }
-    }
-
-    mutating func updateFragmentHeight(at index: Int, with newHeight: CGFloat) {
-        if index < 0 || index > heights.count {
-            return
-        }
-
-        if abs(heights[index] - newHeight) < 1e-10 {
-            return
-        }
-
-        let delta = newHeight - heights[index]
-
-        for i in (index+1)..<heights.count {
-            ys[i] += delta
-        }
-
-        heights[index] = newHeight
     }
 }

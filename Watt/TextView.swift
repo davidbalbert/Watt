@@ -8,6 +8,9 @@
 import Cocoa
 
 class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: TextStorage {
+    typealias TextContainer = LayoutManager<Storage>.TextContainer
+    typealias LayoutFragment = LayoutManager<Storage>.LayoutFragment
+
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
@@ -53,7 +56,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         }
     }
 
-    var textContainer: TextContainer<Storage>
+    var textContainer: TextContainer
 
     var textLayer: CALayer = NonAnimatingLayer()
 
