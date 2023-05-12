@@ -15,10 +15,6 @@ class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
     init(layoutFragment: LayoutFragment) {
         self.layoutFragment = layoutFragment
         super.init()
-        anchorPoint = .zero
-        bounds = layoutFragment.typographicBounds
-        position = layoutFragment.position
-        setNeedsDisplay()
     }
 
     override init(layer: Any) {

@@ -26,8 +26,16 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
-        let l = TextLayer(layoutFragment: layoutFragment)
+        let l = fragmentLayerMap[layoutFragment.id] ?? TextLayer(layoutFragment: layoutFragment)
+
         l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.needsDisplayOnBoundsChange = true
+        l.anchorPoint = .zero
+        l.bounds = layoutFragment.typographicBounds
+        l.position = layoutFragment.position
+
+        fragmentLayerMap[layoutFragment.id] = l
+
         textLayer.addSublayer(l)
     }
 

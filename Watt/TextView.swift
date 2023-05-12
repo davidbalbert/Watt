@@ -58,12 +58,15 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
 
     var textContainer: TextContainer
 
+    var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Storage>>
+
     var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
         storage = Storage("")
         layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
+        fragmentLayerMap = WeakDictionary()
         super.init(frame: .zero)
         commonInit()
     }
@@ -72,6 +75,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         storage = Storage("")
         layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
+        fragmentLayerMap = WeakDictionary()
         super.init(coder: coder)
         commonInit()
     }

@@ -15,7 +15,9 @@ extension LayoutManager {
         static var ensuresLayout: Self { EnumerationOptions(rawValue: 1 << 0) }
     }
 
-    class LayoutFragment {
+    class LayoutFragment: Identifiable {
+        let id = UUID()
+
         let textElement: TextElement
 
         var textRange: Range<Location> {
