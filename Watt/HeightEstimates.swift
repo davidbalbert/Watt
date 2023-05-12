@@ -25,7 +25,7 @@ extension LayoutManager {
 
             var y: CGFloat = 0
             storage.enumerateTextElements(from: storage.documentRange.lowerBound) { el in
-                let h: CGFloat = 10 // TODO: better estimate
+                let h: CGFloat = 14 // TODO: better estimate
 
                 heights.append(h)
                 ys.append(y)
@@ -108,11 +108,11 @@ extension LayoutManager {
                 return
             }
 
-            if abs(heights[index] - newHeight) < 1e-10 {
+            let delta = floor(newHeight - heights[index])
+
+            if delta == 0 {
                 return
             }
-
-            let delta = newHeight - heights[index]
 
             for i in (index+1)..<heights.count {
                 ys[i] += delta

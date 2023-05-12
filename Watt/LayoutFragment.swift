@@ -22,8 +22,9 @@ extension LayoutManager {
             textElement.textRange
         }
 
-        var lineFragments: [LineFragment]?
+        var lineFragments: [LineFragment] = []
         var typographicBounds: CGRect = .zero
+        var hasLayout: Bool = false
 
         var position: CGPoint = .zero
         var frame: CGRect {
@@ -35,6 +36,11 @@ extension LayoutManager {
         }
 
         func layout(at position: CGPoint, in textContainer: TextContainer) {
+            if hasLayout {
+                print("warning: layout(at:in:) called on fragment that already has layout")
+                return
+            }
+
             self.position = position
 
             let s = textElement.attributedString
@@ -42,7 +48,6 @@ extension LayoutManager {
             // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
             let typesetter = CTTypesetterCreateWithAttributedString(s)
 
-            var lineFragments: [LineFragment] = []
             var width: CGFloat = 0
             var height: CGFloat = 0
             var i = 0
@@ -62,12 +67,12 @@ extension LayoutManager {
                 height += typographicBounds.height
             }
 
-            self.lineFragments = lineFragments
             self.typographicBounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
+            self.hasLayout = true
         }
 
         func draw(at point: CGPoint, in ctx: CGContext) {
-            guard let lineFragments else {
+            guard hasLayout else {
                 return
             }
 
