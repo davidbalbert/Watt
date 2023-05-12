@@ -52,11 +52,23 @@ extension LayoutManager {
         }
 
         func fragment(at location: Location) -> LayoutFragment? {
-            guard let index = fragments.firstIndex(where: { $0.textRange.lowerBound == location }) else {
-                return nil
+            var low = 0
+            var high = fragments.count - 1
+
+            while low <= high {
+                let mid = (low + high) / 2
+                let fragment = fragments[mid]
+
+                if fragment.textRange.lowerBound < location {
+                    low = mid + 1
+                } else if fragment.textRange.lowerBound > location {
+                    high = mid - 1
+                } else {
+                    return fragment
+                }
             }
 
-            return fragments[index]
+            return nil
         }
     }
 }
