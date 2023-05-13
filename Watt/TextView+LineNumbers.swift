@@ -7,25 +7,29 @@
 
 import Cocoa
 
-extension TextView {
+extension TextView: LineNumberViewDelegate {
     func addLineNumberView() {
-        guard let enclosingScrollView else {
+        guard let scrollView else {
             return
         }
 
-        if enclosingScrollView.documentView == self {
-            enclosingScrollView.addFloatingSubview(lineNumberView, for: .vertical)
-            let clipView = enclosingScrollView.contentView
-
-            NSLayoutConstraint.activate([
-                lineNumberView.topAnchor.constraint(equalTo: clipView.topAnchor),
-                lineNumberView.bottomAnchor.constraint(equalTo: clipView.bottomAnchor),
-                lineNumberView.widthAnchor.constraint(equalToConstant: 40)
-            ])
-        }
+        scrollView.addFloatingSubview(lineNumberView, for: .vertical)
     }
 
     func removeLineNumberView() {
         lineNumberView.removeFromSuperview()
+    }
+
+    func layoutLineNumberView() {
+        guard let scrollView else {
+            return
+        }
+
+        let clipView = scrollView.contentView
+        lineNumberView.frame = CGRect(x: 0, y: 0, width: 30, height: clipView.frame.height)
+    }
+
+    func lineNumberViewFrameDidChange(_ notification: NSNotification) {
+        updateTextContainerSize()
     }
 }

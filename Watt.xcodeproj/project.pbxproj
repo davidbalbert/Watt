@@ -34,6 +34,7 @@
 		63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */; };
 		63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */; };
 		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
+		63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,6 +90,7 @@
 		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonAnimatingLayer.swift; sourceTree = "<group>"; };
 		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLayer.swift; sourceTree = "<group>"; };
 		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
+		63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberViewDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,19 +157,20 @@
 				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
 				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
+				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
 				63A6186D2A0D901600E70B0E /* TextStorage.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
+				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				63A618712A0EAF2000E70B0E /* WeakDictionary.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
-				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 			);
 			path = Watt;
 			sourceTree = "<group>";
@@ -336,6 +339,7 @@
 				63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */,
 				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
 				63A6186E2A0D901600E70B0E /* TextStorage.swift in Sources */,
+				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */,

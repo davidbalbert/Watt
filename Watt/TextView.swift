@@ -48,27 +48,19 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         }
     }
 
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-
-        if (textContainer.size.width != frame.width) {
-            textContainer.size = CGSize(width: frame.width, height: 0)
-        }
-    }
-
     var lineNumberView: LineNumberView
     var textContainer: TextContainer
 
     var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Storage>>
     var textLayer: CALayer = NonAnimatingLayer()
 
-    required init() {
+    override init(frame frameRect: NSRect) {
         storage = Storage("")
         layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
         lineNumberView = LineNumberView()
-        super.init(frame: .zero)
+        super.init(frame: frameRect)
         commonInit()
     }
 
@@ -88,6 +80,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager.textContainer = textContainer
         storage.addLayoutManager(layoutManager)
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
+        lineNumberView.delegate = self
     }
 
     override func updateLayer() {
@@ -96,6 +89,14 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
 
     func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
         true
+    }
+
+    var scrollView: NSScrollView? {
+        if let enclosingScrollView, enclosingScrollView.documentView == self {
+            return enclosingScrollView
+        }
+
+        return nil
     }
 
     override func layout() {
@@ -109,6 +110,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
             layer.addSublayer(textLayer)
         }
 
+        layoutLineNumberView()
         layoutManager.layoutViewport()
     }
 
@@ -123,5 +125,17 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
 
     override func viewDidMoveToSuperview() {
         addLineNumberView()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+
+        if (textContainer.size.width != frame.width) {
+            updateTextContainerSize()
+        }
+    }
+
+    func updateTextContainerSize() {
+        textContainer.size = CGSize(width: frame.width - lineNumberView.frame.width, height: 0)
     }
 }
