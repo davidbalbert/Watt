@@ -53,6 +53,34 @@ final class AttributedStringStorage: TextStorage {
         s.startIndex..<s.endIndex
     }
 
+    func enumerateLineRanges(from location: AttributedString.Index, using block: (Range<AttributedString.Index>) -> Bool) {
+
+        var i: AttributedString.Index
+        if location != s.startIndex, let lineEnd = s.characters[...location].lastIndex(of: "\n") {
+            i = s.index(afterCharacter: lineEnd)
+        } else {
+            i = s.startIndex
+        }
+
+        while i < s.endIndex {
+            let next: AttributedString.Index
+            if let newline = s[i...].characters.firstIndex(of: "\n") {
+                next = s.index(afterCharacter: newline)
+            } else {
+                next = s.endIndex
+            }
+
+            let range = i..<next
+
+            if !block(range) {
+                break
+            }
+
+            i = range.upperBound
+        }
+
+    }
+
     func enumerateTextElements(from textLocation: AttributedString.Index, using block: (TextElement) -> Bool) {
         var i: AttributedString.Index
         if textLocation != s.startIndex, let lineEnd = s.characters[...textLocation].lastIndex(of: "\n") {

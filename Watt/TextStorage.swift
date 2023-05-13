@@ -14,7 +14,9 @@ protocol TextStorage: AnyObject {
     init<S>(_ s: S) where S: StringProtocol
 
     var documentRange: Range<Location> { get }
+    
     func enumerateTextElements(from location: Location, using block: (TextElement) -> Bool)
+    func enumerateLineRanges(from location: Location, using block: (Range<Location>) -> Bool)
 
     func addLayoutManager(_ layoutManager: LayoutManager<Self>)
     func removeLayoutManager(_ layoutManager: LayoutManager<Self>)

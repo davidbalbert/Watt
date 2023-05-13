@@ -23,13 +23,20 @@ extension LayoutManager {
                 return
             }
 
+            // TODO: enumerating all line ranges can take a long time. Instead, we could
+            // enumerate a few ranges from different parts of the document (e.g. 25 from
+            // the beginning, 25 from the middle, and 25 from the end) and then take the
+            // average.
+            //
+            // This means not only would our heights and ys be estimates, but so would our
+            // ranges. That likely makes things more complicated.
             var y: CGFloat = 0
-            storage.enumerateTextElements(from: storage.documentRange.lowerBound) { el in
+            storage.enumerateLineRanges(from: storage.documentRange.lowerBound) { range in
                 let h: CGFloat = 14 // TODO: better estimate
 
                 heights.append(h)
                 ys.append(y)
-                ranges.append(el.textRange)
+                ranges.append(range)
 
                 y += h
 
