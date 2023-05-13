@@ -23,20 +23,3 @@ protocol TextStorage: AnyObject {
 
     func attributedString(for textElement: TextElement) -> NSAttributedString
 }
-
-extension TextStorage {
-    func textElements(for range: Range<Location>) -> [TextElement] {
-        var res: [TextElement] = []
-
-        enumerateTextElements(from: range.lowerBound) { element in
-            if element.textRange.lowerBound >= range.upperBound {
-                return false
-            }
-
-            res.append(element)
-            return true
-        }
-
-        return res
-    }
-}

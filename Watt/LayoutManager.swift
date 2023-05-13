@@ -63,17 +63,6 @@ class LayoutManager<Storage> where Storage: TextStorage {
         delegate.layoutManagerDidLayout(self)
     }
 
-    func initialHeightEstimates() -> [CGFloat] {
-        guard let storage else {
-            return []
-        }
-
-        let count = storage.textElements(for: storage.documentRange).count
-        let lineHeight: CGFloat = 10
-
-        return Array(repeating: lineHeight, count: count)
-    }
-
     func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let storage, let textContainer else {
             return
