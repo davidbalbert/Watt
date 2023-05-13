@@ -56,10 +56,10 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         }
     }
 
+    var lineNumberView: LineNumberView
     var textContainer: TextContainer
 
     var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Storage>>
-
     var textLayer: CALayer = NonAnimatingLayer()
 
     required init() {
@@ -67,6 +67,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
+        lineNumberView = LineNumberView()
         super.init(frame: .zero)
         commonInit()
     }
@@ -76,6 +77,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager = LayoutManager<Storage>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
+        lineNumberView = LineNumberView()
         super.init(coder: coder)
         commonInit()
     }
@@ -85,6 +87,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager.delegate = self
         layoutManager.textContainer = textContainer
         storage.addLayoutManager(layoutManager)
+        lineNumberView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     override func updateLayer() {
@@ -112,5 +115,13 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
     override func prepareContent(in rect: NSRect) {
         super.prepareContent(in: rect)
         layoutManager.layoutViewport()
+    }
+
+    override func viewWillMove(toSuperview newSuperview: NSView?) {
+        removeLineNumberView()
+    }
+
+    override func viewDidMoveToSuperview() {
+        addLineNumberView()
     }
 }
