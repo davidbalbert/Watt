@@ -12,7 +12,7 @@
 		6372888E29FD8E19005B95E5 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888D29FD8E19005B95E5 /* Document.swift */; };
 		6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6372889229FD8E1A005B95E5 /* Assets.xcassets */; };
 		6372889629FD8E1A005B95E5 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6372889429FD8E1A005B95E5 /* MainMenu.xib */; };
-		637288A229FD8E1A005B95E5 /* WattTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288A129FD8E1A005B95E5 /* WattTests.swift */; };
+		637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */; };
 		637288AC29FD8E1A005B95E5 /* WattUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AB29FD8E1A005B95E5 /* WattUITests.swift */; };
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
@@ -35,6 +35,7 @@
 		63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */; };
 		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
 		63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */; };
+		63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA232A0FF04500220860 /* LRUCache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,7 +65,7 @@
 		6372889729FD8E1A005B95E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6372889829FD8E1A005B95E5 /* Watt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Watt.entitlements; sourceTree = "<group>"; };
 		6372889D29FD8E1A005B95E5 /* WattTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		637288A129FD8E1A005B95E5 /* WattTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattTests.swift; sourceTree = "<group>"; };
+		637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRUCacheTests.swift; sourceTree = "<group>"; };
 		637288A729FD8E1A005B95E5 /* WattUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		637288AB29FD8E1A005B95E5 /* WattUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITests.swift; sourceTree = "<group>"; };
 		637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -91,6 +92,7 @@
 		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLayer.swift; sourceTree = "<group>"; };
 		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
 		63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberViewDelegate.swift; sourceTree = "<group>"; };
+		63EDFA232A0FF04500220860 /* LRUCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRUCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -158,6 +160,7 @@
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
 				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
 				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
+				63EDFA232A0FF04500220860 /* LRUCache.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
@@ -178,7 +181,7 @@
 		637288A029FD8E1A005B95E5 /* WattTests */ = {
 			isa = PBXGroup;
 			children = (
-				637288A129FD8E1A005B95E5 /* WattTests.swift */,
+				637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */,
 			);
 			path = WattTests;
 			sourceTree = "<group>";
@@ -342,6 +345,7 @@
 				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
+				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
@@ -352,7 +356,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				637288A229FD8E1A005B95E5 /* WattTests.swift in Sources */,
+				637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
