@@ -32,7 +32,7 @@ extension TextView: LayoutManagerDelegate {
         l.needsDisplayOnBoundsChange = true
         l.anchorPoint = .zero
         l.bounds = layoutFragment.typographicBounds
-        l.position = layoutFragment.position
+        l.position = CGPoint(x: layoutFragment.position.x + textContainerInset.width, y: layoutFragment.position.y)
 
         fragmentLayerMap[layoutFragment.id] = l
 

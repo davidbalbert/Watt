@@ -51,6 +51,10 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
     var lineNumberView: LineNumberView
     var textContainer: TextContainer
 
+    var textContainerInset: CGSize {
+        CGSize(width: lineNumberView.frame.width, height: 0)
+    }
+
     var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Storage>>
     var textLayer: CALayer = NonAnimatingLayer()
 
@@ -136,6 +140,6 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
     }
 
     func updateTextContainerSize() {
-        textContainer.size = CGSize(width: frame.width - lineNumberView.frame.width, height: 0)
+        textContainer.size = CGSize(width: frame.width - textContainerInset.width, height: 0)
     }
 }
