@@ -62,4 +62,23 @@ final class LRUCacheTests: XCTestCase {
         XCTAssertEqual("bar", c["foo"])
         XCTAssertEqual("quuux", c["quux"])
     }
+
+    func testRegressionOverwritingMoreThanTwoCausedACrash() {
+        var c = LRUCache<String, String>(capacity: 10)
+        c["foo"] = "a"
+        c["bar"] = "a"
+        c["baz"] = "a"
+
+        c["foo"] = "b"
+        c["bar"] = "b"
+        c["baz"] = "b"
+
+        c["foo"] = "c"
+        c["bar"] = "c"
+        c["baz"] = "c"
+
+        XCTAssertEqual("c", c["foo"])
+        XCTAssertEqual("c", c["bar"])
+        XCTAssertEqual("c", c["baz"])
+    }
 }

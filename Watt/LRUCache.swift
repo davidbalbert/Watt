@@ -83,11 +83,13 @@ struct LRUCache<Key, Value> where Key: Hashable {
     }
 
     mutating private func add(_ node: Node) {
-        if let head {
+        if let head, let tail {
             node.next = head
-            node.prev = head.prev
+            node.prev = tail
+
             head.prev = node
-            head.next = node
+            tail.next = node
+
             self.head = node
         } else {
             node.next = node
