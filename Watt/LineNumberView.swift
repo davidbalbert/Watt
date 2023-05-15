@@ -29,7 +29,23 @@ class LineNumberView: NSView {
     }
 
     override func updateLayer() {
-        layer?.backgroundColor = NSColor.blue.cgColor
+        // no-op
+    }
+
+    let g: CAGradientLayer = CAGradientLayer()
+    override func layout() {
+        guard let layer else {
+            return
+        }
+
+        if g.superlayer == nil {
+            g.colors = [NSColor.red.cgColor, NSColor.green.cgColor]
+            g.autoresizingMask = [.layerHeightSizable]
+            g.anchorPoint = layer.anchorPoint
+            g.position = layer.position
+            g.bounds = layer.bounds
+            layer.addSublayer(g)
+        }
     }
 
     @objc func frameDidChange(_ notification: NSNotification) {

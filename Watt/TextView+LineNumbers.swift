@@ -13,7 +13,8 @@ extension TextView: LineNumberViewDelegate {
             return
         }
 
-        scrollView.addFloatingSubview(lineNumberView, for: .vertical)
+        scrollView.addFloatingSubview(lineNumberView, for: .horizontal)
+        layoutLineNumberView()
     }
 
     func removeLineNumberView() {
@@ -21,15 +22,11 @@ extension TextView: LineNumberViewDelegate {
     }
 
     func layoutLineNumberView() {
-        guard let scrollView else {
-            return
-        }
-
-        let clipView = scrollView.contentView
-        lineNumberView.frame = CGRect(x: 0, y: 0, width: 30, height: clipView.frame.height)
+        lineNumberView.frame = CGRect(x: 0, y: 0, width: 30, height: frame.height)
     }
 
     func lineNumberViewFrameDidChange(_ notification: NSNotification) {
         updateTextContainerSize()
+        needsLayout = true
     }
 }

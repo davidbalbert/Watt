@@ -111,6 +111,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         if textLayer.superlayer == nil {
             textLayer.anchorPoint = .zero
             textLayer.bounds = layer.bounds
+            textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
             layer.addSublayer(textLayer)
         }
 
@@ -128,7 +129,16 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
     }
 
     override func viewDidMoveToSuperview() {
-        addLineNumberView()
+        // Annoyingly, when being moved into a scroll view, viewDidMoveToSuperview
+        // is called before NSClipView has a chance to see that we're flipped and
+        // to flip itself accordingly, which makes the line number view scroll in
+        // reverse. Specifically, when _NSScrollViewFloatingSubviewsContainerView
+        // is created, its isFlipped property gets set to NSClipView.isFlipped,
+        // and if we called scrollView.addFloatingSubview here, we'd be too early.
+        // So we call it on the next run loop tick instead.
+        Task {
+            addLineNumberView()
+        }
     }
 
     override func setFrameSize(_ newSize: NSSize) {
