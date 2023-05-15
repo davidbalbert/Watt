@@ -56,7 +56,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TextContainer.swift; path = Watt/TextContainer.swift; sourceTree = "<group>"; };
+		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
 		6372888829FD8E19005B95E5 /* Watt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Watt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6372888B29FD8E19005B95E5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6372888D29FD8E19005B95E5 /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
@@ -123,7 +123,6 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
-				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
 				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
 				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
@@ -162,6 +161,7 @@
 				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
 				63EDFA232A0FF04500220860 /* LRUCache.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
+				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
 				63A6186D2A0D901600E70B0E /* TextStorage.swift */,
