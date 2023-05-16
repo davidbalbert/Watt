@@ -5,7 +5,7 @@
 //  Created by David Albert on 4/29/23.
 //
 
-import Foundation
+import Cocoa
 
 final class AttributedStringStorage: TextStorage {
     typealias Location = AttributedString.Index
@@ -112,5 +112,10 @@ final class AttributedStringStorage: TextStorage {
 
         // TODO: is there a way to do this with a single copy instead of two?
         return NSAttributedString(AttributedString(substr))
+    }
+
+    func didSetFont(to font: NSFont) {
+        s.font = font
+        elementCache.removeAll()
     }
 }
