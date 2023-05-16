@@ -7,7 +7,7 @@
 
 import Cocoa
 
-protocol TextContent: AnyObject {
+protocol ContentManager: AnyObject {
     associatedtype Location: Comparable
     typealias TextElement = LayoutManager<Self>.TextElement
 

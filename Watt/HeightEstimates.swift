@@ -14,12 +14,12 @@ extension LayoutManager {
         var ys: [CGFloat]
         var ranges: [Range<Location>]
 
-        init(textContent: Content?) {
+        init(contentManager: Content?) {
             heights = []
             ys = []
             ranges = []
 
-            guard let textContent else {
+            guard let contentManager else {
                 return
             }
 
@@ -31,7 +31,7 @@ extension LayoutManager {
             // This means not only would our heights and ys be estimates, but so would our
             // ranges. That likely makes things more complicated.
             var y: CGFloat = 0
-            textContent.enumerateLineRanges(from: textContent.documentRange.lowerBound) { range in
+            contentManager.enumerateLineRanges(from: contentManager.documentRange.lowerBound) { range in
                 let h: CGFloat = 14 // TODO: better estimate
 
                 heights.append(h)

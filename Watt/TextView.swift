@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Content: TextContent {
+class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Content: ContentManager {
     typealias TextContainer = LayoutManager<Content>.TextContainer
     typealias LayoutFragment = LayoutManager<Content>.LayoutFragment
 
@@ -37,18 +37,18 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
 
     @Invalidating(.layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
-            textContent.didSetFont(to: font)
+            contentManager.didSetFont(to: font)
             layoutManager.invalidateLayout()
             lineNumberView.font = font
         }
     }
 
-    var textContent: Content {
+    var contentManager: Content {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
-            textContent.addLayoutManager(layoutManager)
+            contentManager.addLayoutManager(layoutManager)
 
-            textContent.didSetFont(to: font)
+            contentManager.didSetFont(to: font)
             needsLayout = true
         }
     }
@@ -56,10 +56,10 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
     var layoutManager: LayoutManager<Content> {
         didSet {
             oldValue.delegate = nil
-            textContent.removeLayoutManager(oldValue)
+            contentManager.removeLayoutManager(oldValue)
 
             layoutManager.delegate = self
-            textContent.addLayoutManager(layoutManager)
+            contentManager.addLayoutManager(layoutManager)
 
             needsLayout = true
         }
@@ -76,7 +76,7 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
     var textLayer: CALayer = NonAnimatingLayer()
 
     override init(frame frameRect: NSRect) {
-        textContent = Content("")
+        contentManager = Content("")
         layoutManager = LayoutManager<Content>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
@@ -86,7 +86,7 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
     }
 
     required init?(coder: NSCoder) {
-        textContent = Content("")
+        contentManager = Content("")
         layoutManager = LayoutManager<Content>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
@@ -99,10 +99,10 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         textContainer.size = CGSize(width: bounds.width, height: 0)
         layoutManager.delegate = self
         layoutManager.textContainer = textContainer
-        textContent.addLayoutManager(layoutManager)
+        contentManager.addLayoutManager(layoutManager)
         lineNumberView.delegate = self
         lineNumberView.font = font
-        textContent.didSetFont(to: font)
+        contentManager.didSetFont(to: font)
     }
 
     override func updateLayer() {

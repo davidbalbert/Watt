@@ -8,7 +8,7 @@
 import Foundation
 
 protocol LayoutManagerDelegate<Content>: AnyObject {
-    associatedtype Content: TextContent
+    associatedtype Content: ContentManager
 
     func viewportBounds(for layoutManager: LayoutManager<Content>) -> CGRect
     func layoutManagerWillLayout(_ layoutManager: LayoutManager<Content>)

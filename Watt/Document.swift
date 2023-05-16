@@ -8,10 +8,10 @@
 import Cocoa
 
 class Document: NSDocument {
-    var content: AttributedStringContent = {
+    var contentManager: AttributedStringContentManager = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-        return AttributedStringContent(text)
+        return AttributedStringContentManager(text)
     }()
 
     enum DocumentError: Error {
@@ -24,14 +24,14 @@ class Document: NSDocument {
     }
 
     override func makeWindowControllers() {
-        let w = NSWindow(contentViewController: TextViewController(content))
+        let w = NSWindow(contentViewController: TextViewController(contentManager))
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
         addWindowController(c)
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = content.string.data(using: .utf8) else {
+        guard let data = contentManager.string.data(using: .utf8) else {
             throw DocumentError.save
         }
 
@@ -43,7 +43,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.content = AttributedStringContent(text)
+        self.contentManager = AttributedStringContentManager(text)
     }
 }
 

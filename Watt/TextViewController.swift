@@ -8,10 +8,10 @@
 import Cocoa
 
 class TextViewController: NSViewController {
-    var textContent: AttributedStringContent
+    var contentManager: AttributedStringContentManager
 
-    init(_ textContent: AttributedStringContent) {
-        self.textContent = textContent
+    init(_ textContent: AttributedStringContentManager) {
+        self.contentManager = textContent
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -20,9 +20,9 @@ class TextViewController: NSViewController {
     }
 
     override func loadView() {
-        let scrollView = TextView<AttributedStringContent>.scrollableTextView()
-        let textView = scrollView.documentView as! TextView<AttributedStringContent>
-        textView.textContent = textContent
+        let scrollView = TextView<AttributedStringContentManager>.scrollableTextView()
+        let textView = scrollView.documentView as! TextView<AttributedStringContentManager>
+        textView.contentManager = contentManager
 
         view = scrollView
     }

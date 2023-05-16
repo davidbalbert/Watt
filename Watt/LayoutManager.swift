@@ -7,7 +7,7 @@
 
 import Foundation
 
-class LayoutManager<Content> where Content: TextContent {
+class LayoutManager<Content> where Content: ContentManager {
     typealias Location = Content.Location
 
     var viewportBounds: CGRect = .zero
@@ -21,16 +21,16 @@ class LayoutManager<Content> where Content: TextContent {
     }
     weak var delegate: (any LayoutManagerDelegate<Content>)?
 
-    weak var textContent: Content? {
+    weak var contentManager: Content? {
         didSet {
-            heightEstimates = HeightEstimates(textContent: textContent)
+            heightEstimates = HeightEstimates(contentManager: contentManager)
             fragmentCache.removeAll()
         }
     }
 
     var fragmentCache: FragmentCache = FragmentCache()
 
-    lazy var heightEstimates: HeightEstimates = HeightEstimates(textContent: textContent)
+    lazy var heightEstimates: HeightEstimates = HeightEstimates(contentManager: contentManager)
 
     var documentHeight: CGFloat {
         heightEstimates.documentHeight
@@ -64,7 +64,7 @@ class LayoutManager<Content> where Content: TextContent {
     }
 
     func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
-        guard let textContent, let textContainer else {
+        guard let contentManager, let textContainer else {
             return
         }
 
@@ -76,7 +76,7 @@ class LayoutManager<Content> where Content: TextContent {
             y = offset
         }
 
-        textContent.enumerateTextElements(from: location) { el in
+        contentManager.enumerateTextElements(from: location) { el in
             let cached = fragmentCache.fragment(at: el.textRange.lowerBound)
             let frag = cached ?? LayoutFragment(textElement: el)
 
