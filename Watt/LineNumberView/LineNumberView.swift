@@ -19,7 +19,7 @@ class LineNumberView: NSView {
     weak var delegate: LineNumberViewDelegate?
 
     var textLayer: NonAnimatingLayer = NonAnimatingLayer()
-    var layerDelegate: LayerDelegate = LayerDelegate()
+    var renderer: LineNumberRenderer = LineNumberRenderer()
     var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
 
     override var isFlipped: Bool {
@@ -37,7 +37,7 @@ class LineNumberView: NSView {
     }
 
     func commonInit() {
-        layerDelegate.lineNumberView = self
+        renderer.lineNumberView = self
         NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
     }
 
@@ -122,7 +122,7 @@ class LineNumberView: NSView {
         let l = layerCache[lineno] ?? CALayer()
 
         l.setValue(lineno, forKey: LineNumberView.lineNumberKey)
-        l.delegate = layerDelegate
+        l.delegate = renderer
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.needsDisplayOnBoundsChange = true
         l.anchorPoint = .zero
