@@ -120,7 +120,7 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
 
     override func prepareContent(in rect: NSRect) {
         super.prepareContent(in: rect)
-        layoutManager.layoutViewport()
+        needsLayout = true
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {
