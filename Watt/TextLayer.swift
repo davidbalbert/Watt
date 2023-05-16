@@ -7,8 +7,8 @@
 
 import Cocoa
 
-class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
-    typealias LayoutFragment = LayoutManager<Storage>.LayoutFragment
+class TextLayer<Content>: NonAnimatingLayer where Content: TextContent {
+    typealias LayoutFragment = LayoutManager<Content>.LayoutFragment
 
     var layoutFragment: LayoutFragment
 

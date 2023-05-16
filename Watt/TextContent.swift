@@ -1,5 +1,5 @@
 //
-//  TextStorage.swift
+//  TextContent.swift
 //  Watt
 //
 //  Created by David Albert on 5/11/23.
@@ -7,7 +7,7 @@
 
 import Cocoa
 
-protocol TextStorage: AnyObject {
+protocol TextContent: AnyObject {
     associatedtype Location: Comparable
     typealias TextElement = LayoutManager<Self>.TextElement
 

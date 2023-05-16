@@ -8,7 +8,7 @@
 import AppKit
 
 extension TextView: LayoutManagerDelegate {
-    func viewportBounds(for layoutManager: LayoutManager<Storage>) -> CGRect {
+    func viewportBounds(for layoutManager: LayoutManager<Content>) -> CGRect {
         var viewportBounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             viewportBounds = preparedContentRect.union(visibleRect)
@@ -21,12 +21,12 @@ extension TextView: LayoutManagerDelegate {
         return viewportBounds
     }
 
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>) {
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager<Content>) {
         textLayer.sublayers = nil
         lineNumberView.beginUpdates()
     }
 
-    func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
+    func layoutManager(_ layoutManager: LayoutManager<Content>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
         let l = fragmentLayerMap[layoutFragment.id] ?? TextLayer(layoutFragment: layoutFragment)
 
         l.contentsScale = window?.backingScaleFactor ?? 1.0
@@ -46,7 +46,7 @@ extension TextView: LayoutManagerDelegate {
         lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: frag.typographicBounds.height)
     }
 
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>) {
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager<Content>) {
         updateFrameHeightIfNeeded()
         lineNumberView.endUpdates()
     }

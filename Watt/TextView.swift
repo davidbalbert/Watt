@@ -7,9 +7,9 @@
 
 import Cocoa
 
-class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Storage: TextStorage {
-    typealias TextContainer = LayoutManager<Storage>.TextContainer
-    typealias LayoutFragment = LayoutManager<Storage>.LayoutFragment
+class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Content: TextContent {
+    typealias TextContainer = LayoutManager<Content>.TextContainer
+    typealias LayoutFragment = LayoutManager<Content>.LayoutFragment
 
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
@@ -37,29 +37,29 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
 
     @Invalidating(.layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
-            storage.didSetFont(to: font)
+            textContent.didSetFont(to: font)
             layoutManager.invalidateLayout()
             lineNumberView.font = font
         }
     }
 
-    var storage: Storage {
+    var textContent: Content {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
-            storage.addLayoutManager(layoutManager)
+            textContent.addLayoutManager(layoutManager)
 
-            storage.didSetFont(to: font)
+            textContent.didSetFont(to: font)
             needsLayout = true
         }
     }
 
-    var layoutManager: LayoutManager<Storage> {
+    var layoutManager: LayoutManager<Content> {
         didSet {
             oldValue.delegate = nil
-            storage.removeLayoutManager(oldValue)
+            textContent.removeLayoutManager(oldValue)
 
             layoutManager.delegate = self
-            storage.addLayoutManager(layoutManager)
+            textContent.addLayoutManager(layoutManager)
 
             needsLayout = true
         }
@@ -72,12 +72,12 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         CGSize(width: lineNumberView.frame.width, height: 0)
     }
 
-    var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Storage>>
+    var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Content>>
     var textLayer: CALayer = NonAnimatingLayer()
 
     override init(frame frameRect: NSRect) {
-        storage = Storage("")
-        layoutManager = LayoutManager<Storage>()
+        textContent = Content("")
+        layoutManager = LayoutManager<Content>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
         lineNumberView = LineNumberView()
@@ -86,8 +86,8 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
     }
 
     required init?(coder: NSCoder) {
-        storage = Storage("")
-        layoutManager = LayoutManager<Storage>()
+        textContent = Content("")
+        layoutManager = LayoutManager<Content>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
         lineNumberView = LineNumberView()
@@ -99,10 +99,10 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         textContainer.size = CGSize(width: bounds.width, height: 0)
         layoutManager.delegate = self
         layoutManager.textContainer = textContainer
-        storage.addLayoutManager(layoutManager)
+        textContent.addLayoutManager(layoutManager)
         lineNumberView.delegate = self
         lineNumberView.font = font
-        storage.didSetFont(to: font)
+        textContent.didSetFont(to: font)
     }
 
     override func updateLayer() {

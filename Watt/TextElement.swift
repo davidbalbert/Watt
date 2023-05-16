@@ -9,15 +9,15 @@ import Foundation
 
 extension LayoutManager {
     struct TextElement {
-        weak var textStorage: Storage?
+        weak var textContent: Content?
         let textRange: Range<Location>
 
         var attributedString: NSAttributedString {
-            guard let textStorage else {
+            guard let textContent else {
                 return NSAttributedString("")
             }
 
-            return textStorage.attributedString(for: self)
+            return textContent.attributedString(for: self)
         }
     }
 }

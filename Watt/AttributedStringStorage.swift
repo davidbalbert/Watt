@@ -7,7 +7,7 @@
 
 import Cocoa
 
-final class AttributedStringStorage: TextStorage {
+final class AttributedStringStorage: TextContent {
     typealias Location = AttributedString.Index
     typealias TextElement = LayoutManager<AttributedStringStorage>.TextElement
 
@@ -32,7 +32,7 @@ final class AttributedStringStorage: TextStorage {
 
     func addLayoutManager(_ layoutManager: LayoutManager<AttributedStringStorage>) {
         layoutManagers.append(layoutManager)
-        layoutManager.storage = self
+        layoutManager.textContent = self
     }
 
     func removeLayoutManager(_ layoutManager: LayoutManager<AttributedStringStorage>) {
@@ -45,7 +45,7 @@ final class AttributedStringStorage: TextStorage {
 
         for i in indices.reversed() {
             let m = layoutManagers.remove(at: i)
-            m.storage = nil
+            m.textContent = nil
         }
     }
 

@@ -7,8 +7,8 @@
 
 import Foundation
 
-class LayoutManager<Storage> where Storage: TextStorage {
-    typealias Location = Storage.Location
+class LayoutManager<Content> where Content: TextContent {
+    typealias Location = Content.Location
 
     var viewportBounds: CGRect = .zero
     var textContainer: TextContainer? {
@@ -19,18 +19,18 @@ class LayoutManager<Storage> where Storage: TextStorage {
             textContainer?.layoutManager = self
         }
     }
-    weak var delegate: (any LayoutManagerDelegate<Storage>)?
+    weak var delegate: (any LayoutManagerDelegate<Content>)?
 
-    weak var storage: Storage? {
+    weak var textContent: Content? {
         didSet {
-            heightEstimates = HeightEstimates(storage: storage)
+            heightEstimates = HeightEstimates(textContent: textContent)
             fragmentCache.removeAll()
         }
     }
 
     var fragmentCache: FragmentCache = FragmentCache()
 
-    lazy var heightEstimates: HeightEstimates = HeightEstimates(storage: storage)
+    lazy var heightEstimates: HeightEstimates = HeightEstimates(textContent: textContent)
 
     var documentHeight: CGFloat {
         heightEstimates.documentHeight
@@ -64,7 +64,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
     }
 
     func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
-        guard let storage, let textContainer else {
+        guard let textContent, let textContainer else {
             return
         }
 
@@ -76,7 +76,7 @@ class LayoutManager<Storage> where Storage: TextStorage {
             y = offset
         }
 
-        storage.enumerateTextElements(from: location) { el in
+        textContent.enumerateTextElements(from: location) { el in
             let cached = fragmentCache.fragment(at: el.textRange.lowerBound)
             let frag = cached ?? LayoutFragment(textElement: el)
 

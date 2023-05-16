@@ -8,9 +8,9 @@
 import Cocoa
 
 class Document: NSDocument {
-    var storage: AttributedStringStorage = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
+    var content: AttributedStringStorage = {
         return AttributedStringStorage(text)
     }()
 
@@ -24,14 +24,14 @@ class Document: NSDocument {
     }
 
     override func makeWindowControllers() {
-        let w = NSWindow(contentViewController: TextViewController(storage))
+        let w = NSWindow(contentViewController: TextViewController(content))
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
         addWindowController(c)
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = storage.string.data(using: .utf8) else {
+        guard let data = content.string.data(using: .utf8) else {
             throw DocumentError.save
         }
 
@@ -39,11 +39,11 @@ class Document: NSDocument {
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        guard let contents = String(bytes: data, encoding: .utf8) else {
+        guard let text = String(bytes: data, encoding: .utf8) else {
             throw DocumentError.load
         }
 
-        self.storage = AttributedStringStorage(contents)
+        self.content = AttributedStringStorage(text)
     }
 }
 
