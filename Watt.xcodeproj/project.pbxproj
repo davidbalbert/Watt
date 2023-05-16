@@ -27,7 +27,7 @@
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
-		63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */; };
+		63B61A1A29FDA62D00787BB9 /* AttributedStringContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1929FDA62D00787BB9 /* AttributedStringContentManager.swift */; };
 		63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */; };
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2129FDB09600787BB9 /* LayoutFragment.swift */; };
@@ -86,7 +86,7 @@
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
-		63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringStorage.swift; sourceTree = "<group>"; };
+		63B61A1929FDA62D00787BB9 /* AttributedStringContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedStringContentManager.swift; sourceTree = "<group>"; };
 		63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B61A2129FDB09600787BB9 /* LayoutFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragment.swift; sourceTree = "<group>"; };
@@ -153,7 +153,7 @@
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				63B61A1929FDA62D00787BB9 /* AttributedStringStorage.swift */,
+				63B61A1929FDA62D00787BB9 /* AttributedStringContentManager.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				63A6186D2A0D901600E70B0E /* ContentManager.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
@@ -361,7 +361,7 @@
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
 				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
-				63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */,
+				63B61A1A29FDA62D00787BB9 /* AttributedStringContentManager.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63B863CB2A1315020082B4A6 /* LayerDelegate.swift in Sources */,
 				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
