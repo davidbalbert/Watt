@@ -1,5 +1,5 @@
 //
-//  AttributedStringStorage.swift
+//  AttributedStringContentManager.swift
 //  Watt
 //
 //  Created by David Albert on 4/29/23.
@@ -13,10 +13,6 @@ final class AttributedStringContentManager: ContentManager {
 
     var s: AttributedString
     var layoutManagers: [LayoutManager<AttributedStringContentManager>] = []
-
-    // Maps element start index to text element. See LayoutManager.fragmentCache
-    // for how capacity was calculated.
-    var elementCache: LRUCache<Int, TextElement> = LRUCache(capacity: 300)
 
     init() {
         self.s = ""
@@ -93,29 +89,20 @@ final class AttributedStringContentManager: ContentManager {
             i = s.startIndex
         }
 
-        var nchars = s.characters.distance(from: s.startIndex, to: i)
         while i < s.endIndex {
-            let el: TextElement
-            if let e = elementCache[nchars] {
-                el = e
+            let next: AttributedString.Index
+            if let newline = s[i...].characters.firstIndex(of: "\n") {
+                next = s.index(afterCharacter: newline)
             } else {
-                let next: AttributedString.Index
-                if let newline = s[i...].characters.firstIndex(of: "\n") {
-                    next = s.index(afterCharacter: newline)
-                } else {
-                    next = s.endIndex
-                }
-
-                el = TextElement(contentManager: self, textRange: i..<next)
+                next = s.endIndex
             }
 
-            elementCache[nchars] = el
+            let el = TextElement(contentManager: self, textRange: i..<next)
 
             if !block(el) {
                 break
             }
 
-            nchars += s.characters.distance(from: i, to: el.textRange.upperBound)
             i = el.textRange.upperBound
         }
     }
@@ -129,6 +116,5 @@ final class AttributedStringContentManager: ContentManager {
 
     func didSetFont(to font: NSFont) {
         s.font = font
-        elementCache.removeAll()
     }
 }
