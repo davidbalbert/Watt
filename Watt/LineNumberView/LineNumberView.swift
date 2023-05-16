@@ -63,8 +63,9 @@ class LineNumberView: NSView {
             return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
         }
 
-        let lineCount = delegate.lineCount(for: self)
-        let maxDigits = ceil(log10(CGFloat(lineCount-1)))
+        // max(100, ...) -> minimum 3 digits worth of space
+        let lineCount = max(100, delegate.lineCount(for: self))
+        let maxDigits = floor(log10(CGFloat(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)
         var glyphs: [CGGlyph] = Array(repeating: 0, count: characters.count)
