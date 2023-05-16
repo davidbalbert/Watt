@@ -44,6 +44,10 @@ extension LayoutManager {
             }
         }
 
+        var lineCount: Int {
+            ys.count
+        }
+
         var documentHeight: CGFloat {
             if ys.count == 0 {
                 return 0
@@ -64,7 +68,7 @@ extension LayoutManager {
                 let range = ranges[mid]
 
                 if range.contains(location) {
-                    return (mid, ys[mid])
+                    return (mid+1, ys[mid])
                 } else if range.lowerBound > location {
                     high = mid
                 } else {
@@ -110,7 +114,9 @@ extension LayoutManager {
             }
         }
 
-        mutating func updateFragmentHeight(at index: Int, with newHeight: CGFloat) {
+        mutating func updateFragmentHeight(at lineno: Int, with newHeight: CGFloat) {
+            let index = lineno - 1
+
             if index < 0 || index > heights.count {
                 return
             }

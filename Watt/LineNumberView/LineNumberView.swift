@@ -10,7 +10,9 @@ import Cocoa
 class LineNumberView: NSView {
     static let lineNumberKey = "lineNumber"
 
-    var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
+    @Invalidating(.intrinsicContentSize) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
+    @Invalidating(.intrinsicContentSize) var padding: CGFloat = 5
+    @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
 
     // TODO: ask our delgate what the total number of lines is
     weak var delegate: LineNumberViewDelegate?
@@ -38,8 +40,23 @@ class LineNumberView: NSView {
         NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
     }
 
+    override var intrinsicContentSize: NSSize {
+        guard let delegate else {
+            return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+        }
+
+        let lineCount = delegate.lineCount(for: self)
+        let maxDigits = ceil(log10(CGFloat(lineCount-1)))
+
+        let width = font.maximumAdvancement.width*maxDigits + 2*padding
+
+        return NSSize(width: width, height: NSView.noIntrinsicMetric)
+    }
+
     override func updateLayer() {
-        // no-op
+        for l in textLayer.sublayers ?? [] {
+            l.setNeedsDisplay()
+        }
     }
 
     override func layout() {
@@ -53,6 +70,10 @@ class LineNumberView: NSView {
             textLayer.position = layer.position
             textLayer.bounds = layer.bounds
             layer.addSublayer(textLayer)
+        }
+
+        for l in textLayer.sublayers ?? [] {
+            l.bounds.size.width = frame.width
         }
     }
 

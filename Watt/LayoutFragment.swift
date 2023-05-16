@@ -19,6 +19,7 @@ extension LayoutManager {
         let id = UUID()
 
         let textElement: TextElement
+        var lineNumber: Int = 0
 
         var textRange: Range<Location> {
             textElement.textRange

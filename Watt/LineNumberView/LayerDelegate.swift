@@ -20,14 +20,18 @@ extension LineNumberView {
                 return
             }
 
-            let s = NSAttributedString(string: "\(lineno)", attributes: [.font: lineNumberView.font])
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: lineNumberView.font,
+                .foregroundColor: lineNumberView.textColor
+            ]
+            let s = NSAttributedString(string: "\(lineno)", attributes: attrs)
             let line = CTLineCreateWithAttributedString(s)
 
             let typographicBounds = CTLineGetBoundsWithOptions(line, [])
 
             // glyph origin in flipped coordinate space
             let glyphOrigin = CGPoint(
-                x: typographicBounds.minX,
+                x: layer.bounds.width - lineNumberView.padding - typographicBounds.width,
                 y: floor(typographicBounds.height + typographicBounds.minY)
             )
 

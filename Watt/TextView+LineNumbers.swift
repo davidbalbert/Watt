@@ -22,11 +22,21 @@ extension TextView: LineNumberViewDelegate {
     }
 
     func layoutLineNumberView() {
-        lineNumberView.frame = CGRect(x: 0, y: 0, width: 30, height: frame.height)
+        lineNumberView.frame = CGRect(x: 0, y: 0, width: lineNumberView.intrinsicContentSize.width, height: frame.height)
     }
 
     func lineNumberViewFrameDidChange(_ notification: NSNotification) {
         updateTextContainerSize()
         needsLayout = true
     }
+
+    func lineCount(for lineNumberView: LineNumberView) -> Int {
+        layoutManager.lineCount
+    }
+
+    // TODO: instead of having LineNumberView.font, have lineNumberView ask us for our font.
+    // This prevents lineNumberView from having a different font size than the text view.
+    // func font(for lineNumberView: LineNumberView) -> NSFont {
+    //    return .monospacedSystemFont(ofSize: 12, weight: .regular)
+    // }
 }

@@ -9,4 +9,5 @@ import Foundation
 
 protocol LineNumberViewDelegate: AnyObject {
     func lineNumberViewFrameDidChange(_ notification: NSNotification)
+    func lineCount(for lineNumberView: LineNumberView) -> Int
 }

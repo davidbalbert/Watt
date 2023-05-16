@@ -83,7 +83,6 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager.delegate = self
         layoutManager.textContainer = textContainer
         storage.addLayoutManager(layoutManager)
-        lineNumberView.translatesAutoresizingMaskIntoConstraints = false
         lineNumberView.delegate = self
     }
 
