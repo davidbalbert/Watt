@@ -8,16 +8,18 @@
 import Foundation
 
 extension LayoutManager {
-    struct TextElement {
+    struct TextElement: Identifiable {
+        var id: UUID = UUID()
+
         weak var contentManager: ContentManager?
         let textRange: Range<Location>
 
-        var attributedString: NSAttributedString {
+        lazy var attributedString: NSAttributedString = {
             guard let contentManager else {
                 return NSAttributedString("")
             }
 
             return contentManager.attributedString(for: self)
-        }
+        }()
     }
 }

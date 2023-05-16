@@ -14,6 +14,10 @@ final class TextStorageContentManager: TextContentManager {
     let storage: NSTextStorage
     var layoutManagers: [LayoutManager<TextStorageContentManager>] = []
 
+    // Maps element start index to text element. See LayoutManager.fragmentCache
+    // for how capacity was calculated.
+    var elementCache: LRUCache<String.Index, TextElement> = LRUCache(capacity: 300)
+
     init(_ s: String) {
         storage = NSTextStorage(string: s)
     }
@@ -61,14 +65,21 @@ final class TextStorageContentManager: TextContentManager {
         }
 
         while i < storage.string.endIndex {
-            let next: String.Index
-            if let newline = storage.string[i...].firstIndex(of: "\n") {
-                next = storage.string.index(after: newline)
+            let el: TextElement
+            if let e = elementCache[i] {
+                el = e
             } else {
-                next = storage.string.endIndex
+                let next: String.Index
+                if let newline = storage.string[i...].firstIndex(of: "\n") {
+                    next = storage.string.index(after: newline)
+                } else {
+                    next = storage.string.endIndex
+                }
+
+                el = TextElement(contentManager: self, textRange: i..<next)
             }
 
-            let el = TextElement(contentManager: self, textRange: i..<next)
+            elementCache[i] = el
 
             if !block(el) {
                 break
@@ -106,5 +117,6 @@ final class TextStorageContentManager: TextContentManager {
 
     func didSetFont(to font: NSFont) {
         storage.addAttribute(.font, value: font, range: documentNSRange)
+        elementCache.removeAll()
     }
 }
