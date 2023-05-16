@@ -7,7 +7,7 @@
 
 import Cocoa
 
-final class AttributedStringContentManager: ContentManager {
+final class AttributedStringContentManager: TextContentManager {
     typealias Location = AttributedString.Index
     typealias TextElement = LayoutManager<AttributedStringContentManager>.TextElement
 

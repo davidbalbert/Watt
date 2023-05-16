@@ -14,7 +14,7 @@ extension LayoutManager {
         var ys: [CGFloat]
         var ranges: [Range<Location>]
 
-        init(contentManager: Content?) {
+        init(contentManager: ContentManager?) {
             heights = []
             ys = []
             ranges = []

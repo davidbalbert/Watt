@@ -7,18 +7,15 @@
 
 import Cocoa
 
-class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Content: ContentManager {
-    typealias TextContainer = LayoutManager<Content>.TextContainer
-    typealias LayoutFragment = LayoutManager<Content>.LayoutFragment
+class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where ContentManager: TextContentManager {
+    typealias TextContainer = LayoutManager<ContentManager>.TextContainer
+    typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
 
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
         let scrollView = NSScrollView()
-//        print(scrollView.contentView.autoresizingMask)
         scrollView.contentView = ClipView()
-//        print(scrollView.contentView.autoresizingMask)
-
         scrollView.hasVerticalScroller = true
         scrollView.documentView = textView
 
@@ -43,7 +40,7 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         }
     }
 
-    var contentManager: Content {
+    var contentManager: ContentManager {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             contentManager.addLayoutManager(layoutManager)
@@ -53,7 +50,7 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         }
     }
 
-    var layoutManager: LayoutManager<Content> {
+    var layoutManager: LayoutManager<ContentManager> {
         didSet {
             oldValue.delegate = nil
             contentManager.removeLayoutManager(oldValue)
@@ -72,12 +69,12 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
         CGSize(width: lineNumberView.frame.width, height: 0)
     }
 
-    var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<Content>>
+    var fragmentLayerMap: WeakDictionary<LayoutFragment.ID, TextLayer<ContentManager>>
     var textLayer: CALayer = NonAnimatingLayer()
 
     override init(frame frameRect: NSRect) {
-        contentManager = Content("")
-        layoutManager = LayoutManager<Content>()
+        contentManager = ContentManager("")
+        layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
         lineNumberView = LineNumberView()
@@ -86,8 +83,8 @@ class TextView<Content>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelega
     }
 
     required init?(coder: NSCoder) {
-        contentManager = Content("")
-        layoutManager = LayoutManager<Content>()
+        contentManager = ContentManager("")
+        layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
         fragmentLayerMap = WeakDictionary()
         lineNumberView = LineNumberView()

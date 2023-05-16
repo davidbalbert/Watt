@@ -7,8 +7,8 @@
 
 import Foundation
 
-class LayoutManager<Content> where Content: ContentManager {
-    typealias Location = Content.Location
+class LayoutManager<ContentManager> where ContentManager: TextContentManager {
+    typealias Location = ContentManager.Location
 
     var viewportBounds: CGRect = .zero
     var textContainer: TextContainer? {
@@ -19,9 +19,9 @@ class LayoutManager<Content> where Content: ContentManager {
             textContainer?.layoutManager = self
         }
     }
-    weak var delegate: (any LayoutManagerDelegate<Content>)?
+    weak var delegate: (any LayoutManagerDelegate<ContentManager>)?
 
-    weak var contentManager: Content? {
+    weak var contentManager: ContentManager? {
         didSet {
             heightEstimates = HeightEstimates(contentManager: contentManager)
             fragmentCache.removeAll()

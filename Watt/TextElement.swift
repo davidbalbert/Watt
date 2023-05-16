@@ -9,7 +9,7 @@ import Foundation
 
 extension LayoutManager {
     struct TextElement {
-        weak var contentManager: Content?
+        weak var contentManager: ContentManager?
         let textRange: Range<Location>
 
         var attributedString: NSAttributedString {
