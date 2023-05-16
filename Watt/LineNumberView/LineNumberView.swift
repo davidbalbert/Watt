@@ -10,11 +10,12 @@ import Cocoa
 class LineNumberView: NSView {
     static let lineNumberKey = "lineNumber"
 
-    @Invalidating(.intrinsicContentSize) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
-    @Invalidating(.intrinsicContentSize) var padding: CGFloat = 5
+    @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
+
+    @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
+    @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
 
-    // TODO: ask our delgate what the total number of lines is
     weak var delegate: LineNumberViewDelegate?
 
     var textLayer: NonAnimatingLayer = NonAnimatingLayer()
@@ -40,7 +41,24 @@ class LineNumberView: NSView {
         NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
     }
 
+    private var _intrinsicContentSize: NSSize?
+
+    override func invalidateIntrinsicContentSize() {
+        _intrinsicContentSize = nil
+        super.invalidateIntrinsicContentSize()
+    }
+
     override var intrinsicContentSize: NSSize {
+        if let _intrinsicContentSize {
+            return _intrinsicContentSize
+        }
+
+        let size = calculateIntrinsicContentSize()
+        _intrinsicContentSize = size
+        return size
+    }
+
+    func calculateIntrinsicContentSize() -> NSSize {
         guard let delegate else {
             return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
         }
@@ -48,7 +66,21 @@ class LineNumberView: NSView {
         let lineCount = delegate.lineCount(for: self)
         let maxDigits = ceil(log10(CGFloat(lineCount-1)))
 
-        let width = font.maximumAdvancement.width*maxDigits + 2*padding
+        let characters: [UniChar] = Array("0123456789".utf16)
+        var glyphs: [CGGlyph] = Array(repeating: 0, count: characters.count)
+
+        let success = CTFontGetGlyphsForCharacters(font, characters, &glyphs, characters.count)
+
+        if !success {
+            return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+        }
+
+        var advances: [CGSize] = Array(repeating: .zero, count: glyphs.count)
+        _ = CTFontGetAdvancesForGlyphs(font, .horizontal, glyphs, &advances, glyphs.count)
+
+        let digitWidth = advances.map(\.width).reduce(0, max)
+
+        let width = digitWidth*maxDigits + leadingPadding + trailingPadding
 
         return NSSize(width: width, height: NSView.noIntrinsicMetric)
     }
@@ -86,19 +118,15 @@ class LineNumberView: NSView {
     }
 
     func addLineNumber(_ lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
-        if let l = layerCache[lineno] {
-            l.position = position
-            textLayer.addSublayer(l)
-            return
-        }
+        let l = layerCache[lineno] ?? CALayer()
 
-        let l = CALayer()
         l.setValue(lineno, forKey: LineNumberView.lineNumberKey)
         l.delegate = layerDelegate
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.needsDisplayOnBoundsChange = true
         l.anchorPoint = .zero
         l.position = position
+
         l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: lineHeight)
 
         layerCache[lineno] = l

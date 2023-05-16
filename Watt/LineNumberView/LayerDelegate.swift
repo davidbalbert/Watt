@@ -31,7 +31,7 @@ extension LineNumberView {
 
             // glyph origin in flipped coordinate space
             let glyphOrigin = CGPoint(
-                x: layer.bounds.width - lineNumberView.padding - typographicBounds.width,
+                x: layer.bounds.width - lineNumberView.trailingPadding - typographicBounds.width,
                 y: floor(typographicBounds.height + typographicBounds.minY)
             )
 

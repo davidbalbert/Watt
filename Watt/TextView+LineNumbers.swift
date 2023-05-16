@@ -33,10 +33,4 @@ extension TextView: LineNumberViewDelegate {
     func lineCount(for lineNumberView: LineNumberView) -> Int {
         layoutManager.lineCount
     }
-
-    // TODO: instead of having LineNumberView.font, have lineNumberView ask us for our font.
-    // This prevents lineNumberView from having a different font size than the text view.
-    // func font(for lineNumberView: LineNumberView) -> NSFont {
-    //    return .monospacedSystemFont(ofSize: 12, weight: .regular)
-    // }
 }

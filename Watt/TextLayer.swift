@@ -30,9 +30,9 @@ class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
     override func draw(in ctx: CGContext) {
         layoutFragment.draw(at: .zero, in: ctx)
 
-        ctx.saveGState()
-        ctx.setStrokeColor(NSColor.systemPurple.cgColor)
-        ctx.stroke(layoutFragment.typographicBounds.insetBy(dx: 0.5, dy: 0.5), width: 1)
-        ctx.restoreGState()
+//        ctx.saveGState()
+//        ctx.setStrokeColor(NSColor.systemPurple.cgColor)
+//        ctx.stroke(layoutFragment.typographicBounds.insetBy(dx: 0.5, dy: 0.5), width: 1)
+//        ctx.restoreGState()
     }
 }

@@ -106,6 +106,8 @@ class LayoutManager<Storage> where Storage: TextStorage {
                     fragmentCache.add(frag)
                 }
 
+                frag.lineNumber = lineno
+
                 let height = frag.typographicBounds.height
                 heightEstimates.updateFragmentHeight(at: lineno, with: height)
                 y += height
@@ -118,5 +120,9 @@ class LayoutManager<Storage> where Storage: TextStorage {
 
     func invalidateLayout() {
         fragmentCache.removeAll()
+    }
+
+    var lineCount: Int {
+        heightEstimates.lineCount
     }
 }

@@ -31,10 +31,21 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         true
     }
 
+    @Invalidating(.layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
+        didSet {
+            storage.didSetFont(to: font)
+            layoutManager.invalidateLayout()
+            lineNumberView.font = font
+        }
+    }
+
     var storage: Storage {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             storage.addLayoutManager(layoutManager)
+
+            storage.didSetFont(to: font)
+            needsLayout = true
         }
     }
 
@@ -45,6 +56,8 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
 
             layoutManager.delegate = self
             storage.addLayoutManager(layoutManager)
+
+            needsLayout = true
         }
     }
 
@@ -84,6 +97,8 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         layoutManager.textContainer = textContainer
         storage.addLayoutManager(layoutManager)
         lineNumberView.delegate = self
+        lineNumberView.font = font
+        storage.didSetFont(to: font)
     }
 
     override func updateLayer() {

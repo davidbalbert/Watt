@@ -5,7 +5,7 @@
 //  Created by David Albert on 5/11/23.
 //
 
-import Foundation
+import Cocoa
 
 protocol TextStorage: AnyObject {
     associatedtype Location: Comparable
@@ -22,4 +22,7 @@ protocol TextStorage: AnyObject {
     func removeLayoutManager(_ layoutManager: LayoutManager<Self>)
 
     func attributedString(for textElement: TextElement) -> NSAttributedString
+
+    // Don't love this. Come up with something better. Maybe addRenderingAttribute(_:value:for:)?
+    func didSetFont(to font: NSFont)
 }

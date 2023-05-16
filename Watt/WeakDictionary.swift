@@ -20,6 +20,10 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
         storage = [:]
     }
 
+    var count: Int {
+        storage.count
+    }
+
     subscript(key: Key) -> Value? {
         mutating get {
             if let ref = storage[key] {
@@ -37,5 +41,9 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
                 storage.removeValue(forKey: key)
             }
         }
+    }
+
+    mutating func removeAll() {
+        storage.removeAll(keepingCapacity: true)
     }
 }
