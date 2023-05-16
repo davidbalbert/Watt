@@ -23,6 +23,7 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManagerWillLayout(_ layoutManager: LayoutManager<Storage>) {
         textLayer.sublayers = nil
+        lineNumberView.beginUpdates()
     }
 
     func layoutManager(_ layoutManager: LayoutManager<Storage>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
@@ -37,10 +38,17 @@ extension TextView: LayoutManagerDelegate {
         fragmentLayerMap[layoutFragment.id] = l
 
         textLayer.addSublayer(l)
+
+        guard let frag = layoutFragment.lineFragments.first else {
+            return
+        }
+
+        lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: frag.typographicBounds.height)
     }
 
     func layoutManagerDidLayout(_ layoutManager: LayoutManager<Storage>) {
         updateFrameHeightIfNeeded()
+        lineNumberView.endUpdates()
     }
 
     func updateFrameHeightIfNeeded() {

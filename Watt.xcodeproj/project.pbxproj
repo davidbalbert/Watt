@@ -31,6 +31,7 @@
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2129FDB09600787BB9 /* LayoutFragment.swift */; };
 		63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2329FDB63F00787BB9 /* TextElement.swift */; };
+		63B863CB2A1315020082B4A6 /* LayerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B863CA2A1315020082B4A6 /* LayerDelegate.swift */; };
 		63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */; };
 		63DB4F3C29FF1A3700B97B39 /* TextLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */; };
 		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
@@ -88,6 +89,7 @@
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B61A2129FDB09600787BB9 /* LayoutFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragment.swift; sourceTree = "<group>"; };
 		63B61A2329FDB63F00787BB9 /* TextElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextElement.swift; sourceTree = "<group>"; };
+		63B863CA2A1315020082B4A6 /* LayerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerDelegate.swift; sourceTree = "<group>"; };
 		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonAnimatingLayer.swift; sourceTree = "<group>"; };
 		63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLayer.swift; sourceTree = "<group>"; };
 		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
@@ -157,8 +159,6 @@
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
 				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
-				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
-				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
 				63EDFA232A0FF04500220860 /* LRUCache.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
@@ -173,6 +173,7 @@
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
+				63B863C92A1314E50082B4A6 /* LineNumberView */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
 			);
 			path = Watt;
@@ -193,6 +194,16 @@
 				637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */,
 			);
 			path = WattUITests;
+			sourceTree = "<group>";
+		};
+		63B863C92A1314E50082B4A6 /* LineNumberView */ = {
+			isa = PBXGroup;
+			children = (
+				63B863CA2A1315020082B4A6 /* LayerDelegate.swift */,
+				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
+				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
+			);
+			path = LineNumberView;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -348,6 +359,7 @@
 				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringStorage.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
+				63B863CB2A1315020082B4A6 /* LayerDelegate.swift in Sources */,
 				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
