@@ -116,6 +116,5 @@ final class AttributedStringStorage: TextStorage {
 
     func didSetFont(to font: NSFont) {
         s.font = font
-        elementCache.removeAll()
     }
 }
