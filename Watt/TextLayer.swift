@@ -20,7 +20,7 @@ class TextLayer<Storage>: NonAnimatingLayer where Storage: TextStorage {
     override init(layer: Any) {
         let other = layer as! TextLayer
         self.layoutFragment = other.layoutFragment
-        super.init()
+        super.init(layer: layer)
     }
 
     required init?(coder: NSCoder) {
