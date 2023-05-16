@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: TextStorage {
+class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where Storage: TextStorage {
     typealias TextContainer = LayoutManager<Storage>.TextContainer
     typealias LayoutFragment = LayoutManager<Storage>.LayoutFragment
 
@@ -15,6 +15,10 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         let textView = Self()
 
         let scrollView = NSScrollView()
+//        print(scrollView.contentView.autoresizingMask)
+        scrollView.contentView = ClipView()
+//        print(scrollView.contentView.autoresizingMask)
+
         scrollView.hasVerticalScroller = true
         scrollView.documentView = textView
 
@@ -142,17 +146,15 @@ class TextView<Storage>: NSView, NSViewLayerContentScaleDelegate where Storage: 
         removeLineNumberView()
     }
 
-    override func viewDidMoveToSuperview() {
-        // Annoyingly, when being moved into a scroll view, viewDidMoveToSuperview
-        // is called before NSClipView has a chance to see that we're flipped and
-        // to flip itself accordingly, which makes the line number view scroll in
-        // reverse. Specifically, when _NSScrollViewFloatingSubviewsContainerView
-        // is created, its isFlipped property gets set to NSClipView.isFlipped,
-        // and if we called scrollView.addFloatingSubview here, we'd be too early.
-        // So we call it on the next run loop tick instead.
-        Task {
-            addLineNumberView()
-        }
+    // This is a custom method on ClipViewDelegate. Normally we'd use
+    // viewDidMoveToSuperview, but when we're added to a scroll view,
+    // that's called too early – specifically, it's called before the
+    // clip view has had a chance to match its isFlipped property to
+    // ours. So instead, we define a custom ClipView that calls this
+    // method after setDocumentView: is finished and the clip view
+    // has had a chance to update its geometry.
+    func viewDidMoveToClipView() {
+        addLineNumberView()
     }
 
     override func setFrameSize(_ newSize: NSSize) {
