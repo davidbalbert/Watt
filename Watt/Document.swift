@@ -8,9 +8,9 @@
 import Cocoa
 
 class Document: NSDocument {
+    var content: AttributedStringStorage = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-    var content: AttributedStringStorage = {
         return AttributedStringStorage(text)
     }()
 
