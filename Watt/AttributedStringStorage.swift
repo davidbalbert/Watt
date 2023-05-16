@@ -7,12 +7,12 @@
 
 import Cocoa
 
-final class AttributedStringStorage: TextContent {
+final class AttributedStringContent: TextContent {
     typealias Location = AttributedString.Index
-    typealias TextElement = LayoutManager<AttributedStringStorage>.TextElement
+    typealias TextElement = LayoutManager<AttributedStringContent>.TextElement
 
     var s: AttributedString
-    var layoutManagers: [LayoutManager<AttributedStringStorage>] = []
+    var layoutManagers: [LayoutManager<AttributedStringContent>] = []
 
     init() {
         self.s = ""
@@ -30,12 +30,12 @@ final class AttributedStringStorage: TextContent {
         String(s.characters[...])
     }
 
-    func addLayoutManager(_ layoutManager: LayoutManager<AttributedStringStorage>) {
+    func addLayoutManager(_ layoutManager: LayoutManager<AttributedStringContent>) {
         layoutManagers.append(layoutManager)
         layoutManager.textContent = self
     }
 
-    func removeLayoutManager(_ layoutManager: LayoutManager<AttributedStringStorage>) {
+    func removeLayoutManager(_ layoutManager: LayoutManager<AttributedStringContent>) {
         var indices: [Int] = []
         for (i, m) in layoutManagers.enumerated() {
             if m === layoutManager {

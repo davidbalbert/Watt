@@ -8,10 +8,10 @@
 import Cocoa
 
 class Document: NSDocument {
-    var content: AttributedStringStorage = {
+    var content: AttributedStringContent = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-        return AttributedStringStorage(text)
+        return AttributedStringContent(text)
     }()
 
     enum DocumentError: Error {
@@ -43,7 +43,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.content = AttributedStringStorage(text)
+        self.content = AttributedStringContent(text)
     }
 }
 
