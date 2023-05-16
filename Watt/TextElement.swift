@@ -17,7 +17,7 @@ extension LayoutManager {
                 return NSAttributedString("")
             }
 
-        }
             return contentManager.attributedString(for: self)
+        }
     }
 }

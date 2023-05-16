@@ -16,6 +16,7 @@
 		637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */; };
 		637288AC29FD8E1A005B95E5 /* WattUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AB29FD8E1A005B95E5 /* WattUITests.swift */; };
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
+		637BC1302A1400C60089A34D /* TextStorageContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* TextStorageContentManager.swift */; };
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
 		63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */; };
 		63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */; };
@@ -75,6 +76,7 @@
 		637288BA29FD9002005B95E5 /* Watt.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Watt.xcconfig; sourceTree = "<group>"; };
 		637288BB29FD9069005B95E5 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
+		637BC12F2A1400C60089A34D /* TextStorageContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorageContentManager.swift; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimates.swift; sourceTree = "<group>"; };
 		63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerDelegate.swift; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 				63A6186D2A0D901600E70B0E /* TextContentManager.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63DB4F3B29FF1A3700B97B39 /* TextLayer.swift */,
+				637BC12F2A1400C60089A34D /* TextStorageContentManager.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
@@ -360,6 +363,7 @@
 				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
+				637BC1302A1400C60089A34D /* TextStorageContentManager.swift in Sources */,
 				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringContentManager.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,

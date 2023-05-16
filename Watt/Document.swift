@@ -8,10 +8,10 @@
 import Cocoa
 
 class Document: NSDocument {
-    var contentManager: AttributedStringContentManager = {
+    var contentManager: TextStorageContentManager = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-        return AttributedStringContentManager(text)
+        return TextStorageContentManager(text)
     }()
 
     enum DocumentError: Error {
@@ -31,7 +31,7 @@ class Document: NSDocument {
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = contentManager.string.data(using: .utf8) else {
+        guard let data = contentManager.data(using: .utf8) else {
             throw DocumentError.save
         }
 
@@ -43,7 +43,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.contentManager = AttributedStringContentManager(text)
+        self.contentManager = TextStorageContentManager(text)
     }
 }
 

@@ -18,7 +18,7 @@ final class AttributedStringContentManager: TextContentManager {
         self.s = ""
     }
 
-    init<S>(_ s: S) where S : StringProtocol {
+    init(_ s: String) {
         self.s = AttributedString(s)
     }
 
@@ -78,7 +78,6 @@ final class AttributedStringContentManager: TextContentManager {
 
             i = range.upperBound
         }
-
     }
 
     func enumerateTextElements(from textLocation: AttributedString.Index, using block: (TextElement) -> Bool) {
@@ -112,6 +111,10 @@ final class AttributedStringContentManager: TextContentManager {
 
         // TODO: is there a way to do this with a single copy instead of two?
         return NSAttributedString(AttributedString(substr))
+    }
+
+    func data(using encoding: String.Encoding) -> Data? {
+        string.data(using: encoding)
     }
 
     func didSetFont(to font: NSFont) {
