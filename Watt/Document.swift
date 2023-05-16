@@ -14,6 +14,10 @@ class Document: NSDocument {
         return TextStorageContentManager(text)
     }()
 
+    override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {
+        true
+    }
+
     enum DocumentError: Error {
         case load
         case save
