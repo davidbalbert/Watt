@@ -10,9 +10,9 @@ import Cocoa
 
 class TextLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate where ContentManager: TextContentManager {
     typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
-    typealias Layer = TextLayer<ContentManager>
 
-    var layerCache: WeakDictionary<LayoutFragment.ID, Layer> = WeakDictionary()
+    var renderer: LayoutFragmentRenderer<ContentManager> = LayoutFragmentRenderer()
+    var layerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
 
     weak var delegate: (any TextLayerLayoutDelegate<ContentManager>)?
     weak var layoutManager: LayoutManager<ContentManager>?
@@ -80,10 +80,12 @@ extension TextLayerLayout: LayoutManagerDelegate {
         delegate?.textLayerLayoutDidFinishLayout(self)
     }
 
-    func makeLayer(for layoutFragment: LayoutFragment) -> TextLayer<ContentManager> {
-        let l = TextLayer(layoutFragment: layoutFragment)
+    func makeLayer(for layoutFragment: LayoutFragment) -> CALayer {
+        let l = CALayer()
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = delegate?.backingScaleFactor(for: self) ?? 1.0
+        l.delegate = renderer
+        l.setValue(layoutFragment, forKey: CALayer.layoutFragmentKey)
 
         return l
     }

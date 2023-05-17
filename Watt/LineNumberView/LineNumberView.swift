@@ -8,8 +8,6 @@
 import Cocoa
 
 class LineNumberView: NSView {
-    static let lineNumberKey = "lineNumber"
-
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
@@ -120,7 +118,7 @@ class LineNumberView: NSView {
     func addLineNumber(_ lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
         let l = layerCache[lineno] ?? CALayer()
 
-        l.setValue(lineno, forKey: LineNumberView.lineNumberKey)
+        l.setValue(lineno, forKey: CALayer.lineNumberKey)
         l.delegate = renderer
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.needsDisplayOnBoundsChange = true

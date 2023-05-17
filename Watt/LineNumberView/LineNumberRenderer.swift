@@ -15,7 +15,7 @@ class LineNumberRenderer: NSObject, CALayerDelegate, NSViewLayerContentScaleDele
     }
 
     func draw(_ layer: CALayer, in ctx: CGContext) {
-        guard let lineNumberView, let lineno = layer.value(forKey: LineNumberView.lineNumberKey) as? Int else {
+        guard let lineNumberView, let lineno = layer.value(forKey: CALayer.lineNumberKey) as? Int else {
             return
         }
 
