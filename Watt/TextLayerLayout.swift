@@ -5,7 +5,6 @@
 //  Created by David Albert on 5/17/23.
 //
 
-import Foundation
 import Cocoa
 
 class TextLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate where ContentManager: TextContentManager {
