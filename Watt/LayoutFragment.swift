@@ -18,7 +18,7 @@ extension LayoutManager {
     class LayoutFragment: Identifiable {
         let id = UUID()
 
-        let textElement: TextElement
+        var textElement: TextElement
         var lineNumber: Int = 0
 
         var textRange: Range<Location> {
