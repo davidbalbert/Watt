@@ -74,13 +74,14 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
     }
 
     let textLayer: CALayer = CALayer()
-    let textLayerLayout: TextLayerLayout<ContentManager> = TextLayerLayout()
+    let textLayerLayout: TextLayerLayout<ContentManager>
 
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
         layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
         lineNumberView = LineNumberView()
+        textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
         super.init(frame: frameRect)
         commonInit()
     }
@@ -89,6 +90,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         contentManager = ContentManager("")
         layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
+        textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
         lineNumberView = LineNumberView()
         super.init(coder: coder)
         commonInit()
@@ -106,7 +108,6 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         lineNumberView.font = font
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
-        textLayerLayout.layoutManager = layoutManager
         textLayerLayout.delegate = self
 
         textLayer.name = "Text Layer"

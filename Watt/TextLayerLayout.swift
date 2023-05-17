@@ -14,22 +14,21 @@ class TextLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerCon
     var layerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
 
     weak var delegate: (any TextLayerLayoutDelegate<ContentManager>)?
-    weak var layoutManager: LayoutManager<ContentManager>?
+    var layoutManager: LayoutManager<ContentManager>
+
+    init(layoutManager: LayoutManager<ContentManager>) {
+        self.layoutManager = layoutManager
+    }
 
     // The layer being laid out
     var layer: CALayer?
 
     func layoutSublayers(of layer: CALayer) {
-        guard let layoutManager else {
-            return
-        }
-
         self.layer = layer
         layoutManager.layoutViewport()
         self.layer = nil
     }
 
-    // Don't animate
     func action(for layer: CALayer, forKey event: String) -> CAAction? {
         NSNull()
     }
