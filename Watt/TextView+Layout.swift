@@ -7,8 +7,8 @@
 
 import AppKit
 
-extension TextView: LayoutManagerDelegate {
-    func viewportBounds(for layoutManager: LayoutManager<ContentManager>) -> CGRect {
+extension TextView: TextLayerLayoutDelegate {
+    func viewportBounds(for textLayerLayout: TextLayerLayout<ContentManager>) -> CGRect {
         var viewportBounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             viewportBounds = preparedContentRect.union(visibleRect)
@@ -21,23 +21,11 @@ extension TextView: LayoutManagerDelegate {
         return viewportBounds
     }
 
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager<ContentManager>) {
-        textLayer.sublayers = nil
+    func textLayerLayoutWillLayout(_ textLayerLayout: TextLayerLayout<ContentManager>) {
         lineNumberView.beginUpdates()
     }
 
-    func layoutManager(_ layoutManager: LayoutManager<ContentManager>, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
-        let l = fragmentLayerMap[layoutFragment.id] ?? TextLayer(layoutFragment: layoutFragment)
-
-        l.contentsScale = window?.backingScaleFactor ?? 1.0
-        l.needsDisplayOnBoundsChange = true
-        l.anchorPoint = .zero
-        l.bounds = layoutFragment.typographicBounds
-        l.position = CGPoint(x: layoutFragment.position.x + textContainerInset.width, y: layoutFragment.position.y)
-
-        fragmentLayerMap[layoutFragment.id] = l
-
-        textLayer.addSublayer(l)
+    func textLayerLayout(_ textLayerLayout: TextLayerLayout<ContentManager>, didLayout layoutFragment: LayoutManager<ContentManager>.LayoutFragment) {
 
         guard let frag = layoutFragment.lineFragments.first else {
             return
@@ -46,9 +34,17 @@ extension TextView: LayoutManagerDelegate {
         lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: frag.typographicBounds.height)
     }
 
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager<ContentManager>) {
+    func textLayerLayoutDidFinishLayout(_ textLayerLayout: TextLayerLayout<ContentManager>) {
         updateFrameHeightIfNeeded()
         lineNumberView.endUpdates()
+    }
+
+    func backingScaleFactor(for textLayerLayout: TextLayerLayout<ContentManager>) -> CGFloat {
+        window?.backingScaleFactor ?? 1.0
+    }
+
+    func textLayerLayout(_ textLayerLayout: TextLayerLayout<ContentManager>, insetFor layoutFragment: LayoutManager<ContentManager>.LayoutFragment) -> CGSize {
+        textContainerInset
     }
 
     func updateFrameHeightIfNeeded() {
