@@ -99,6 +99,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         contentManager.addLayoutManager(layoutManager)
         lineNumberView.delegate = self
         lineNumberView.font = font
+        lineNumberView.translatesAutoresizingMaskIntoConstraints = false
         contentManager.didSetFont(to: font)
     }
 
@@ -130,7 +131,6 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
             layer.addSublayer(textLayer)
         }
 
-        layoutLineNumberView()
         layoutManager.layoutViewport()
 
         super.layout()

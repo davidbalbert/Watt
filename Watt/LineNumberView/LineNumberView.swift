@@ -11,7 +11,6 @@ class LineNumberView: NSView {
     static let lineNumberKey = "lineNumber"
 
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
-
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
@@ -81,7 +80,7 @@ class LineNumberView: NSView {
 
         let digitWidth = advances.map(\.width).reduce(0, max)
 
-        let width = digitWidth*maxDigits + leadingPadding + trailingPadding
+        let width = ceil(digitWidth*maxDigits + leadingPadding + trailingPadding)
 
         return NSSize(width: width, height: NSView.noIntrinsicMetric)
     }

@@ -14,19 +14,20 @@ extension TextView: LineNumberViewDelegate {
         }
 
         scrollView.addFloatingSubview(lineNumberView, for: .horizontal)
-        layoutLineNumberView()
+
+        NSLayoutConstraint.activate([
+            lineNumberView.topAnchor.constraint(equalTo: topAnchor),
+            lineNumberView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            lineNumberView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
     }
 
     func removeLineNumberView() {
         lineNumberView.removeFromSuperview()
     }
 
-    func layoutLineNumberView() {
-        lineNumberView.frame = CGRect(x: 0, y: 0, width: lineNumberView.intrinsicContentSize.width, height: frame.height)
-    }
-
     func lineNumberViewFrameDidChange(_ notification: NSNotification) {
-        updateTextContainerSize()
+        updateTextContainerSizeIfNecessary()
         needsLayout = true
     }
 

@@ -9,6 +9,9 @@ import Foundation
 
 extension LayoutManager {
     class TextContainer {
+        var lineFragmentPadding: CGFloat = 5
+        weak var layoutManager: LayoutManager?
+
         var size: CGSize = .zero {
             didSet {
                 layoutManager?.invalidateLayout()
@@ -26,8 +29,5 @@ extension LayoutManager {
         var lineWidth: CGFloat {
             size.width - 2*lineFragmentPadding
         }
-
-        var lineFragmentPadding: CGFloat = 5
-        weak var layoutManager: LayoutManager?
     }
 }
