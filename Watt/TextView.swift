@@ -132,6 +132,8 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
         layoutLineNumberView()
         layoutManager.layoutViewport()
+
+        super.layout()
     }
 
     override func prepareContent(in rect: NSRect) {
