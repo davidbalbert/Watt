@@ -14,8 +14,33 @@ final class TextStorageContentManager: TextContentManager {
     let storage: NSTextStorage
     var layoutManagers: [LayoutManager<TextStorageContentManager>] = []
 
-    // Maps element start index to text element. See LayoutManager.fragmentCache
-    // for how capacity was calculated.
+    // One of the more expensive parts of using NSTextStorage is generating attributed
+    // substrings for each TextElement. Text elements lazily create their substrings
+    // and cache them for the future, which means if we can cache the TextElements
+    // themselves, we can increase performance by quite a bit.
+    //
+    // I arrived at a capacity of 300 empirically:
+    //
+    // We want to make sure to cache enough TextElements to fit in our scroll view's
+    // preparedContentRect. Otherwise we'll end up doing layout and rendering for some
+    // of the TextElements we need on every frame of scrolling.
+    //
+    // NSScrollView varies the size of its prepared content rect based on the size of
+    // its frame – the larger the scroll view, the more content it wants to prefetch.
+    //
+    // The number of layout fragments we can fit in the preparedContentRect depends
+    // on how many lines the fragments take up and what font size we're using.
+    //
+    // To test, I filled a text view with the numbers 1 to 1,000,000, each on their own
+    // line, set in Helvetica size 12, which seemed like a reasonable lower bound on the
+    // frame size of layout fragments. I resized the window so it took up the height of
+    // my 5K Studio Display, and then scrolled to see the maximum number of text layers
+    // that ended up in the text view. That ended up being 243.
+    //
+    // To add some extra padding, I rounded up to 300.
+    //
+    // Eventually it would be nice to also use an LRUCache for LayoutFragments but
+    // I'm going to punt on that for now.
     var elementCache: LRUCache<String.Index, TextElement> = LRUCache(capacity: 300)
 
     init(_ s: String) {
