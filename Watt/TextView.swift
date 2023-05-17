@@ -159,12 +159,14 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
 
-        if (textContainer.size.width != frame.width) {
-            updateTextContainerSize()
-        }
+        updateTextContainerSizeIfNecessary()
     }
 
-    func updateTextContainerSize() {
-        textContainer.size = CGSize(width: frame.width - textContainerInset.width, height: 0)
+    func updateTextContainerSizeIfNecessary() {
+        let width = max(0, frame.width - textContainerInset.width)
+
+        if textContainer.size.width != width {
+            textContainer.size = CGSize(width: width, height: 0)
+        }
     }
 }
