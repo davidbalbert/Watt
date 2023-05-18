@@ -11,7 +11,7 @@ final class AttributedStringContentManager: TextContentManager {
     typealias Location = AttributedString.Index
     typealias TextElement = LayoutManager<AttributedStringContentManager>.TextElement
 
-    var s: AttributedString
+    var storage: AttributedString
     var layoutManagers: [LayoutManager<AttributedStringContentManager>] = []
 
     // Maps element start index to text element. See LayoutManager.fragmentCache
@@ -19,19 +19,19 @@ final class AttributedStringContentManager: TextContentManager {
     var elementCache: LRUCache<Int, TextElement> = LRUCache(capacity: 300)
 
     init() {
-        self.s = ""
+        self.storage = ""
     }
 
     init(_ s: String) {
-        self.s = AttributedString(s)
+        self.storage = AttributedString(s)
     }
 
     init(_ s: AttributedString) {
-        self.s = s
+        self.storage = s
     }
 
     var string: String {
-        String(s.characters[...])
+        String(storage.characters[...])
     }
 
     func addLayoutManager(_ layoutManager: LayoutManager<AttributedStringContentManager>) {
@@ -54,24 +54,24 @@ final class AttributedStringContentManager: TextContentManager {
     }
 
     var documentRange: Range<AttributedString.Index> {
-        s.startIndex..<s.endIndex
+        storage.startIndex..<storage.endIndex
     }
 
     func enumerateLineRanges(from location: AttributedString.Index, using block: (Range<AttributedString.Index>) -> Bool) {
 
         var i: AttributedString.Index
-        if location != s.startIndex, let lineEnd = s.characters[...location].lastIndex(of: "\n") {
-            i = s.index(afterCharacter: lineEnd)
+        if location != storage.startIndex, let lineEnd = storage.characters[...location].lastIndex(of: "\n") {
+            i = storage.index(afterCharacter: lineEnd)
         } else {
-            i = s.startIndex
+            i = storage.startIndex
         }
 
-        while i < s.endIndex {
+        while i < storage.endIndex {
             let next: AttributedString.Index
-            if let newline = s[i...].characters.firstIndex(of: "\n") {
-                next = s.index(afterCharacter: newline)
+            if let newline = storage[i...].characters.firstIndex(of: "\n") {
+                next = storage.index(afterCharacter: newline)
             } else {
-                next = s.endIndex
+                next = storage.endIndex
             }
 
             let range = i..<next
@@ -86,23 +86,23 @@ final class AttributedStringContentManager: TextContentManager {
 
     func enumerateTextElements(from textLocation: AttributedString.Index, using block: (TextElement) -> Bool) {
         var i: AttributedString.Index
-        if textLocation != s.startIndex, let lineEnd = s.characters[...textLocation].lastIndex(of: "\n") {
-            i = s.index(afterCharacter: lineEnd)
+        if textLocation != storage.startIndex, let lineEnd = storage.characters[...textLocation].lastIndex(of: "\n") {
+            i = storage.index(afterCharacter: lineEnd)
         } else {
-            i = s.startIndex
+            i = storage.startIndex
         }
 
-        var nchars = s.characters.distance(from: s.startIndex, to: i)
-        while i < s.endIndex {
+        var nchars = storage.characters.distance(from: storage.startIndex, to: i)
+        while i < storage.endIndex {
             let el: TextElement
             if let e = elementCache[nchars] {
                 el = e
             } else {
                 let next: AttributedString.Index
-                if let newline = s[i...].characters.firstIndex(of: "\n") {
-                    next = s.index(afterCharacter: newline)
+                if let newline = storage[i...].characters.firstIndex(of: "\n") {
+                    next = storage.index(afterCharacter: newline)
                 } else {
-                    next = s.endIndex
+                    next = storage.endIndex
                 }
 
                 el = TextElement(contentManager: self, textRange: i..<next)
@@ -114,13 +114,13 @@ final class AttributedStringContentManager: TextContentManager {
                 break
             }
 
-            nchars += s.characters.distance(from: i, to: el.textRange.upperBound)
+            nchars += storage.characters.distance(from: i, to: el.textRange.upperBound)
             i = el.textRange.upperBound
         }
     }
 
     func attributedString(for textElement: TextElement) -> NSAttributedString {
-         let substr = s[textElement.textRange]
+         let substr = storage[textElement.textRange]
 
         // TODO: is there a way to do this with a single copy instead of two?
         return NSAttributedString(AttributedString(substr))
@@ -131,7 +131,7 @@ final class AttributedStringContentManager: TextContentManager {
     }
 
     func didSetFont(to font: NSFont) {
-        s.font = font
+        storage.font = font
         elementCache.removeAll()
     }
 }
