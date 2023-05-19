@@ -22,7 +22,8 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
             return nil
         }
 
-        let bottom = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
+        let bottom = CGPoint(x: viewportBounds.minX, y: min(heightEstimates.documentHeight, viewportBounds.maxY))
+
         guard let lastRange = heightEstimates.textRange(for: bottom) else {
             return nil
         }
