@@ -10,6 +10,7 @@ import Cocoa
 class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where ContentManager: TextContentManager {
     typealias TextContainer = LayoutManager<ContentManager>.TextContainer
     typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
+    typealias Selection = LayoutManager<ContentManager>.Selection
 
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
@@ -39,6 +40,8 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
             layoutManager.invalidateLayout()
             textLayer.setNeedsLayout()
+            print("1")
+            selectionLayer.setNeedsLayout()
         }
     }
 
@@ -48,7 +51,10 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
             contentManager.addLayoutManager(layoutManager)
 
             contentManager.didSetFont(to: font)
+
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
             textLayer.setNeedsLayout()
+            selectionLayer.setNeedsLayout()
         }
     }
 
@@ -62,7 +68,9 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
             contentManager.addLayoutManager(layoutManager)
 
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
             textLayer.setNeedsLayout()
+            selectionLayer.setNeedsLayout()
         }
     }
 
@@ -76,12 +84,16 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
     let textLayer: CALayer = CALayer()
     let textLayerLayout: TextLayerLayout<ContentManager>
 
+    let selectionLayer: CALayer = CALayer()
+    let selectionLayerLayout: SelectionLayerLayout<ContentManager>
+
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
         layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
-        lineNumberView = LineNumberView()
         textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
+        selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)
+        lineNumberView = LineNumberView()
         super.init(frame: frameRect)
         commonInit()
     }
@@ -91,6 +103,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         layoutManager = LayoutManager<ContentManager>()
         textContainer = TextContainer()
         textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
+        selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)
         lineNumberView = LineNumberView()
         super.init(coder: coder)
         commonInit()
@@ -108,10 +121,15 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         lineNumberView.font = font
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
+        selectionLayer.name = "Selections"
+        selectionLayer.delegate = selectionLayerLayout
+        selectionLayerLayout.delegate = self
+
+        textLayer.name = "Text"
+        textLayer.delegate = textLayerLayout
         textLayerLayout.delegate = self
 
-        textLayer.name = "Text Layer"
-        textLayer.delegate = textLayerLayout
+        layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
 
         contentManager.didSetFont(to: font)
     }
@@ -137,6 +155,13 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
             return
         }
 
+        if selectionLayer.superlayer == nil {
+            selectionLayer.anchorPoint = .zero
+            selectionLayer.bounds = layer.bounds
+            selectionLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer.addSublayer(selectionLayer)
+        }
+
         if textLayer.superlayer == nil {
             textLayer.anchorPoint = .zero
             textLayer.bounds = layer.bounds
@@ -150,6 +175,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
     override func prepareContent(in rect: NSRect) {
         super.prepareContent(in: rect)
         textLayer.setNeedsLayout()
+        selectionLayer.setNeedsLayout()
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {

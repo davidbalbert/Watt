@@ -89,6 +89,8 @@ final class TextStorageContentManager: TextContentManager {
             i = storage.string.startIndex
         }
 
+        var off = 0
+
         while i < storage.string.endIndex {
             let el: TextElement
             if let e = elementCache[i] {
@@ -101,7 +103,8 @@ final class TextStorageContentManager: TextContentManager {
                     next = storage.string.endIndex
                 }
 
-                el = TextElement(contentManager: self, textRange: i..<next)
+                el = TextElement(contentManager: self, textRange: i..<next, characterOffset: off)
+                off += offset(from: i, to: next)
             }
 
             elementCache[i] = el
@@ -138,6 +141,22 @@ final class TextStorageContentManager: TextContentManager {
 
     func data(using encoding: String.Encoding) -> Data? {
         storage.string.data(using: encoding)
+    }
+
+    func location(_ location: String.Index, offsetBy offset: Int) -> String.Index? {
+        storage.string.index(location, offsetBy: offset)
+    }
+
+    func offset(from: String.Index, to: String.Index) -> Int {
+        storage.string.distance(from: from, to: to)
+    }
+
+    func nsRange(from range: Range<String.Index>) -> NSRange {
+        NSRange(range, in: storage.string)
+    }
+
+    func character(at location: String.Index) -> Character {
+        storage.string[location]
     }
 
     func didSetFont(to font: NSFont) {

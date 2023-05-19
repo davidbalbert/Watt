@@ -63,3 +63,13 @@ extension TextView: TextLayerLayoutDelegate {
         }
     }
 }
+
+extension TextView: SelectionLayerLayoutDelegate {
+    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGFloat {
+        window?.backingScaleFactor ?? 1.0
+    }
+
+    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGSize {
+        textContainerInset
+    }
+}

@@ -10,7 +10,28 @@ import Foundation
 class LayoutManager<ContentManager> where ContentManager: TextContentManager {
     typealias Location = ContentManager.Location
 
+    enum SegmentType {
+        case standard
+        case selection
+    }
+
     var viewportBounds: CGRect = .zero
+
+    var viewportRange: Range<Location>? {
+        guard let firstRange = heightEstimates.textRange(for: viewportBounds.origin) else {
+            return nil
+        }
+
+        let bottom = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
+        guard let lastRange = heightEstimates.textRange(for: bottom) else {
+            return nil
+        }
+
+        return firstRange.lowerBound..<lastRange.upperBound
+    }
+
+    var selection: Selection?
+
     var textContainer: TextContainer? {
         willSet {
             textContainer?.layoutManager = nil
@@ -61,6 +82,86 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         }
 
         delegate.layoutManagerDidLayout(self)
+    }
+
+    func enumerateTextSegments(in range: Range<Location>, type: SegmentType, using block: (CGRect) -> Bool) {
+        guard let contentManager, let textContainer else {
+            return
+        }
+
+        let nsRange = contentManager.nsRange(from: range)
+
+        enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
+            for lineFragment in layoutFragment.lineFragments {
+                let lineRange = lineFragment.characterRange
+
+                // I think the only possible lineFragment with a length of 0 would
+                // be the last line of a document if it's empty. I don't know if we
+                // represent those yet, but let's ignore them for now.
+                guard lineRange.length > 0 else {
+                    return false
+                }
+
+                guard let rangeInLine = nsRange.intersection(lineRange) else {
+                    return false
+                }
+
+                let x0 = lineFragment.offsetForCharacter(at: rangeInLine.lowerBound) // segment start
+                let x1 = lineFragment.offsetForCharacter(at: rangeInLine.upperBound) // segment end
+                let x2 = lineFragment.offsetForCharacter(at: lineRange.upperBound)   // line end
+                let xEnd = textContainer.width - textContainer.lineFragmentPadding   // text container end
+
+                let bounds = lineFragment.typographicBounds
+                let origin = lineFragment.position
+
+                // in layoutFragment coordinates
+                var segmentRect = CGRect(x: x0, y: origin.y, width: x1 - x0, height: bounds.height)
+                let trailingRect = CGRect(x: x2, y: origin.y, width: xEnd - x2, height: bounds.height)
+
+                var skipTrailing = false
+
+                // if we're getting selection rects, and the selection includes a trailing newline
+                // in this line fragment, extend the segment rect to include the selection rect.
+                if type == .selection && lineRange.upperBound == rangeInLine.upperBound {
+                    let documentStart = contentManager.documentRange.lowerBound
+
+                    // should never be nil because we know lineRange.length is > 0, but maybe there's
+                    // a better way than force unwrapping
+                    let lastIdx = contentManager.location(documentStart, offsetBy: lineRange.upperBound-1)!
+                    let lastChar = contentManager.character(at: lastIdx)
+
+                    if lastChar == "\n" {
+                        segmentRect = segmentRect.union(trailingRect)
+                        skipTrailing = true
+                    }
+                }
+
+                if !block(convert(segmentRect, from: layoutFragment)) {
+                    return false
+                }
+
+                if nsRange.upperBound <= lineRange.upperBound {
+                    // we're at the end of our selection
+                    return false
+                }
+
+                if type == .selection && !skipTrailing {
+                    if !block(convert(segmentRect, from: layoutFragment)) {
+                        return false
+                    }
+                }
+            }
+
+            return true
+        }
+    }
+
+    func convert(_ rect: CGRect, from layoutFragment: LayoutFragment) -> CGRect {
+        let fragX = layoutFragment.frame.minX
+        let fragY = layoutFragment.frame.minY
+        let origin = CGPoint(x: rect.minX + fragX, y: rect.minY + fragY)
+
+        return CGRect(origin: origin, size: rect.size)
     }
 
     func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {

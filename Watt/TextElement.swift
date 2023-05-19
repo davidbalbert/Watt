@@ -13,6 +13,7 @@ extension LayoutManager {
 
         weak var contentManager: ContentManager?
         let textRange: Range<Location>
+        let characterOffset: Int
 
         lazy var attributedString: NSAttributedString = {
             guard let contentManager else {

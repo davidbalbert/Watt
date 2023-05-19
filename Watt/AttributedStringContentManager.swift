@@ -105,7 +105,7 @@ final class AttributedStringContentManager: TextContentManager {
                     next = storage.endIndex
                 }
 
-                el = TextElement(contentManager: self, textRange: i..<next)
+                el = TextElement(contentManager: self, textRange: i..<next, characterOffset: nchars)
             }
 
             elementCache[nchars] = el
@@ -128,6 +128,22 @@ final class AttributedStringContentManager: TextContentManager {
 
     func data(using encoding: String.Encoding) -> Data? {
         string.data(using: encoding)
+    }
+
+    func location(_ location: AttributedString.Index, offsetBy offset: Int) -> AttributedString.Index? {
+        storage.characters.index(location, offsetBy: offset)
+    }
+
+    func offset(from: AttributedString.Index, to: AttributedString.Index) -> Int {
+        storage.characters.distance(from: from, to: to)
+    }
+
+    func nsRange(from range: Range<AttributedString.Index>) -> NSRange {
+        NSRange(range, in: storage)
+    }
+
+    func character(at location: AttributedString.Index) -> Character {
+        storage.characters[location]
     }
 
     func didSetFont(to font: NSFont) {

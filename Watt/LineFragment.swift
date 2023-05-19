@@ -14,6 +14,7 @@ extension LayoutManager {
         let glyphOrigin: CGPoint
         let position: CGPoint
         let typographicBounds: CGRect
+        let characterOffset: Int
 
         var frame: CGRect {
             CGRect(origin: position, size: typographicBounds.size)
@@ -38,6 +39,16 @@ extension LayoutManager {
             ctx.textPosition = origin
             CTLineDraw(line, ctx)
             ctx.restoreGState()
+        }
+
+        var characterRange: NSRange {
+            let range = CTLineGetStringRange(line)
+
+            return NSRange(location: characterOffset + range.location, length: range.length)
+        }
+
+        func offsetForCharacter(at index: Int) -> CGFloat {
+            CTLineGetOffsetForStringIndex(line, index, nil)
         }
     }
 }
