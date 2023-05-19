@@ -48,7 +48,7 @@ extension LayoutManager {
         }
 
         func offsetForCharacter(at index: Int) -> CGFloat {
-            CTLineGetOffsetForStringIndex(line, index, nil)
+            CTLineGetOffsetForStringIndex(line, index - characterOffset, nil)
         }
     }
 }
