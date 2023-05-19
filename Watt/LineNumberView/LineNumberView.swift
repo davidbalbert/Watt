@@ -36,6 +36,9 @@ class LineNumberView: NSView {
     func commonInit() {
         renderer.lineNumberView = self
         NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
+
+        let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
+        addTrackingArea(trackingArea)
     }
 
     private var _intrinsicContentSize: NSSize?
@@ -133,5 +136,9 @@ class LineNumberView: NSView {
 
     func endUpdates() {
         // no-op
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.arrow.set()
     }
 }
