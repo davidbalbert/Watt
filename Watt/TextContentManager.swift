@@ -25,7 +25,7 @@ protocol TextContentManager: AnyObject {
 
     func data(using encoding: String.Encoding) -> Data?
 
-    func location(_ location: Location, offsetBy offset: Int) -> Location?
+    func location(_ location: Location, offsetBy offset: Int) -> Location
     func offset(from: Location, to: Location) -> Int
     func nsRange(from: Range<Location>) -> NSRange
 

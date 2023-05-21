@@ -15,6 +15,7 @@ extension LayoutManager {
         let glyphOrigin: CGPoint
         let position: CGPoint
         let typographicBounds: CGRect
+        let textRange: Range<Location>
         let characterOffset: Int
         let endsWithNewline: Bool
 

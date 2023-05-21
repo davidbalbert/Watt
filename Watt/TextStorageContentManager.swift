@@ -89,13 +89,10 @@ final class TextStorageContentManager: TextContentManager {
             i = storage.string.startIndex
         }
 
-        var off = offset(from: documentRange.lowerBound, to: i)
-
         while i < storage.string.endIndex {
             let el: TextElement
             if let e = elementCache[i] {
                 el = e
-                off += el.length
             } else {
                 let next: String.Index
                 if let newline = storage.string[i...].firstIndex(of: "\n") {
@@ -107,8 +104,7 @@ final class TextStorageContentManager: TextContentManager {
                 let range = i..<next
                 let substring = storage.string[range]
 
-                el = TextElement(contentManager: self, substring: substring, textRange: range, characterOffset: off)
-                off += substring.count
+                el = TextElement(contentManager: self, substring: substring, textRange: range)
             }
 
             elementCache[i] = el
@@ -147,7 +143,7 @@ final class TextStorageContentManager: TextContentManager {
         storage.string.data(using: encoding)
     }
 
-    func location(_ location: String.Index, offsetBy offset: Int) -> String.Index? {
+    func location(_ location: String.Index, offsetBy offset: Int) -> String.Index {
         storage.string.index(location, offsetBy: offset)
     }
 

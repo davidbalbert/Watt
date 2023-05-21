@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreText
 
 class LayoutManager<ContentManager> where ContentManager: TextContentManager {
     typealias Location = ContentManager.Location
@@ -90,32 +91,29 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
             return
         }
 
-        let nsRange = contentManager.nsRange(from: range)
-
         enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
-            let layoutFragmentOffset = layoutFragment.textElement.characterOffset
-
             for lineFragment in layoutFragment.lineFragments {
-                let lineRange = lineFragment.characterRange
+                let lineRangeInDocument = lineFragment.textRange
 
-                let lineRangeInDocument = NSRange(location: layoutFragmentOffset + lineFragment.characterOffset, length: lineFragment.characterRange.length)
-
-                // I think the only possible lineFragment with a length of 0 would
-                // be the last line of a document if it's empty. I don't know if we
+                // I think the only possible empty lineFragment would be the
+                // last line of a document if it's empty. I don't know if we
                 // represent those yet, but let's ignore them for now.
-                guard lineRangeInDocument.length > 0 else {
+                guard !lineRangeInDocument.isEmpty else {
                     return false
                 }
 
-                guard let rangeInLineInDocument = nsRange.intersection(lineRangeInDocument) else {
+                let rangeInLineInDocument = range.clamped(to: lineRangeInDocument)
+                if rangeInLineInDocument.isEmpty {
                     continue
                 }
 
-                let rangeInLine = NSRange(location: rangeInLineInDocument.location - layoutFragmentOffset - lineFragment.characterOffset, length: rangeInLineInDocument.length)
+                let start = contentManager.offset(from: lineRangeInDocument.lowerBound, to: rangeInLineInDocument.lowerBound)
+                let end = contentManager.offset(from: lineRangeInDocument.lowerBound, to: rangeInLineInDocument.upperBound)
+                let lineEnd = contentManager.offset(from: lineRangeInDocument.lowerBound, to: lineRangeInDocument.upperBound)
 
-                let x0 = lineFragment.locationForCharacter(at: rangeInLine.lowerBound).x // segment start
-                let x1 = lineFragment.locationForCharacter(at: rangeInLine.upperBound).x // segment end
-                let x2 = lineFragment.locationForCharacter(at: lineRange.upperBound).x   // line end
+                let x0 = lineFragment.locationForCharacter(at: start).x // segment start
+                let x1 = lineFragment.locationForCharacter(at: end).x // segment end
+                let x2 = lineFragment.locationForCharacter(at: lineEnd).x   // line end
                 let xEnd = textContainer.width - 2*textContainer.lineFragmentPadding   // text container end
 
                 let bounds = lineFragment.typographicBounds
@@ -140,7 +138,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                     return false
                 }
 
-                if nsRange.upperBound <= lineRangeInDocument.upperBound {
+                if range.upperBound <= lineRangeInDocument.upperBound {
                     // we're at the end of our selection
                     return false
                 }
@@ -191,7 +189,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
             if options.contains(.ensuresLayout) {
                 if !frag.hasLayout {
-                    frag.layout(at: CGPoint(x: 0, y: y), in: textContainer)
+                    layout(frag, at: CGPoint(x: 0, y: y), in: textContainer)
                 } else {
                     // Even though we're already laid out, it's possible that a fragment
                     // above us just got laid out for the first time (for example, if we
@@ -266,7 +264,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         let pointInLineFragment = convert(pointInLayoutFragment, to: lineFragment)
         let offsetInLine = lineFragment.characterIndex(for: pointInLineFragment)
 
-        return contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: lineStart + offsetInLine)
+        return contentManager.location(lineFragment.textRange.lowerBound, offsetBy: offsetInLine)
     }
 
     func layoutFragment(for point: CGPoint) -> LayoutFragment? {
@@ -281,5 +279,75 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         }
 
         return layoutFragment
+    }
+
+    func layout(_ layoutFragment: LayoutFragment, at position: CGPoint, in textContainer: TextContainer) {
+        guard let contentManager else {
+            return
+        }
+
+        if layoutFragment.hasLayout {
+            print("warning: layout(_:at:in:) called on fragment that already has layout")
+            return
+        }
+
+        layoutFragment.position = position
+
+        let s = layoutFragment.textElement.attributedString
+
+        // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
+        let typesetter = CTTypesetterCreateWithAttributedString(s)
+
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+        var i = 0
+        var startIndex = layoutFragment.textRange.lowerBound
+
+        while i < s.length {
+            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
+            let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
+
+            let p = CGPoint(x: 0, y: height)
+            let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
+
+            let end = s.string.index(s.string.startIndex, offsetBy: next-1)
+            let lastChar = s.string[end]
+
+            let nextIndex = contentManager.location(startIndex, offsetBy: next - i)
+
+            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, textRange: startIndex..<nextIndex, characterOffset: i, endsWithNewline: lastChar == "\n")
+            layoutFragment.lineFragments.append(lineFragment)
+
+            i = next
+            startIndex = nextIndex
+            width = max(width, typographicBounds.width)
+            height += typographicBounds.height
+        }
+
+        layoutFragment.typographicBounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
+        layoutFragment.hasLayout = true
+    }
+
+    // returns glyphOrigin, typographicBounds
+    func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
+        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
+
+        let paddingWidth = 2*textContainer.lineFragmentPadding
+
+        // ctTypographicBounds's coordinate system has the glyph origin at (0,0).
+        // Here, we assume that the glyph origin lies on the left edge of
+        // ctTypographicBounds. If it doesn't, we'd have to change our calculation
+        // of typographicBounds's origin, though everything else should just work.
+        assert(ctTypographicBounds.minX == 0)
+
+        // defined to have the origin in the upper left corner
+        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: floor(ctTypographicBounds.height))
+
+        let glyphOrigin = CGPoint(
+            x: ctTypographicBounds.minX + textContainer.lineFragmentPadding,
+            y: floor(ctTypographicBounds.height + ctTypographicBounds.minY)
+        )
+
+        return (glyphOrigin, typographicBounds)
     }
 }

@@ -14,7 +14,6 @@ extension LayoutManager {
         weak var contentManager: ContentManager?
         let substring: Substring
         let textRange: Range<Location>
-        let characterOffset: Int
 
         var length: Int {
             substring.count
