@@ -116,28 +116,21 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                 let x0 = lineFragment.locationForCharacter(at: rangeInLine.lowerBound).x // segment start
                 let x1 = lineFragment.locationForCharacter(at: rangeInLine.upperBound).x // segment end
                 let x2 = lineFragment.locationForCharacter(at: lineRange.upperBound).x   // line end
-                let xEnd = textContainer.width - textContainer.lineFragmentPadding   // text container end
+                let xEnd = textContainer.width - 2*textContainer.lineFragmentPadding   // text container end
 
                 let bounds = lineFragment.typographicBounds
                 let origin = lineFragment.position
 
                 // in layoutFragment coordinates
-                var segmentRect = CGRect(x: x0, y: origin.y, width: x1 - x0, height: bounds.height)
-                let trailingRect = CGRect(x: x2, y: origin.y, width: xEnd - x2, height: bounds.height)
+                var segmentRect = CGRect(x: x0, y: origin.y, width: min(x1 - x0, xEnd - x0), height: bounds.height)
+                let trailingRect = CGRect(x: x2, y: origin.y, width: max(0, xEnd - x2), height: bounds.height)
 
                 var skipTrailing = false
 
                 // if we're getting selection rects, and the selection includes a trailing newline
                 // in this line fragment, extend the segment rect to include the selection rect.
                 if type == .selection && lineRangeInDocument.upperBound == rangeInLineInDocument.upperBound {
-                    let documentStart = contentManager.documentRange.lowerBound
-
-                    // should never be nil because we know lineRange.length is > 0, but maybe there's
-                    // a better way than force unwrapping
-                    let lastIdx = contentManager.location(documentStart, offsetBy: lineRangeInDocument.upperBound-1)!
-                    let lastChar = contentManager.character(at: lastIdx)
-
-                    if lastChar == "\n" {
+                    if lineFragment.endsWithNewline {
                         segmentRect = segmentRect.union(trailingRect)
                         skipTrailing = true
                     }
@@ -152,8 +145,8 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                     return false
                 }
 
-                if type == .selection && !skipTrailing {
-                    if !block(convert(segmentRect, from: layoutFragment)) {
+                if type == .selection && !skipTrailing && trailingRect.width > 0 {
+                    if !block(convert(trailingRect, from: layoutFragment)) {
                         return false
                     }
                 }
