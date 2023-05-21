@@ -93,23 +93,23 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
         enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
             for lineFragment in layoutFragment.lineFragments {
-                let lineRangeInDocument = lineFragment.textRange
+                let lineRange = lineFragment.textRange
 
                 // I think the only possible empty lineFragment would be the
                 // last line of a document if it's empty. I don't know if we
                 // represent those yet, but let's ignore them for now.
-                guard !lineRangeInDocument.isEmpty else {
+                guard !lineRange.isEmpty else {
                     return false
                 }
 
-                let rangeInLineInDocument = range.clamped(to: lineRangeInDocument)
-                if rangeInLineInDocument.isEmpty {
+                let rangeInLine = range.clamped(to: lineRange)
+                if rangeInLine.isEmpty {
                     continue
                 }
 
-                let start = contentManager.offset(from: lineRangeInDocument.lowerBound, to: rangeInLineInDocument.lowerBound)
-                let end = contentManager.offset(from: lineRangeInDocument.lowerBound, to: rangeInLineInDocument.upperBound)
-                let lineEnd = contentManager.offset(from: lineRangeInDocument.lowerBound, to: lineRangeInDocument.upperBound)
+                let start = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.lowerBound)
+                let end = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.upperBound)
+                let lineEnd = contentManager.offset(from: lineRange.lowerBound, to: lineRange.upperBound)
 
                 let x0 = locationForCharacter(atOffset: start, in: lineFragment).x // segment start
                 let x1 = locationForCharacter(atOffset: end, in: lineFragment).x // segment end
@@ -127,8 +127,8 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
                 // if we're getting selection rects, and the selection includes a trailing newline
                 // in this line fragment, extend the segment rect to include the selection rect.
-                if type == .selection && lineRangeInDocument.upperBound == rangeInLineInDocument.upperBound {
-                    let last = contentManager.location(lineRangeInDocument.upperBound, offsetBy: -1)
+                if type == .selection && lineRange.upperBound == rangeInLine.upperBound {
+                    let last = contentManager.location(lineRange.upperBound, offsetBy: -1)
                     let lastChar = contentManager.character(at: last)
 
                     if lastChar == "\n" {
@@ -141,7 +141,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                     return false
                 }
 
-                if range.upperBound <= lineRangeInDocument.upperBound {
+                if range.upperBound <= lineRange.upperBound {
                     // we're at the end of our selection
                     return false
                 }
