@@ -13,9 +13,8 @@ extension TextView {
             return
         }
 
-        let offset = contentManager.offset(from: contentManager.documentRange.lowerBound, to: location)
-
-        print(offset)
+        layoutManager.selection = Selection(head: location)
+        selectionLayer.needsLayout()
     }
 
     func extendSelection(to point: CGPoint) {
@@ -23,8 +22,7 @@ extension TextView {
             return
         }
 
-        let offset = contentManager.offset(from: contentManager.documentRange.lowerBound, to: location)
-
-        print(offset)
+        layoutManager.selection?.head = location
+        selectionLayer.needsLayout()
     }
 }

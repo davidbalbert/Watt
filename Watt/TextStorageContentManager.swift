@@ -57,7 +57,7 @@ final class TextStorageContentManager: TextContentManager {
 
     func enumerateLineRanges(from location: String.Index, using block: (Range<String.Index>) -> Bool) {
         var i: String.Index
-        if location != storage.string.startIndex, let lineEnd = storage.string[...location].lastIndex(of: "\n") {
+        if location != storage.string.startIndex, let lineEnd = storage.string[..<location].lastIndex(of: "\n") {
             i = storage.string.index(after: lineEnd)
         } else {
             i = storage.string.startIndex
@@ -89,7 +89,7 @@ final class TextStorageContentManager: TextContentManager {
             i = storage.string.startIndex
         }
 
-        var off = 0
+        var off = offset(from: documentRange.lowerBound, to: i)
 
         while i < storage.string.endIndex {
             let el: TextElement

@@ -34,35 +34,6 @@ extension LayoutManager {
 
             CTLineDraw(line, ctx)
             ctx.restoreGState()
-
-            ctx.saveGState()
-            ctx.translateBy(x: point.x, y: point.y)
-
-//            let bounds = CGRect(x: 0, y: 0, width: floor(typographicBounds.width), height: typographicBounds.height)
-//            ctx.setStrokeColor(NSColor.purple.cgColor)
-//            ctx.stroke(bounds.insetBy(dx: 0.5, dy: 0.5), width: 1)
-
-            ctx.setStrokeColor(NSColor.blue.cgColor)
-
-            let runs = CTLineGetGlyphRuns(line) as! [CTRun]
-            for run in runs {
-                let count = CTRunGetGlyphCount(run)
-                let range = CFRange(location: 0, length: count)
-                var positions: [CGPoint] = Array(repeating: .zero, count: count)
-                var advances: [CGSize] = Array(repeating: .zero, count: count)
-                CTRunGetPositions(run, range, &positions)
-                CTRunGetAdvances(run, range, &advances)
-
-                for i in 0..<count {
-                    let p = positions[i]
-                    let a = advances[i]
-                    let rect = CGRect(x: p.x + glyphOrigin.x, y: p.y, width: a.width, height: typographicBounds.height)
-                    ctx.stroke(rect.insetBy(dx: 0.5, dy: 0.5))
-                }
-            }
-
-
-            ctx.restoreGState()
         }
 
         // The range of the string in the line. Always starts at 0
@@ -116,9 +87,9 @@ extension LayoutManager {
                         let glyphOffset = adjusted.x - minX
 
                         if glyphOffset < width/2 {
-                            return indices[j]
+                            return indices[j] - characterOffset
                         } else {
-                            return indices[j] + 1
+                            return indices[j] - characterOffset + 1
                         }
                     }
                 }
@@ -132,7 +103,7 @@ extension LayoutManager {
         }
 
         func locationForCharacter(at index: Int) -> CGPoint {
-            CGPoint(x: CTLineGetOffsetForStringIndex(line, index - characterOffset, nil), y: 0)
+            CGPoint(x: CTLineGetOffsetForStringIndex(line, index + characterOffset, nil), y: 0)
         }
     }
 }

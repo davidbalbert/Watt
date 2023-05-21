@@ -93,19 +93,25 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         let nsRange = contentManager.nsRange(from: range)
 
         enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
+            let layoutFragmentOffset = contentManager.offset(from: contentManager.documentRange.lowerBound, to: layoutFragment.textRange.lowerBound)
+
             for lineFragment in layoutFragment.lineFragments {
                 let lineRange = lineFragment.characterRange
+
+                let lineRangeInDocument = NSRange(location: layoutFragmentOffset + lineFragment.characterOffset, length: lineFragment.characterRange.length)
 
                 // I think the only possible lineFragment with a length of 0 would
                 // be the last line of a document if it's empty. I don't know if we
                 // represent those yet, but let's ignore them for now.
-                guard lineRange.length > 0 else {
+                guard lineRangeInDocument.length > 0 else {
                     return false
                 }
 
-                guard let rangeInLine = nsRange.intersection(lineRange) else {
-                    return false
+                guard let rangeInLineInDocument = nsRange.intersection(lineRangeInDocument) else {
+                    continue
                 }
+
+                let rangeInLine = NSRange(location: rangeInLineInDocument.location - layoutFragmentOffset - lineFragment.characterOffset, length: rangeInLineInDocument.length)
 
                 let x0 = lineFragment.locationForCharacter(at: rangeInLine.lowerBound).x // segment start
                 let x1 = lineFragment.locationForCharacter(at: rangeInLine.upperBound).x // segment end
@@ -123,12 +129,12 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
                 // if we're getting selection rects, and the selection includes a trailing newline
                 // in this line fragment, extend the segment rect to include the selection rect.
-                if type == .selection && lineRange.upperBound == rangeInLine.upperBound {
+                if type == .selection && lineRangeInDocument.upperBound == rangeInLineInDocument.upperBound {
                     let documentStart = contentManager.documentRange.lowerBound
 
                     // should never be nil because we know lineRange.length is > 0, but maybe there's
                     // a better way than force unwrapping
-                    let lastIdx = contentManager.location(documentStart, offsetBy: lineRange.upperBound-1)!
+                    let lastIdx = contentManager.location(documentStart, offsetBy: lineRangeInDocument.upperBound-1)!
                     let lastChar = contentManager.character(at: lastIdx)
 
                     if lastChar == "\n" {
@@ -141,7 +147,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                     return false
                 }
 
-                if nsRange.upperBound <= lineRange.upperBound {
+                if nsRange.upperBound <= lineRangeInDocument.upperBound {
                     // we're at the end of our selection
                     return false
                 }
@@ -250,7 +256,6 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
         var lineStart = 0
         var lineFragment: LineFragment?
-        // TODO: we're missing line fragments for the empty line 4. Why is that?
         for frag in layoutFragment.lineFragments {
             let frame = frag.frame
             if (frame.minY..<frame.maxY).contains(pointInLayoutFragment.y) {

@@ -65,7 +65,7 @@ extension LayoutManager {
                 let end = s.string.index(s.string.startIndex, offsetBy: next-1)
                 let lastChar = s.string[end]
 
-                let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, characterOffset: textElement.characterOffset, endsWithNewline: lastChar == "\n")
+                let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, characterOffset: i, endsWithNewline: lastChar == "\n")
                 lineFragments.append(lineFragment)
 
                 i = next

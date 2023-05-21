@@ -24,11 +24,6 @@ class TextViewController: NSViewController {
         let textView = scrollView.documentView as! TextView<TextStorageContentManager>
         textView.contentManager = contentManager
 
-        let start = contentManager.location(contentManager.documentRange.lowerBound, offsetBy: 1)!
-        let end = contentManager.location(start, offsetBy: 6)!
-
-        textView.layoutManager.selection = LayoutManager<TextStorageContentManager>.Selection(head: end, anchor: start)
-
         view = scrollView
     }
 }
