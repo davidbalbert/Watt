@@ -12,8 +12,13 @@ extension LayoutManager {
         var id: UUID = UUID()
 
         weak var contentManager: ContentManager?
+        let substring: Substring
         let textRange: Range<Location>
         let characterOffset: Int
+
+        var length: Int {
+            substring.count
+        }
 
         lazy var attributedString: NSAttributedString = {
             guard let contentManager else {

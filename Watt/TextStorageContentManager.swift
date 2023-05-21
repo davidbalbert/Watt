@@ -95,6 +95,7 @@ final class TextStorageContentManager: TextContentManager {
             let el: TextElement
             if let e = elementCache[i] {
                 el = e
+                off += el.length
             } else {
                 let next: String.Index
                 if let newline = storage.string[i...].firstIndex(of: "\n") {
@@ -103,8 +104,11 @@ final class TextStorageContentManager: TextContentManager {
                     next = storage.string.endIndex
                 }
 
-                el = TextElement(contentManager: self, textRange: i..<next, characterOffset: off)
-                off += offset(from: i, to: next)
+                let range = i..<next
+                let substring = storage.string[range]
+
+                el = TextElement(contentManager: self, substring: substring, textRange: range, characterOffset: off)
+                off += substring.count
             }
 
             elementCache[i] = el

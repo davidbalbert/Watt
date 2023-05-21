@@ -93,7 +93,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         let nsRange = contentManager.nsRange(from: range)
 
         enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
-            let layoutFragmentOffset = contentManager.offset(from: contentManager.documentRange.lowerBound, to: layoutFragment.textRange.lowerBound)
+            let layoutFragmentOffset = layoutFragment.textElement.characterOffset
 
             for lineFragment in layoutFragment.lineFragments {
                 let lineRange = lineFragment.characterRange
