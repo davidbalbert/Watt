@@ -40,7 +40,6 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
             layoutManager.invalidateLayout()
             textLayer.setNeedsLayout()
-            print("1")
             selectionLayer.setNeedsLayout()
         }
     }
@@ -131,6 +130,9 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
         layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
 
+        let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
+        addTrackingArea(trackingArea)
+
         contentManager.didSetFont(to: font)
     }
 
@@ -205,5 +207,41 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         if textContainer.size.width != width {
             textContainer.size = CGSize(width: width, height: 0)
         }
+    }
+
+    // TODO: make TextView non-generic and move these to TextView+Events
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.iBeam.set()
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if inputContext?.handleEvent(event) ?? false {
+            return
+        }
+
+        let locationInView = convert(event.locationInWindow, from: nil)
+        let point = convertToTextContainer(locationInView)
+        startSelection(at: point)
+        selectionLayer.setNeedsLayout()
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        if inputContext?.handleEvent(event) ?? false {
+            return
+        }
+
+        let locationInView = convert(event.locationInWindow, from: nil)
+        let point = convertToTextContainer(locationInView)
+        extendSelection(to: point)
+        selectionLayer.setNeedsLayout()
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        inputContext?.handleEvent(event)
+    }
+
+    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
     }
 }

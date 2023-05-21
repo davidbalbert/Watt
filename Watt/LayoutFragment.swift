@@ -62,7 +62,10 @@ extension LayoutManager {
                 let p = CGPoint(x: 0, y: height)
                 let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
 
-                let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, characterOffset: textElement.characterOffset)
+                let end = s.string.index(s.string.startIndex, offsetBy: next-1)
+                let lastChar = s.string[end]
+
+                let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, characterOffset: textElement.characterOffset, endsWithNewline: lastChar == "\n")
                 lineFragments.append(lineFragment)
 
                 i = next

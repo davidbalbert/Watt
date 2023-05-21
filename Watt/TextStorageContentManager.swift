@@ -83,7 +83,7 @@ final class TextStorageContentManager: TextContentManager {
 
     func enumerateTextElements(from location: String.Index, using block: (TextElement) -> Bool) {
         var i: String.Index
-        if location != storage.string.startIndex, let lineEnd = storage.string[...location].lastIndex(of: "\n") {
+        if location != storage.string.startIndex, let lineEnd = storage.string[..<location].lastIndex(of: "\n") {
             i = storage.string.index(after: lineEnd)
         } else {
             i = storage.string.startIndex

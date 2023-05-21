@@ -80,7 +80,7 @@ extension LayoutManager {
             return nil
         }
 
-        func textRange(for position: CGPoint) -> Range<Location>? {
+        func textRange(for point: CGPoint) -> Range<Location>? {
             var low = 0
             var high = ys.count
 
@@ -89,7 +89,7 @@ extension LayoutManager {
                 let mid = low + (high - low)/2
                 let y = ys[mid]
 
-                if y > position.y {
+                if y > point.y {
                     high = mid
                 } else {
                     low = mid + 1
@@ -107,7 +107,7 @@ extension LayoutManager {
             let maxY = ys[i] + heights[i]
 
             // position.y is already >= ys[i]
-            if position.y <= maxY {
+            if point.y <= maxY {
                 return ranges[i]
             } else {
                 return nil

@@ -107,9 +107,9 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                     return false
                 }
 
-                let x0 = lineFragment.offsetForCharacter(at: rangeInLine.lowerBound) // segment start
-                let x1 = lineFragment.offsetForCharacter(at: rangeInLine.upperBound) // segment end
-                let x2 = lineFragment.offsetForCharacter(at: lineRange.upperBound)   // line end
+                let x0 = lineFragment.locationForCharacter(at: rangeInLine.lowerBound).x // segment start
+                let x1 = lineFragment.locationForCharacter(at: rangeInLine.upperBound).x // segment end
+                let x2 = lineFragment.locationForCharacter(at: lineRange.upperBound).x   // line end
                 let xEnd = textContainer.width - textContainer.lineFragmentPadding   // text container end
 
                 let bounds = lineFragment.typographicBounds
@@ -163,6 +163,14 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         let origin = CGPoint(x: rect.minX + fragX, y: rect.minY + fragY)
 
         return CGRect(origin: origin, size: rect.size)
+    }
+
+    func convert(_ point: CGPoint, to layoutFragment: LayoutFragment) -> CGPoint {
+        CGPoint(x: point.x - layoutFragment.frame.minX, y: point.y - layoutFragment.frame.minY)
+    }
+
+    func convert(_ point: CGPoint, to lineFragment: LineFragment) -> CGPoint {
+        CGPoint(x: point.x - lineFragment.frame.minX, y: point.y - lineFragment.frame.minY)
     }
 
     func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
@@ -226,5 +234,54 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
     var lineCount: Int {
         heightEstimates.lineCount
+    }
+
+    // Returns the closest location
+    func location(for point: CGPoint) -> Location? {
+        guard let contentManager else {
+            return nil
+        }
+
+        guard let layoutFragment = layoutFragment(for: point) else {
+            return nil
+        }
+
+        let pointInLayoutFragment = convert(point, to: layoutFragment)
+
+        var lineStart = 0
+        var lineFragment: LineFragment?
+        // TODO: we're missing line fragments for the empty line 4. Why is that?
+        for frag in layoutFragment.lineFragments {
+            let frame = frag.frame
+            if (frame.minY..<frame.maxY).contains(pointInLayoutFragment.y) {
+                lineFragment = frag
+                break
+            }
+
+            lineStart += frag.characterRange.length
+        }
+
+        guard let lineFragment else {
+            return nil
+        }
+
+        let pointInLineFragment = convert(pointInLayoutFragment, to: lineFragment)
+        let offsetInLine = lineFragment.characterIndex(for: pointInLineFragment)
+
+        return contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: lineStart + offsetInLine)
+    }
+
+    func layoutFragment(for point: CGPoint) -> LayoutFragment? {
+        guard let range = heightEstimates.textRange(for: point) else {
+            return nil
+        }
+
+        var layoutFragment: LayoutFragment?
+        enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { f in
+            layoutFragment = f
+            return false
+        }
+
+        return layoutFragment
     }
 }

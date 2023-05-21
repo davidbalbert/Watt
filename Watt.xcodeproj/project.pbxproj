@@ -16,6 +16,7 @@
 		637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */; };
 		637288AC29FD8E1A005B95E5 /* WattUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AB29FD8E1A005B95E5 /* WattUITests.swift */; };
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
+		637867712A17F7460039960E /* TextView+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867702A17F7460039960E /* TextView+Selection.swift */; };
 		637BC1302A1400C60089A34D /* TextStorageContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* TextStorageContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
 		637BC1362A154B5E0089A34D /* TextLayerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1352A154B5E0089A34D /* TextLayerLayout.swift */; };
@@ -84,6 +85,7 @@
 		637288BA29FD9002005B95E5 /* Watt.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Watt.xcconfig; sourceTree = "<group>"; };
 		637288BB29FD9069005B95E5 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
+		637867702A17F7460039960E /* TextView+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Selection.swift"; sourceTree = "<group>"; };
 		637BC12F2A1400C60089A34D /* TextStorageContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextStorageContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		637BC1352A154B5E0089A34D /* TextLayerLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TextLayerLayout.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
+				637867702A17F7460039960E /* TextView+Selection.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				63A618712A0EAF2000E70B0E /* WeakDictionary.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
@@ -392,6 +395,7 @@
 				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
+				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				637BC1302A1400C60089A34D /* TextStorageContentManager.swift in Sources */,
 				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1A29FDA62D00787BB9 /* AttributedStringContentManager.swift in Sources */,
