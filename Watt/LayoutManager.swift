@@ -136,9 +136,10 @@ class LayoutManager {
 
                 let bounds = lineFragment.typographicBounds
                 let origin = lineFragment.position
+                let padding = textContainer.lineFragmentPadding
 
                 // in layout fragment coordinates
-                let rect = CGRect(x: xStart, y: origin.y, width: xEnd - xStart, height: bounds.height)
+                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
 
                 if !block(convert(rect, from: layoutFragment)) {
                     return false

@@ -189,13 +189,7 @@ extension TextView {
         layoutManager.enumerateSelectionSegments(in: rangeInViewport) { frame in
             let l = selectionLayerCache[frame] ?? makeSelectionLayer(for: frame)
 
-            let padding = textContainer.lineFragmentPadding
-
-            let position = CGPoint(
-                x: frame.origin.x + textContainerInset.width + padding,
-                y: frame.origin.y + textContainerInset.height
-            )
-
+            let position = convertFromTextContainer(frame.origin)
             l.position = position
             l.bounds = CGRect(origin: .zero, size: frame.size)
 
