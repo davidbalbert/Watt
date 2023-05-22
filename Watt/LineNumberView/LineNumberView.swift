@@ -22,6 +22,10 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
         true
     }
 
+    override var isOpaque: Bool {
+        true
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         commonInit()
@@ -85,6 +89,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     override func updateLayer() {
+        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+
         for l in textLayer.sublayers ?? [] {
             l.setNeedsDisplay()
         }
