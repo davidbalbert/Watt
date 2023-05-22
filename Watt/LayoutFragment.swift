@@ -15,7 +15,6 @@ class LayoutFragment: Identifiable {
         static var ensuresLayout: Self { EnumerationOptions(rawValue: 1 << 0) }
     }
 
-
     let id = UUID()
 
     var textElement: TextElement
