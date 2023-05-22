@@ -23,7 +23,6 @@
 		6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */; };
 		637BC1302A1400C60089A34D /* ContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* ContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
-		637BC13E2A155DFE0089A34D /* CALayer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC13D2A155DFE0089A34D /* CALayer+Extensions.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
 		637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1432A156B820089A34D /* CGPoint+Extensions.swift */; };
 		637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */; };
@@ -89,7 +88,6 @@
 		6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberLayer.swift; sourceTree = "<group>"; };
 		637BC12F2A1400C60089A34D /* ContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
-		637BC13D2A155DFE0089A34D /* CALayer+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CALayer+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
@@ -167,7 +165,6 @@
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				637BC13D2A155DFE0089A34D /* CALayer+Extensions.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
@@ -361,7 +358,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				637BC13E2A155DFE0089A34D /* CALayer+Extensions.swift in Sources */,
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
 				63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */,
