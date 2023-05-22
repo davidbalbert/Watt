@@ -8,7 +8,6 @@
 import Cocoa
 
 class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
-
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
@@ -141,42 +140,6 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
         true
     }
 
-    var scrollView: NSScrollView? {
-        if let enclosingScrollView, enclosingScrollView.documentView == self {
-            return enclosingScrollView
-        }
-
-        return nil
-    }
-
-    override func layout() {
-        guard let layer else {
-            return
-        }
-
-        if selectionLayer.superlayer == nil {
-            selectionLayer.anchorPoint = .zero
-            selectionLayer.bounds = layer.bounds
-            selectionLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            layer.addSublayer(selectionLayer)
-        }
-
-        if textLayer.superlayer == nil {
-            textLayer.anchorPoint = .zero
-            textLayer.bounds = layer.bounds
-            textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            layer.addSublayer(textLayer)
-        }
-
-        super.layout()
-    }
-
-    override func prepareContent(in rect: NSRect) {
-        super.prepareContent(in: rect)
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-    }
-
     override func viewWillMove(toSuperview newSuperview: NSView?) {
         removeLineNumberView()
     }
@@ -204,38 +167,6 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
         if textContainer.size.width != width {
             textContainer.size = CGSize(width: width, height: 0)
         }
-    }
-
-    // TODO: make TextView non-generic and move these to TextView+Events
-
-    override func cursorUpdate(with event: NSEvent) {
-        NSCursor.iBeam.set()
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        if inputContext?.handleEvent(event) ?? false {
-            return
-        }
-
-        let locationInView = convert(event.locationInWindow, from: nil)
-        let point = convertToTextContainer(locationInView)
-        startSelection(at: point)
-        selectionLayer.setNeedsLayout()
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        if inputContext?.handleEvent(event) ?? false {
-            return
-        }
-
-        let locationInView = convert(event.locationInWindow, from: nil)
-        let point = convertToTextContainer(locationInView)
-        extendSelection(to: point)
-        selectionLayer.setNeedsLayout()
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        inputContext?.handleEvent(event)
     }
 
     func convertToTextContainer(_ point: CGPoint) -> CGPoint {

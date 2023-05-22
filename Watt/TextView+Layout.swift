@@ -7,6 +7,44 @@
 
 import AppKit
 
+extension TextView {
+    override func layout() {
+        guard let layer else {
+            return
+        }
+
+        if selectionLayer.superlayer == nil {
+            selectionLayer.anchorPoint = .zero
+            selectionLayer.bounds = layer.bounds
+            selectionLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer.addSublayer(selectionLayer)
+        }
+
+        if textLayer.superlayer == nil {
+            textLayer.anchorPoint = .zero
+            textLayer.bounds = layer.bounds
+            textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer.addSublayer(textLayer)
+        }
+
+        super.layout()
+    }
+
+    var scrollView: NSScrollView? {
+        if let enclosingScrollView, enclosingScrollView.documentView == self {
+            return enclosingScrollView
+        }
+
+        return nil
+    }
+
+    override func prepareContent(in rect: NSRect) {
+        super.prepareContent(in: rect)
+        textLayer.setNeedsLayout()
+        selectionLayer.setNeedsLayout()
+    }
+}
+
 extension TextView: TextLayerLayoutDelegate {
     func viewportBounds(for textLayerLayout: TextLayerLayout) -> CGRect {
         var viewportBounds: CGRect
@@ -48,7 +86,7 @@ extension TextView: TextLayerLayoutDelegate {
     }
 
     func updateFrameHeightIfNeeded() {
-        guard let scrollView = enclosingScrollView else {
+        guard let scrollView else {
             return
         }
 
