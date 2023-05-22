@@ -45,7 +45,7 @@ class SelectionLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLay
             return
         }
 
-        layoutManager.enumerateTextSegments(in: rangeInViewport, type: .selection) { frame in
+        layoutManager.enumerateSelectionSegments(in: rangeInViewport) { frame in
             let l = layerCache[frame] ?? makeLayer(for: frame)
             layerCache[frame] = l
             layer.addSublayer(l)

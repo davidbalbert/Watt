@@ -86,7 +86,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         delegate.layoutManagerDidLayout(self)
     }
 
-    func enumerateTextSegments(in range: Range<Location>, type: SegmentType, using block: (CGRect) -> Bool) {
+    func enumerateSelectionSegments(in range: Range<Location>, using block: (CGRect) -> Bool) {
         guard let contentManager, let textContainer else {
             return
         }
@@ -103,53 +103,41 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
                 }
 
                 let rangeInLine = range.clamped(to: lineRange)
+
                 if rangeInLine.isEmpty {
                     continue
                 }
 
                 let start = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.lowerBound)
-                let end = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.upperBound)
-                let lineEnd = contentManager.offset(from: lineRange.lowerBound, to: lineRange.upperBound)
+                let xStart = locationForCharacter(atOffset: start, in: lineFragment).x
 
-                let x0 = locationForCharacter(atOffset: start, in: lineFragment).x // segment start
-                let x1 = locationForCharacter(atOffset: end, in: lineFragment).x // segment end
-                let x2 = locationForCharacter(atOffset: lineEnd, in: lineFragment).x   // line end
-                let xEnd = textContainer.width - 2*textContainer.lineFragmentPadding   // text container end
+                let last = contentManager.location(lineRange.upperBound, offsetBy: -1)
+                let lastChar = contentManager.character(at: last)
+                let shouldExtend = (range.upperBound == lineRange.upperBound && lastChar == "\n") || range.upperBound > lineRange.upperBound
+
+                let xEnd: CGFloat
+                if shouldExtend {
+                    xEnd = textContainer.lineWidth
+                } else {
+                    let end = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.upperBound)
+                    let x0 = locationForCharacter(atOffset: end, in: lineFragment).x
+                    let x1 = textContainer.lineWidth
+                    xEnd = min(x0, x1)
+                }
 
                 let bounds = lineFragment.typographicBounds
                 let origin = lineFragment.position
 
-                // in layoutFragment coordinates
-                var segmentRect = CGRect(x: x0, y: origin.y, width: min(x1 - x0, xEnd - x0), height: bounds.height)
-                let trailingRect = CGRect(x: x2, y: origin.y, width: max(0, xEnd - x2), height: bounds.height)
+                // in layout fragment coordinates
+                let rect = CGRect(x: xStart, y: origin.y, width: xEnd - xStart, height: bounds.height)
 
-                var skipTrailing = false
-
-                // if we're getting selection rects, and the selection includes a trailing newline
-                // in this line fragment, extend the segment rect to include the selection rect.
-                if type == .selection && lineRange.upperBound == rangeInLine.upperBound {
-                    let last = contentManager.location(lineRange.upperBound, offsetBy: -1)
-                    let lastChar = contentManager.character(at: last)
-
-                    if lastChar == "\n" {
-                        segmentRect = segmentRect.union(trailingRect)
-                        skipTrailing = true
-                    }
-                }
-
-                if !block(convert(segmentRect, from: layoutFragment)) {
+                if !block(convert(rect, from: layoutFragment)) {
                     return false
                 }
 
                 if range.upperBound <= lineRange.upperBound {
                     // we're at the end of our selection
                     return false
-                }
-
-                if type == .selection && !skipTrailing && trailingRect.width > 0 {
-                    if !block(convert(trailingRect, from: layoutFragment)) {
-                        return false
-                    }
                 }
             }
 
@@ -236,9 +224,8 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         heightEstimates.lineCount
     }
 
-    // Returns the closest location
     func location(for point: CGPoint) -> Location? {
-        guard let contentManager else {
+        guard let contentManager, let textContainer else {
             return nil
         }
 
@@ -262,12 +249,22 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         }
 
         let pointInLineFragment = convert(pointInLayoutFragment, to: lineFragment)
+        let adjusted = CGPoint(
+            x: pointInLineFragment.x - textContainer.lineFragmentPadding,
+            y: pointInLineFragment.y
+        )
 
-        guard let offsetInLine = characterOffset(for: pointInLineFragment, in: lineFragment) else {
-            return nil
+        let range = CTLineGetStringRange(lineFragment.line)
+        var offset = CTLineGetStringIndexForPosition(lineFragment.line, adjusted)
+
+        let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
+        let lastChar = contentManager.character(at: lastIdx)
+
+        if offset == range.location+range.length && lastChar == "\n" {
+            offset -= 1
         }
 
-        return contentManager.location(lineFragment.textRange.lowerBound, offsetBy: offsetInLine)
+        return contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: offset)
     }
 
     func layoutFragment(for point: CGPoint) -> LayoutFragment? {
@@ -349,73 +346,6 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         )
 
         return (glyphOrigin, typographicBounds)
-    }
-
-    // The character offset in line closest to point. Range from 0..<count+1, unless
-    // line ends in a newline, in which case it ranges from 0..<count. Works the same as
-    // CTLineGetStringIndexForPosition, except for the newline behavior described previously.
-    func characterOffset(for point: CGPoint, in lineFragment: LineFragment) -> Int? {
-        guard let contentManager else {
-            return nil
-        }
-
-        // adjust for TextContainer line padding
-        let adjusted = CGPoint(x: point.x - lineFragment.glyphOrigin.x, y: point.y)
-
-        // we're at the start of the line
-        if adjusted.x < 0 {
-            return 0
-        }
-
-        let runs = CTLineGetGlyphRuns(lineFragment.line) as! [CTRun]
-
-        for (i, run) in runs.enumerated() {
-            let glyphCount = CTRunGetGlyphCount(run)
-            let range = CFRange(location: 0, length: glyphCount)
-
-            var indices: [CFIndex] = Array(repeating: 0, count: glyphCount)
-            var positions: [CGPoint] = Array(repeating: .zero, count: glyphCount)
-            var advances: [CGSize] = Array(repeating: .zero, count: glyphCount)
-            CTRunGetStringIndices(run, range, &indices)
-            CTRunGetPositions(run, range, &positions)
-            CTRunGetAdvances(run, range, &advances)
-
-            let isLastRun = i == runs.count-1
-
-            let limit: Int
-            if isLastRun {
-                // we handle the final glyph outside the loop
-                // to make the special casing for "\n" easier.
-                limit = glyphCount-1
-            } else {
-                limit = glyphCount
-            }
-
-            for j in 0..<limit {
-                let minX = positions[j].x
-                let maxX = minX + advances[j].width
-
-                if (minX..<maxX).contains(adjusted.x) {
-                    let width = maxX - minX
-                    let glyphOffset = adjusted.x - minX
-
-                    if glyphOffset < width/2 {
-                        return indices[j] - lineFragment.characterOffset
-                    } else {
-                        return indices[j] - lineFragment.characterOffset + 1
-                    }
-                }
-            }
-        }
-
-        let last = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
-        let lastChar = contentManager.character(at: last)
-
-        if lastChar == "\n" {
-            return lineFragment.characterRange.upperBound-1
-        } else {
-            return lineFragment.characterRange.upperBound
-        }
     }
 
     func locationForCharacter(atOffset offset: Int, in lineFragment: LineFragment) -> CGPoint {
