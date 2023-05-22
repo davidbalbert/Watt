@@ -15,7 +15,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
 
     weak var delegate: LineNumberViewDelegate?
 
-    var textLayer: NonAnimatingLayer = NonAnimatingLayer()
+    var textLayer: CALayer = CALayer()
     var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
 
     override var isFlipped: Bool {

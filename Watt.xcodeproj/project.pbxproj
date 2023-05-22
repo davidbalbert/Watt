@@ -21,6 +21,7 @@
 		637867792A1BDC4C0039960E /* LayoutFragmentLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */; };
 		6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677A2A1BDF870039960E /* SelectionLayer.swift */; };
 		6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */; };
+		6378677F2A1BE7540039960E /* TextView+TextInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677E2A1BE7540039960E /* TextView+TextInput.swift */; };
 		637BC1302A1400C60089A34D /* ContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* ContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
@@ -40,7 +41,6 @@
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2129FDB09600787BB9 /* LayoutFragment.swift */; };
 		63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2329FDB63F00787BB9 /* TextElement.swift */; };
-		63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */; };
 		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
 		63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */; };
 		63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA232A0FF04500220860 /* LRUCache.swift */; };
@@ -86,6 +86,7 @@
 		637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragmentLayer.swift; sourceTree = "<group>"; };
 		6378677A2A1BDF870039960E /* SelectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionLayer.swift; sourceTree = "<group>"; };
 		6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberLayer.swift; sourceTree = "<group>"; };
+		6378677E2A1BE7540039960E /* TextView+TextInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+TextInput.swift"; sourceTree = "<group>"; };
 		637BC12F2A1400C60089A34D /* ContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
@@ -105,7 +106,6 @@
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B61A2129FDB09600787BB9 /* LayoutFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragment.swift; sourceTree = "<group>"; };
 		63B61A2329FDB63F00787BB9 /* TextElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextElement.swift; sourceTree = "<group>"; };
-		63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonAnimatingLayer.swift; sourceTree = "<group>"; };
 		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
 		63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberViewDelegate.swift; sourceTree = "<group>"; };
 		63EDFA232A0FF04500220860 /* LRUCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRUCache.swift; sourceTree = "<group>"; };
@@ -179,7 +179,6 @@
 				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
 				63EDFA232A0FF04500220860 /* LRUCache.swift */,
-				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				637BC1312A151F5F0089A34D /* Selection.swift */,
 				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
 				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
@@ -189,6 +188,7 @@
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
+				6378677E2A1BE7540039960E /* TextView+TextInput.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				63A618712A0EAF2000E70B0E /* WeakDictionary.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
@@ -364,7 +364,6 @@
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
 				63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
-				63DB4F3A29FF1A0800B97B39 /* NonAnimatingLayer.swift in Sources */,
 				6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */,
 				637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */,
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
@@ -377,6 +376,7 @@
 				6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */,
 				63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */,
 				6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */,
+				6378677F2A1BE7540039960E /* TextView+TextInput.swift in Sources */,
 				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
 				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
