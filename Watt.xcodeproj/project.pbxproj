@@ -168,7 +168,6 @@
 		6372888A29FD8E19005B95E5 /* Watt */ = {
 			isa = PBXGroup;
 			children = (
-				637867722A1BD1E10039960E /* TextView+Events.swift */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
@@ -177,6 +176,7 @@
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
+				637BC12F2A1400C60089A34D /* ContentManager.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A6186F2A0E94F900E70B0E /* FragmentCache.swift */,
 				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
@@ -193,8 +193,8 @@
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				637BC1352A154B5E0089A34D /* TextLayerLayout.swift */,
 				637BC1372A1558480089A34D /* TextLayerLayoutDelegate.swift */,
-				637BC12F2A1400C60089A34D /* ContentManager.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
+				637867722A1BD1E10039960E /* TextView+Events.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
