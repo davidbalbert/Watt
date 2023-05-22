@@ -43,6 +43,24 @@ extension TextView {
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
     }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+
+        updateTextContainerSizeIfNecessary()
+    }
+
+    func updateTextContainerSizeIfNecessary() {
+        let width = max(0, frame.width - textContainerInset.width)
+
+        if textContainer.size.width != width {
+            textContainer.size = CGSize(width: width, height: 0)
+        }
+    }
+
+    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
+    }
 }
 
 extension TextView: TextLayerLayoutDelegate {
