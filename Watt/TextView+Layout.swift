@@ -14,17 +14,18 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
 
         if selectionLayer.superlayer == nil {
-            selectionLayer.anchorPoint = .zero
             selectionLayer.bounds = layer.bounds
-            selectionLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
             layer.addSublayer(selectionLayer)
         }
 
         if textLayer.superlayer == nil {
-            textLayer.anchorPoint = .zero
             textLayer.bounds = layer.bounds
-            textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
             layer.addSublayer(textLayer)
+        }
+
+        if caretLayer.superlayer == nil {
+            caretLayer.bounds = layer.bounds
+            layer.addSublayer(caretLayer)
         }
 
         super.layout()
@@ -36,6 +37,8 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             layoutTextLayer()
         case selectionLayer:
             layoutSelectionLayer()
+        case caretLayer:
+            layoutCaretLayer()
         default:
             break
         }
@@ -89,12 +92,17 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
     }
 
+    func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x + textContainerInset.width, y: point.y + textContainerInset.height)
+    }
+
     func convertToTextContainer(_ point: CGPoint) -> CGPoint {
         CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
     }
 }
 
 // MARK: - Text layout
+
 extension TextView: LayoutManagerDelegate {
     func layoutTextLayer() {
         layoutManager.layoutViewport()
@@ -160,7 +168,7 @@ extension TextView {
     func layoutSelectionLayer() {
         selectionLayer.sublayers = nil
 
-        guard let selection = layoutManager.selection else {
+        guard let selection else {
             return
         }
 
@@ -200,6 +208,61 @@ extension TextView {
 
     func makeSelectionLayer(for frame: CGRect) -> CALayer {
         let l = SelectionLayer(textView: self)
+        l.anchorPoint = .zero
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.needsDisplayOnBoundsChange = true
+        l.contentsScale = window?.backingScaleFactor ??  1.0
+
+        return l
+    }
+}
+
+// MARK: - Insertion point layout
+
+extension TextView {
+    func layoutCaretLayer() {
+        caretLayer.sublayers = nil
+
+        guard let selection else {
+            return
+        }
+
+        guard selection.isEmpty else {
+            return
+        }
+
+        guard let viewportRange = layoutManager.viewportRange else {
+            return
+        }
+
+        guard viewportRange.contains(selection.range.lowerBound) else {
+            return
+        }
+
+        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound) { [weak self] caretRect, location, leadingEdge in
+            guard let self else {
+                return false
+            }
+
+            let affinityMatches = (leadingEdge && selection.affinity == .upstream) || (!leadingEdge && selection.affinity == .downstream)
+
+            guard location == selection.range.lowerBound && affinityMatches else {
+                return true
+            }
+
+            let l = caretLayerCache[caretRect] ?? makeCaretLayer(for: caretRect)
+            l.position = convertFromTextContainer(caretRect.origin)
+            l.bounds = CGRect(origin: .zero, size: caretRect.size)
+
+            caretLayerCache[caretRect] = l
+            caretLayer.addSublayer(l)
+
+            return false
+        }
+    }
+
+    func makeCaretLayer(for rect: CGRect) -> CALayer {
+        let l = CaretLayer()
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true

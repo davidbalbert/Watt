@@ -17,6 +17,7 @@ extension TextView {
         let point = convertToTextContainer(locationInView)
         startSelection(at: point)
         selectionLayer.setNeedsLayout()
+        caretLayer.setNeedsLayout()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -28,6 +29,7 @@ extension TextView {
         let point = convertToTextContainer(locationInView)
         extendSelection(to: point)
         selectionLayer.setNeedsLayout()
+        caretLayer.setNeedsLayout()
     }
 
     override func mouseUp(with event: NSEvent) {

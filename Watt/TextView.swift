@@ -47,7 +47,7 @@ class TextView: NSView, ClipViewDelegate {
 
             contentManager.didSetFont(to: font)
 
-            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound, affinity: .upstream)
             textLayer.setNeedsLayout()
             selectionLayer.setNeedsLayout()
         }
@@ -62,10 +62,14 @@ class TextView: NSView, ClipViewDelegate {
 
             contentManager.addLayoutManager(layoutManager)
 
-            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound, affinity: .upstream)
             textLayer.setNeedsLayout()
             selectionLayer.setNeedsLayout()
         }
+    }
+
+    var selection: Selection? {
+        layoutManager.selection
     }
 
     var lineNumberView: LineNumberView
@@ -77,9 +81,11 @@ class TextView: NSView, ClipViewDelegate {
 
     let textLayer: CALayer = CALayer()
     let selectionLayer: CALayer = CALayer()
+    let caretLayer: CALayer = CALayer()
 
     var textLayerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
+    var caretLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
@@ -112,10 +118,19 @@ class TextView: NSView, ClipViewDelegate {
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
         selectionLayer.name = "Selections"
+        selectionLayer.anchorPoint = .zero
+        selectionLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         selectionLayer.delegate = self
 
         textLayer.name = "Text"
+        textLayer.anchorPoint = .zero
+        textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         textLayer.delegate = self
+
+        caretLayer.name = "Carets"
+        caretLayer.anchorPoint = .zero
+        caretLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        caretLayer.delegate = self
 
         layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
 

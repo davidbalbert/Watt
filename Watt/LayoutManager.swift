@@ -9,14 +9,15 @@ import Foundation
 import CoreText
 
 class LayoutManager {
-    enum SegmentType {
-        case standard
-        case selection
+    var viewportBounds: CGRect = .zero {
+        didSet {
+            _viewportRange = nil
+        }
     }
 
-    var viewportBounds: CGRect = .zero
+    var _viewportRange: Range<String.Index>?
 
-    var viewportRange: Range<String.Index>? {
+    func calculateViewportRange() -> Range<String.Index>? {
         guard let firstRange = heightEstimates.textRange(for: viewportBounds.origin) else {
             return nil
         }
@@ -30,6 +31,15 @@ class LayoutManager {
         return firstRange.lowerBound..<lastRange.upperBound
     }
 
+    var viewportRange: Range<String.Index>? {
+        if let _viewportRange {
+            return _viewportRange
+        }
+
+        _viewportRange = calculateViewportRange()
+        return _viewportRange
+    }
+
     var selection: Selection?
 
     var textContainer: TextContainer? {
@@ -40,6 +50,7 @@ class LayoutManager {
             textContainer?.layoutManager = self
         }
     }
+
     weak var delegate: LayoutManagerDelegate?
 
     weak var contentManager: ContentManager? {
@@ -151,8 +162,25 @@ class LayoutManager {
         return CGRect(origin: origin, size: rect.size)
     }
 
+    func convert(_ point: CGPoint, from layoutFragment: LayoutFragment) -> CGPoint {
+        CGPoint(
+            x: point.x + layoutFragment.frame.minX,
+            y: point.y + layoutFragment.frame.minY
+        )
+    }
+
     func convert(_ point: CGPoint, to layoutFragment: LayoutFragment) -> CGPoint {
-        CGPoint(x: point.x - layoutFragment.frame.minX, y: point.y - layoutFragment.frame.minY)
+        CGPoint(
+            x: point.x - layoutFragment.frame.minX,
+            y: point.y - layoutFragment.frame.minY
+        )
+    }
+
+    func convert(_ point: CGPoint, from lineFragment: LineFragment) -> CGPoint {
+        CGPoint(
+            x: point.x + lineFragment.frame.minX,
+            y: point.y + lineFragment.frame.minY
+        )
     }
 
     func convert(_ point: CGPoint, to lineFragment: LineFragment) -> CGPoint {
@@ -222,7 +250,7 @@ class LayoutManager {
         heightEstimates.lineCount
     }
 
-    func location(for point: CGPoint) -> String.Index? {
+    func location(interactingAt point: CGPoint) -> String.Index? {
         guard let contentManager, let textContainer else {
             return nil
         }
@@ -255,6 +283,10 @@ class LayoutManager {
         let range = CTLineGetStringRange(lineFragment.line)
         var offset = CTLineGetStringIndexForPosition(lineFragment.line, adjusted)
 
+        if offset == kCFNotFound {
+            return nil
+        }
+
         let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
         let lastChar = contentManager.character(at: lastIdx)
 
@@ -263,6 +295,52 @@ class LayoutManager {
         }
 
         return contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: offset)
+    }
+
+    func enumerateCaretRectsInLineFragment(at location: String.Index, using block: @escaping (CGRect, String.Index, Bool) -> Bool)  {
+        guard let contentManager, let textContainer else {
+            return
+        }
+
+        guard let layoutFragment = layoutFragment(for: location) else {
+            return
+        }
+
+        guard let lineFragment = layoutFragment.lineFragment(for: location) else {
+            return
+        }
+
+        var loc = lineFragment.textRange.lowerBound
+        var prevCharIndex = 0
+        CTLineEnumerateCaretOffsets(lineFragment.line) { [weak self] caretOffset, charIndex, leadingEdge, stop in
+            guard let self else {
+                stop.pointee = true
+                return
+            }
+
+            loc = contentManager.location(loc, offsetBy: charIndex - prevCharIndex)
+            prevCharIndex = charIndex
+
+            let lineOrigin = CGPoint(x: caretOffset, y: 0)
+            let origin = convert(convert(lineOrigin, from: lineFragment), from: layoutFragment)
+
+            let height = lineFragment.typographicBounds.height
+            let rect = CGRect(x: origin.x + textContainer.lineFragmentPadding, y: origin.y, width: 1, height: height)
+
+            if !block(rect, loc, leadingEdge) {
+                stop.pointee = true
+            }
+        }
+    }
+
+    func layoutFragment(for location: String.Index) -> LayoutFragment? {
+        var layoutFragment: LayoutFragment?
+        enumerateLayoutFragments(from: location, options: .ensuresLayout) { f in
+            layoutFragment = f
+            return false
+        }
+
+        return layoutFragment
     }
 
     func layoutFragment(for point: CGPoint) -> LayoutFragment? {

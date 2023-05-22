@@ -9,7 +9,7 @@ import Cocoa
 
 extension TextView {
     func startSelection(at point: CGPoint) {
-        guard let location = layoutManager.location(for: point) else {
+        guard let location = layoutManager.location(interactingAt: point) else {
             return
         }
 
@@ -18,7 +18,7 @@ extension TextView {
     }
 
     func extendSelection(to point: CGPoint) {
-        guard let location = layoutManager.location(for: point) else {
+        guard let location = layoutManager.location(interactingAt: point) else {
             return
         }
 
