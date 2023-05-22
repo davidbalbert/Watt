@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class LineNumberView: NSView {
+class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
@@ -16,7 +16,6 @@ class LineNumberView: NSView {
     weak var delegate: LineNumberViewDelegate?
 
     var textLayer: NonAnimatingLayer = NonAnimatingLayer()
-    var renderer: LineNumberRenderer = LineNumberRenderer()
     var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
 
     override var isFlipped: Bool {
@@ -34,7 +33,6 @@ class LineNumberView: NSView {
     }
 
     func commonInit() {
-        renderer.lineNumberView = self
         NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
 
         let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
@@ -105,9 +103,25 @@ class LineNumberView: NSView {
             layer.addSublayer(textLayer)
         }
 
+    }
+
+    func layoutSublayers(of layer: CALayer) {
+        switch layer {
+        case textLayer:
+            layoutTextLayer()
+        default:
+            break
+        }
+    }
+
+    func layoutTextLayer() {
         for l in textLayer.sublayers ?? [] {
             l.bounds.size.width = frame.width
         }
+    }
+
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
     }
 
     @objc func frameDidChange(_ notification: NSNotification) {
@@ -119,23 +133,26 @@ class LineNumberView: NSView {
     }
 
     func addLineNumber(_ lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
-        let l = layerCache[lineno] ?? CALayer()
-
-        l.setValue(lineno, forKey: CALayer.lineNumberKey)
-        l.delegate = renderer
-        l.contentsScale = window?.backingScaleFactor ?? 1.0
-        l.needsDisplayOnBoundsChange = true
-        l.anchorPoint = .zero
+        let l = layerCache[lineno] ?? makeLayer(for: lineno)
         l.position = position
-
         l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: lineHeight)
-
         layerCache[lineno] = l
         textLayer.addSublayer(l)
     }
 
     func endUpdates() {
         // no-op
+    }
+
+    func makeLayer(for lineNumber: Int) -> CALayer {
+        let l = LineNumberLayer(lineNumber: lineNumber, lineNumberView: self)
+
+        l.delegate = self
+        l.anchorPoint = .zero
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.needsDisplayOnBoundsChange = true
+
+        return l
     }
 
     override func cursorUpdate(with event: NSEvent) {
