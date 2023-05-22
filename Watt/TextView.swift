@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
+class TextView: NSView, ClipViewDelegate {
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
 
@@ -58,8 +58,7 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
             oldValue.delegate = nil
             contentManager.removeLayoutManager(oldValue)
 
-            layoutManager.delegate = textLayerLayout
-            textLayerLayout.layoutManager = layoutManager
+            layoutManager.delegate = self
 
             contentManager.addLayoutManager(layoutManager)
 
@@ -77,17 +76,15 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
     }
 
     let textLayer: CALayer = CALayer()
-    let textLayerLayout: TextLayerLayout
-
     let selectionLayer: CALayer = CALayer()
-    let selectionLayerLayout: SelectionLayerLayout
+
+    var textLayerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
+    var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
         layoutManager = LayoutManager()
         textContainer = TextContainer()
-        textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
-        selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)
         lineNumberView = LineNumberView()
         super.init(frame: frameRect)
         commonInit()
@@ -97,8 +94,6 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
         contentManager = ContentManager("")
         layoutManager = LayoutManager()
         textContainer = TextContainer()
-        textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
-        selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)
         lineNumberView = LineNumberView()
         super.init(coder: coder)
         commonInit()
@@ -107,7 +102,7 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
     func commonInit() {
         textContainer.size = CGSize(width: bounds.width, height: 0)
 
-        layoutManager.delegate = textLayerLayout
+        layoutManager.delegate = self
         layoutManager.textContainer = textContainer
 
         contentManager.addLayoutManager(layoutManager)
@@ -117,12 +112,10 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
         selectionLayer.name = "Selections"
-        selectionLayer.delegate = selectionLayerLayout
-        selectionLayerLayout.delegate = self
+        selectionLayer.delegate = self
 
         textLayer.name = "Text"
-        textLayer.delegate = textLayerLayout
-        textLayerLayout.delegate = self
+        textLayer.delegate = self
 
         layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
 
@@ -134,10 +127,6 @@ class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
 
     override func updateLayer() {
         layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
-    }
-
-    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
-        true
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {

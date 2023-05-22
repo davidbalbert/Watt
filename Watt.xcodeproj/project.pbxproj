@@ -18,13 +18,11 @@
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
 		637867712A17F7460039960E /* TextView+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867702A17F7460039960E /* TextView+Selection.swift */; };
 		637867732A1BD1E10039960E /* TextView+Events.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867722A1BD1E10039960E /* TextView+Events.swift */; };
+		637867792A1BDC4C0039960E /* LayoutFragmentLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */; };
+		6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677A2A1BDF870039960E /* SelectionLayer.swift */; };
 		637BC1302A1400C60089A34D /* ContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* ContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
-		637BC1362A154B5E0089A34D /* TextLayerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1352A154B5E0089A34D /* TextLayerLayout.swift */; };
-		637BC1382A1558480089A34D /* TextLayerLayoutDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1372A1558480089A34D /* TextLayerLayoutDelegate.swift */; };
-		637BC13C2A155D200089A34D /* LayoutFragmentRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC13B2A155D200089A34D /* LayoutFragmentRenderer.swift */; };
 		637BC13E2A155DFE0089A34D /* CALayer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC13D2A155DFE0089A34D /* CALayer+Extensions.swift */; };
-		637BC1402A15603A0089A34D /* SelectionLayerLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC13F2A15603A0089A34D /* SelectionLayerLayout.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
 		637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1432A156B820089A34D /* CGPoint+Extensions.swift */; };
 		637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */; };
@@ -86,13 +84,11 @@
 		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
 		637867702A17F7460039960E /* TextView+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Selection.swift"; sourceTree = "<group>"; };
 		637867722A1BD1E10039960E /* TextView+Events.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Events.swift"; sourceTree = "<group>"; };
+		637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragmentLayer.swift; sourceTree = "<group>"; };
+		6378677A2A1BDF870039960E /* SelectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionLayer.swift; sourceTree = "<group>"; };
 		637BC12F2A1400C60089A34D /* ContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
-		637BC1352A154B5E0089A34D /* TextLayerLayout.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TextLayerLayout.swift; sourceTree = "<group>"; };
-		637BC1372A1558480089A34D /* TextLayerLayoutDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextLayerLayoutDelegate.swift; sourceTree = "<group>"; };
-		637BC13B2A155D200089A34D /* LayoutFragmentRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragmentRenderer.swift; sourceTree = "<group>"; };
 		637BC13D2A155DFE0089A34D /* CALayer+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CALayer+Extensions.swift"; sourceTree = "<group>"; };
-		637BC13F2A15603A0089A34D /* SelectionLayerLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionLayerLayout.swift; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
@@ -181,18 +177,16 @@
 				63A6186F2A0E94F900E70B0E /* FragmentCache.swift */,
 				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
 				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
-				637BC13B2A155D200089A34D /* LayoutFragmentRenderer.swift */,
+				637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
 				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
 				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
 				63EDFA232A0FF04500220860 /* LRUCache.swift */,
 				63DB4F3929FF1A0800B97B39 /* NonAnimatingLayer.swift */,
 				637BC1312A151F5F0089A34D /* Selection.swift */,
-				637BC13F2A15603A0089A34D /* SelectionLayerLayout.swift */,
+				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
 				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
 				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
-				637BC1352A154B5E0089A34D /* TextLayerLayout.swift */,
-				637BC1372A1558480089A34D /* TextLayerLayoutDelegate.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				637867722A1BD1E10039960E /* TextView+Events.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
@@ -367,7 +361,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				637BC1402A15603A0089A34D /* SelectionLayerLayout.swift in Sources */,
 				637BC13E2A155DFE0089A34D /* CALayer+Extensions.swift in Sources */,
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
@@ -382,7 +375,6 @@
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
 				63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */,
 				63B61A1229FD965800787BB9 /* WindowController.swift in Sources */,
-				637BC1362A154B5E0089A34D /* TextLayerLayout.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Events.swift in Sources */,
 				63A618702A0E94F900E70B0E /* FragmentCache.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* WeakDictionary.swift in Sources */,
@@ -397,9 +389,9 @@
 				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
-				637BC1382A1558480089A34D /* TextLayerLayoutDelegate.swift in Sources */,
+				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
 				63B863CB2A1315020082B4A6 /* LineNumberRenderer.swift in Sources */,
-				637BC13C2A155D200089A34D /* LayoutFragmentRenderer.swift in Sources */,
+				637867792A1BDC4C0039960E /* LayoutFragmentLayer.swift in Sources */,
 				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

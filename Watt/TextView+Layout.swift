@@ -7,7 +7,7 @@
 
 import AppKit
 
-extension TextView {
+extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     override func layout() {
         guard let layer else {
             return
@@ -28,6 +28,21 @@ extension TextView {
         }
 
         super.layout()
+    }
+
+    func layoutSublayers(of layer: CALayer) {
+        switch layer {
+        case textLayer:
+            layoutTextLayer()
+        case selectionLayer:
+            layoutSelectionLayer()
+        default:
+            break
+        }
+    }
+
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
     }
 
     var scrollView: NSScrollView? {
@@ -58,51 +73,6 @@ extension TextView {
         }
     }
 
-    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
-    }
-}
-
-extension TextView: TextLayerLayoutDelegate {
-    func viewportBounds(for textLayerLayout: TextLayerLayout) -> CGRect {
-        var viewportBounds: CGRect
-        if preparedContentRect.intersects(visibleRect) {
-            viewportBounds = preparedContentRect.union(visibleRect)
-        } else {
-            viewportBounds = visibleRect
-        }
-
-        viewportBounds.size.width = bounds.width
-
-        return viewportBounds
-    }
-
-    func textLayerLayoutWillLayout(_ textLayerLayout: TextLayerLayout) {
-        lineNumberView.beginUpdates()
-    }
-
-    func textLayerLayout(_ textLayerLayout: TextLayerLayout, didLayout layoutFragment: LayoutFragment) {
-
-        guard let frag = layoutFragment.lineFragments.first else {
-            return
-        }
-
-        lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: frag.typographicBounds.height)
-    }
-
-    func textLayerLayoutDidFinishLayout(_ textLayerLayout: TextLayerLayout) {
-        updateFrameHeightIfNeeded()
-        lineNumberView.endUpdates()
-    }
-
-    func backingScaleFactor(for textLayerLayout: TextLayerLayout) -> CGFloat {
-        window?.backingScaleFactor ?? 1.0
-    }
-
-    func textLayerLayout(_ textLayerLayout: TextLayerLayout, insetFor layoutFragment: LayoutFragment) -> CGSize {
-        textContainerInset
-    }
-
     func updateFrameHeightIfNeeded() {
         guard let scrollView else {
             return
@@ -118,14 +88,123 @@ extension TextView: TextLayerLayoutDelegate {
             setFrameSize(CGSize(width: frame.width, height: newHeight))
         }
     }
+
+    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
+    }
 }
 
-extension TextView: SelectionLayerLayoutDelegate {
-    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout) -> CGFloat {
-        window?.backingScaleFactor ?? 1.0
+// MARK: - Text layout
+extension TextView: LayoutManagerDelegate {
+    func layoutTextLayer() {
+        layoutManager.layoutViewport()
     }
 
-    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout) -> CGSize {
-        textContainerInset
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
+        var viewportBounds: CGRect
+        if preparedContentRect.intersects(visibleRect) {
+            viewportBounds = preparedContentRect.union(visibleRect)
+        } else {
+            viewportBounds = visibleRect
+        }
+
+        viewportBounds.size.width = bounds.width
+
+        return viewportBounds
+    }
+
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager) {
+        textLayer.sublayers = nil
+        lineNumberView.beginUpdates()
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
+
+        let l = textLayerCache[layoutFragment.id] ?? makeLayoutFragmentLayer(for: layoutFragment)
+        l.bounds = layoutFragment.typographicBounds
+        l.position = CGPoint(
+            x: layoutFragment.position.x + textContainerInset.width,
+            y: layoutFragment.position.y + textContainerInset.height
+        )
+
+        textLayerCache[layoutFragment.id] = l
+
+        textLayer.addSublayer(l)
+
+        guard let lineFragment = layoutFragment.lineFragments.first else {
+            return
+        }
+
+        lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: lineFragment.typographicBounds.height)
+    }
+
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager) {
+        updateFrameHeightIfNeeded()
+        lineNumberView.endUpdates()
+    }
+
+    func makeLayoutFragmentLayer(for layoutFragment: LayoutFragment) -> CALayer {
+        let l = LayoutFragmentLayer(layoutFragment: layoutFragment)
+        l.anchorPoint = .zero
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.needsDisplayOnBoundsChange = true
+        l.contentsScale = window?.backingScaleFactor ??  1.0
+
+        return l
+    }
+}
+
+// MARK: - Selection layout
+
+extension TextView {
+    func layoutSelectionLayer() {
+        selectionLayer.sublayers = nil
+
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.isEmpty {
+            return
+        }
+
+        guard let viewportRange = layoutManager.viewportRange else {
+            return
+        }
+
+        let rangeInViewport = selection.range.clamped(to: viewportRange)
+
+        if rangeInViewport.isEmpty {
+            return
+        }
+
+        layoutManager.enumerateSelectionSegments(in: rangeInViewport) { frame in
+            let l = selectionLayerCache[frame] ?? makeSelectionLayer(for: frame)
+
+            let padding = textContainer.lineFragmentPadding
+
+            let position = CGPoint(
+                x: frame.origin.x + textContainerInset.width + padding,
+                y: frame.origin.y + textContainerInset.height
+            )
+
+            l.position = position
+            l.bounds = CGRect(origin: .zero, size: frame.size)
+
+            selectionLayerCache[frame] = l
+            selectionLayer.addSublayer(l)
+
+            return true
+        }
+    }
+
+    func makeSelectionLayer(for frame: CGRect) -> CALayer {
+        let l = SelectionLayer(textView: self)
+        l.anchorPoint = .zero
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.needsDisplayOnBoundsChange = true
+        l.contentsScale = window?.backingScaleFactor ??  1.0
+
+        return l
     }
 }
