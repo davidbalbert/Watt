@@ -7,20 +7,18 @@
 
 import Cocoa
 
-protocol SelectionLayerLayoutDelegate<ContentManager>: AnyObject {
-    associatedtype ContentManager: TextContentManager
-
-    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGFloat
-    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGSize
+protocol SelectionLayerLayoutDelegate: AnyObject {
+    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout) -> CGFloat
+    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout) -> CGSize
 }
 
-class SelectionLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate where ContentManager: TextContentManager {
-    var layoutManager: LayoutManager<ContentManager>
+class SelectionLayerLayout: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate {
+    var layoutManager: LayoutManager
     var layerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
-    weak var delegate: (any SelectionLayerLayoutDelegate<ContentManager>)?
+    weak var delegate: (any SelectionLayerLayoutDelegate)?
 
-    init(layoutManager: LayoutManager<ContentManager>) {
+    init(layoutManager: LayoutManager) {
         self.layoutManager = layoutManager
     }
 

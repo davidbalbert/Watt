@@ -8,7 +8,7 @@
 import AppKit
 
 extension TextView: TextLayerLayoutDelegate {
-    func viewportBounds(for textLayerLayout: TextLayerLayout<ContentManager>) -> CGRect {
+    func viewportBounds(for textLayerLayout: TextLayerLayout) -> CGRect {
         var viewportBounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             viewportBounds = preparedContentRect.union(visibleRect)
@@ -21,11 +21,11 @@ extension TextView: TextLayerLayoutDelegate {
         return viewportBounds
     }
 
-    func textLayerLayoutWillLayout(_ textLayerLayout: TextLayerLayout<ContentManager>) {
+    func textLayerLayoutWillLayout(_ textLayerLayout: TextLayerLayout) {
         lineNumberView.beginUpdates()
     }
 
-    func textLayerLayout(_ textLayerLayout: TextLayerLayout<ContentManager>, didLayout layoutFragment: LayoutManager<ContentManager>.LayoutFragment) {
+    func textLayerLayout(_ textLayerLayout: TextLayerLayout, didLayout layoutFragment: LayoutFragment) {
 
         guard let frag = layoutFragment.lineFragments.first else {
             return
@@ -34,16 +34,16 @@ extension TextView: TextLayerLayoutDelegate {
         lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: frag.typographicBounds.height)
     }
 
-    func textLayerLayoutDidFinishLayout(_ textLayerLayout: TextLayerLayout<ContentManager>) {
+    func textLayerLayoutDidFinishLayout(_ textLayerLayout: TextLayerLayout) {
         updateFrameHeightIfNeeded()
         lineNumberView.endUpdates()
     }
 
-    func backingScaleFactor(for textLayerLayout: TextLayerLayout<ContentManager>) -> CGFloat {
+    func backingScaleFactor(for textLayerLayout: TextLayerLayout) -> CGFloat {
         window?.backingScaleFactor ?? 1.0
     }
 
-    func textLayerLayout(_ textLayerLayout: TextLayerLayout<ContentManager>, insetFor layoutFragment: LayoutManager<ContentManager>.LayoutFragment) -> CGSize {
+    func textLayerLayout(_ textLayerLayout: TextLayerLayout, insetFor layoutFragment: LayoutFragment) -> CGSize {
         textContainerInset
     }
 
@@ -65,11 +65,11 @@ extension TextView: TextLayerLayoutDelegate {
 }
 
 extension TextView: SelectionLayerLayoutDelegate {
-    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGFloat {
+    func backingScaleFactor(for selectionLayerLayout: SelectionLayerLayout) -> CGFloat {
         window?.backingScaleFactor ?? 1.0
     }
 
-    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout<ContentManager>) -> CGSize {
+    func textContainerInsets(for selectionLayerLayout: SelectionLayerLayout) -> CGSize {
         textContainerInset
     }
 }

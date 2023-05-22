@@ -8,9 +8,7 @@
 import Foundation
 import CoreText
 
-class LayoutManager<ContentManager> where ContentManager: TextContentManager {
-    typealias Location = ContentManager.Location
-
+class LayoutManager {
     enum SegmentType {
         case standard
         case selection
@@ -18,7 +16,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
 
     var viewportBounds: CGRect = .zero
 
-    var viewportRange: Range<Location>? {
+    var viewportRange: Range<String.Index>? {
         guard let firstRange = heightEstimates.textRange(for: viewportBounds.origin) else {
             return nil
         }
@@ -42,7 +40,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
             textContainer?.layoutManager = self
         }
     }
-    weak var delegate: (any LayoutManagerDelegate<ContentManager>)?
+    weak var delegate: LayoutManagerDelegate?
 
     weak var contentManager: ContentManager? {
         didSet {
@@ -86,7 +84,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         delegate.layoutManagerDidLayout(self)
     }
 
-    func enumerateSelectionSegments(in range: Range<Location>, using block: (CGRect) -> Bool) {
+    func enumerateSelectionSegments(in range: Range<String.Index>, using block: (CGRect) -> Bool) {
         guard let contentManager, let textContainer else {
             return
         }
@@ -161,7 +159,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         CGPoint(x: point.x - lineFragment.frame.minX, y: point.y - lineFragment.frame.minY)
     }
 
-    func enumerateLayoutFragments(from location: Location, options: EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
+    func enumerateLayoutFragments(from location: String.Index, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
         guard let contentManager, let textContainer else {
             return
         }
@@ -224,7 +222,7 @@ class LayoutManager<ContentManager> where ContentManager: TextContentManager {
         heightEstimates.lineCount
     }
 
-    func location(for point: CGPoint) -> Location? {
+    func location(for point: CGPoint) -> String.Index? {
         guard let contentManager, let textContainer else {
             return nil
         }

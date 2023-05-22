@@ -8,10 +8,10 @@
 import Cocoa
 
 class Document: NSDocument {
-    var contentManager: TextStorageContentManager = {
+    var contentManager: ContentManager = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-        return TextStorageContentManager(text)
+        return ContentManager(text)
     }()
 
     override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {
@@ -47,7 +47,7 @@ class Document: NSDocument {
             throw DocumentError.load
         }
 
-        self.contentManager = TextStorageContentManager(text)
+        self.contentManager = ContentManager(text)
     }
 }
 

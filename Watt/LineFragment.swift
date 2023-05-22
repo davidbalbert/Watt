@@ -9,37 +9,35 @@ import Foundation
 import CoreText
 import Cocoa
 
-extension LayoutManager {
-    struct LineFragment {
-        var line: CTLine
-        let glyphOrigin: CGPoint
-        let position: CGPoint
-        let typographicBounds: CGRect
-        let textRange: Range<Location>
-        let characterOffset: Int
+struct LineFragment {
+    var line: CTLine
+    let glyphOrigin: CGPoint
+    let position: CGPoint
+    let typographicBounds: CGRect
+    let textRange: Range<String.Index>
+    let characterOffset: Int
 
-        var frame: CGRect {
-            CGRect(origin: position, size: typographicBounds.size)
-        }
+    var frame: CGRect {
+        CGRect(origin: position, size: typographicBounds.size)
+    }
 
-        func draw(at point: CGPoint, in ctx: CGContext) {
-            ctx.saveGState()
+    func draw(at point: CGPoint, in ctx: CGContext) {
+        ctx.saveGState()
 
-            ctx.textMatrix = .identity
+        ctx.textMatrix = .identity
 
-            ctx.translateBy(x: glyphOrigin.x, y: glyphOrigin.y)
-            ctx.translateBy(x: point.x, y: point.y)
-            ctx.scaleBy(x: 1, y: -1)
-            ctx.textPosition = .zero
+        ctx.translateBy(x: glyphOrigin.x, y: glyphOrigin.y)
+        ctx.translateBy(x: point.x, y: point.y)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.textPosition = .zero
 
-            CTLineDraw(line, ctx)
-            ctx.restoreGState()
-        }
+        CTLineDraw(line, ctx)
+        ctx.restoreGState()
+    }
 
-        // The range of the string in the line. Always starts at 0
-        var characterRange: NSRange {
-            let range = CTLineGetStringRange(line)
-            return NSRange(location: 0, length: range.length)
-        }
+    // The range of the string in the line. Always starts at 0
+    var characterRange: NSRange {
+        let range = CTLineGetStringRange(line)
+        return NSRange(location: 0, length: range.length)
     }
 }

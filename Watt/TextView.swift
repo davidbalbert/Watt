@@ -7,10 +7,7 @@
 
 import Cocoa
 
-class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate where ContentManager: TextContentManager {
-    typealias TextContainer = LayoutManager<ContentManager>.TextContainer
-    typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
-    typealias Selection = LayoutManager<ContentManager>.Selection
+class TextView: NSView, NSViewLayerContentScaleDelegate, ClipViewDelegate {
 
     class func scrollableTextView() -> NSScrollView {
         let textView = Self()
@@ -57,7 +54,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
         }
     }
 
-    var layoutManager: LayoutManager<ContentManager> {
+    var layoutManager: LayoutManager {
         didSet {
             oldValue.delegate = nil
             contentManager.removeLayoutManager(oldValue)
@@ -81,14 +78,14 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
     }
 
     let textLayer: CALayer = CALayer()
-    let textLayerLayout: TextLayerLayout<ContentManager>
+    let textLayerLayout: TextLayerLayout
 
     let selectionLayer: CALayer = CALayer()
-    let selectionLayerLayout: SelectionLayerLayout<ContentManager>
+    let selectionLayerLayout: SelectionLayerLayout
 
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
-        layoutManager = LayoutManager<ContentManager>()
+        layoutManager = LayoutManager()
         textContainer = TextContainer()
         textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
         selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)
@@ -99,7 +96,7 @@ class TextView<ContentManager>: NSView, NSViewLayerContentScaleDelegate, ClipVie
 
     required init?(coder: NSCoder) {
         contentManager = ContentManager("")
-        layoutManager = LayoutManager<ContentManager>()
+        layoutManager = LayoutManager()
         textContainer = TextContainer()
         textLayerLayout = TextLayerLayout(layoutManager: layoutManager)
         selectionLayerLayout = SelectionLayerLayout(layoutManager: layoutManager)

@@ -7,16 +7,15 @@
 
 import Cocoa
 
-class TextLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate where ContentManager: TextContentManager {
-    typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
+class TextLayerLayout: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate {
 
-    var renderer: LayoutFragmentRenderer<ContentManager> = LayoutFragmentRenderer()
+    var renderer: LayoutFragmentRenderer = LayoutFragmentRenderer()
     var layerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
 
-    weak var delegate: (any TextLayerLayoutDelegate<ContentManager>)?
-    var layoutManager: LayoutManager<ContentManager>
+    weak var delegate: TextLayerLayoutDelegate?
+    var layoutManager: LayoutManager
 
-    init(layoutManager: LayoutManager<ContentManager>) {
+    init(layoutManager: LayoutManager) {
         self.layoutManager = layoutManager
     }
 
@@ -39,7 +38,7 @@ class TextLayerLayout<ContentManager>: NSObject, CALayerDelegate, NSViewLayerCon
 }
 
 extension TextLayerLayout: LayoutManagerDelegate {
-    func viewportBounds(for layoutManager: LayoutManager<ContentManager>) -> CGRect {
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
         guard let delegate else {
             return .zero
         }
@@ -47,7 +46,7 @@ extension TextLayerLayout: LayoutManagerDelegate {
         return delegate.viewportBounds(for: self)
     }
 
-    func layoutManagerWillLayout(_ layoutManager: LayoutManager<ContentManager>) {
+    func layoutManagerWillLayout(_ layoutManager: LayoutManager) {
         guard let layer else {
             return
         }
@@ -56,7 +55,7 @@ extension TextLayerLayout: LayoutManagerDelegate {
         delegate?.textLayerLayoutWillLayout(self)
     }
 
-    func layoutManager(_ layoutManager: LayoutManager<ContentManager>, configureRenderingSurfaceFor layoutFragment: LayoutManager<ContentManager>.LayoutFragment) {
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
         guard let layer else {
             return
         }
@@ -74,7 +73,7 @@ extension TextLayerLayout: LayoutManagerDelegate {
         delegate?.textLayerLayout(self, didLayout: layoutFragment)
     }
 
-    func layoutManagerDidLayout(_ layoutManager: LayoutManager<ContentManager>) {
+    func layoutManagerDidLayout(_ layoutManager: LayoutManager) {
         delegate?.textLayerLayoutDidFinishLayout(self)
     }
 

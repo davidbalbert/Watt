@@ -7,24 +7,22 @@
 
 import Foundation
 
-extension LayoutManager {
-    struct TextElement: Identifiable {
-        var id: UUID = UUID()
+struct TextElement: Identifiable {
+    var id: UUID = UUID()
 
-        weak var contentManager: ContentManager?
-        let substring: Substring
-        let textRange: Range<Location>
+    weak var contentManager: ContentManager?
+    let substring: Substring
+    let textRange: Range<String.Index>
 
-        var length: Int {
-            substring.count
+    var length: Int {
+        substring.count
+    }
+
+    lazy var attributedString: NSAttributedString = {
+        guard let contentManager else {
+            return NSAttributedString("")
         }
 
-        lazy var attributedString: NSAttributedString = {
-            guard let contentManager else {
-                return NSAttributedString("")
-            }
-
-            return contentManager.attributedString(for: self)
-        }()
-    }
+        return contentManager.attributedString(for: self)
+    }()
 }

@@ -7,8 +7,7 @@
 
 import Cocoa
 
-class LayoutFragmentRenderer<ContentManager>: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate where ContentManager: TextContentManager {
-    typealias LayoutFragment = LayoutManager<ContentManager>.LayoutFragment
+class LayoutFragmentRenderer: NSObject, CALayerDelegate, NSViewLayerContentScaleDelegate {
 
     func action(for layer: CALayer, forKey event: String) -> CAAction? {
         return NSNull()

@@ -1,4 +1,4 @@
-//
+ //
 //  TextStorageContentManager.swift
 //  Watt
 //
@@ -7,12 +7,9 @@
 
 import Cocoa
 
-final class TextStorageContentManager: TextContentManager {
-    typealias Location = String.Index
-    typealias TextElement = LayoutManager<TextStorageContentManager>.TextElement
-
+final class ContentManager {
     let storage: NSTextStorage
-    var layoutManagers: [LayoutManager<TextStorageContentManager>] = []
+    var layoutManagers: [LayoutManager] = []
 
     // One of the more expensive parts of using NSTextStorage is generating attributed
     // substrings for each TextElement. Text elements lazily create their substrings
@@ -118,12 +115,12 @@ final class TextStorageContentManager: TextContentManager {
     }
 
 
-    func addLayoutManager(_ layoutManager: LayoutManager<TextStorageContentManager>) {
+    func addLayoutManager(_ layoutManager: LayoutManager) {
         layoutManagers.append(layoutManager)
         layoutManager.contentManager = self
     }
 
-    func removeLayoutManager(_ layoutManager: LayoutManager<TextStorageContentManager>) {
+    func removeLayoutManager(_ layoutManager: LayoutManager) {
         layoutManagers.removeAll { m in
             if m === layoutManager {
                 m.contentManager = nil
