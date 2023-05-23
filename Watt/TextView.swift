@@ -47,7 +47,7 @@ class TextView: NSView, ClipViewDelegate {
 
             contentManager.didSetFont(to: font)
 
-            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound, affinity: .upstream)
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
             textLayer.setNeedsLayout()
             selectionLayer.setNeedsLayout()
         }
@@ -62,7 +62,7 @@ class TextView: NSView, ClipViewDelegate {
 
             contentManager.addLayoutManager(layoutManager)
 
-            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound, affinity: .upstream)
+            layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
             textLayer.setNeedsLayout()
             selectionLayer.setNeedsLayout()
         }
