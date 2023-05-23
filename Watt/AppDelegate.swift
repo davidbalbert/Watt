@@ -9,6 +9,13 @@ import Cocoa
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.register(defaults: [
+            "NSTextInsertionPointBlinkPeriodOn": 500,
+            "NSTextInsertionPointBlinkPeriodOff": 500,
+        ])
+    }
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
     }
 

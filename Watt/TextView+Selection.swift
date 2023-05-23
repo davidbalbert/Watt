@@ -26,9 +26,20 @@ extension TextView {
         selectionLayer.needsLayout()
     }
 
-    // TODO: split into an onInterval and offInterval and read NSTextInsertionPointBlinkPeriodOn and NSTextInsertionPointBlinkPeriodOff from defaults
+    private var insertionPointOnInterval: TimeInterval {
+        UserDefaults.standard.double(forKey: "NSTextInsertionPointBlinkPeriodOn") / 1000
+    }
+
+    private var insertionPointOffInterval: TimeInterval {
+        UserDefaults.standard.double(forKey: "NSTextInsertionPointBlinkPeriodOff") / 1000
+    }
+
     private var insertionPointBlinkInterval: TimeInterval {
-        0.5
+        if insertionPointLayer.isHidden {
+            return insertionPointOnInterval
+        } else {
+            return insertionPointOffInterval
+        }
     }
 
     func updateInsertionPointTimer() {
@@ -36,10 +47,23 @@ extension TextView {
 
         insertionPointLayer.isHidden = false
 
-        insertionPointTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: true) { [weak self] timer in
+        if insertionPointOffInterval == 0 {
+            return
+        }
+
+        if !(layoutManager.selection?.isEmpty ?? true) {
+            return
+        }
+
+        scheduleInsertionPointTimer()
+    }
+
+    func scheduleInsertionPointTimer() {
+        insertionPointTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: false) { [weak self] timer in
 
             guard let self = self else { return }
             self.insertionPointLayer.isHidden.toggle()
+            scheduleInsertionPointTimer()
         }
     }
 }
