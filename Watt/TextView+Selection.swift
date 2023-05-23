@@ -25,4 +25,21 @@ extension TextView {
         layoutManager.selection?.head = location
         selectionLayer.needsLayout()
     }
+
+    // TODO: split into an onInterval and offInterval and read NSTextInsertionPointBlinkPeriodOn and NSTextInsertionPointBlinkPeriodOff from defaults
+    private var insertionPointBlinkInterval: TimeInterval {
+        0.5
+    }
+
+    func updateInsertionPointTimer() {
+        caretTimer?.invalidate()
+
+        caretLayer.isHidden = false
+
+        caretTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: true) { [weak self] timer in
+
+            guard let self = self else { return }
+            self.caretLayer.isHidden.toggle()
+        }
+    }
 }

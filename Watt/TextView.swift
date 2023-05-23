@@ -87,6 +87,8 @@ class TextView: NSView, ClipViewDelegate {
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var caretLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
+    var caretTimer: Timer?
+
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
         layoutManager = LayoutManager()
@@ -138,6 +140,8 @@ class TextView: NSView, ClipViewDelegate {
         addTrackingArea(trackingArea)
 
         contentManager.didSetFont(to: font)
+
+        updateInsertionPointTimer()
     }
 
     override func updateLayer() {
