@@ -51,14 +51,4 @@ class LayoutFragment: Identifiable {
 
         ctx.restoreGState()
     }
-
-    func lineFragment(for location: String.Index) -> LineFragment? {
-        for f in lineFragments {
-            if f.textRange.contains(location) {
-                return f
-            }
-        }
-
-        return nil
-    }
 }

@@ -315,7 +315,7 @@ class LayoutManager {
         return (location, affinity)
     }
 
-    func enumerateCaretRectsInLineFragment(at location: String.Index, using block: @escaping (CGRect, String.Index, Bool) -> Bool)  {
+    func enumerateCaretRectsInLineFragment(at location: String.Index, affinity: Selection.Affinity, using block: @escaping (CGRect, String.Index, Bool) -> Bool)  {
         guard let contentManager, let textContainer else {
             return
         }
@@ -324,7 +324,7 @@ class LayoutManager {
             return
         }
 
-        guard let lineFragment = layoutFragment.lineFragment(for: location) else {
+        guard let lineFragment = lineFragment(for: location, in: layoutFragment, affinity: affinity) else {
             return
         }
 
@@ -336,14 +336,22 @@ class LayoutManager {
                 return
             }
 
+            let charIndex = charIndex - lineFragment.characterOffset
+
             loc = contentManager.location(loc, offsetBy: charIndex - prevCharIndex)
             prevCharIndex = charIndex
 
             let lineOrigin = CGPoint(x: caretOffset, y: 0)
+
             let origin = convert(convert(lineOrigin, from: lineFragment), from: layoutFragment)
 
             let height = lineFragment.typographicBounds.height
-            let rect = CGRect(x: origin.x + textContainer.lineFragmentPadding, y: origin.y, width: 1, height: height)
+            let rect = CGRect(
+                x: min(origin.x + textContainer.lineFragmentPadding, textContainer.width - textContainer.lineFragmentPadding),
+                y: origin.y,
+                width: 1,
+                height: height
+            )
 
             if !block(rect, loc, leadingEdge) {
                 stop.pointee = true
@@ -359,6 +367,24 @@ class LayoutManager {
         }
 
         return layoutFragment
+    }
+
+    func lineFragment(for location: String.Index, in layoutFragment: LayoutFragment, affinity: Selection.Affinity) -> LineFragment? {
+        guard let contentManager else {
+            return nil
+        }
+
+        for f in layoutFragment.lineFragments {
+            if location == f.textRange.upperBound && affinity == .upstream {
+                return f
+            }
+
+            if f.textRange.contains(location) {
+                return f
+            }
+        }
+
+        return nil
     }
 
     func layoutFragment(for point: CGPoint) -> LayoutFragment? {

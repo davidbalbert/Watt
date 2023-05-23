@@ -233,12 +233,17 @@ extension TextView {
             return
         }
 
-        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound) { [weak self] caretRect, location, leadingEdge in
+        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound, affinity: selection.affinity) { [weak self] caretRect, location, leadingEdge in
             guard let self else {
                 return false
             }
 
-            guard location == selection.range.lowerBound && leadingEdge else {
+            let next = contentManager.location(location, offsetBy: 1)
+
+            let downstreamMatch = location == selection.range.lowerBound && leadingEdge && selection.affinity == .downstream
+            let upstreamMatch = next == selection.range.lowerBound && !leadingEdge && selection.affinity == .upstream
+
+            guard downstreamMatch || upstreamMatch else {
                 return true
             }
 
