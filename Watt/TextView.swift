@@ -81,13 +81,13 @@ class TextView: NSView, ClipViewDelegate {
 
     let textLayer: CALayer = CALayer()
     let selectionLayer: CALayer = CALayer()
-    let caretLayer: CALayer = CALayer()
+    let insertionPointLayer: CALayer = CALayer()
 
     var textLayerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
-    var caretLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
+    var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
-    var caretTimer: Timer?
+    var insertionPointTimer: Timer?
 
     override init(frame frameRect: NSRect) {
         contentManager = ContentManager("")
@@ -129,10 +129,10 @@ class TextView: NSView, ClipViewDelegate {
         textLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         textLayer.delegate = self
 
-        caretLayer.name = "Carets"
-        caretLayer.anchorPoint = .zero
-        caretLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        caretLayer.delegate = self
+        insertionPointLayer.name = "Insertion points"
+        insertionPointLayer.anchorPoint = .zero
+        insertionPointLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        insertionPointLayer.delegate = self
 
         layoutManager.selection = Selection(head: contentManager.documentRange.lowerBound)
 

@@ -22,7 +22,7 @@
 		6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677A2A1BDF870039960E /* SelectionLayer.swift */; };
 		6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */; };
 		6378677F2A1BE7540039960E /* TextView+TextInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677E2A1BE7540039960E /* TextView+TextInput.swift */; };
-		637867812A1BEA960039960E /* CaretLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867802A1BEA960039960E /* CaretLayer.swift */; };
+		637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867802A1BEA960039960E /* InsertionPointLayer.swift */; };
 		637BC1302A1400C60089A34D /* ContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* ContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
@@ -88,7 +88,7 @@
 		6378677A2A1BDF870039960E /* SelectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionLayer.swift; sourceTree = "<group>"; };
 		6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberLayer.swift; sourceTree = "<group>"; };
 		6378677E2A1BE7540039960E /* TextView+TextInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+TextInput.swift"; sourceTree = "<group>"; };
-		637867802A1BEA960039960E /* CaretLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaretLayer.swift; sourceTree = "<group>"; };
+		637867802A1BEA960039960E /* InsertionPointLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionPointLayer.swift; sourceTree = "<group>"; };
 		637BC12F2A1400C60089A34D /* ContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
@@ -175,7 +175,7 @@
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A6186F2A0E94F900E70B0E /* FragmentCache.swift */,
 				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
-				637867802A1BEA960039960E /* CaretLayer.swift */,
+				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
 				637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
@@ -383,7 +383,7 @@
 				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
 				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
 				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
-				637867812A1BEA960039960E /* CaretLayer.swift in Sources */,
+				637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				637BC1302A1400C60089A34D /* ContentManager.swift in Sources */,

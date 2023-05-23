@@ -32,14 +32,14 @@ extension TextView {
     }
 
     func updateInsertionPointTimer() {
-        caretTimer?.invalidate()
+        insertionPointTimer?.invalidate()
 
-        caretLayer.isHidden = false
+        insertionPointLayer.isHidden = false
 
-        caretTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: true) { [weak self] timer in
+        insertionPointTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: true) { [weak self] timer in
 
             guard let self = self else { return }
-            self.caretLayer.isHidden.toggle()
+            self.insertionPointLayer.isHidden.toggle()
         }
     }
 }

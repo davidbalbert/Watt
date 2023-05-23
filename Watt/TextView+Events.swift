@@ -17,7 +17,7 @@ extension TextView {
         let point = convertToTextContainer(locationInView)
         startSelection(at: point)
         selectionLayer.setNeedsLayout()
-        caretLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
     }
 
@@ -30,7 +30,7 @@ extension TextView {
         let point = convertToTextContainer(locationInView)
         extendSelection(to: point)
         selectionLayer.setNeedsLayout()
-        caretLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
     }
 

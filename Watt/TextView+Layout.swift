@@ -23,9 +23,9 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             layer.addSublayer(textLayer)
         }
 
-        if caretLayer.superlayer == nil {
-            caretLayer.bounds = layer.bounds
-            layer.addSublayer(caretLayer)
+        if insertionPointLayer.superlayer == nil {
+            insertionPointLayer.bounds = layer.bounds
+            layer.addSublayer(insertionPointLayer)
         }
 
         super.layout()
@@ -37,8 +37,8 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             layoutTextLayer()
         case selectionLayer:
             layoutSelectionLayer()
-        case caretLayer:
-            layoutCaretLayer()
+        case insertionPointLayer:
+            layoutInsertionPointLayer()
         default:
             break
         }
@@ -211,11 +211,11 @@ extension TextView {
     }
 }
 
-// MARK: - Caret layout
+// MARK: - Insertion point layout
 
 extension TextView {
-    func layoutCaretLayer() {
-        caretLayer.sublayers = nil
+    func layoutInsertionPointLayer() {
+        insertionPointLayer.sublayers = nil
 
         guard let selection else {
             return
@@ -247,19 +247,19 @@ extension TextView {
                 return true
             }
 
-            let l = caretLayerCache[caretRect] ?? makeCaretLayer(for: caretRect)
+            let l = insertionPointLayerCache[caretRect] ?? makeInsertionPointLayer(for: caretRect)
             l.position = convertFromTextContainer(caretRect.origin)
             l.bounds = CGRect(origin: .zero, size: caretRect.size)
 
-            caretLayerCache[caretRect] = l
-            caretLayer.addSublayer(l)
+            insertionPointLayerCache[caretRect] = l
+            insertionPointLayer.addSublayer(l)
 
             return false
         }
     }
 
-    func makeCaretLayer(for rect: CGRect) -> CALayer {
-        let l = CaretLayer()
+    func makeInsertionPointLayer(for rect: CGRect) -> CALayer {
+        let l = InsertionPointLayer()
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
