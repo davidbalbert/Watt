@@ -211,7 +211,7 @@ extension TextView {
     }
 }
 
-// MARK: - Insertion point layout
+// MARK: - Caret layout
 
 extension TextView {
     func layoutCaretLayer() {
@@ -238,9 +238,7 @@ extension TextView {
                 return false
             }
 
-            let affinityMatches = (leadingEdge && selection.affinity == .upstream) || (!leadingEdge && selection.affinity == .downstream)
-
-            guard location == selection.range.lowerBound && affinityMatches else {
+            guard location == selection.range.lowerBound && leadingEdge else {
                 return true
             }
 

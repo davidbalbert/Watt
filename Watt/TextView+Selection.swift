@@ -9,11 +9,11 @@ import Cocoa
 
 extension TextView {
     func startSelection(at point: CGPoint) {
-        guard let location = layoutManager.location(interactingAt: point) else {
+        guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
             return
         }
 
-        layoutManager.selection = Selection(head: location)
+        layoutManager.selection = Selection(head: location, affinity: affinity)
         selectionLayer.needsLayout()
     }
 

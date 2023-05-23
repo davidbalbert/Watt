@@ -13,7 +13,16 @@ struct Selection {
         case downstream
     }
 
-    var head: String.Index
+    var head: String.Index {
+        didSet {
+            if head < anchor {
+                affinity = .upstream
+            } else if anchor < head {
+                affinity = .downstream
+            }
+        }
+    }
+
     var anchor: String.Index
     var affinity: Affinity
 

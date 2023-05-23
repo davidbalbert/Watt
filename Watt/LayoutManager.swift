@@ -252,6 +252,14 @@ class LayoutManager {
     }
 
     func location(interactingAt point: CGPoint) -> String.Index? {
+        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
+            return nil
+        }
+
+        return location
+    }
+
+    func locationAndAffinity(interactingAt point: CGPoint) -> (String.Index, Selection.Affinity)? {
         guard let contentManager, let textContainer else {
             return nil
         }
@@ -288,6 +296,13 @@ class LayoutManager {
             return nil
         }
 
+        let affinity: Selection.Affinity
+        if offset == range.location+range.length {
+            affinity = .upstream
+        } else {
+            affinity = .downstream
+        }
+
         let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
         let lastChar = contentManager.character(at: lastIdx)
 
@@ -295,7 +310,9 @@ class LayoutManager {
             offset -= 1
         }
 
-        return contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: offset)
+        let location = contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: offset)
+
+        return (location, affinity)
     }
 
     func enumerateCaretRectsInLineFragment(at location: String.Index, using block: @escaping (CGRect, String.Index, Bool) -> Bool)  {
