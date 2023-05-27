@@ -23,6 +23,6 @@ struct TextElement: Identifiable {
             return NSAttributedString("")
         }
 
-        return contentManager.attributedString(for: self)
+        return contentManager.attributedSubstring(for: self)
     }()
 }

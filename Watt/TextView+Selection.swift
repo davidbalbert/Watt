@@ -14,7 +14,6 @@ extension TextView {
         }
 
         layoutManager.selection = Selection(head: location, affinity: affinity)
-        selectionLayer.needsLayout()
     }
 
     func extendSelection(to point: CGPoint) {
@@ -23,7 +22,6 @@ extension TextView {
         }
 
         layoutManager.selection?.head = location
-        selectionLayer.needsLayout()
     }
 
     private var insertionPointOnInterval: TimeInterval {

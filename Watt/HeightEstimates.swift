@@ -58,6 +58,22 @@ struct HeightEstimates {
     }
 
     func lineNumberAndOffset(containing location: String.Index) -> (Int, CGFloat)? {
+        guard let i = lineIndex(containing: location) else {
+            return nil
+        }
+
+        return (i+1, ys[i])
+    }
+
+    func textRange(containing location: String.Index) -> Range<String.Index>? {
+        guard let i = lineIndex(containing: location) else {
+            return nil
+        }
+
+        return ranges[i]
+    }
+
+    private func lineIndex(containing location: String.Index) -> Int? {
         var low = 0
         var high = ranges.count
 
@@ -66,8 +82,10 @@ struct HeightEstimates {
             let mid = low + (high - low)/2
             let range = ranges[mid]
 
-            if range.contains(location) {
-                return (mid+1, ys[mid])
+            let isLast = mid == ranges.count - 1
+
+            if range.contains(location) || isLast && range.upperBound == location {
+                return mid
             } else if range.lowerBound > location {
                 high = mid
             } else {
@@ -106,7 +124,7 @@ struct HeightEstimates {
         let maxY = ys[i] + heights[i]
 
         // position.y is already >= ys[i]
-        if point.y <= maxY {
+        if point.y < maxY {
             return ranges[i]
         } else {
             return nil
@@ -131,5 +149,84 @@ struct HeightEstimates {
         }
 
         heights[index] = newHeight
+    }
+
+    mutating func updateEstimatesByReplacingLinesIn(
+        oldSubstring: Substring,
+        with newSubstring: String,
+        startIndex: String.Index,
+        originalLastLineLength: Int,
+        using contentManager: ContentManager
+    ) {
+        guard let startLineIndex = lineIndex(containing: startIndex) else {
+            return
+        }
+
+        // Calculate the number of lines in the old substring
+        let oldLines = oldSubstring.split(separator: "\n", omittingEmptySubsequences: false)
+        let oldLineCount = oldLines.count
+
+        // Calculate the number of lines in the new string
+        let newLines = newSubstring.split(separator: "\n", omittingEmptySubsequences: false)
+        let newLineCount = newLines.count
+
+        var currentStart = ranges[startLineIndex].lowerBound
+        var currentY = ys[startLineIndex]
+
+        // Adjust the arrays to remove the old lines
+        heights.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
+        ys.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
+        ranges.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
+
+        // Calculate the height and y-offset for the new lines
+        let newHeights = Array(repeating: CGFloat(14), count: newLineCount)
+        var newYs: [CGFloat] = []
+        var newRanges: [Range<String.Index>] = []
+
+        for (i, line) in newLines.enumerated() {
+            let lineLength = line.count
+            let endOfRange: String.Index
+            if i < newLines.count - 1 {
+                // account for newline
+                endOfRange = contentManager.location(currentStart, offsetBy: lineLength + 1)
+            } else {
+                // last line, no newline
+                // We need to account for the remaining part of the line in the original string that comes after the old substring.
+                // This is the length of the line in the original string that comes after the replaced part.
+                let remainingLength = originalLastLineLength - oldLines.last!.count
+                endOfRange = contentManager.location(currentStart, offsetBy: lineLength + remainingLength)
+            }
+
+            newRanges.append(currentStart..<endOfRange)
+            newYs.append(currentY)
+            currentStart = endOfRange
+            currentY += 14
+        }
+
+        // Insert the new lines into the arrays
+        heights.insert(contentsOf: newHeights, at: startLineIndex)
+        ys.insert(contentsOf: newYs, at: startLineIndex)
+        ranges.insert(contentsOf: newRanges, at: startLineIndex)
+
+        // Compute the y offset change and adjust the y offsets for the following lines
+        let deltaY = CGFloat(newLineCount - oldLineCount) * 14
+        if deltaY != 0 {
+            for i in startLineIndex+newLineCount..<ys.count {
+                ys[i] += deltaY
+            }
+        }
+
+        // Compute the range change and adjust the ranges for the following lines
+        let lengthDelta = newSubstring.count - oldSubstring.count
+        for i in startLineIndex+newLineCount..<ranges.count {
+            let newStart = contentManager.location(ranges[i].lowerBound, offsetBy: lengthDelta)
+            let newEnd: String.Index
+            if i == ranges.count - 1 { // if this is the last line
+                newEnd = contentManager.storage.string.endIndex
+            } else {
+                newEnd = contentManager.location(ranges[i].upperBound, offsetBy: lengthDelta)
+            }
+            ranges[i] = newStart..<newEnd
+        }
     }
 }

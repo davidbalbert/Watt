@@ -40,6 +40,8 @@ final class ContentManager {
     // I'm going to punt on that for now.
     var elementCache: LRUCache<String.Index, TextElement> = LRUCache(capacity: 300)
 
+    var transactionCount = 0
+
     init(_ s: String) {
         storage = NSTextStorage(string: s)
     }
@@ -48,19 +50,23 @@ final class ContentManager {
         storage.string.startIndex..<storage.string.endIndex
     }
 
-    private var documentNSRange: NSRange {
+    var documentNSRange: NSRange {
         NSRange(location: 0, length: storage.length)
     }
 
     func enumerateLineRanges(from location: String.Index, using block: (Range<String.Index>) -> Bool) {
         var i: String.Index
+        // TODO: at some point I changed storage.string[...location] to storage.string[..<location], but
+        // the latter seems more correct. Figure out why. Write some tests. Etc.
         if location != storage.string.startIndex, let lineEnd = storage.string[..<location].lastIndex(of: "\n") {
             i = storage.string.index(after: lineEnd)
         } else {
             i = storage.string.startIndex
         }
 
-        while i < storage.string.endIndex {
+        let includeExtraLine = storage.string.isEmpty || storage.string.last == "\n"
+
+        while (i < storage.string.endIndex) || (i == storage.string.endIndex && includeExtraLine) {
             let next: String.Index
             if let newline = storage.string[i...].firstIndex(of: "\n") {
                 next = storage.string.index(after: newline)
@@ -74,19 +80,27 @@ final class ContentManager {
                 break
             }
 
+            if i == storage.string.endIndex && includeExtraLine {
+                break
+            }
+
             i = range.upperBound
         }
     }
 
     func enumerateTextElements(from location: String.Index, using block: (TextElement) -> Bool) {
         var i: String.Index
+        // TODO: at some point I changed storage.string[...location] to storage.string[..<location], but
+        // the latter seems more correct. Figure out why. Write some tests. Etc.
         if location != storage.string.startIndex, let lineEnd = storage.string[..<location].lastIndex(of: "\n") {
             i = storage.string.index(after: lineEnd)
         } else {
             i = storage.string.startIndex
         }
 
-        while i < storage.string.endIndex {
+        let includeExtraLine = storage.string.isEmpty || storage.string.last == "\n"
+
+        while (i < storage.string.endIndex) || (i == storage.string.endIndex && includeExtraLine) {
             let el: TextElement
             if let e = elementCache[i] {
                 el = e
@@ -107,6 +121,10 @@ final class ContentManager {
             elementCache[i] = el
 
             if !block(el) {
+                break
+            }
+
+            if i == storage.string.endIndex && includeExtraLine {
                 break
             }
 
@@ -131,9 +149,83 @@ final class ContentManager {
         }
     }
 
-    func attributedString(for textElement: TextElement) -> NSAttributedString {
+    func attributedSubstring(for textElement: TextElement) -> NSAttributedString {
         let r = NSRange(textElement.textRange, in: storage.string)
         return storage.attributedSubstring(from: r)
+    }
+
+    func attributedSubstring(for range: NSRange) -> NSAttributedString {
+        storage.attributedSubstring(from: range)
+    }
+
+    private func beginEditingTransaction() {
+        if transactionCount == 0 {
+            storage.beginEditing()
+        }
+
+        transactionCount += 1
+    }
+
+    private func endEditingTransaction() {
+        transactionCount -= 1
+
+        if transactionCount == 0 {
+            storage.endEditing()
+        }
+    }
+
+    func performEditingTransaction(_ transaction: () -> Void) {
+        beginEditingTransaction()
+        transaction()
+        endEditingTransaction()
+    }
+
+    func replaceCharacters(in nsRange: NSRange, with string: NSAttributedString) {
+        guard let range = Range(nsRange, in: storage.string) else {
+            return
+        }
+
+        var adjustedLowerBound: String.Index?
+        enumerateLineRanges(from: range.lowerBound) { lineRange in
+            adjustedLowerBound = lineRange.lowerBound
+            return false
+        }
+
+        guard let adjustedLowerBound else {
+            return
+        }
+
+        let lastLineInRange: Substring
+        if let lastLineEnd = storage.string[..<range.upperBound].lastIndex(of: "\n") {
+            let start = storage.string.index(after: lastLineEnd)
+            let end = storage.string[start...].firstIndex(of: "\n") ?? storage.string.index(before: storage.string.endIndex)
+
+            lastLineInRange = storage.string[start...end]
+        } else {
+            let end = storage.string.firstIndex(of: "\n") ?? storage.string.index(before: storage.string.endIndex)
+            lastLineInRange = storage.string[...end]
+        }
+
+        let oldSubstring = storage.string[range]
+
+        storage.replaceCharacters(in: nsRange, with: string)
+
+        // TODO: is there a way to make this more efficient?
+        // Right now, the strings of many of all the elements following the one
+        // we're editing are still valid, but their ranges are not.
+        //
+        // The bottom one doesn't work, because we would like to update all
+        // the ranges in the cache.
+        //        let adjustedRange = adjustedLowerBound..<range.upperBound
+        //        elementCache.removeAll { key in
+        //            adjustedRange.contains(key)
+        //        }
+
+        elementCache.removeAll()
+
+        for layoutManager in layoutManagers {
+            layoutManager.contentManagerDidReplaceCharacters(self, in: range, with: string, oldSubstring: oldSubstring, originalLastLineLength: lastLineInRange.count)
+        }
     }
 
     func data(using encoding: String.Encoding) -> Data? {

@@ -45,7 +45,6 @@ struct FragmentCache {
         fragments.removeSubrange(index...)
     }
 
-
     mutating func removeAll() {
         fragments = []
     }

@@ -60,6 +60,7 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         super.prepareContent(in: rect)
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
     }
 
     override func setFrameSize(_ newSize: NSSize) {

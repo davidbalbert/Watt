@@ -193,6 +193,7 @@ class LayoutManager {
             return
         }
 
+        // TODO: I think this should maybe start at 1?
         var lineno: Int = 0
         var y: CGFloat = 0
 
@@ -241,6 +242,15 @@ class LayoutManager {
 
             return block(frag)
         }
+    }
+
+    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: Range<String.Index>, with string: NSAttributedString, oldSubstring: Substring, originalLastLineLength: Int) {
+        // invalidate the fragment cache that covers this range
+        fragmentCache.removeAll() // for now, just invalidate everything
+        heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, startIndex: range.lowerBound, originalLastLineLength: originalLastLineLength, using: contentManager)
+
+        let end = contentManager.location(range.lowerBound, offsetBy: string.length)
+        selection = Selection(head: end)
     }
 
     func invalidateLayout() {
@@ -370,9 +380,6 @@ class LayoutManager {
     }
 
     func lineFragment(for location: String.Index, in layoutFragment: LayoutFragment, affinity: Selection.Affinity) -> LineFragment? {
-        guard let contentManager else {
-            return nil
-        }
 
         for f in layoutFragment.lineFragments {
             if location == f.textRange.upperBound && affinity == .upstream {

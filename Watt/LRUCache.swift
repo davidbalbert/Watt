@@ -52,6 +52,14 @@ struct LRUCache<Key, Value> where Key: Hashable {
         }
     }
 
+    mutating func removeAll(where shouldBeRemoved: (Key) -> Bool) {
+        for key in nodes.keys {
+            if shouldBeRemoved(key) {
+                self[key] = nil
+            }
+        }
+    }
+
     mutating func removeAll() {
         nodes.removeAll(keepingCapacity: true)
         head = nil
