@@ -74,6 +74,13 @@ extension TextView: NSTextInputClient {
     func characterIndex(for screenPoint: NSPoint) -> Int {
         NSNotFound
     }
+
+    override func doCommand(by selector: Selector) {
+        print("doCommand(by: #selector(\(selector)))")
+        if responds(to: selector) {
+            perform(selector, with: nil)
+        }
+    }
 }
 
 extension TextView {

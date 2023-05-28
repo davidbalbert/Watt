@@ -8,8 +8,10 @@
 import Cocoa
 
 extension TextView {
-    override func doCommand(by selector: Selector) {
-        print("doCommand(by:)", selector)
-        super.doCommand(by: selector)
+    override func selectAll(_ sender: Any?) {
+        layoutManager.selection = Selection(head: contentManager.documentRange.upperBound, anchor: contentManager.documentRange.lowerBound, affinity: .downstream)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
     }
 }
