@@ -244,6 +244,10 @@ final class ContentManager {
         NSRange(range, in: storage.string)
     }
 
+    func range(from nsRange: NSRange) -> Range<String.Index>? {
+        Range(nsRange, in: storage.string)
+    }
+
     func character(at location: String.Index) -> Character {
         storage.string[location]
     }

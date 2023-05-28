@@ -187,7 +187,7 @@ extension TextView {
             return
         }
 
-        layoutManager.enumerateSelectionSegments(in: rangeInViewport) { frame in
+        layoutManager.enumerateTextSegments(in: rangeInViewport, type: .selection) { _, frame in
             let l = selectionLayerCache[frame] ?? makeSelectionLayer(for: frame)
 
             let position = convertFromTextContainer(frame.origin)

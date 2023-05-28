@@ -25,6 +25,7 @@ struct Selection {
 
     var anchor: String.Index
     var affinity: Affinity
+    var markedRange: Range<String.Index>?
 
     init(head: String.Index, anchor: String.Index? = nil, affinity: Affinity? = nil) {
         self.head = head

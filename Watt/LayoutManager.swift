@@ -9,6 +9,11 @@ import Foundation
 import CoreText
 
 class LayoutManager {
+    enum SegmentType {
+        case standard
+        case selection
+    }
+
     var viewportBounds: CGRect = .zero {
         didSet {
             _viewportRange = nil
@@ -95,7 +100,7 @@ class LayoutManager {
         delegate.layoutManagerDidLayout(self)
     }
 
-    func enumerateSelectionSegments(in range: Range<String.Index>, using block: (CGRect) -> Bool) {
+    func enumerateTextSegments(in range: Range<String.Index>, type: SegmentType, using block: (Range<String.Index>, CGRect) -> Bool) {
         guard let contentManager, let textContainer else {
             return
         }
@@ -113,7 +118,7 @@ class LayoutManager {
 
                 let rangeInLine = range.clamped(to: lineRange)
 
-                if rangeInLine.isEmpty {
+                if rangeInLine.isEmpty && !lineRange.contains(rangeInLine.lowerBound){
                     continue
                 }
 
@@ -122,10 +127,10 @@ class LayoutManager {
 
                 let last = contentManager.location(lineRange.upperBound, offsetBy: -1)
                 let lastChar = contentManager.character(at: last)
-                let shouldExtend = (range.upperBound == lineRange.upperBound && lastChar == "\n") || range.upperBound > lineRange.upperBound
+                let shouldExtendSelection = (range.upperBound == lineRange.upperBound && lastChar == "\n") || range.upperBound > lineRange.upperBound
 
                 let xEnd: CGFloat
-                if shouldExtend {
+                if type == .selection && shouldExtendSelection {
                     xEnd = textContainer.lineWidth
                 } else {
                     let end = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.upperBound)
@@ -141,7 +146,7 @@ class LayoutManager {
                 // in layout fragment coordinates
                 let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
 
-                if !block(convert(rect, from: layoutFragment)) {
+                if !block(rangeInLine, convert(rect, from: layoutFragment)) {
                     return false
                 }
 
