@@ -173,6 +173,8 @@ struct HeightEstimates {
         var currentStart = ranges[startLineIndex].lowerBound
         var currentY = ys[startLineIndex]
 
+        let heightToRemove = heights[startLineIndex..<startLineIndex+oldLineCount].reduce(0, +)
+
         // Adjust the arrays to remove the old lines
         heights.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
         ys.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
@@ -209,7 +211,7 @@ struct HeightEstimates {
         ranges.insert(contentsOf: newRanges, at: startLineIndex)
 
         // Compute the y offset change and adjust the y offsets for the following lines
-        let deltaY = CGFloat(newLineCount - oldLineCount) * 14
+        let deltaY = CGFloat(newLineCount)*14 - heightToRemove
         if deltaY != 0 {
             for i in startLineIndex+newLineCount..<ys.count {
                 ys[i] += deltaY
