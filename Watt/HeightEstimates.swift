@@ -8,14 +8,16 @@
 import Foundation
 
 struct HeightEstimates {
-    // assume heights, ys, and ranges are all the same length
+    // assume heights, ys, lengths, and ranges are all the same length
     var heights: [CGFloat]
     var ys: [CGFloat]
+    var lengths: [Int] // in Characters
     var ranges: [Range<String.Index>]
 
     init(contentManager: ContentManager?) {
         heights = []
         ys = []
+        lengths = []
         ranges = []
 
         guard let contentManager else {
@@ -35,6 +37,7 @@ struct HeightEstimates {
 
             heights.append(h)
             ys.append(y)
+            lengths.append(contentManager.offset(from: range.lowerBound, to: range.upperBound))
             ranges.append(range)
 
             y += h
@@ -178,11 +181,13 @@ struct HeightEstimates {
         // Adjust the arrays to remove the old lines
         heights.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
         ys.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
+        lengths.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
         ranges.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
 
         // Calculate the height and y-offset for the new lines
         let newHeights = Array(repeating: CGFloat(14), count: newLineCount)
         var newYs: [CGFloat] = []
+        var newLengths: [Int] = []
         var newRanges: [Range<String.Index>] = []
 
         for (i, line) in newLines.enumerated() {
@@ -191,16 +196,18 @@ struct HeightEstimates {
             if i < newLines.count - 1 {
                 // account for newline
                 endOfRange = contentManager.location(currentStart, offsetBy: lineLength + 1)
+                newLengths.append(lineLength+1)
             } else {
                 // last line, no newline
                 // We need to account for the remaining part of the line in the original string that comes after the old substring.
                 // This is the length of the line in the original string that comes after the replaced part.
                 let remainingLength = originalLastLineLength - oldLines.last!.count
                 endOfRange = contentManager.location(currentStart, offsetBy: lineLength + remainingLength)
+                newLengths.append(lineLength + remainingLength)
             }
 
-            newRanges.append(currentStart..<endOfRange)
             newYs.append(currentY)
+            newRanges.append(currentStart..<endOfRange)
             currentStart = endOfRange
             currentY += 14
         }
@@ -208,6 +215,7 @@ struct HeightEstimates {
         // Insert the new lines into the arrays
         heights.insert(contentsOf: newHeights, at: startLineIndex)
         ys.insert(contentsOf: newYs, at: startLineIndex)
+        lengths.insert(contentsOf: newLengths, at: startLineIndex)
         ranges.insert(contentsOf: newRanges, at: startLineIndex)
 
         // Compute the y offset change and adjust the y offsets for the following lines
@@ -219,16 +227,18 @@ struct HeightEstimates {
         }
 
         // Compute the range change and adjust the ranges for the following lines
-        let lengthDelta = newSubstring.count - oldSubstring.count
+        var newStart = ranges[startLineIndex].upperBound
         for i in startLineIndex+newLineCount..<ranges.count {
-            let newStart = contentManager.location(ranges[i].lowerBound, offsetBy: lengthDelta)
+            let length = lengths[i]
+
             let newEnd: String.Index
             if i == ranges.count - 1 { // if this is the last line
                 newEnd = contentManager.storage.string.endIndex
             } else {
-                newEnd = contentManager.location(ranges[i].upperBound, offsetBy: lengthDelta)
+                newEnd = contentManager.location(newStart, offsetBy: length)
             }
             ranges[i] = newStart..<newEnd
+            newStart = newEnd
         }
     }
 }
