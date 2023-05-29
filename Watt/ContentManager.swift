@@ -185,16 +185,6 @@ final class ContentManager {
             return
         }
 
-        var adjustedLowerBound: String.Index?
-        enumerateLineRanges(from: range.lowerBound) { lineRange in
-            adjustedLowerBound = lineRange.lowerBound
-            return false
-        }
-
-        guard let adjustedLowerBound else {
-            return
-        }
-
         let lastLineInRange: Substring
         if let lastLineEnd = storage.string[..<range.upperBound].lastIndex(of: "\n") {
             let start = storage.string.index(after: lastLineEnd)
@@ -214,8 +204,19 @@ final class ContentManager {
         // Right now, the strings of many of all the elements following the one
         // we're editing are still valid, but their ranges are not.
         //
-        // The bottom one doesn't work, because we would like to update all
+        // The top one doesn't work, because we would like to update all
         // the ranges in the cache.
+        //
+        //        var adjustedLowerBound: String.Index?
+        //        enumerateLineRanges(from: range.lowerBound) { lineRange in
+        //            adjustedLowerBound = lineRange.lowerBound
+        //            return false
+        //        }
+        //
+        //        guard let adjustedLowerBound else {
+        //            return
+        //        }
+        //
         //        let adjustedRange = adjustedLowerBound..<range.upperBound
         //        elementCache.removeAll { key in
         //            adjustedRange.contains(key)
@@ -234,6 +235,10 @@ final class ContentManager {
 
     func location(_ location: String.Index, offsetBy offset: Int) -> String.Index {
         storage.string.index(location, offsetBy: offset)
+    }
+
+    func location(_ location: String.Index, offsetByUTF16 offset: Int) -> String.Index {
+        storage.string.utf16.index(location, offsetBy: offset)
     }
 
     func offset(from: String.Index, to: String.Index) -> Int {

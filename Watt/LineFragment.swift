@@ -15,7 +15,7 @@ struct LineFragment {
     let position: CGPoint
     let typographicBounds: CGRect
     let textRange: Range<String.Index>
-    let characterOffset: Int
+    let utf16CharacterOffsetInLayoutFragment: Int
 
     var frame: CGRect {
         CGRect(origin: position, size: typographicBounds.size)
@@ -33,11 +33,5 @@ struct LineFragment {
 
         CTLineDraw(line, ctx)
         ctx.restoreGState()
-    }
-
-    // The range of the string in the line. Always starts at 0
-    var characterRange: NSRange {
-        let range = CTLineGetStringRange(line)
-        return NSRange(location: 0, length: range.length)
     }
 }

@@ -254,7 +254,7 @@ class LayoutManager {
         fragmentCache.removeAll() // for now, just invalidate everything
         heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, startIndex: range.lowerBound, originalLastLineLength: originalLastLineLength, using: contentManager)
 
-        let end = contentManager.location(range.lowerBound, offsetBy: string.length)
+        let end = contentManager.location(range.lowerBound, offsetByUTF16: string.length)
         selection = Selection(head: end)
     }
 
@@ -309,15 +309,16 @@ class LayoutManager {
             y: pointInLineFragment.y
         )
 
-        let range = CTLineGetStringRange(lineFragment.line)
-        var offset = CTLineGetStringIndexForPosition(lineFragment.line, adjusted)
-
-        if offset == kCFNotFound {
+        let offsetInLayoutFragment = CTLineGetStringIndexForPosition(lineFragment.line, adjusted)
+        if offsetInLayoutFragment == kCFNotFound {
             return nil
         }
 
+        let offsetInLineFragment = offsetInLayoutFragment - lineFragment.utf16CharacterOffsetInLayoutFragment
+        var location = contentManager.location(lineFragment.textRange.lowerBound, offsetByUTF16: offsetInLineFragment)
+
         let affinity: Selection.Affinity
-        if offset == range.location+range.length {
+        if location == lineFragment.textRange.upperBound {
             affinity = .upstream
         } else {
             affinity = .downstream
@@ -326,11 +327,9 @@ class LayoutManager {
         let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
         let lastChar = contentManager.character(at: lastIdx)
 
-        if offset == range.location+range.length && lastChar == "\n" {
-            offset -= 1
+        if location == lineFragment.textRange.upperBound && lastChar == "\n" {
+            location = contentManager.location(location, offsetBy: -1)
         }
-
-        let location = contentManager.location(layoutFragment.textRange.lowerBound, offsetBy: offset)
 
         return (location, affinity)
     }
@@ -356,9 +355,9 @@ class LayoutManager {
                 return
             }
 
-            let charIndex = charIndex - lineFragment.characterOffset
+            let charIndex = charIndex - lineFragment.utf16CharacterOffsetInLayoutFragment
 
-            loc = contentManager.location(loc, offsetBy: charIndex - prevCharIndex)
+            loc = contentManager.location(loc, offsetByUTF16: charIndex - prevCharIndex)
             prevCharIndex = charIndex
 
             let lineOrigin = CGPoint(x: caretOffset, y: 0)
@@ -447,9 +446,9 @@ class LayoutManager {
             let p = CGPoint(x: 0, y: height)
             let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
 
-            let nextIndex = contentManager.location(startIndex, offsetBy: next - i)
+            let nextIndex = contentManager.location(startIndex, offsetByUTF16: next - i)
 
-            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, textRange: startIndex..<nextIndex, characterOffset: i)
+            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, textRange: startIndex..<nextIndex, utf16CharacterOffsetInLayoutFragment: i)
             layoutFragment.lineFragments.append(lineFragment)
 
             i = next
@@ -486,6 +485,6 @@ class LayoutManager {
     }
 
     func locationForCharacter(atOffset offset: Int, in lineFragment: LineFragment) -> CGPoint {
-        CGPoint(x: CTLineGetOffsetForStringIndex(lineFragment.line, offset + lineFragment.characterOffset, nil), y: 0)
+        CGPoint(x: CTLineGetOffsetForStringIndex(lineFragment.line, offset + lineFragment.utf16CharacterOffsetInLayoutFragment, nil), y: 0)
     }
 }
