@@ -127,7 +127,7 @@ struct HeightEstimates {
         let maxY = ys[i] + heights[i]
 
         // position.y is already >= ys[i]
-        if point.y < maxY {
+        if point.y < maxY || (i == ranges.count - 1 && point.y <= maxY) {
             return ranges[i]
         } else {
             return nil

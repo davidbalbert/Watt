@@ -238,7 +238,7 @@ extension TextView {
             return
         }
 
-        guard viewportRange.contains(selection.range.lowerBound) else {
+        guard viewportRange.contains(selection.range.lowerBound) || viewportRange.upperBound == selection.range.upperBound else {
             return
         }
 
