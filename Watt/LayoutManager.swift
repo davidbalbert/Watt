@@ -279,6 +279,11 @@ class LayoutManager {
             return nil
         }
 
+        // If we click past the end of the document, select the last character
+        if point.y > documentHeight {
+            return (contentManager.documentRange.upperBound, .upstream)
+        }
+
         guard let layoutFragment = layoutFragment(for: point) else {
             return nil
         }
