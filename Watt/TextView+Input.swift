@@ -29,7 +29,7 @@ extension TextView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
-        let string = attributedString(anyString: string)
+        let string = attributedString(anyString: string, attributes: markedTextAttributes)
 
         guard let range = getReplacementRange(for: replacementRange) else {
             return
@@ -39,13 +39,17 @@ extension TextView: NSTextInputClient {
             contentManager.replaceCharacters(in: range, with: string)
         }
 
-        if string.length == 0 {
-            unmarkText()
-        }
-
         let anchor = contentManager.location(contentManager.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
         let head = contentManager.location(anchor, offsetBy: selectedRange.length)
         layoutManager.selection = Selection(head: head, anchor: anchor)
+
+        if string.length == 0 {
+            unmarkText()
+        } else {
+            let start = contentManager.location(contentManager.documentRange.lowerBound, offsetBy: range.location)
+            let end = contentManager.location(start, offsetBy: string.length)
+            layoutManager.selection?.markedRange = start..<end
+        }
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
@@ -146,9 +150,10 @@ extension TextView: NSTextInputClient {
 }
 
 extension TextView {
-    private func attributedString(anyString: Any) -> NSAttributedString {
+    private func attributedString(anyString: Any, attributes: [NSAttributedString.Key: Any] = [:]) -> NSAttributedString {
         if let string = anyString as? String {
-            return NSAttributedString(string: string, attributes: [.font: font])
+            let merged = attributes.merging([.font: font]) { k1, _ in k1 }
+            return NSAttributedString(string: string, attributes: merged)
         } else {
             return anyString as! NSAttributedString
         }
@@ -166,5 +171,11 @@ extension TextView {
         let range = selection.markedRange ?? selection.range
 
         return contentManager.nsRange(from: range)
+    }
+
+    var markedTextAttributes: [NSAttributedString.Key : Any] {
+        [
+            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
+        ]
     }
 }
