@@ -103,7 +103,7 @@ extension TextView: NSTextInputClient {
             return .zero
         }
 
-        var rect: NSRect = .zero
+        var rect: CGRect = .zero
         layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
             rect = frame
 
