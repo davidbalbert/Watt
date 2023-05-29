@@ -100,6 +100,14 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     func convertToTextContainer(_ point: CGPoint) -> CGPoint {
         CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
     }
+
+    func convertFromTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertFromTextContainer(rect.origin), size: rect.size)
+    }
+
+    func convertToTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
+    }
 }
 
 // MARK: - Text layout

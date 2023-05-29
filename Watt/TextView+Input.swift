@@ -114,7 +114,8 @@ extension TextView: NSTextInputClient {
             return false
         }
 
-        let windowRect = convert(rect, to: nil)
+        let viewRect = convertFromTextContainer(rect)
+        let windowRect = convert(viewRect, to: nil)
         let screenRect = window?.convertToScreen(windowRect) ?? .zero
 
         return screenRect
