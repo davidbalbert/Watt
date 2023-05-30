@@ -249,10 +249,10 @@ class LayoutManager {
         }
     }
 
-    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: Range<String.Index>, with string: NSAttributedString, oldSubstring: Substring, originalLastLineLength: Int) {
+    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: ClosedRange<String.Index>, with string: NSAttributedString, oldSubstring: Substring) {
         // invalidate the fragment cache that covers this range
         fragmentCache.removeAll() // for now, just invalidate everything
-        heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, startIndex: range.lowerBound, originalLastLineLength: originalLastLineLength, using: contentManager)
+        heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, in: range, using: contentManager)
 
         let end = contentManager.location(range.lowerBound, offsetByUTF16: string.length)
         selection = Selection(head: end)
@@ -322,7 +322,7 @@ class LayoutManager {
 
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
-        //      far right you go, you will always be before the newline, until
+        //      far right you go, you will always be before the newline until
         //      you move down to the next line.
         //   2. The first location in a line fragment is always downstream.
         //      No exceptions.

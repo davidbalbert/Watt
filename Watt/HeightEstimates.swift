@@ -157,11 +157,11 @@ struct HeightEstimates {
     mutating func updateEstimatesByReplacingLinesIn(
         oldSubstring: Substring,
         with newSubstring: String,
-        startIndex: String.Index,
-        originalLastLineLength: Int,
+        in closedRange: ClosedRange<String.Index>,
         using contentManager: ContentManager
     ) {
-        guard let startLineIndex = lineIndex(containing: startIndex) else {
+        guard let startLineIndex = lineIndex(containing: closedRange.lowerBound),
+              let endLineIndex = lineIndex(containing: closedRange.upperBound) else {
             return
         }
 
@@ -177,6 +177,9 @@ struct HeightEstimates {
         var currentY = ys[startLineIndex]
 
         let heightToRemove = heights[startLineIndex..<startLineIndex+oldLineCount].reduce(0, +)
+
+        let originalFirstLineLength = lengths[startLineIndex]
+        let originalLastLineLength = lengths[endLineIndex]
 
         // Adjust the arrays to remove the old lines
         heights.removeSubrange(startLineIndex..<startLineIndex+oldLineCount)
@@ -194,16 +197,26 @@ struct HeightEstimates {
             let lineLength = line.count
             let endOfRange: String.Index
             if i < newLines.count - 1 {
-                // account for newline
-                endOfRange = contentManager.location(currentStart, offsetBy: lineLength + 1)
-                newLengths.append(lineLength+1)
+                // add 1 to account for newline
+                let length = lineLength + 1
+
+                endOfRange = contentManager.location(currentStart, offsetBy: length)
+                newLengths.append(length)
             } else {
                 // last line, no newline
                 // We need to account for the remaining part of the line in the original string that comes after the old substring.
                 // This is the length of the line in the original string that comes after the replaced part.
-                let remainingLength = originalLastLineLength - oldLines.last!.count
-                endOfRange = contentManager.location(currentStart, offsetBy: lineLength + remainingLength)
-                newLengths.append(lineLength + remainingLength)
+                var remainingLength = originalLastLineLength - oldLines.last!.count
+
+                if i == 0 && oldLines.count > 1 {
+                    // add 1 to oldLines.first!.count to account for the deleted trailing newline
+                    remainingLength += originalFirstLineLength - (oldLines.first!.count + 1)
+                }
+
+                let length = lineLength + remainingLength
+                
+                endOfRange = contentManager.location(currentStart, offsetBy: length)
+                newLengths.append(length)
             }
 
             newYs.append(currentY)

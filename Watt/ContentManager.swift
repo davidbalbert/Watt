@@ -185,17 +185,7 @@ final class ContentManager {
             return
         }
 
-        let lastLineInRange: Substring
-        if let lastLineEnd = storage.string[..<range.upperBound].lastIndex(of: "\n") {
-            let start = storage.string.index(after: lastLineEnd)
-            let end = storage.string[start...].firstIndex(of: "\n") ?? storage.string.index(before: storage.string.endIndex)
-
-            lastLineInRange = storage.string[start...end]
-        } else {
-            let end = storage.string.firstIndex(of: "\n") ?? storage.string.index(before: storage.string.endIndex)
-            lastLineInRange = storage.string[...end]
-        }
-
+        let closedRange = range.lowerBound...storage.string.index(before: range.upperBound)
         let oldSubstring = storage.string[range]
 
         storage.replaceCharacters(in: nsRange, with: string)
@@ -225,7 +215,7 @@ final class ContentManager {
         elementCache.removeAll()
 
         for layoutManager in layoutManagers {
-            layoutManager.contentManagerDidReplaceCharacters(self, in: range, with: string, oldSubstring: oldSubstring, originalLastLineLength: lastLineInRange.count)
+            layoutManager.contentManagerDidReplaceCharacters(self, in: closedRange, with: string, oldSubstring: oldSubstring)
         }
     }
 
