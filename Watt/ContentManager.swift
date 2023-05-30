@@ -185,7 +185,6 @@ final class ContentManager {
             return
         }
 
-        let closedRange = range.lowerBound...storage.string.index(before: range.upperBound)
         let oldSubstring = storage.string[range]
 
         storage.replaceCharacters(in: nsRange, with: string)
@@ -215,7 +214,7 @@ final class ContentManager {
         elementCache.removeAll()
 
         for layoutManager in layoutManagers {
-            layoutManager.contentManagerDidReplaceCharacters(self, in: closedRange, with: string, oldSubstring: oldSubstring)
+            layoutManager.contentManagerDidReplaceCharacters(self, in: range, with: string, oldSubstring: oldSubstring)
         }
     }
 

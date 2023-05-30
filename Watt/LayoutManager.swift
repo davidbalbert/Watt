@@ -249,7 +249,7 @@ class LayoutManager {
         }
     }
 
-    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: ClosedRange<String.Index>, with string: NSAttributedString, oldSubstring: Substring) {
+    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: Range<String.Index>, with string: NSAttributedString, oldSubstring: Substring) {
         // invalidate the fragment cache that covers this range
         fragmentCache.removeAll() // for now, just invalidate everything
         heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, in: range, using: contentManager)

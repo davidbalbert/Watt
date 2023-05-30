@@ -157,12 +157,24 @@ struct HeightEstimates {
     mutating func updateEstimatesByReplacingLinesIn(
         oldSubstring: Substring,
         with newSubstring: String,
-        in closedRange: ClosedRange<String.Index>,
+        in range: Range<String.Index>,
         using contentManager: ContentManager
     ) {
-        guard let startLineIndex = lineIndex(containing: closedRange.lowerBound),
-              let endLineIndex = lineIndex(containing: closedRange.upperBound) else {
+        guard let startLineIndex = lineIndex(containing: range.lowerBound) else {
             return
+        }
+
+        let endLineIndex: Int
+        if range.isEmpty {
+            endLineIndex = startLineIndex
+        } else {
+            let end = contentManager.location(range.upperBound, offsetBy: -1)
+
+            guard let i = lineIndex(containing: end) else {
+                return
+            }
+
+            endLineIndex = i
         }
 
         // Calculate the number of lines in the old substring

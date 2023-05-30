@@ -150,9 +150,13 @@ extension TextView: NSTextInputClient {
 }
 
 extension TextView {
+    var typingAttributes: [NSAttributedString.Key: Any] {
+        [.font: font]
+    }
+
     private func attributedString(anyString: Any, attributes: [NSAttributedString.Key: Any] = [:]) -> NSAttributedString {
         if let string = anyString as? String {
-            let merged = attributes.merging([.font: font]) { k1, _ in k1 }
+            let merged = attributes.merging(typingAttributes) { k1, _ in k1 }
             return NSAttributedString(string: string, attributes: merged)
         } else {
             return anyString as! NSAttributedString
