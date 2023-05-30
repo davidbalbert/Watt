@@ -317,18 +317,31 @@ class LayoutManager {
         let offsetInLineFragment = offsetInLayoutFragment - lineFragment.utf16CharacterOffsetInLayoutFragment
         var location = contentManager.location(lineFragment.textRange.lowerBound, offsetByUTF16: offsetInLineFragment)
 
-        let affinity: Selection.Affinity
-        if location == lineFragment.textRange.upperBound {
-            affinity = .upstream
-        } else {
-            affinity = .downstream
-        }
-
         let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
         let lastChar = contentManager.character(at: lastIdx)
 
+        // Rules:
+        //   1. You cannot click to the right of a "\n". No matter how far
+        //      far right you go, you will always be before the newline, until
+        //      you move down to the next line.
+        //   2. The first location in a line fragment is always downstream.
+        //      No exceptions.
+        //   3. The last location in a line fragment is upstream, unless the
+        //      line is empty (i.e. unless the text element is "\n").
+        //   4. All other locations are downstream.
+
+        let atEnd = location == lastIdx
+        let afterEnd = location == lineFragment.textRange.upperBound
+
         if location == lineFragment.textRange.upperBound && lastChar == "\n" {
             location = contentManager.location(location, offsetBy: -1)
+        }
+
+        let affinity: Selection.Affinity
+        if location != lineFragment.textRange.lowerBound && (afterEnd || (lastChar == "\n" && atEnd)) {
+            affinity = .upstream
+        } else {
+            affinity = .downstream
         }
 
         return (location, affinity)
