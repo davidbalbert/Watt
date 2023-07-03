@@ -35,19 +35,11 @@ class Document: NSDocument {
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        guard let data = contentManager.data(using: .utf8) else {
-            throw DocumentError.save
-        }
-
-        return data
+        contentManager.data
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        guard let text = String(bytes: data, encoding: .utf8) else {
-            throw DocumentError.load
-        }
-
-        self.contentManager = ContentManager(text)
+        contentManager = ContentManager(String(decoding: data, as: UTF8.self))
     }
 }
 

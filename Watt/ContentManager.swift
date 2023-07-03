@@ -218,8 +218,8 @@ final class ContentManager {
         }
     }
 
-    func data(using encoding: String.Encoding) -> Data? {
-        storage.string.data(using: encoding)
+    var data: Data {
+        Data(storage.string.utf8)
     }
 
     func location(_ location: String.Index, offsetBy offset: Int) -> String.Index {
