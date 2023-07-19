@@ -28,6 +28,7 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             layer.addSublayer(insertionPointLayer)
         }
 
+        // TODO: maybe move before the guard at the top?
         super.layout()
     }
 
