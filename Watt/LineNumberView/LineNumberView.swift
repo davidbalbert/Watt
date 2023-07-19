@@ -60,6 +60,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
         return size
     }
 
+    // TODO: AppKit may already be caching intrinsicContentSize. See if we can put this right in the definition of intrinsicContentSize and see if it gets called more often. If it doesn't, get rid of our own caching behavior.
     func calculateIntrinsicContentSize() -> NSSize {
         guard let delegate else {
             return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
