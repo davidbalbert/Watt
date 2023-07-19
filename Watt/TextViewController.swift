@@ -8,10 +8,10 @@
 import Cocoa
 
 class TextViewController: NSViewController {
-    var contentManager: ContentManager
+    var buffer: Buffer
 
-    init(_ textContent: ContentManager) {
-        self.contentManager = textContent
+    init(_ buffer: Buffer) {
+        self.buffer = buffer
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -22,7 +22,7 @@ class TextViewController: NSViewController {
     override func loadView() {
         let scrollView = TextView.scrollableTextView()
         let textView = scrollView.documentView as! TextView
-        textView.contentManager = contentManager
+        textView.buffer = buffer
 
         view = scrollView
     }

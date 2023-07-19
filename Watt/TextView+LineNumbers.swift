@@ -7,7 +7,7 @@
 
 import Cocoa
 
-extension TextView: LineNumberViewDelegate {
+extension TextView {
     func addLineNumberView() {
         guard let scrollView else {
             return
@@ -20,18 +20,22 @@ extension TextView: LineNumberViewDelegate {
             lineNumberView.leadingAnchor.constraint(equalTo: leadingAnchor),
             lineNumberView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
+
+        updateTextContainerSizeIfNeeded()
     }
 
     func removeLineNumberView() {
         lineNumberView.removeFromSuperview()
+        updateTextContainerSizeIfNeeded()
     }
 
-    func lineNumberViewFrameDidChange(_ notification: NSNotification) {
-        updateTextContainerSizeIfNecessary()
-        needsLayout = true
-    }
+    @objc func lineNumberViewFrameDidChange(_ notification: NSNotification) {
+        if lineNumberView.superview == nil {
+            // we don't care about frame changes unless the line number
+            // view is actually showing.
+            return
+        }
 
-    func lineCount(for lineNumberView: LineNumberView) -> Int {
-        layoutManager.lineCount
+        updateTextContainerSizeIfNeeded()
     }
 }

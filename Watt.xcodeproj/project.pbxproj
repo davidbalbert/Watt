@@ -18,24 +18,18 @@
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
 		637867712A17F7460039960E /* TextView+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867702A17F7460039960E /* TextView+Selection.swift */; };
 		637867732A1BD1E10039960E /* TextView+Events.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867722A1BD1E10039960E /* TextView+Events.swift */; };
-		637867792A1BDC4C0039960E /* LayoutFragmentLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */; };
 		6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677A2A1BDF870039960E /* SelectionLayer.swift */; };
 		6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */; };
-		6378677F2A1BE7540039960E /* TextView+TextInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378677E2A1BE7540039960E /* TextView+TextInput.swift */; };
 		637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867802A1BEA960039960E /* InsertionPointLayer.swift */; };
 		637867832A1EC5B50039960E /* TextView+Input.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867822A1EC5B50039960E /* TextView+Input.swift */; };
 		637867852A1EC6BB0039960E /* TextView+Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867842A1EC6BB0039960E /* TextView+Actions.swift */; };
 		637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867862A1FB2C50039960E /* NSRange+Extensions.swift */; };
 		637867902A214F950039960E /* HeightEstimatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378678E2A214EE80039960E /* HeightEstimatesTests.swift */; };
-		637BC1302A1400C60089A34D /* ContentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC12F2A1400C60089A34D /* ContentManager.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
 		637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1432A156B820089A34D /* CGPoint+Extensions.swift */; };
 		637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */; };
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
-		63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */; };
-		63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */; };
-		63A618702A0E94F900E70B0E /* FragmentCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A6186F2A0E94F900E70B0E /* FragmentCache.swift */; };
 		63A618722A0EAF2000E70B0E /* WeakDictionary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618712A0EAF2000E70B0E /* WeakDictionary.swift */; };
 		63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618732A0EC37700E70B0E /* LineNumberView.swift */; };
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
@@ -44,14 +38,14 @@
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
 		63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */; };
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
-		63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2129FDB09600787BB9 /* LayoutFragment.swift */; };
-		63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A2329FDB63F00787BB9 /* TextElement.swift */; };
-		63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DB4F3D2A00763300B97B39 /* LineFragment.swift */; };
-		63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */; };
-		63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EDFA232A0FF04500220860 /* LRUCache.swift */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
 		63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468E2A65D417001B8DA8 /* RopeTests.swift */; };
+		63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BD82A683CC500DEACCF /* Buffer.swift */; };
+		63F25BDB2A68409700DEACCF /* LLDBInitFile in Resources */ = {isa = PBXBuildFile; fileRef = 63F25BDA2A68409700DEACCF /* LLDBInitFile */; };
+		63F25BE12A689D2400DEACCF /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE02A689D2400DEACCF /* Line.swift */; };
+		63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE22A689EA700DEACCF /* LineLayer.swift */; };
+		63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE42A68A27600DEACCF /* LineFragment.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,24 +85,18 @@
 		637288BC29FD9084005B95E5 /* Developer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Developer.xcconfig; sourceTree = "<group>"; };
 		637867702A17F7460039960E /* TextView+Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Selection.swift"; sourceTree = "<group>"; };
 		637867722A1BD1E10039960E /* TextView+Events.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Events.swift"; sourceTree = "<group>"; };
-		637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragmentLayer.swift; sourceTree = "<group>"; };
 		6378677A2A1BDF870039960E /* SelectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionLayer.swift; sourceTree = "<group>"; };
 		6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberLayer.swift; sourceTree = "<group>"; };
-		6378677E2A1BE7540039960E /* TextView+TextInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+TextInput.swift"; sourceTree = "<group>"; };
 		637867802A1BEA960039960E /* InsertionPointLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionPointLayer.swift; sourceTree = "<group>"; };
 		637867822A1EC5B50039960E /* TextView+Input.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Input.swift"; sourceTree = "<group>"; };
 		637867842A1EC6BB0039960E /* TextView+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Actions.swift"; sourceTree = "<group>"; };
 		637867862A1FB2C50039960E /* NSRange+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSRange+Extensions.swift"; sourceTree = "<group>"; };
 		6378678E2A214EE80039960E /* HeightEstimatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimatesTests.swift; sourceTree = "<group>"; };
-		637BC12F2A1400C60089A34D /* ContentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentManager.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
-		63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimates.swift; sourceTree = "<group>"; };
-		63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerDelegate.swift; sourceTree = "<group>"; };
-		63A6186F2A0E94F900E70B0E /* FragmentCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FragmentCache.swift; sourceTree = "<group>"; };
 		63A618712A0EAF2000E70B0E /* WeakDictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeakDictionary.swift; sourceTree = "<group>"; };
 		63A618732A0EC37700E70B0E /* LineNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberView.swift; sourceTree = "<group>"; };
 		63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+LineNumbers.swift"; sourceTree = "<group>"; };
@@ -117,14 +105,14 @@
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
 		63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
-		63B61A2129FDB09600787BB9 /* LayoutFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFragment.swift; sourceTree = "<group>"; };
-		63B61A2329FDB63F00787BB9 /* TextElement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextElement.swift; sourceTree = "<group>"; };
-		63DB4F3D2A00763300B97B39 /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
-		63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberViewDelegate.swift; sourceTree = "<group>"; };
-		63EDFA232A0FF04500220860 /* LRUCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRUCache.swift; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
 		63F0468E2A65D417001B8DA8 /* RopeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RopeTests.swift; sourceTree = "<group>"; };
+		63F25BD82A683CC500DEACCF /* Buffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buffer.swift; sourceTree = "<group>"; };
+		63F25BDA2A68409700DEACCF /* LLDBInitFile */ = {isa = PBXFileReference; lastKnownFileType = text; path = LLDBInitFile; sourceTree = "<group>"; };
+		63F25BE02A689D2400DEACCF /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
+		63F25BE22A689EA700DEACCF /* LineLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineLayer.swift; sourceTree = "<group>"; };
+		63F25BE42A68A27600DEACCF /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,13 +143,16 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
-				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
+				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
+				63F25BE02A689D2400DEACCF /* Line.swift */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
+				63F25BDA2A68409700DEACCF /* LLDBInitFile */,
 				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
+				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
+				6372888929FD8E19005B95E5 /* Products */,
 				6372888A29FD8E19005B95E5 /* Watt */,
 				637288A029FD8E1A005B95E5 /* WattTests */,
 				637288AA29FD8E1A005B95E5 /* WattUITests */,
-				6372888929FD8E19005B95E5 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -178,31 +169,24 @@
 		6372888A29FD8E19005B95E5 /* Watt */ = {
 			isa = PBXGroup;
 			children = (
+				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
 				63F046892A65D3EA001B8DA8 /* BTree.swift */,
+				63F25BD82A683CC500DEACCF /* Buffer.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
-				637BC12F2A1400C60089A34D /* ContentManager.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
-				63A6186F2A0E94F900E70B0E /* FragmentCache.swift */,
-				63A618652A0D3B9D00E70B0E /* HeightEstimates.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
-				63B61A2129FDB09600787BB9 /* LayoutFragment.swift */,
-				637867782A1BDC4C0039960E /* LayoutFragmentLayer.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
-				63A618672A0D657A00E70B0E /* LayoutManagerDelegate.swift */,
-				63DB4F3D2A00763300B97B39 /* LineFragment.swift */,
-				63EDFA232A0FF04500220860 /* LRUCache.swift */,
 				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
 				63F0468B2A65D3F8001B8DA8 /* Rope.swift */,
 				637BC1312A151F5F0089A34D /* Selection.swift */,
 				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
 				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
-				63B61A2329FDB63F00787BB9 /* TextElement.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				637867842A1EC6BB0039960E /* TextView+Actions.swift */,
 				637867722A1BD1E10039960E /* TextView+Events.swift */,
@@ -210,7 +194,6 @@
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
-				6378677E2A1BE7540039960E /* TextView+TextInput.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				63A618712A0EAF2000E70B0E /* WeakDictionary.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
@@ -246,7 +229,6 @@
 			children = (
 				6378677C2A1BE3FE0039960E /* LineNumberLayer.swift */,
 				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
-				63EDFA212A0FE44F00220860 /* LineNumberViewDelegate.swift */,
 			);
 			path = LineNumberView;
 			sourceTree = "<group>";
@@ -357,6 +339,7 @@
 			files = (
 				6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */,
 				6372889629FD8E1A005B95E5 /* MainMenu.xib in Resources */,
+				63F25BDB2A68409700DEACCF /* LLDBInitFile in Resources */,
 				63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -384,11 +367,10 @@
 			files = (
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
-				63A618662A0D3B9D00E70B0E /* HeightEstimates.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
-				63B61A2429FDB63F00787BB9 /* TextElement.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
 				6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */,
+				63F25BE12A689D2400DEACCF /* Line.swift in Sources */,
 				637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */,
 				637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */,
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
@@ -398,27 +380,21 @@
 				63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Events.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
-				63A618702A0E94F900E70B0E /* FragmentCache.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* WeakDictionary.swift in Sources */,
 				6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */,
 				63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */,
 				6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */,
 				63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */,
-				6378677F2A1BE7540039960E /* TextView+TextInput.swift in Sources */,
-				63DB4F3E2A00763300B97B39 /* LineFragment.swift in Sources */,
-				63EDFA222A0FE44F00220860 /* LineNumberViewDelegate.swift in Sources */,
-				63B61A2229FDB09600787BB9 /* LayoutFragment.swift in Sources */,
 				637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */,
+				63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */,
+				63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
+				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
-				637BC1302A1400C60089A34D /* ContentManager.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+Actions.swift in Sources */,
-				63EDFA242A0FF04500220860 /* LRUCache.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
 				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
-				637867792A1BDC4C0039960E /* LayoutFragmentLayer.swift in Sources */,
-				63A618682A0D657A00E70B0E /* LayoutManagerDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

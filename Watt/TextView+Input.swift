@@ -15,9 +15,9 @@ extension TextView: NSTextInputClient {
             return
         }
 
-        contentManager.performEditingTransaction {
-            contentManager.replaceCharacters(in: range, with: string)
-        }
+//        buffer.performEditingTransaction {
+//            buffer.replaceCharacters(in: range, with: string)
+//        }
 
         updateInsertionPointTimer()
         unmarkText()
@@ -35,20 +35,20 @@ extension TextView: NSTextInputClient {
             return
         }
 
-        contentManager.performEditingTransaction {
-            contentManager.replaceCharacters(in: range, with: string)
-        }
-
-        let anchor = contentManager.location(contentManager.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
-        let head = contentManager.location(anchor, offsetBy: selectedRange.length)
+//        buffer.performEditingTransaction {
+//            buffer.replaceCharacters(in: range, with: string)
+//        }
+//
+        let anchor = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
+        let head = buffer.index(anchor, offsetBy: selectedRange.length)
         layoutManager.selection = Selection(head: head, anchor: anchor)
 
         if string.length == 0 {
             unmarkText()
         } else {
-            let start = contentManager.location(contentManager.documentRange.lowerBound, offsetBy: range.location)
-            let end = contentManager.location(start, offsetBy: string.length)
-            layoutManager.selection?.markedRange = start..<end
+            let start = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location)
+            let end = buffer.index(start, offsetBy: string.length)
+            layoutManager.selection.markedRange = start..<end
         }
 
         updateInsertionPointTimer()
@@ -60,39 +60,41 @@ extension TextView: NSTextInputClient {
     }
 
     func unmarkText() {
-        layoutManager.selection?.markedRange = nil
-
+        layoutManager.selection.markedRange = nil
+        
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
     }
 
     func selectedRange() -> NSRange {
-        if let range = layoutManager.selection?.range {
-            return contentManager.nsRange(from: range)
-        } else {
-            return .notFound
-        }
+        return NSRange(layoutManager.selection.range, in: buffer)
     }
 
     func markedRange() -> NSRange {
-        guard let markedRange = layoutManager.selection?.markedRange else {
+        guard let markedRange = layoutManager.selection.markedRange else {
             return .notFound
         }
 
-        return contentManager.nsRange(from: markedRange)
+        return NSRange(markedRange, in: buffer)
     }
 
     func hasMarkedText() -> Bool {
-        layoutManager.selection?.markedRange != nil
+        layoutManager.selection.markedRange != nil
     }
 
     func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? {
-        if let range = range.intersection(contentManager.documentNSRange) {
-            return contentManager.attributedSubstring(for: range)
-        } else {
+        guard let range = Range(range, in: buffer) else {
             return nil
         }
+
+        let documentRange = buffer.documentRange
+
+        if !range.overlaps(documentRange) {
+            return nil
+        }
+
+        return buffer.attributedSubstring(for: range.clamped(to: documentRange))
     }
 
     func validAttributesForMarkedText() -> [NSAttributedString.Key] {
@@ -103,42 +105,44 @@ extension TextView: NSTextInputClient {
     }
 
     func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect {
-        guard let range = contentManager.range(from: range) else {
-            return .zero
-        }
-
-        var rect: CGRect = .zero
-        layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
-            rect = frame
-
-            if let actualRange {
-                actualRange.pointee = contentManager.nsRange(from: segmentRange)
-            }
-
-            return false
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        let windowRect = convert(viewRect, to: nil)
-        let screenRect = window?.convertToScreen(windowRect) ?? .zero
-
-        return screenRect
+//        guard let range = buffer.range(from: range) else {
+//            return .zero
+//        }
+//
+//        var rect: CGRect = .zero
+//        layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
+//            rect = frame
+//
+//            if let actualRange {
+//                actualRange.pointee = buffer.nsRange(from: segmentRange)
+//            }
+//
+//            return false
+//        }
+//
+//        let viewRect = convertFromTextContainer(rect)
+//        let windowRect = convert(viewRect, to: nil)
+//        let screenRect = window?.convertToScreen(windowRect) ?? .zero
+//
+//        return screenRect
+        .zero
     }
 
     func characterIndex(for screenPoint: NSPoint) -> Int {
-        guard let window else {
-            return NSNotFound
-        }
-
-        let windowPoint = window.convertPoint(fromScreen: screenPoint)
-        let viewPoint = convert(windowPoint, from: nil)
-        let textContainerPoint = convertToTextContainer(viewPoint)
-
-        guard let characterIndex = layoutManager.location(interactingAt: textContainerPoint) else {
-            return NSNotFound
-        }
-
-        return contentManager.offset(from: contentManager.documentRange.lowerBound, to: characterIndex)
+//        guard let window else {
+//            return NSNotFound
+//        }
+//
+//        let windowPoint = window.convertPoint(fromScreen: screenPoint)
+//        let viewPoint = convert(windowPoint, from: nil)
+//        let textContainerPoint = convertToTextContainer(viewPoint)
+//
+//        guard let characterIndex = layoutManager.location(interactingAt: textContainerPoint) else {
+//            return NSNotFound
+//        }
+//
+//        return buffer.offset(from: buffer.documentRange.lowerBound, to: characterIndex)
+        .zero
     }
 
     override func doCommand(by selector: Selector) {
@@ -168,13 +172,9 @@ extension TextView {
             return proposed
         }
 
-        guard let selection = layoutManager.selection else {
-            return nil
-        }
+        let range = layoutManager.selection.markedRange ?? layoutManager.selection.range
 
-        let range = selection.markedRange ?? selection.range
-
-        return contentManager.nsRange(from: range)
+        return NSRange(range, in: buffer)
     }
 
     var markedTextAttributes: [NSAttributedString.Key : Any] {

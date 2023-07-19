@@ -416,6 +416,16 @@ extension BTree.Node where Summary: BTreeDefaultMetric {
     }
 }
 
+extension BTree where Summary: BTreeDefaultMetric {
+    func count<M>(_ metric: M, upThrough offset: Int) -> Int where M: BTreeMetric<Summary> {
+        root.count(metric, upThrough: offset)
+    }
+
+    func countBaseUnits<M>(of measured: Int, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
+        root.countBaseUnits(of: measured, measuredIn: metric)
+    }
+}
+
 
 // MARK: - Builder
 
@@ -615,6 +625,18 @@ extension BTree {
             descend()
         }
 
+        init(startOf root: Node) {
+            self.init(offsetBy: 0, in: root)
+        }
+
+        init(endOf root: Node) {
+            self.init(offsetBy: root.count, in: root)
+        }
+
+        init(offsetBy offset: Int, in tree: BTree) {
+            self.init(offsetBy: offset, in: tree.root)
+        }
+
         mutating func descend() {
             path = []
             var node = root! // assume we have a root
@@ -634,15 +656,6 @@ extension BTree {
 
             self.leaf = node.leaf
             self.offsetOfLeaf = offset
-        }
-
-
-        init(startOf root: Node) {
-            self.init(offsetBy: 0, in: root)
-        }
-
-        init(endOf root: Node) {
-            self.init(offsetBy: root.count, in: root)
         }
 
         func isBoundary<M>(in metric: M) -> Bool where M: BTreeMetric<Summary> {

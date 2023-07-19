@@ -7,15 +7,10 @@
 
 import Foundation
 
-class TextContainer {
+struct TextContainer {
     var lineFragmentPadding: CGFloat = 5
-    weak var layoutManager: LayoutManager?
 
-    var size: CGSize = .zero {
-        didSet {
-            layoutManager?.invalidateLayout()
-        }
-    }
+    var size: CGSize = .zero
 
     var width: CGFloat {
         size.width

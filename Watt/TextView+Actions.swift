@@ -9,7 +9,7 @@ import Cocoa
 
 extension TextView {
     override func selectAll(_ sender: Any?) {
-        layoutManager.selection = Selection(head: contentManager.documentRange.upperBound, anchor: contentManager.documentRange.lowerBound, affinity: .downstream)
+        layoutManager.selection = Selection(head: buffer.documentRange.upperBound, anchor: buffer.documentRange.lowerBound, affinity: .downstream)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()

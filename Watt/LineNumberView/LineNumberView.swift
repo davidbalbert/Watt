@@ -7,13 +7,26 @@
 
 import Cocoa
 
-class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
+class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, LayoutManagerLineNumberDelegate {
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
 
-    weak var delegate: LineNumberViewDelegate?
+    // TODO: deal with changes in the number of lines:
+    // 1. Add a currentLineCount property
+    // 2. Subscribe to changes in buffer's text. Any time the text changes,
+    //    compare buffer.lineCount to currentLineCount and call invalidateIntrinsicContentSize
+    //    if we need to add or remove a digit.
+    var buffer: Buffer {
+        willSet {
+            // TODO: unsubscribe from buffer
+        }
+        didSet {
+            // TODO: subscribe to buffer
+            invalidateIntrinsicContentSize()
+        }
+    }
 
     var textLayer: CALayer = CALayer()
     var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
@@ -27,47 +40,28 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     override init(frame frameRect: NSRect) {
+        self.buffer = Buffer()
         super.init(frame: frameRect)
         commonInit()
     }
 
     required init?(coder: NSCoder) {
+        self.buffer = Buffer()
         super.init(coder: coder)
         commonInit()
     }
 
     func commonInit() {
-        NotificationCenter.default.addObserver(self, selector: #selector(frameDidChange(_:)), name: NSView.frameDidChangeNotification, object: self)
-
+        // TODO: subscribe to buffer
         let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
         addTrackingArea(trackingArea)
     }
 
-    private var _intrinsicContentSize: NSSize?
-
-    override func invalidateIntrinsicContentSize() {
-        _intrinsicContentSize = nil
-        super.invalidateIntrinsicContentSize()
-    }
-
     override var intrinsicContentSize: NSSize {
-        if let _intrinsicContentSize {
-            return _intrinsicContentSize
-        }
-
-        let size = calculateIntrinsicContentSize()
-        _intrinsicContentSize = size
-        return size
-    }
-
-    // TODO: AppKit may already be caching intrinsicContentSize. See if we can put this right in the definition of intrinsicContentSize and see if it gets called more often. If it doesn't, get rid of our own caching behavior.
-    func calculateIntrinsicContentSize() -> NSSize {
-        guard let delegate else {
-            return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
-        }
+        // TODO: ensure that this only gets called after intrinsicContentSize is invalidated
 
         // max(100, ...) -> minimum 3 digits worth of space
-        let lineCount = max(100, delegate.lineCount(for: self))
+        let lineCount = max(100, buffer.lineCount)
         let maxDigits = floor(log10(CGFloat(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)
@@ -98,6 +92,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     override func layout() {
+        super.layout()
+
         guard let layer else {
             return
         }
@@ -109,7 +105,6 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
             textLayer.bounds = layer.bounds
             layer.addSublayer(textLayer)
         }
-
     }
 
     func layoutSublayers(of layer: CALayer) {
@@ -131,15 +126,15 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
         true
     }
 
-    @objc func frameDidChange(_ notification: NSNotification) {
-        delegate?.lineNumberViewFrameDidChange(notification)
+    func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool {
+        superview != nil
     }
 
-    func beginUpdates() {
+    func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager) {
         textLayer.sublayers = nil
     }
 
-    func addLineNumber(_ lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
+    func layoutManager(_ layoutManager: LayoutManager, addLineNumber lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
         let l = layerCache[lineno] ?? makeLayer(for: lineno)
         l.position = position
         l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: lineHeight)
@@ -147,7 +142,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
         textLayer.addSublayer(l)
     }
 
-    func endUpdates() {
+    func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager) {
         // no-op
     }
 

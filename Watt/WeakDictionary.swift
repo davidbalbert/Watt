@@ -9,6 +9,9 @@ import Foundation
 
 // NSMapTable, but the keys can be any Hashable (if they're
 // objects, they are held strongly).
+
+// TODO: make it possible to remove key/value pairs where
+// WeakRef has become nil.
 struct WeakDictionary<Key: Hashable, Value: AnyObject> {
     struct WeakRef {
         weak var value: Value?

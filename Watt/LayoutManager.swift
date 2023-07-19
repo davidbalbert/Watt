@@ -6,472 +6,147 @@
 //
 
 import Foundation
-import CoreText
+import QuartzCore
+
+protocol LayoutManagerDelegate: AnyObject {
+    func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer)
+    func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
+
+    func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, insertSelectionLayer layer: CALayer)
+    func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager)
+
+    func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointsLayer layer: CALayer)
+    func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager)
+}
+
+protocol LayoutManagerLineNumberDelegate: AnyObject {
+    func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool
+    func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, addLineNumber lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat)
+    func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager)
+}
 
 class LayoutManager {
-    enum SegmentType {
-        case standard
-        case selection
-    }
-
-    var viewportBounds: CGRect = .zero {
-        didSet {
-            _viewportRange = nil
-        }
-    }
-
-    var _viewportRange: Range<String.Index>?
-
-    func calculateViewportRange() -> Range<String.Index>? {
-        guard let firstRange = heightEstimates.textRange(for: viewportBounds.origin) else {
-            return nil
-        }
-
-        let bottom = CGPoint(x: viewportBounds.minX, y: min(heightEstimates.documentHeight, viewportBounds.maxY))
-
-        guard let lastRange = heightEstimates.textRange(for: bottom) else {
-            return nil
-        }
-
-        return firstRange.lowerBound..<lastRange.upperBound
-    }
-
-    var viewportRange: Range<String.Index>? {
-        if let _viewportRange {
-            return _viewportRange
-        }
-
-        _viewportRange = calculateViewportRange()
-        return _viewportRange
-    }
-
-    var selection: Selection?
-
-    var textContainer: TextContainer? {
-        willSet {
-            textContainer?.layoutManager = nil
-        }
-        didSet {
-            textContainer?.layoutManager = self
-        }
-    }
-
     weak var delegate: LayoutManagerDelegate?
+    weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
-    weak var contentManager: ContentManager? {
+    var buffer: Buffer {
+        willSet {
+            // TODO: unsubscribe from changes to old buffer
+        }
         didSet {
-            heightEstimates = HeightEstimates(contentManager: contentManager)
-            fragmentCache.removeAll()
+            // TODO: subscribe to changes to new buffer
+            selection = Selection(head: buffer.documentRange.lowerBound)
+            invalidateLayout()
         }
     }
 
-    var fragmentCache: FragmentCache = FragmentCache()
-
-    lazy var heightEstimates: HeightEstimates = HeightEstimates(contentManager: contentManager)
-
-    var documentHeight: CGFloat {
-        heightEstimates.documentHeight
+    var textContainer: TextContainer {
+        didSet {
+            invalidateLayout()
+        }
     }
 
-    func layoutViewport() {
+    var textContainerInset: CGSize {
+        didSet {
+            invalidateLayout()
+        }
+    }
+
+    var viewportBounds: CGRect {
+        didSet {
+            if viewportBounds.size != oldValue.size {
+                invalidateLayout()
+            }
+        }
+    }
+
+    var selection: Selection
+
+    init() {
+        self.buffer = Buffer()
+        self.textContainer = TextContainer()
+        self.textContainerInset = .zero
+        self.viewportBounds = .zero
+
+        // TODO: subscribe to changes to buffer.
+        self.selection = Selection(head: buffer.documentRange.lowerBound)
+    }
+
+    var contentHeight: CGFloat {
+        // TODO: make this real
+        10000
+    }
+
+    func layoutText() {
         guard let delegate else {
             return
         }
 
-        viewportBounds = delegate.viewportBounds(for: self)
+        let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
 
-        delegate.layoutManagerWillLayout(self)
-
-        guard let textRange = heightEstimates.textRange(for: viewportBounds.origin) else {
-            delegate.layoutManagerDidLayout(self)
-            return
+        delegate.layoutManagerWillLayoutText(self)
+        if updateLineNumbers {
+            lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        fragmentCache.removeFragments(before: viewportBounds.origin)
-        fragmentCache.removeFragments(after: CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY))
-
-        enumerateLayoutFragments(from: textRange.lowerBound, options: .ensuresLayout) { layoutFragment in
-            delegate.layoutManager(self, configureRenderingSurfaceFor: layoutFragment)
-
-            let lowerLeftCorner = CGPoint(x: viewportBounds.minX, y: viewportBounds.maxY)
-            return !layoutFragment.frame.contains(lowerLeftCorner)
-        }
-
-        delegate.layoutManagerDidLayout(self)
-    }
-
-    func enumerateTextSegments(in range: Range<String.Index>, type: SegmentType, using block: (Range<String.Index>, CGRect) -> Bool) {
-        guard let contentManager, let textContainer else {
-            return
-        }
-
-        enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { layoutFragment in
-            for lineFragment in layoutFragment.lineFragments {
-                let lineRange = lineFragment.textRange
-
-                // I think the only possible empty lineFragment would be the
-                // last line of a document if it's empty. I don't know if we
-                // represent those yet, but let's ignore them for now.
-                guard !lineRange.isEmpty else {
-                    return false
-                }
-
-                let rangeInLine = range.clamped(to: lineRange)
-
-                if rangeInLine.isEmpty && !lineRange.contains(rangeInLine.lowerBound){
-                    continue
-                }
-
-                let start = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.lowerBound)
-                let xStart = locationForCharacter(atOffset: start, in: lineFragment).x
-
-                let last = contentManager.location(lineRange.upperBound, offsetBy: -1)
-                let lastChar = contentManager.character(at: last)
-                let shouldExtendSelection = (range.upperBound == lineRange.upperBound && lastChar == "\n") || range.upperBound > lineRange.upperBound
-
-                let xEnd: CGFloat
-                if type == .selection && shouldExtendSelection {
-                    xEnd = textContainer.lineWidth
-                } else {
-                    let end = contentManager.offset(from: lineRange.lowerBound, to: rangeInLine.upperBound)
-                    let x0 = locationForCharacter(atOffset: end, in: lineFragment).x
-                    let x1 = textContainer.lineWidth
-                    xEnd = min(x0, x1)
-                }
-
-                let bounds = lineFragment.typographicBounds
-                let origin = lineFragment.position
-                let padding = textContainer.lineFragmentPadding
-
-                // in layout fragment coordinates
-                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
-
-                if !block(rangeInLine, convert(rect, from: layoutFragment)) {
-                    return false
-                }
-
-                if range.upperBound <= lineRange.upperBound {
-                    // we're at the end of our selection
-                    return false
-                }
-            }
-
-            return true
-        }
-    }
-
-    func convert(_ rect: CGRect, from layoutFragment: LayoutFragment) -> CGRect {
-        let fragX = layoutFragment.frame.minX
-        let fragY = layoutFragment.frame.minY
-        let origin = CGPoint(x: rect.minX + fragX, y: rect.minY + fragY)
-
-        return CGRect(origin: origin, size: rect.size)
-    }
-
-    func convert(_ point: CGPoint, from layoutFragment: LayoutFragment) -> CGPoint {
-        CGPoint(
-            x: point.x + layoutFragment.frame.minX,
-            y: point.y + layoutFragment.frame.minY
-        )
-    }
-
-    func convert(_ point: CGPoint, to layoutFragment: LayoutFragment) -> CGPoint {
-        CGPoint(
-            x: point.x - layoutFragment.frame.minX,
-            y: point.y - layoutFragment.frame.minY
-        )
-    }
-
-    func convert(_ point: CGPoint, from lineFragment: LineFragment) -> CGPoint {
-        CGPoint(
-            x: point.x + lineFragment.frame.minX,
-            y: point.y + lineFragment.frame.minY
-        )
-    }
-
-    func convert(_ point: CGPoint, to lineFragment: LineFragment) -> CGPoint {
-        CGPoint(x: point.x - lineFragment.frame.minX, y: point.y - lineFragment.frame.minY)
-    }
-
-    func enumerateLayoutFragments(from location: String.Index, options: LayoutFragment.EnumerationOptions = [], using block: (LayoutFragment) -> Bool) {
-        guard let contentManager, let textContainer else {
-            return
-        }
-
-        // TODO: I think this should maybe start at 1?
-        var lineno: Int = 0
+        var lineno: Int = 1
         var y: CGFloat = 0
 
-        if options.contains(.ensuresLayout), let (line, offset) = heightEstimates.lineNumberAndOffset(containing: location) {
-            lineno = line
-            y = offset
-        }
+        // TODO: make this actually layout what's in the viewport
+        for s in buffer.lines.prefix(10) {
+            let line = layout(NSAttributedString(string: s), at: CGPoint(x: 0, y: y))
 
-        contentManager.enumerateTextElements(from: location) { el in
-            let cached = fragmentCache.fragment(at: el.textRange.lowerBound)
-            let frag = cached ?? LayoutFragment(textElement: el)
+            let layer = LineLayer(line: line)
+            layer.anchorPoint = .zero
+            layer.needsDisplayOnBoundsChange = true
+            layer.bounds = line.typographicBounds
+            layer.position = convertFromTextContainer(line.position)
 
-            if options.contains(.ensuresLayout) {
-                if !frag.hasLayout {
-                    layout(frag, at: CGPoint(x: 0, y: y), in: textContainer)
-                } else {
-                    // Even though we're already laid out, it's possible that a fragment
-                    // above us just got laid out for the first time (for example, if we
-                    // scrolled to the bottom of the document really fast, missing some
-                    // fragments on the way down, and then started scrolling back up). In
-                    // this situation, assuming the previously estimated height for our previous
-                    // sibling (the fragment that was just laid out) was less than it's actual
-                    // height, our origin will be smaller than it needs to be, and we'll overlap
-                    // with our previous sibling.
-                    //
-                    // The good news is that the `y` we're accumulating during layout takes into
-                    // account the actual heights of all the fragments that we've laid out in this
-                    // pass, which means we can just use it for our position.
-                    //
-                    // TODO: in the future, we may want to accumulate the deltas and scroll our enclosing
-                    // scroll view to compensate.
-                    frag.position.y = y
-                }
-
-                if cached == nil {
-                    fragmentCache.add(frag)
-                }
-
-                frag.lineNumber = lineno
-
-                let height = frag.typographicBounds.height
-                heightEstimates.updateFragmentHeight(at: lineno, with: height)
-                y += height
-                lineno += 1
+            delegate.layoutManager(self, insertTextLayer: layer)
+            if updateLineNumbers {
+                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno, at: line.position, withLineHeight: line.typographicBounds.height)
             }
 
-            return block(frag)
+            y += line.typographicBounds.height
+            lineno += 1
+        }
+
+        delegate.layoutManagerDidLayoutText(self)
+        if updateLineNumbers {
+            lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
     }
 
-    internal func contentManagerDidReplaceCharacters(_ contentManager: ContentManager, in range: Range<String.Index>, with string: NSAttributedString, oldSubstring: Substring) {
-        // invalidate the fragment cache that covers this range
-        fragmentCache.removeAll() // for now, just invalidate everything
-        heightEstimates.updateEstimatesByReplacingLinesIn(oldSubstring: oldSubstring, with: string.string, in: range, using: contentManager)
-
-        let end = contentManager.location(range.lowerBound, offsetByUTF16: string.length)
-        selection = Selection(head: end)
-    }
-
-    func invalidateLayout() {
-        fragmentCache.removeAll()
-    }
-
-    var lineCount: Int {
-        heightEstimates.lineCount
-    }
-
-    func location(interactingAt point: CGPoint) -> String.Index? {
-        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
-            return nil
-        }
-
-        return location
-    }
-
-    func locationAndAffinity(interactingAt point: CGPoint) -> (String.Index, Selection.Affinity)? {
-        guard let contentManager, let textContainer else {
-            return nil
-        }
-
-        // If we click past the end of the document, select the last character
-        if point.y > documentHeight {
-            return (contentManager.documentRange.upperBound, .upstream)
-        }
-
-        guard let layoutFragment = layoutFragment(for: point) else {
-            return nil
-        }
-
-        let pointInLayoutFragment = convert(point, to: layoutFragment)
-
-        var lineFragment: LineFragment?
-        for frag in layoutFragment.lineFragments {
-            let frame = frag.frame
-            if (frame.minY..<frame.maxY).contains(pointInLayoutFragment.y) {
-                lineFragment = frag
-                break
-            }
-        }
-
-        guard let lineFragment else {
-            return nil
-        }
-
-        let pointInLineFragment = convert(pointInLayoutFragment, to: lineFragment)
-        let adjusted = CGPoint(
-            x: pointInLineFragment.x - textContainer.lineFragmentPadding,
-            y: pointInLineFragment.y
-        )
-
-        let offsetInLayoutFragment = CTLineGetStringIndexForPosition(lineFragment.line, adjusted)
-        if offsetInLayoutFragment == kCFNotFound {
-            return nil
-        }
-
-        let offsetInLineFragment = offsetInLayoutFragment - lineFragment.utf16CharacterOffsetInLayoutFragment
-        var location = contentManager.location(lineFragment.textRange.lowerBound, offsetByUTF16: offsetInLineFragment)
-
-        let lastIdx = contentManager.location(lineFragment.textRange.upperBound, offsetBy: -1)
-        let lastChar = contentManager.character(at: lastIdx)
-
-        // Rules:
-        //   1. You cannot click to the right of a "\n". No matter how far
-        //      far right you go, you will always be before the newline until
-        //      you move down to the next line.
-        //   2. The first location in a line fragment is always downstream.
-        //      No exceptions.
-        //   3. The last location in a line fragment is upstream, unless the
-        //      line is empty (i.e. unless the text element is "\n").
-        //   4. All other locations are downstream.
-
-        let atEnd = location == lastIdx
-        let afterEnd = location == lineFragment.textRange.upperBound
-
-        if location == lineFragment.textRange.upperBound && lastChar == "\n" {
-            location = contentManager.location(location, offsetBy: -1)
-        }
-
-        let affinity: Selection.Affinity
-        if location != lineFragment.textRange.lowerBound && (afterEnd || (lastChar == "\n" && atEnd)) {
-            affinity = .upstream
-        } else {
-            affinity = .downstream
-        }
-
-        return (location, affinity)
-    }
-
-    func enumerateCaretRectsInLineFragment(at location: String.Index, affinity: Selection.Affinity, using block: @escaping (CGRect, String.Index, Bool) -> Bool)  {
-        guard let contentManager, let textContainer else {
-            return
-        }
-
-        guard let layoutFragment = layoutFragment(for: location) else {
-            return
-        }
-
-        guard let lineFragment = lineFragment(for: location, in: layoutFragment, affinity: affinity) else {
-            return
-        }
-
-        var loc = lineFragment.textRange.lowerBound
-        var prevCharIndex = 0
-        CTLineEnumerateCaretOffsets(lineFragment.line) { [weak self] caretOffset, charIndex, leadingEdge, stop in
-            guard let self else {
-                stop.pointee = true
-                return
-            }
-
-            let charIndex = charIndex - lineFragment.utf16CharacterOffsetInLayoutFragment
-
-            loc = contentManager.location(loc, offsetByUTF16: charIndex - prevCharIndex)
-            prevCharIndex = charIndex
-
-            let lineOrigin = CGPoint(x: caretOffset, y: 0)
-
-            let origin = convert(convert(lineOrigin, from: lineFragment), from: layoutFragment)
-
-            let height = lineFragment.typographicBounds.height
-            let rect = CGRect(
-                x: min(origin.x + textContainer.lineFragmentPadding, textContainer.width - textContainer.lineFragmentPadding),
-                y: origin.y,
-                width: 1,
-                height: height
-            )
-
-            if !block(rect, loc, leadingEdge) {
-                stop.pointee = true
-            }
-        }
-    }
-
-    func layoutFragment(for location: String.Index) -> LayoutFragment? {
-        var layoutFragment: LayoutFragment?
-        enumerateLayoutFragments(from: location, options: .ensuresLayout) { f in
-            layoutFragment = f
-            return false
-        }
-
-        return layoutFragment
-    }
-
-    func lineFragment(for location: String.Index, in layoutFragment: LayoutFragment, affinity: Selection.Affinity) -> LineFragment? {
-
-        for f in layoutFragment.lineFragments {
-            if location == f.textRange.upperBound && affinity == .upstream {
-                return f
-            }
-
-            if f.textRange.contains(location) {
-                return f
-            }
-        }
-
-        return nil
-    }
-
-    func layoutFragment(for point: CGPoint) -> LayoutFragment? {
-        guard let range = heightEstimates.textRange(for: point) else {
-            return nil
-        }
-
-        var layoutFragment: LayoutFragment?
-        enumerateLayoutFragments(from: range.lowerBound, options: .ensuresLayout) { f in
-            layoutFragment = f
-            return false
-        }
-
-        return layoutFragment
-    }
-
-    func layout(_ layoutFragment: LayoutFragment, at position: CGPoint, in textContainer: TextContainer) {
-        guard let contentManager else {
-            return
-        }
-
-        if layoutFragment.hasLayout {
-            print("warning: layout(_:at:in:) called on fragment that already has layout")
-            return
-        }
-
-        layoutFragment.position = position
-
-        let s = layoutFragment.textElement.attributedString
-
+    func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
-        let typesetter = CTTypesetterCreateWithAttributedString(s)
+        let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
 
         var width: CGFloat = 0
         var height: CGFloat = 0
         var i = 0
-        var startIndex = layoutFragment.textRange.lowerBound
 
-        while i < s.length {
+        var lineFragments: [LineFragment] = []
+
+        while i < attrStr.length {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
-            let line = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
+            let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let p = CGPoint(x: 0, y: height)
-            let (glyphOrigin, typographicBounds) = lineMetrics(for: line, in: textContainer)
+            let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
 
-            let nextIndex = contentManager.location(startIndex, offsetByUTF16: next - i)
-
-            let lineFragment = LineFragment(line: line, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, textRange: startIndex..<nextIndex, utf16CharacterOffsetInLayoutFragment: i)
-            layoutFragment.lineFragments.append(lineFragment)
+            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds)
+            lineFragments.append(lineFragment)
 
             i = next
-            startIndex = nextIndex
             width = max(width, typographicBounds.width)
             height += typographicBounds.height
         }
 
-        layoutFragment.typographicBounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
-        layoutFragment.hasLayout = true
+        return Line(position: position, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
     }
 
     // returns glyphOrigin, typographicBounds
@@ -497,7 +172,32 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
-    func locationForCharacter(atOffset offset: Int, in lineFragment: LineFragment) -> CGPoint {
-        CGPoint(x: CTLineGetOffsetForStringIndex(lineFragment.line, offset + lineFragment.utf16CharacterOffsetInLayoutFragment, nil), y: 0)
+
+    func layoutSelections() {
+
+    }
+
+    func layoutInsertionPoints() {
+        
+    }
+
+    func invalidateLayout() {
+
+    }
+
+    func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x + textContainerInset.width, y: point.y + textContainerInset.height)
+    }
+
+    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
+    }
+
+    func convertFromTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertFromTextContainer(rect.origin), size: rect.size)
+    }
+
+    func convertToTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
     }
 }

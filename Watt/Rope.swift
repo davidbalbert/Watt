@@ -169,7 +169,6 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
 
 // MARK: - Metrics
 
-
 // It would be better if these metrics were nested inside Rope instead
 // of BTree, but that causes problems with LLDB – I get errors like
 // "error: cannot find 'metric' in scope" in response to 'p metric'.
@@ -501,7 +500,6 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 
 // MARK: - Builder additions
 
-
 extension Rope.Builder {
     mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
         var string = String(string)
@@ -552,7 +550,6 @@ fileprivate func boundary(for s: Substring, startingAt minSplit: Int) -> String.
 
 
 // MARK: - Index additions
-
 
 extension Rope.Index {
     func readUTF8() -> UTF8.CodeUnit? {
@@ -671,10 +668,7 @@ extension Rope.Index {
 }
 
 
-
-
 // MARK: - Collection conformances
-
 
 // If I don't specify these conformances separately, I get errors like this:
 //
@@ -827,7 +821,6 @@ extension Rope {
 
 
 // MARK: - Grapheme breaking
-
 
 extension Rope {
     mutating func resyncBreaks(old: inout GraphemeBreaker, new: inout GraphemeBreaker) {
@@ -1250,6 +1243,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 }
 
+
 // MARK: - Standard library integration
 
 extension String {
@@ -1268,9 +1262,65 @@ extension NSString {
     }
 }
 
+extension Data {
+    init(_ rope: Rope) {
+        self.init(capacity: rope.utf8.count)
+        for chunk in rope.leaves {
+            chunk.string.withExistingUTF8 { p in
+                append(p.baseAddress!, count: p.count)
+            }
+        }
+    }
+}
+
+extension Range where Bound == Rope.Index {
+    init?(_ range: NSRange, in rope: Rope) {
+        if range == .notFound {
+            return nil
+        }
+
+        guard range.lowerBound >= 0 && range.lowerBound <= rope.utf16Count else {
+            return nil
+        }
+
+        guard range.upperBound >= 0 && range.upperBound <= rope.utf16Count else {
+            return nil
+        }
+
+        let i = rope.countBaseUnits(of: range.lowerBound, measuredIn: .utf16)
+        let j = rope.countBaseUnits(of: range.upperBound, measuredIn: .utf16)
+
+        if rope.count(.utf16, upThrough: i) != range.lowerBound {
+            fatalError("Got NSRange with lowerBound referencing a trailing surrogate")
+        }
+
+        if rope.count(.utf16, upThrough: j) != range.upperBound {
+            fatalError("Got NSRange with upperBound referencing a trailing surrogate")
+        }
+
+        self.init(uncheckedBounds: (Rope.Index(offsetBy: i, in: rope), Rope.Index(offsetBy: j, in: rope)))
+    }
+}
+
+extension NSRange {
+    init<R>(_ region: R, in rope: Rope) where R : RangeExpression, R.Bound == Rope.Index {
+        let range = region.relative(to: rope)
+
+        range.lowerBound.validate(for: rope.root)
+        range.upperBound.validate(for: rope.root)
+
+        assert(range.lowerBound.position >= 0 && range.lowerBound.position <= rope.root.count)
+        assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
+
+        let i = rope.count(.utf16, upThrough: range.lowerBound.position)
+        let j = rope.count(.utf16, upThrough: range.upperBound.position)
+
+        self.init(location: i, length: j-i)
+    }
+}
+
 
 // MARK: - Helpers
-
 
 fileprivate func countNewlines(in buf: Slice<UnsafeBufferPointer<UInt8>>) -> Int {
     let nl = UInt8(ascii: "\n")

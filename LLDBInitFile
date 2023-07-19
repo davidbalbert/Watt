@@ -1,0 +1,1 @@
+type summary add Rope.BTree<Rope.RopeSummary>.Index --summary-string "${var.position}[utf8]"

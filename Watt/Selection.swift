@@ -13,7 +13,7 @@ struct Selection {
         case downstream
     }
 
-    var head: String.Index {
+    var head: Rope.Index {
         didSet {
             if head < anchor {
                 affinity = .upstream
@@ -23,17 +23,17 @@ struct Selection {
         }
     }
 
-    var anchor: String.Index
+    var anchor: Rope.Index
     var affinity: Affinity
-    var markedRange: Range<String.Index>?
+    var markedRange: Range<Rope.Index>?
 
-    init(head: String.Index, anchor: String.Index? = nil, affinity: Affinity? = nil) {
+    init(head: Rope.Index, anchor: Rope.Index? = nil, affinity: Affinity? = nil) {
         self.head = head
         self.anchor = anchor ?? head
         self.affinity = affinity ?? .downstream
     }
 
-    var range: Range<String.Index> {
+    var range: Range<Rope.Index> {
         if head < anchor {
             return head..<anchor
         } else {
