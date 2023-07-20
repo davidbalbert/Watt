@@ -143,8 +143,6 @@
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
-				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
-				63F25BE02A689D2400DEACCF /* Line.swift */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
 				63F25BDA2A68409700DEACCF /* LLDBInitFile */,
 				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
@@ -169,7 +167,6 @@
 		6372888A29FD8E19005B95E5 /* Watt */ = {
 			isa = PBXGroup;
 			children = (
-				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
@@ -182,6 +179,9 @@
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
+				63F25BE02A689D2400DEACCF /* Line.swift */,
+				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
+				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
 				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
 				63F0468B2A65D3F8001B8DA8 /* Rope.swift */,
 				637BC1312A151F5F0089A34D /* Selection.swift */,
