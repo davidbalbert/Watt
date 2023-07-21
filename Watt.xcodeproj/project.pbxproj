@@ -14,7 +14,6 @@
 		6372888E29FD8E19005B95E5 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888D29FD8E19005B95E5 /* Document.swift */; };
 		6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6372889229FD8E1A005B95E5 /* Assets.xcassets */; };
 		6372889629FD8E1A005B95E5 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6372889429FD8E1A005B95E5 /* MainMenu.xib */; };
-		637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */; };
 		637288AC29FD8E1A005B95E5 /* WattUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AB29FD8E1A005B95E5 /* WattUITests.swift */; };
 		637288AE29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */; };
 		637867712A17F7460039960E /* TextView+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867702A17F7460039960E /* TextView+Selection.swift */; };
@@ -78,7 +77,6 @@
 		6372889729FD8E1A005B95E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6372889829FD8E1A005B95E5 /* Watt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Watt.entitlements; sourceTree = "<group>"; };
 		6372889D29FD8E1A005B95E5 /* WattTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LRUCacheTests.swift; sourceTree = "<group>"; };
 		637288A729FD8E1A005B95E5 /* WattUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		637288AB29FD8E1A005B95E5 /* WattUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITests.swift; sourceTree = "<group>"; };
 		637288AD29FD8E1A005B95E5 /* WattUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -212,7 +210,6 @@
 			isa = PBXGroup;
 			children = (
 				6378678E2A214EE80039960E /* HeightEstimatesTests.swift */,
-				637288A129FD8E1A005B95E5 /* LRUCacheTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 			);
 			path = WattTests;
@@ -407,7 +404,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				637867902A214F950039960E /* HeightEstimatesTests.swift in Sources */,
-				637288A229FD8E1A005B95E5 /* LRUCacheTests.swift in Sources */,
 				63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
