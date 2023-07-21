@@ -7,7 +7,6 @@
 
 import Cocoa
 
-// TODO: I think line numbers are animating in. Fix that.
 class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, LayoutManagerLineNumberDelegate {
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
@@ -56,6 +55,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         // TODO: subscribe to buffer
         let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
         addTrackingArea(trackingArea)
+
+        textLayer.delegate = self
     }
 
     override var intrinsicContentSize: NSSize {
@@ -105,21 +106,6 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
             textLayer.position = layer.position
             textLayer.bounds = layer.bounds
             layer.addSublayer(textLayer)
-        }
-    }
-
-    func layoutSublayers(of layer: CALayer) {
-        switch layer {
-        case textLayer:
-            layoutTextLayer()
-        default:
-            break
-        }
-    }
-
-    func layoutTextLayer() {
-        for l in textLayer.sublayers ?? [] {
-            l.bounds.size.width = frame.width
         }
     }
 
