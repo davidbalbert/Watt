@@ -1231,22 +1231,35 @@ extension Rope.LinesView: BidirectionalCollection {
         return base.index(roundingDown: position, using: .newlines).readLine()!
     }
 
-    // TODO: write tests to make sure this fails with endIndex and then add the special case
     func index(before i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
         return base.index(before: i, using: .newlines)
     }
 
-    // TODO: ditto
     func index(after i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
+
+        // Does this slow things down? Is there a nicer way to do this?
+        if i >= index(before: endIndex) && i < endIndex {
+            return endIndex
+        }
+
         return base.index(after: i, using: .newlines)
     }
 
-    // TODO: ditto
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(i, offsetBy: distance, using: .newlines)
+
+        var i = i
+        let m = base.count(.newlines, upThrough: i.position)
+        if m + distance == count {
+            return endIndex
+        }
+        precondition(m+distance >= 0 && m+distance < count, "Index out of bounds")
+        let pos = base.countBaseUnits(of: m + distance, measuredIn: .newlines)
+        i.set(pos)
+
+        return i
     }
 
     // TODO: ditto

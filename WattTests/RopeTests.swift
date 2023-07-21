@@ -999,4 +999,48 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual([a, b, c], Array(r.lines))
     }
+
+    // LinesView has to have some extra logic in its indexing
+    // methods to handle endIndex correctly. This is because
+    // the .newlines metric counts "\n" characters and there's
+    // always one more line than newlines.
+    func testLinesViewIndexAtEnd() {
+        let r = Rope("foo")
+
+        XCTAssertEqual(1, r.lines.count)
+
+        let i = r.lines.index(at: 1)
+        XCTAssertEqual(r.endIndex, i)
+        XCTAssertEqual(3, i.position)
+    }
+
+    func testLinesViewIndexAfterEnd() {
+        let r = Rope("foo")
+
+        XCTAssertEqual(1, r.lines.count)
+
+        let i = r.lines.index(after: r.startIndex)
+        XCTAssertEqual(r.endIndex, i)
+        XCTAssertEqual(3, i.position)
+    }
+
+    func testLinesViewIndexBeforeEnd() {
+        let r = Rope("foo")
+
+        XCTAssertEqual(1, r.lines.count)
+
+        let i = r.lines.index(before: r.endIndex)
+        XCTAssertEqual(r.index(at: 0), i)
+        XCTAssertEqual(0, i.position)
+    }
+
+    func testLinesViewIndexOffsetByEnd() {
+        let r = Rope("foo")
+
+        XCTAssertEqual(1, r.lines.count)
+
+        let i = r.lines.index(r.index(at: 2), offsetBy: 1)
+        XCTAssertEqual(r.endIndex, i)
+        XCTAssertEqual(3, i.position)
+    }
 }
