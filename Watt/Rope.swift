@@ -675,6 +675,10 @@ extension Rope.Index {
 //     Conditional conformance of type 'BTree<Summary>' to protocol 'Collection'
 //     does not imply conformance to inherited protocol 'Sequence'
 extension Rope: Sequence {
+    // TODO: I'm using custom iterators instead of IndexingIterator to avoid
+    // the index validation that happens inside subscript. I'm not sure if
+    // there's actually a performance hit for that, so I should remove the custom
+    // iterators and measure to see if there's a difference.
     struct Iterator: IteratorProtocol {
         var index: Index
 
@@ -696,7 +700,7 @@ extension Rope: Sequence {
 // TODO: audit default methods from Collection, BidirectionalCollection and RangeReplaceableCollection for default implementations that perform poorly.
 extension Rope: Collection {
     var count: Int {
-        root.measure(using: .characters)
+        measure(using: .characters)
     }
 
     subscript(position: Index) -> Character {
@@ -996,7 +1000,7 @@ extension BTree {
 // There's no UTF16View, but this seems like as good a place as any.
 extension Rope {
     var utf16Count: Int {
-        root.measure(using: .utf16)
+        measure(using: .utf16)
     }
 }
 
@@ -1079,7 +1083,7 @@ extension Rope.UTF8View: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .utf8)
+        base.measure(using: .utf8)
     }
 }
 
@@ -1159,7 +1163,7 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .unicodeScalars)
+        base.measure(using: .unicodeScalars)
     }
 }
 
@@ -1171,8 +1175,18 @@ extension Rope {
     struct LinesView {
         var base: Rope
 
-        func index(at: Int) -> Index {
-            base.index(at: at, using: .newlines)
+        func index(at offset: Int) -> Index {
+            // The LinesView has one more line than the newlines
+            // metric, which counts the number of characters (e.g.
+            // a string with a single "\n" has two lines).
+            //
+            // This means we need to special case all of our index
+            // functions to deal with endIndex.
+            if offset == count {
+                return base.endIndex
+            }
+
+            return base.index(at: offset, using: .newlines)
         }
 
         func index(roundingDown i: Index) -> Index {
@@ -1217,21 +1231,25 @@ extension Rope.LinesView: BidirectionalCollection {
         return base.index(roundingDown: position, using: .newlines).readLine()!
     }
 
+    // TODO: write tests to make sure this fails with endIndex and then add the special case
     func index(before i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
         return base.index(before: i, using: .newlines)
     }
 
+    // TODO: ditto
     func index(after i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
         return base.index(after: i, using: .newlines)
     }
 
+    // TODO: ditto
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
         i.validate(for: base.root)
         return base.index(i, offsetBy: distance, using: .newlines)
     }
 
+    // TODO: ditto
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
         i.validate(for: base.root)
         limit.validate(for: base.root)
@@ -1239,7 +1257,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .newlines) + 1
+        base.measure(using: .newlines) + 1
     }
 }
 

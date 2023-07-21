@@ -21,7 +21,7 @@ protocol BTreeSummary {
 
 
 protocol BTreeDefaultMetric: BTreeSummary {
-    associatedtype DefaultMetric: BTreeMetric<Self>
+    associatedtype DefaultMetric: BTreeMetric<Self> where DefaultMetric.Unit == Int
 
     static var defaultMetric: DefaultMetric { get }
 }
@@ -48,10 +48,11 @@ enum BTreeMetricType {
 
 protocol BTreeMetric<Summary> {
     associatedtype Summary: BTreeSummary
+    associatedtype Unit: Numeric & Comparable
 
-    func measure(summary: Summary, count: Int) -> Int
-    func convertToBaseUnits(_ measuredUnits: Int, in leaf: Summary.Leaf) -> Int
-    func convertFromBaseUnits(_ baseUnits: Int, in leaf: Summary.Leaf) -> Int
+    func measure(summary: Summary, count: Int) -> Unit
+    func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf) -> Int
+    func convertFromBaseUnits(_ baseUnits: Int, in leaf: Summary.Leaf) -> Unit
     func isBoundary(_ offset: Int, in leaf: Summary.Leaf) -> Bool
 
     // Prev is never called with offset == 0
@@ -129,28 +130,35 @@ extension BTree where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: Index, offsetBy distance: Int, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.assertValid(for: root)
 
         var i = i
         let m = root.count(metric, upThrough: i.position)
-        precondition(m+distance >= 0 && m+distance <= root.measure(using: metric), "Index out of bounds")
+        precondition(m+distance >= 0 && m+distance <= measure(using: metric), "Index out of bounds")
         let pos = root.countBaseUnits(of: m + distance, measuredIn: metric)
         i.set(pos)
 
         return i
     }
 
-    func index<M>(_ i: Index, offsetBy distance: Int, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         i.assertValid(for: root)
         limit.assertValid(for: root)
 
-        let l = limit.position - i.position
+        let l = self.distance(from: i, to: limit, using: metric)
         if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
             return nil
         }
 
         return index(i, offsetBy: distance, using: metric)
+    }
+
+    func distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+        start.assertValid(for: root)
+        end.assertValid(for: root)
+
+        return root.count(metric, upThrough: end.position) - root.count(metric, upThrough: start.position)
     }
 
     func index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -163,9 +171,9 @@ extension BTree where Summary: BTreeDefaultMetric {
         return index(before: i, using: metric)
     }
 
-    func index<M>(at offset: Int, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(at offset: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
         let count = root.countBaseUnits(of: offset, measuredIn: metric)
-        return Index(offsetBy: count, in: root)
+        return Index(offsetBy: count, in: self)
     }
 }
 
@@ -370,21 +378,28 @@ extension BTree {
             return Node(cloning: self)
         }
 
-        func measure<M>(using metric: M) -> Int where M: BTreeMetric<Summary> {
+        func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
             metric.measure(summary: summary, count: count)
         }
 
-        func convert<M1, M2>(_ m1: Int, from: M1, to: M2) -> Int where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
+        func convert<M1, M2>(_ m1: M1.Unit, from: M1, to: M2) -> M2.Unit where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
             assert(m1 <= measure(using: from))
 
             if m1 == 0 {
                 return 0
             }
 
+            if type(of: from) == type(of: to) {
+                // If both metrics are the same, don't do any conversion.
+                // This makes distance(from:to:using:) O(1) for the
+                // base metric.
+                return m1 as! M2.Unit
+            }
+
             // TODO: figure out m1_fudge in xi-editor. I believe it's just an optimization, so this code is probably fine.
             // If you implement it, remember that the <= comparison becomes <.
             var m1 = m1
-            var m2 = 0
+            var m2: M2.Unit = 0
             var node = self
             while !node.isLeaf {
                 let parent = node
@@ -406,22 +421,28 @@ extension BTree {
     }
 }
 
+extension BTree {
+    func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+        root.measure(using: metric)
+    }
+}
+
 extension BTree.Node where Summary: BTreeDefaultMetric {
-    func count<M>(_ metric: M, upThrough offset: Int) -> Int where M: BTreeMetric<Summary> {
+    func count<M>(_ metric: M, upThrough offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
         convert(offset, from: Summary.defaultMetric, to: metric)
     }
 
-    func countBaseUnits<M>(of measured: Int, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
+    func countBaseUnits<M>(of measured: M.Unit, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
         convert(measured, from: metric, to: Summary.defaultMetric)
     }
 }
 
 extension BTree where Summary: BTreeDefaultMetric {
-    func count<M>(_ metric: M, upThrough offset: Int) -> Int where M: BTreeMetric<Summary> {
+    func count<M>(_ metric: M, upThrough offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
         root.count(metric, upThrough: offset)
     }
 
-    func countBaseUnits<M>(of measured: Int, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
+    func countBaseUnits<M>(of measured: M.Unit, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
         root.countBaseUnits(of: measured, measuredIn: metric)
     }
 }
@@ -557,7 +578,7 @@ extension BTree {
             }
         }
 
-        mutating func build() -> Node {
+        consuming func build() -> Node {
             if stack.isEmpty {
                 return Node()
             } else {
@@ -976,13 +997,13 @@ extension BTree {
             return leaf
         }
 
-        func measure<M>(upToLeafContaining pos: Int, using metric: M) -> Int where M: BTreeMetric<Summary> {
+        func measure<M>(upToLeafContaining pos: Int, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
             if pos == 0 {
                 return 0
             }
 
             var node = root!
-            var measure = 0
+            var measure: M.Unit = 0
             var pos = pos
 
             while !node.isLeaf {
@@ -999,7 +1020,7 @@ extension BTree {
             return measure
         }
 
-        mutating func descend<M>(toLeafContaining measure: Int, asMeasuredBy metric: M) where M: BTreeMetric<Summary> {
+        mutating func descend<M>(toLeafContaining measure: M.Unit, asMeasuredBy metric: M) where M: BTreeMetric<Summary> {
             var node = root!
             var offset = 0
             var measure = measure

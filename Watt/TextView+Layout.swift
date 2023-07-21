@@ -9,6 +9,9 @@ import Cocoa
 
 extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     override func layout() {
+        // TODO: move back to having the layout manager ask for viewportBounds so we don't have to worry about making sure we set it in all the right places. In order to do this, we should switch to doing layout of text, selection and insertion points all at once, and trigger it from within layoutSublayers(of:) for self.layer.
+        layoutManager.viewportBounds = viewportBounds
+
         // If we need to call setNeedsLayout on our subviews, do it here,
         // before calling super.layout()
 

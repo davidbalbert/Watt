@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
 		6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888B29FD8E19005B95E5 /* AppDelegate.swift */; };
@@ -66,6 +67,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
 		6372888829FD8E19005B95E5 /* Watt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Watt.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,6 +179,7 @@
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
+				631FD2642A696D27005FA854 /* Heights.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
 				63F25BE02A689D2400DEACCF /* Line.swift */,
@@ -389,6 +392,7 @@
 				63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */,
 				63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */,
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
+				631FD2652A696D27005FA854 /* Heights.swift in Sources */,
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+Actions.swift in Sources */,

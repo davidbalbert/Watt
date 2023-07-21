@@ -44,6 +44,8 @@ class LayoutManager {
         }
     }
 
+    var heights: Heights
+
     var textContainer: TextContainer {
         didSet {
             invalidateLayout()
@@ -58,7 +60,7 @@ class LayoutManager {
 
     var viewportBounds: CGRect {
         didSet {
-            if viewportBounds.size != oldValue.size {
+            if viewportBounds.width != oldValue.width {
                 invalidateLayout()
             }
         }
@@ -68,6 +70,7 @@ class LayoutManager {
 
     init() {
         self.buffer = Buffer()
+        self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
         self.textContainerInset = .zero
         self.viewportBounds = .zero
@@ -77,8 +80,7 @@ class LayoutManager {
     }
 
     var contentHeight: CGFloat {
-        // TODO: make this real
-        10000
+        heights.contentHeight
     }
 
     func layoutText() {
@@ -93,12 +95,17 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        var lineno: Int = 1
-        var y: CGFloat = 0
+        let range = heights.lineRange(for: viewportBounds)
 
-        // TODO: make this actually layout what's in the viewport
-        for s in buffer.lines.prefix(10) {
-            let line = layout(NSAttributedString(string: s), at: CGPoint(x: 0, y: y))
+        var lineno: Int = range.lowerBound
+        var y = heights.yOffset(forLine: range.lowerBound)
+
+        var i = buffer.lines.index(at: range.lowerBound)
+        let end = buffer.lines.index(at: range.upperBound)
+
+        while i < end {
+            // TODO: get rid of the hack to set the font
+            let line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
 
             let layer = LineLayer(line: line)
             layer.anchorPoint = .zero
@@ -108,11 +115,15 @@ class LayoutManager {
 
             delegate.layoutManager(self, insertTextLayer: layer)
             if updateLineNumbers {
-                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno, at: line.position, withLineHeight: line.typographicBounds.height)
+                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }
 
-            y += line.typographicBounds.height
+            let height = line.typographicBounds.height
+            heights[lineno] = height
+
+            y += height
             lineno += 1
+            buffer.lines.formIndex(after: &i)
         }
 
         delegate.layoutManagerDidLayoutText(self)
@@ -182,7 +193,7 @@ class LayoutManager {
     }
 
     func invalidateLayout() {
-
+        heights = Heights(rope: buffer.contents)
     }
 
     func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
