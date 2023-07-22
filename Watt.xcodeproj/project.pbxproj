@@ -24,7 +24,6 @@
 		637867832A1EC5B50039960E /* TextView+Input.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867822A1EC5B50039960E /* TextView+Input.swift */; };
 		637867852A1EC6BB0039960E /* TextView+Actions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867842A1EC6BB0039960E /* TextView+Actions.swift */; };
 		637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637867862A1FB2C50039960E /* NSRange+Extensions.swift */; };
-		637867902A214F950039960E /* HeightEstimatesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6378678E2A214EE80039960E /* HeightEstimatesTests.swift */; };
 		637BC1322A151F5F0089A34D /* Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1312A151F5F0089A34D /* Selection.swift */; };
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
 		637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1432A156B820089A34D /* CGPoint+Extensions.swift */; };
@@ -91,7 +90,6 @@
 		637867822A1EC5B50039960E /* TextView+Input.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Input.swift"; sourceTree = "<group>"; };
 		637867842A1EC6BB0039960E /* TextView+Actions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Actions.swift"; sourceTree = "<group>"; };
 		637867862A1FB2C50039960E /* NSRange+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSRange+Extensions.swift"; sourceTree = "<group>"; };
-		6378678E2A214EE80039960E /* HeightEstimatesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightEstimatesTests.swift; sourceTree = "<group>"; };
 		637BC1312A151F5F0089A34D /* Selection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Selection.swift; sourceTree = "<group>"; };
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
@@ -209,7 +207,6 @@
 		637288A029FD8E1A005B95E5 /* WattTests */ = {
 			isa = PBXGroup;
 			children = (
-				6378678E2A214EE80039960E /* HeightEstimatesTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 			);
 			path = WattTests;
@@ -403,7 +400,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				637867902A214F950039960E /* HeightEstimatesTests.swift in Sources */,
 				63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
