@@ -154,23 +154,24 @@ extension TextView: LayoutManagerDelegate {
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> CALayer {
+    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer {
         let layer = LineLayer(line: line)
         layer.anchorPoint = .zero
         layer.needsDisplayOnBoundsChange = true
-        layer.bounds = line.typographicBounds
-        // TODO: Line.position is currently in textContainer coordinates. Is that
-        // dumb? Given that the layout manager knows the textContainerInset, it
-        // could give us the lines in view coordinates rather than
-        // textContainer coordinates.
-        layer.position = layoutManager.convertFromTextContainer(line.position)
         layer.delegate = self // NSViewLayerContentScaleDelegate
         layer.contentsScale = window?.backingScaleFactor ?? 1.0
 
         return layer
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer) {
+    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer) {
+        layer.bounds = layer.line.typographicBounds
+        // TODO: Line.position is currently in textContainer coordinates. Is that
+        // dumb? Given that the layout manager knows the textContainerInset, it
+        // could give us the lines in view coordinates rather than
+        // textContainer coordinates.
+        layer.position = layoutManager.convertFromTextContainer(layer.line.position)
+
         textLayer.addSublayer(layer)
     }
 

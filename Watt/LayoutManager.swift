@@ -38,8 +38,8 @@ protocol LayoutManagerDelegate: AnyObject {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
 
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> CALayer
-    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer)
+    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer
+    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer)
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
 
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager)
@@ -97,13 +97,7 @@ class LayoutManager {
 
     var selection: Selection
 
-    // Could this just be a WeakDictionary? It would still have to be in the
-    // layoutManager so we can invalidate properly when text changes, but if
-    // it's just a weak map of line numbers to layers, we should be able to
-    // invalidate the line numbers ourselves relatively easily (famous last
-    // words) during edits and let invalidation for things outside the
-    // viewport happen automatically.
-    var textLayerCache: LayerCache
+    var textLayerCache: WeakDictionary<Int, LineLayer>
 
     init() {
         self.buffer = Buffer()
@@ -111,7 +105,7 @@ class LayoutManager {
         self.textContainer = TextContainer()
         self.textContainerInset = .zero
         self.viewportBounds = .zero
-        self.textLayerCache = LayerCache()
+        self.textLayerCache = WeakDictionary()
 
         // TODO: subscribe to changes to buffer.
         self.selection = Selection(head: buffer.documentRange.lowerBound)
@@ -136,7 +130,6 @@ class LayoutManager {
         }
 
         let range = heights.lineRange(for: viewportBounds)
-        textLayerCache.removeLayersOutsideOf(lineRange: range)
 
         var lineno: Int = range.lowerBound
         var y = heights.yOffset(forLine: range.lowerBound)
@@ -145,10 +138,17 @@ class LayoutManager {
         let end = buffer.lines.index(at: range.upperBound)
 
         while i < end {
-            // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-            let line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
+            let layer: LineLayer
+            let line: Line
+            if let l = textLayerCache[lineno] {
+                line = l.line
+                layer = l
+            } else {
+                // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
+                line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
+                layer = textLayerCache[lineno] ?? delegate.layoutManager(self, createTextLayerFor: line)
+            }
 
-            let layer = textLayerCache[lineno] ?? delegate.layoutManager(self, createTextLayerFor: line)
             delegate.layoutManager(self, insertTextLayer: layer)
             textLayerCache[lineno] = layer
 
