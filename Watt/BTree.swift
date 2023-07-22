@@ -158,7 +158,7 @@ extension BTree where Summary: BTreeDefaultMetric {
         start.assertValid(for: root)
         end.assertValid(for: root)
 
-        return root.count(metric, upThrough: end.position) - root.count(metric, upThrough: start.position)
+        return count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
     }
 
     func index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
