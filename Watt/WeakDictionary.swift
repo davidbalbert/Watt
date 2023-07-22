@@ -27,14 +27,26 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
         storage.count
     }
 
+    var limit: Int {
+        256
+    }
+
     subscript(key: Key) -> Value? {
         mutating get {
-            if let ref = storage[key] {
-                return ref.value
-            } else {
+            if storage.count > limit {
+                compact()
+            }
+
+            guard let ref = storage[key] else {
+                return nil
+            }
+
+            if ref.value == nil {
                 storage.removeValue(forKey: key)
                 return nil
             }
+
+            return ref.value
         }
 
         set {
@@ -43,6 +55,20 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
             } else {
                 storage.removeValue(forKey: key)
             }
+        }
+    }
+
+    mutating func compact() {
+        var toRemove: [Key] = []
+
+        for (k, v) in storage {
+            if v.value == nil {
+                toRemove.append(k)
+            }
+        }
+
+        for k in toRemove {
+            storage.removeValue(forKey: k)
         }
     }
 
