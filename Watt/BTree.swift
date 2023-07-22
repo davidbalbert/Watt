@@ -393,6 +393,9 @@ extension BTree {
                 // If both metrics are the same, don't do any conversion.
                 // This makes distance(from:to:using:) O(1) for the
                 // base metric.
+                //
+                // This assumes metrics don't have any state, so any instance
+                // of the same metric will return the same values.
                 return m1 as! M2.Unit
             }
 
