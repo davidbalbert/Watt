@@ -36,6 +36,7 @@ import QuartzCore
 
 protocol LayoutManagerDelegate: AnyObject {
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> CALayer
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer)
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
 
@@ -133,13 +134,9 @@ class LayoutManager {
             // TODO: get rid of the hack to set the font
             let line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
 
-            let layer = LineLayer(line: line)
-            layer.anchorPoint = .zero
-            layer.needsDisplayOnBoundsChange = true
-            layer.bounds = line.typographicBounds
-            layer.position = convertFromTextContainer(line.position)
-
+            let layer = delegate.layoutManager(self, createTextLayerFor: line)
             delegate.layoutManager(self, insertTextLayer: layer)
+
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }

@@ -161,11 +161,23 @@ extension TextView: LayoutManagerDelegate {
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer) {
-        // TODO: maybe move this into another delegate method that only gets called for non-cached layers. Or perhaps have a createLayer(for line:) method that does all of the creation (eventually that could abstract over CALayer/UIView).
+    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> CALayer {
+        let layer = LineLayer(line: line)
+        layer.anchorPoint = .zero
+        layer.needsDisplayOnBoundsChange = true
+        layer.bounds = line.typographicBounds
+        // TODO: Line.position is currently in textContainer coordinates. Is that
+        // dumb? Given that the layout manager knows the textContainerInset, it
+        // could give us the lines in view coordinates rather than
+        // textContainer coordinates.
+        layer.position = layoutManager.convertFromTextContainer(line.position)
         layer.delegate = self // NSViewLayerContentScaleDelegate
         layer.contentsScale = window?.backingScaleFactor ?? 1.0
 
+        return layer
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer) {
         textLayer.addSublayer(layer)
     }
 
