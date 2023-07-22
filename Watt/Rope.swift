@@ -667,6 +667,12 @@ extension Rope.Index {
     }
 }
 
+extension Rope.Index: CustomDebugStringConvertible {
+    var debugDescription: String {
+        "\(position)[utf8]"
+    }
+}
+
 
 // MARK: - Collection conformances
 
