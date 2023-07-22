@@ -35,6 +35,8 @@ import QuartzCore
 // in its cache.
 
 protocol LayoutManagerDelegate: AnyObject {
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect
+
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
     func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> CALayer
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer)
@@ -123,6 +125,8 @@ class LayoutManager {
         guard let delegate else {
             return
         }
+
+        viewportBounds = delegate.viewportBounds(for: self)
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
 

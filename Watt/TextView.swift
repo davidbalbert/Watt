@@ -144,17 +144,7 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {
-        if let clipView = scrollView?.contentView {
-            NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: clipView)
-        }
-
         removeLineNumberView()
-    }
-
-    override func viewDidMoveToSuperview() {
-        if let clipView = scrollView?.contentView {
-            NotificationCenter.default.addObserver(self, selector: #selector(clipViewBoundsDidChange(_:)), name: NSView.boundsDidChangeNotification, object: clipView)
-        }
     }
 
     // This is a custom method on ClipViewDelegate. Normally we'd use

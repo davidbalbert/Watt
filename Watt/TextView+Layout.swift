@@ -9,9 +9,6 @@ import Cocoa
 
 extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     override func layout() {
-        // TODO: move back to having the layout manager ask for viewportBounds so we don't have to worry about making sure we set it in all the right places. In order to do this, we should switch to doing layout of text, selection and insertion points all at once, and trigger it from within layoutSublayers(of:) for self.layer.
-        layoutManager.viewportBounds = viewportBounds
-
         // If we need to call setNeedsLayout on our subviews, do it here,
         // before calling super.layout()
 
@@ -62,29 +59,12 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         return nil
     }
 
-    var viewportBounds: CGRect {
-        var bounds: CGRect
-        if preparedContentRect.intersects(visibleRect) {
-            bounds = preparedContentRect.union(visibleRect)
-        } else {
-            bounds = visibleRect
-        }
-
-        bounds.size.width = bounds.width
-
-        return bounds
-    }
-
     override func prepareContent(in rect: NSRect) {
         super.prepareContent(in: rect)
 
         selectionLayer.setNeedsLayout()
         textLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
-    }
-
-    @objc func clipViewBoundsDidChange(_ notification: NSNotification) {
-        layoutManager.viewportBounds = viewportBounds
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -151,6 +131,19 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
 
 extension TextView: LayoutManagerDelegate {
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
+        var bounds: CGRect
+        if preparedContentRect.intersects(visibleRect) {
+            bounds = preparedContentRect.union(visibleRect)
+        } else {
+            bounds = visibleRect
+        }
+
+        bounds.size.width = bounds.width
+
+        return bounds
+    }
+
     // MARK: - Text layout
 
     func layoutTextLayer() {
