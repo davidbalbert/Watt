@@ -8,6 +8,32 @@
 import Foundation
 import QuartzCore
 
+// Notes for a hypothetical, unlikely iOS port:
+//
+// On iOS, we'd probably want to render lines, selection, and
+// insertion points into UIViews rather than CALayers, just
+// because UIViews are lighter weight, and that seems to be
+// what other similar systems like UITextView, Runestone, etc.
+// do.
+//
+// But we still want LayoutManager to be in charge of caching
+// the rendering surfaces. To handle this, we could add a generic
+// parameter RenderingSurface to LayoutManager, as well as
+// a RenderingSurface associated type to both delegates.
+// RenderingSurface will end up either CALayer or UIView. There
+// are no constraints needed for the type. All the layout manager
+// will do is ask its delegate to create rendering surfaces,
+// cache them, and then hand them back to it's delegate to insert
+// them into its hierarchy.
+//
+// The reason we'd need all this nonsense, and the reason
+// LayoutManager is responsible for caching layers in the first
+// place, is because I'm not planning on caching Lines, which
+// contain the output of Core Text's layout process, and I don't
+// want to have to re-layout text in order to just give the
+// delegate enough info to to figure out whether it has a layer
+// in its cache.
+
 protocol LayoutManagerDelegate: AnyObject {
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: CALayer)
