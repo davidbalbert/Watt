@@ -1258,21 +1258,39 @@ extension Rope.LinesView: BidirectionalCollection {
 
         var i = i
         let m = base.count(.newlines, upThrough: i.position)
+        precondition(m+distance >= 0 && m+distance <= count, "Index out of bounds")
         if m + distance == count {
             return endIndex
         }
-        precondition(m+distance >= 0 && m+distance < count, "Index out of bounds")
         let pos = base.countBaseUnits(of: m + distance, measuredIn: .newlines)
         i.set(pos)
 
         return i
     }
 
-    // TODO: ditto
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
         i.validate(for: base.root)
         limit.validate(for: base.root)
-        return base.index(i, offsetBy: distance, limitedBy: limit, using: .newlines)
+
+        var l = base.distance(from: i, to: limit, using: .newlines)
+
+        // there's always one more line than # of "\n" characters
+        if limit.position == endIndex.position {
+            l += 1
+        }
+
+        // This is a hack and I have no idea if it's right. My mind is too wooly.
+        if distance > 0 && i.position > limit.position && l == 0 {
+            l -= 1
+        } else if distance < 0 && i.position < limit.position && l == 0 {
+            l += 1
+        }
+
+        if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
+            return nil
+        }
+
+        return index(i, offsetBy: distance)
     }
 
     var count: Int {

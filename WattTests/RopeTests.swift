@@ -1043,4 +1043,27 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.endIndex, i)
         XCTAssertEqual(3, i.position)
     }
+
+    func testLinesViewIndexOffsetByLimitedByEnd() {
+        let r = Rope("foo")
+
+        XCTAssertEqual(1, r.lines.count)
+
+        var i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.endIndex)
+        XCTAssertEqual(r.endIndex, i)
+        XCTAssertEqual(3, i?.position)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.endIndex)
+        XCTAssertNil(i)
+
+        // limit in opposite direction is a no-op.
+        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.startIndex)
+        XCTAssertEqual(r.endIndex, i)
+        XCTAssertEqual(3, i?.position)
+
+        let r1 = Rope("foo\nbar\nbaz")
+        i = r1.lines.index(r1.index(at: 2), offsetBy: 3, limitedBy: r1.startIndex)
+        XCTAssertEqual(r1.endIndex, i)
+        XCTAssertEqual(11, i?.position)
+    }
 }
