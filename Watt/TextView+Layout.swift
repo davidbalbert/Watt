@@ -132,11 +132,23 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             return userInset
         }
     }
+
+    var scrollOffset: CGPoint {
+        guard let scrollView else {
+            return .zero
+        }
+
+        return scrollView.contentView.bounds.origin
+    }
 }
 
 
 extension TextView: LayoutManagerDelegate {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
+        visibleRect
+    }
+
+    func overdrawBounds(for layoutManager: LayoutManager) -> CGRect {
         var bounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             bounds = preparedContentRect.union(visibleRect)
@@ -144,9 +156,12 @@ extension TextView: LayoutManagerDelegate {
             bounds = visibleRect
         }
 
-        bounds.size.width = bounds.width
-
         return bounds
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {
+        let current = scrollOffset
+        scroll(CGPoint(x: current.x + adjustment.width, y: current.y + adjustment.height))
     }
 
     // MARK: - Text layout

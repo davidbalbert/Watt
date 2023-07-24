@@ -36,6 +36,9 @@ import QuartzCore
 
 protocol LayoutManagerDelegate: AnyObject {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
+    func overdrawBounds(for layoutManager: LayoutManager) -> CGRect
+
+    func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
     func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer
@@ -70,6 +73,7 @@ class LayoutManager {
         didSet {
             // TODO: subscribe to changes to new buffer
             selection = Selection(head: buffer.documentRange.lowerBound)
+            heights = Heights(rope: buffer.contents)
             invalidateLayout()
         }
     }
@@ -78,23 +82,21 @@ class LayoutManager {
 
     var textContainer: TextContainer {
         didSet {
-            invalidateLayout()
+            if textContainer != oldValue {
+                invalidateLayout()
+            }
         }
     }
 
     var textContainerInset: NSEdgeInsets {
         didSet {
-            invalidateLayout()
-        }
-    }
-
-    var viewportBounds: CGRect {
-        didSet {
-            if viewportBounds.width != oldValue.width {
+            if !NSEdgeInsetsEqual(textContainerInset, oldValue) {
                 invalidateLayout()
             }
         }
     }
+
+    var previousViewportBounds: CGRect
 
     var selection: Selection
 
@@ -105,7 +107,7 @@ class LayoutManager {
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
         self.textContainerInset = NSEdgeInsetsZero
-        self.viewportBounds = .zero
+        self.previousViewportBounds = .zero
         self.textLayerCache = WeakDictionary()
 
         // TODO: subscribe to changes to buffer.
@@ -121,7 +123,8 @@ class LayoutManager {
             return
         }
 
-        viewportBounds = delegate.viewportBounds(for: self)
+        let viewportBounds = delegate.viewportBounds(for: self)
+        let overdrawBounds = delegate.overdrawBounds(for: self)
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
 
@@ -130,7 +133,7 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let range = heights.lineRange(for: viewportBounds)
+        let range = heights.lineRange(for: overdrawBounds)
 
         var lineno: Int = range.lowerBound
         var y = heights.yOffset(forLine: range.lowerBound)
@@ -138,30 +141,41 @@ class LayoutManager {
         var i = buffer.lines.index(at: range.lowerBound)
         let end = buffer.lines.index(at: range.upperBound)
 
+        var scrollAdjustment: CGSize = .zero
+
         while i < end {
             let layer: LineLayer
             let line: Line
-//            if let l = textLayerCache[lineno] {
-//                l.line.position.y = y
-//                line = l.line
-//                layer = l
-//            } else {
+            if let l = textLayerCache[lineno] {
+                l.line.position.y = y
+                line = l.line
+                layer = l
+            } else {
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
                 layer = delegate.layoutManager(self, createTextLayerFor: line)
-//            }
+            }
 
             delegate.layoutManager(self, insertTextLayer: layer)
-//            textLayerCache[lineno] = layer
+            textLayerCache[lineno] = layer
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }
 
-            let height = line.typographicBounds.height
-            heights[lineno] = height
+            let oldHeight = heights[lineno]
+            let newHeight = line.typographicBounds.height
+            let delta = newHeight - oldHeight
 
-            y += height
+            let minY = convertFromTextContainer(line.position).y
+            let oldMaxY = minY + oldHeight
+
+            if oldMaxY <= previousViewportBounds.minY && delta != 0 {
+                scrollAdjustment.height += delta
+            }
+
+            heights[lineno] = newHeight
+            y += newHeight
             lineno += 1
             buffer.lines.formIndex(after: &i)
         }
@@ -170,6 +184,12 @@ class LayoutManager {
         if updateLineNumbers {
             lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
+
+        if scrollAdjustment != .zero {
+            delegate.layoutManager(self, adjustScrollOffsetBy: scrollAdjustment)
+        }
+
+        previousViewportBounds = viewportBounds
     }
 
     func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
@@ -233,7 +253,6 @@ class LayoutManager {
     }
 
     func invalidateLayout() {
-        heights = Heights(rope: buffer.contents)
         textLayerCache.removeAll()
     }
 

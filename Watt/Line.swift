@@ -14,6 +14,15 @@ struct Line {
     let typographicBounds: CGRect
     let lineFragments: [LineFragment]
 
+    var frame: CGRect {
+        CGRect(
+            x: position.x + typographicBounds.minX,
+            y: position.y + typographicBounds.minY,
+            width: typographicBounds.width,
+            height: typographicBounds.height
+        )
+    }
+
     func draw(at point: CGPoint, in ctx: CGContext) {
         ctx.saveGState()
         ctx.translateBy(x: point.x, y: point.y)
