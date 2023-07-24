@@ -38,6 +38,8 @@ protocol LayoutManagerDelegate: AnyObject {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func overdrawBounds(for layoutManager: LayoutManager) -> CGRect
 
+    func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint
+
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
@@ -88,14 +90,6 @@ class LayoutManager {
         }
     }
 
-    var textContainerInset: NSEdgeInsets {
-        didSet {
-            if !NSEdgeInsetsEqual(textContainerInset, oldValue) {
-                invalidateLayout()
-            }
-        }
-    }
-
     var previousViewportBounds: CGRect
 
     var selection: Selection
@@ -106,7 +100,6 @@ class LayoutManager {
         self.buffer = Buffer()
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
-        self.textContainerInset = NSEdgeInsetsZero
         self.previousViewportBounds = .zero
         self.textLayerCache = WeakDictionary()
 
@@ -167,7 +160,8 @@ class LayoutManager {
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
 
-            let minY = convertFromTextContainer(line.position).y
+            // TODO: instead of converting each of these, how about just converting viewport bounds once?
+            let minY = delegate.layoutManager(self, convertFromTextContainer: line.position).y
             let oldMaxY = minY + oldHeight
 
             // TODO: I don't know why I have to use the previous frame's
@@ -264,21 +258,5 @@ class LayoutManager {
 
     func invalidateLayout() {
         textLayerCache.removeAll()
-    }
-
-    func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x + textContainerInset.left, y: point.y + textContainerInset.top)
-    }
-
-    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x - textContainerInset.left, y: point.y - textContainerInset.top)
-    }
-
-    func convertFromTextContainer(_ rect: CGRect) -> CGRect {
-        CGRect(origin: convertFromTextContainer(rect.origin), size: rect.size)
-    }
-
-    func convertToTextContainer(_ rect: CGRect) -> CGRect {
-        CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
     }
 }

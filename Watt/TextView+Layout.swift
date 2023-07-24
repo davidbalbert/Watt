@@ -77,12 +77,11 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         // this is called before layout(). I'm 99% sure it
         // will be.
 
-        let inset = calculateTextContainerInset()
+        let inset = computedTextContainerInset
         let width = max(0, frame.width - inset.left - inset.right)
 
         if layoutManager.textContainer.size.width != width {
             layoutManager.textContainer.size = CGSize(width: width, height: 0)
-            layoutManager.textContainerInset = inset
 
             // This isn't needed when this function is called from
             // setFrameSize, but it is needed when the line number
@@ -118,18 +117,18 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
     // Takes the user specified textContainerInset and combines
     // it with the line number view's dimensions.
-    func calculateTextContainerInset() -> NSEdgeInsets {
+    func updateComputedTextContainerInset() {
         let userInset = textContainerInset
 
         if lineNumberView.superview != nil {
-            return NSEdgeInsets(
+            computedTextContainerInset = NSEdgeInsets(
                 top: userInset.top,
                 left: userInset.left + lineNumberView.frame.width,
                 bottom: userInset.bottom,
                 right: userInset.right
             )
         } else {
-            return userInset
+            computedTextContainerInset = userInset
         }
     }
 
@@ -139,6 +138,22 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
 
         return scrollView.contentView.bounds.origin
+    }
+
+    func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x + computedTextContainerInset.left, y: point.y + computedTextContainerInset.top)
+    }
+
+    func convertToTextContainer(_ point: CGPoint) -> CGPoint {
+        CGPoint(x: point.x - computedTextContainerInset.left, y: point.y - computedTextContainerInset.top)
+    }
+
+    func convertFromTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertFromTextContainer(rect.origin), size: rect.size)
+    }
+
+    func convertToTextContainer(_ rect: CGRect) -> CGRect {
+        CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
     }
 }
 
@@ -158,6 +173,11 @@ extension TextView: LayoutManagerDelegate {
 
         return bounds
     }
+
+    func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint {
+        convertFromTextContainer(point)
+    }
+
 
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {
         let current = scrollOffset
@@ -186,7 +206,7 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer) {
         layer.bounds = layer.line.typographicBounds
-        layer.position = layoutManager.convertFromTextContainer(layer.line.position)
+        layer.position = convertFromTextContainer(layer.line.position)
 
         textLayer.addSublayer(layer)
     }

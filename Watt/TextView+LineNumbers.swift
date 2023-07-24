@@ -21,11 +21,14 @@ extension TextView {
             lineNumberView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
+        updateComputedTextContainerInset()
         updateTextContainerSizeIfNeeded()
     }
 
     func removeLineNumberView() {
         lineNumberView.removeFromSuperview()
+
+        updateComputedTextContainerInset()
         updateTextContainerSizeIfNeeded()
     }
 
@@ -36,6 +39,7 @@ extension TextView {
             return
         }
 
+        updateComputedTextContainerInset()
         updateTextContainerSizeIfNeeded()
     }
 }

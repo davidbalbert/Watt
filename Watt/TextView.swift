@@ -74,9 +74,15 @@ class TextView: NSView, ClipViewDelegate {
 
     var textContainerInset: NSEdgeInsets = NSEdgeInsetsZero {
         didSet {
-            layoutManager.invalidateLayout()
+            if !NSEdgeInsetsEqual(textContainerInset, oldValue) {
+                updateComputedTextContainerInset()
+                layoutManager.invalidateLayout()
+            }
         }
     }
+
+    // internal, for use with the line number view
+    var computedTextContainerInset: NSEdgeInsets = NSEdgeInsetsZero
 
     let selectionLayer: CALayer = CALayer()
     let textLayer: CALayer = CALayer()

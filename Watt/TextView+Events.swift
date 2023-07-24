@@ -47,7 +47,7 @@ extension TextView {
         }
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        let point = layoutManager.convertToTextContainer(locationInView)
+        let point = convertToTextContainer(locationInView)
         startSelection(at: point)
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -60,7 +60,7 @@ extension TextView {
         }
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        let point = layoutManager.convertToTextContainer(locationInView)
+        let point = convertToTextContainer(locationInView)
         extendSelection(to: point)
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
