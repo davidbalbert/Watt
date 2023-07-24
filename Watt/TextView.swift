@@ -72,7 +72,7 @@ class TextView: NSView, ClipViewDelegate {
         }
     }
 
-    var textContainerInset: CGSize = .zero
+    var textContainerInset: NSEdgeInsets = NSEdgeInsetsZero
 
     let selectionLayer: CALayer = CALayer()
     let textLayer: CALayer = CALayer()

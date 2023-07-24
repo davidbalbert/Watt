@@ -78,7 +78,7 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         // will be.
 
         let inset = calculateTextContainerInset()
-        let width = max(0, frame.width - inset.width)
+        let width = max(0, frame.width - inset.left - inset.right)
 
         if layoutManager.textContainer.size.width != width {
             layoutManager.textContainer.size = CGSize(width: width, height: 0)
@@ -118,11 +118,16 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
     // Takes the user specified textContainerInset and combines
     // it with the line number view's dimensions.
-    func calculateTextContainerInset() -> CGSize {
+    func calculateTextContainerInset() -> NSEdgeInsets {
         let userInset = textContainerInset
 
         if lineNumberView.superview != nil {
-            return CGSize(width: userInset.width + lineNumberView.frame.width, height: userInset.height)
+            return NSEdgeInsets(
+                top: userInset.top,
+                left: userInset.left + lineNumberView.frame.width,
+                bottom: userInset.bottom,
+                right: userInset.right
+            )
         } else {
             return userInset
         }

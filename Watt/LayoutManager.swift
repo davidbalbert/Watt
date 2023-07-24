@@ -82,8 +82,7 @@ class LayoutManager {
         }
     }
 
-    // TODO: remove textContainerInset from LayoutManager and move the convert*TextContainer methods back to TextView.
-    var textContainerInset: CGSize {
+    var textContainerInset: NSEdgeInsets {
         didSet {
             invalidateLayout()
         }
@@ -105,7 +104,7 @@ class LayoutManager {
         self.buffer = Buffer()
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
-        self.textContainerInset = .zero
+        self.textContainerInset = NSEdgeInsetsZero
         self.viewportBounds = .zero
         self.textLayerCache = WeakDictionary()
 
@@ -239,11 +238,11 @@ class LayoutManager {
     }
 
     func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x + textContainerInset.width, y: point.y + textContainerInset.height)
+        CGPoint(x: point.x + textContainerInset.left, y: point.y + textContainerInset.top)
     }
 
     func convertToTextContainer(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x - textContainerInset.width, y: point.y - textContainerInset.height)
+        CGPoint(x: point.x - textContainerInset.left, y: point.y - textContainerInset.top)
     }
 
     func convertFromTextContainer(_ rect: CGRect) -> CGRect {
