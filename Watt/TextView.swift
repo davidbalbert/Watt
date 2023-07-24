@@ -54,8 +54,7 @@ class TextView: NSView, ClipViewDelegate {
     let layoutManager: LayoutManager
 
     var selection: Selection? {
-//        layoutManager.selection
-        nil
+        layoutManager.selection
     }
 
     var lineNumberView: LineNumberView

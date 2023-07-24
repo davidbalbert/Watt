@@ -43,11 +43,12 @@ protocol LayoutManagerDelegate: AnyObject {
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
 
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, createSelectionLayerFor rect: CGRect) -> CALayer
     func layoutManager(_ layoutManager: LayoutManager, insertSelectionLayer layer: CALayer)
     func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager)
 
     func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointsLayer layer: CALayer)
+    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointLayer layer: CALayer)
     func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager)
 }
 
@@ -81,6 +82,7 @@ class LayoutManager {
         }
     }
 
+    // TODO: remove textContainerInset from LayoutManager and move the convert*TextContainer methods back to TextView.
     var textContainerInset: CGSize {
         didSet {
             invalidateLayout()
@@ -140,17 +142,18 @@ class LayoutManager {
         while i < end {
             let layer: LineLayer
             let line: Line
-            if let l = textLayerCache[lineno] {
-                line = l.line
-                layer = l
-            } else {
+//            if let l = textLayerCache[lineno] {
+//                l.line.position.y = y
+//                line = l.line
+//                layer = l
+//            } else {
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
-                layer = textLayerCache[lineno] ?? delegate.layoutManager(self, createTextLayerFor: line)
-            }
+                layer = delegate.layoutManager(self, createTextLayerFor: line)
+//            }
 
             delegate.layoutManager(self, insertTextLayer: layer)
-            textLayerCache[lineno] = layer
+//            textLayerCache[lineno] = layer
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
@@ -232,6 +235,7 @@ class LayoutManager {
 
     func invalidateLayout() {
         heights = Heights(rope: buffer.contents)
+        textLayerCache.removeAll()
     }
 
     func convertFromTextContainer(_ point: CGPoint) -> CGPoint {

@@ -155,13 +155,13 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer {
-        let layer = LineLayer(line: line)
-        layer.anchorPoint = .zero
-        layer.needsDisplayOnBoundsChange = true
-        layer.delegate = self // NSViewLayerContentScaleDelegate
-        layer.contentsScale = window?.backingScaleFactor ?? 1.0
+        let l = LineLayer(line: line)
+        l.anchorPoint = .zero
+        l.needsDisplayOnBoundsChange = true
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
 
-        return layer
+        return l
     }
 
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer) {
@@ -175,39 +175,9 @@ extension TextView: LayoutManagerDelegate {
         textLayer.addSublayer(layer)
     }
 
-//    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceFor layoutFragment: LayoutFragment) {
-//
-//        let l = textLayerCache[layoutFragment.id] ?? makeLayoutFragmentLayer(for: layoutFragment)
-//        l.bounds = layoutFragment.typographicBounds
-//        l.position = CGPoint(
-//            x: layoutFragment.position.x + textContainerInset.width,
-//            y: layoutFragment.position.y + textContainerInset.height
-//        )
-//
-//        textLayerCache[layoutFragment.id] = l
-//
-//        textLayer.addSublayer(l)
-//
-//        guard let lineFragment = layoutFragment.lineFragments.first else {
-//            return
-//        }
-//
-//        lineNumberView.addLineNumber(layoutFragment.lineNumber, at: layoutFragment.position, withLineHeight: lineFragment.typographicBounds.height)
-//    }
-
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager) {
         updateFrameHeightIfNeeded()
     }
-
-//    func makeLayoutFragmentLayer(for layoutFragment: LayoutFragment) -> CALayer {
-//        let l = LayoutFragmentLayer(layoutFragment: layoutFragment)
-//        l.anchorPoint = .zero
-//        l.delegate = self // NSViewLayerContentScaleDelegate
-//        l.needsDisplayOnBoundsChange = true
-//        l.contentsScale = window?.backingScaleFactor ??  1.0
-//
-//        return l
-//    }
 
     // MARK: - Selection layout
 
@@ -218,8 +188,17 @@ extension TextView: LayoutManagerDelegate {
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager) {
         selectionLayer.sublayers = nil
     }
-    
-    
+
+    func layoutManager(_ layoutManager: LayoutManager, createSelectionLayerFor rect: CGRect) -> CALayer {
+        let l = SelectionLayer(textView: self)
+        l.anchorPoint = .zero
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.needsDisplayOnBoundsChange = true
+        l.contentsScale = window?.backingScaleFactor ??  1.0
+
+        return l
+    }
+
     func layoutManager(_ layoutManager: LayoutManager, insertSelectionLayer layer: CALayer) {
         selectionLayer.addSublayer(layer)
     }
@@ -284,7 +263,7 @@ extension TextView: LayoutManagerDelegate {
         insertionPointLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointsLayer layer: CALayer) {
+    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointLayer layer: CALayer) {
         insertionPointLayer.addSublayer(layer)
     }
 

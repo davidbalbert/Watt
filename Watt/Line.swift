@@ -10,7 +10,7 @@ import CoreGraphics
 import CoreText
 
 struct Line {
-    let position: CGPoint
+    var position: CGPoint
     let typographicBounds: CGRect
     let lineFragments: [LineFragment]
 
