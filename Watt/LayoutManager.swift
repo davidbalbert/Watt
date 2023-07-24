@@ -173,7 +173,7 @@ class LayoutManager {
             // TODO: I don't know why I have to use the previous frame's
             // viewport bounds here. My best guess is that it has something
             // to do with the fact that I'm doing deferred layout of my
-            // sublayers (e.g. textLayer.setNeedsLayout(), etc.) I tried
+            // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
             // changing the deferred layout calls in prepareContent(in:)
             // to immediate layout calls, but it didn't seem to fix the
             // problem. On the other hand, I'm not sure if I've totally
