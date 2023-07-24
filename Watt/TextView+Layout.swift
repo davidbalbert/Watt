@@ -171,10 +171,6 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer) {
         layer.bounds = layer.line.typographicBounds
-        // TODO: Line.position is currently in textContainer coordinates. Is that
-        // dumb? Given that the layout manager knows the textContainerInset, it
-        // could give us the lines in view coordinates rather than
-        // textContainer coordinates.
         layer.position = layoutManager.convertFromTextContainer(layer.line.position)
 
         textLayer.addSublayer(layer)
