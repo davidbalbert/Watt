@@ -73,10 +73,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     func updateTextContainerSizeIfNeeded() {
-        // TODO: this is called from setFrameSize, make sure
-        // this is called before layout(). I'm 99% sure it
-        // will be.
-
         let inset = computedTextContainerInset
         let width = max(0, frame.width - inset.left - inset.right)
 

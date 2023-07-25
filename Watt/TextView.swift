@@ -140,11 +140,6 @@ class TextView: NSView, ClipViewDelegate {
         let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
         addTrackingArea(trackingArea)
 
-        // A TextContainer's size always starts at .zero, so
-        // this call should unconditionally update
-        // layoutManager.textContainer.size
-        updateTextContainerSizeIfNeeded()
-
         updateInsertionPointTimer()
     }
 
