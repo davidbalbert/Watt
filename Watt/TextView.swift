@@ -53,8 +53,13 @@ class TextView: NSView, ClipViewDelegate {
 
     let layoutManager: LayoutManager
 
-    var selection: Selection? {
-        layoutManager.selection
+    var selection: Selection {
+        get {
+            layoutManager.selection
+        }
+        set {
+            layoutManager.selection = newValue
+        }
     }
 
     var lineNumberView: LineNumberView

@@ -94,6 +94,12 @@ extension Heights {
         measure(using: .yOffset)
     }
 
+    func textRange(for bounds: CGRect, in rope: Rope) -> Range<Rope.Index> {
+        // TODO: make it real
+        rope.startIndex..<rope.index(at: 1024)
+    }
+
+    // Returns line numbers.
     func lineRange(for bounds: CGRect) -> Range<Int> {
         // Because we want to render all lines that overlap with the
         // viewport, the range that we return should include end.
@@ -129,6 +135,16 @@ extension Heights {
             return leaf.heights[offset]
         }
         set {
+            // TODO: this is currently pretty slow. Given that we're just
+            // updating something that we know exists, perhaps we could
+            // do an in-place modification rather than a builder? I'm still
+            // not sure about the feasability of that.
+            //
+            // Also, because we'll probably have to add and remove lines
+            // I bet this will end up implementing RangeReplacableCollection.
+            // In general, it seems like whenever we're replacing without
+            // changing the total number of elements, we can easily do this
+            // without a builder.
             var b = Builder()
             b.push(&root, slicedBy: 0..<lineno)
             b.push(heights: [newValue])

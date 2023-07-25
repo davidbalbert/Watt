@@ -104,7 +104,7 @@ class LayoutManager {
         self.textLayerCache = WeakDictionary()
 
         // TODO: subscribe to changes to buffer.
-        self.selection = Selection(head: buffer.documentRange.lowerBound)
+        self.selection = Selection(head: buffer.startIndex)
     }
 
     var contentHeight: CGFloat {
@@ -128,7 +128,7 @@ class LayoutManager {
 
         let range = heights.lineRange(for: overdrawBounds)
 
-        var lineno: Int = range.lowerBound
+        var lineno = range.lowerBound
         var y = heights.yOffset(forLine: range.lowerBound)
 
         var i = buffer.lines.index(at: range.lowerBound)
@@ -160,7 +160,11 @@ class LayoutManager {
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
 
-            // TODO: instead of converting each of these, how about just converting viewport bounds once?
+            // TODO: after caching lines or breaks (whichever is more effective), moving the layer
+            // cache out to the TextView, and possibly changing heights to be indexed by position
+            // rather than lineno, do this calculation inside TextView.layoutText() rather than
+            // inside LayoutManager. That way, layoutManager doesn't need to care about position
+            // in the view at all.
             let minY = delegate.layoutManager(self, convertFromTextContainer: line.position).y
             let oldMaxY = minY + oldHeight
 
@@ -196,6 +200,10 @@ class LayoutManager {
         previousViewportBounds = viewportBounds
     }
 
+    // TODO: once we save breaks, perhaps attrStr could be a visual line and this
+    // method could return a LineFragment. That way, we won't have to worry about
+    // calculating UTF-16 offsets into a LineFragment starting from the beginning
+    // of the Line (e.g. see locationForCharacter(atUTF16Offset:in:)).
     func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
         let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
@@ -224,6 +232,95 @@ class LayoutManager {
         return Line(position: position, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
     }
 
+    // TODO: this is doing unnecessary layout. We need to cache Lines.
+    func layoutSelections() {
+        guard let delegate else {
+            return
+        }
+
+        let overdrawBounds = delegate.overdrawBounds(for: self)
+
+        delegate.layoutManagerWillLayoutSelections(self)
+
+        let viewportRange = heights.textRange(for: overdrawBounds, in: buffer.contents)
+        let rangeInViewport = selection.range.clamped(to: viewportRange)
+
+        if rangeInViewport.isEmpty {
+            return
+        }
+
+        var i = buffer.lines.index(roundingDown: rangeInViewport.lowerBound)
+        let lineno = buffer.contents.count(.newlines, upThrough: i.position)
+        var y = heights.yOffset(forLine: lineno)
+
+        while i < rangeInViewport.upperBound {
+            // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
+            let s = NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font])
+            let line = layout(s, at: CGPoint(x: 0, y: y))
+            y += line.typographicBounds.height
+
+
+            var u16 = 0
+            let next = buffer.lines.index(after: i)
+
+            for f in line.lineFragments {
+                let start: Rope.Index
+                // first line of the selection can start after the beginning of the line
+                if i < rangeInViewport.lowerBound {
+                    start = rangeInViewport.lowerBound
+                    u16 += buffer.contents.distance(from: i, to: start, using: .utf16)
+                } else {
+                    start = i
+                }
+
+                let u16Count: Int
+                if rangeInViewport.upperBound < next  {
+                    u16Count = buffer.contents.distance(from: start, to: rangeInViewport.upperBound, using: .utf16)
+                } else {
+                    u16Count = s.length
+                }
+
+                if u16Count == 0 {
+                    i = next
+                    continue
+                }
+
+                let xStart = locationForCharacter(atUTF16Offset: u16, in: f).x
+
+                let xEnd: CGFloat
+                if false /* shouldExtendSelection */ {
+                    // TODO: extending selection as necessary
+                    xEnd = textContainer.lineWidth
+                } else {
+                    let x0 = locationForCharacter(atUTF16Offset: u16 + u16Count, in: f).x
+                    let x1 = textContainer.lineWidth
+                    xEnd = min(x0, x1)
+                }
+
+                let bounds = f.typographicBounds
+                let origin = f.position
+                let padding = textContainer.lineFragmentPadding
+
+                // selection rect in line coordinates
+                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
+
+                let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
+                delegate.layoutManager(self, insertSelectionLayer: l)
+
+                u16 += u16Count
+            }
+
+            i = next
+        }
+
+        delegate.layoutManagerDidLayoutSelections(self)
+    }
+
+    func layoutInsertionPoints() {
+
+
+    }
+
     // returns glyphOrigin, typographicBounds
     func lineMetrics(for line: CTLine, in textContainer: TextContainer) -> (CGPoint, CGRect) {
         let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
@@ -247,16 +344,22 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
-
-    func layoutSelections() {
-
-    }
-
-    func layoutInsertionPoints() {
-        
-    }
-
     func invalidateLayout() {
         textLayerCache.removeAll()
+    }
+
+    // offsetInLine is the offset in the Line, not the LineFragment.
+    func locationForCharacter(atUTF16Offset offsetInLine: Int, in f: LineFragment) -> CGPoint {
+        CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
+    }
+
+
+    // Converts a rect from line coordinates to textContainer coordinates.
+    func convert(_ rect: CGRect, from line: Line) -> CGRect {
+        let lineX = line.frame.minX
+        let lineY = line.frame.minY
+        let origin = CGPoint(x: rect.minX + lineX, y: rect.minY + lineY)
+
+        return CGRect(x: lineX + rect.minX, y: lineY + rect.minY, width: rect.width, height: rect.height)
     }
 }

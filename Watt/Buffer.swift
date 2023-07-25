@@ -40,8 +40,20 @@ class Buffer {
         contents.startIndex..<contents.endIndex
     }
 
+    var startIndex: Index {
+        contents.startIndex
+    }
+
+    var endIndex: Index {
+        contents.endIndex
+    }
+
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         contents.index(i, offsetBy: distance)
+    }
+
+    func index(at offset: Int) -> Index {
+        contents.index(startIndex, offsetBy: offset)
     }
 
     func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
