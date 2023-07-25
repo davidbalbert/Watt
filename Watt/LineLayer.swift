@@ -26,6 +26,11 @@ class LineLayer: CALayer {
     }
 
     override func draw(in ctx: CGContext) {
+        ctx.saveGState()
+        ctx.setStrokeColor(NSColor.purple.cgColor)
+        ctx.stroke(line.typographicBounds)
+        ctx.restoreGState()
+
         line.draw(at: .zero, in: ctx)
     }
 

@@ -96,7 +96,7 @@ extension Heights {
 
     func textRange(for bounds: CGRect, in rope: Rope) -> Range<Rope.Index> {
         // TODO: make it real
-        rope.startIndex..<rope.index(at: 1024)
+        rope.startIndex..<rope.index(at: 2048)
     }
 
     // Returns line numbers.
@@ -123,6 +123,14 @@ extension Heights {
     // line is zero-indexed
     func yOffset(forLine lineno: Int) -> CGFloat {
         count(.yOffset, upThrough: lineno)
+    }
+
+    func lineno(for point: CGPoint) -> Int? {
+        if point.y < 0 || point.y > measure(using: .yOffset) {
+            return nil
+        }
+
+        return countBaseUnits(of: point.y, measuredIn: .yOffset)
     }
 
     // Returns the height of lineno

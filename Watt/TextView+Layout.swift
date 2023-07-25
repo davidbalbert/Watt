@@ -240,9 +240,6 @@ extension TextView: LayoutManagerDelegate {
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
-        print("x", rect.origin)
-
-
         return l
     }
 

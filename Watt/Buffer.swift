@@ -48,6 +48,18 @@ class Buffer {
         contents.endIndex
     }
 
+    subscript(i: Index) -> Character {
+        contents[i]
+    }
+
+    func index(before i: Index) -> Index {
+        contents.index(before: i)
+    }
+
+    func index(after i: Index) -> Index {
+        contents.index(after: i)
+    }
+
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         contents.index(i, offsetBy: distance)
     }

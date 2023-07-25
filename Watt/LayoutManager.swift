@@ -221,7 +221,7 @@ class LayoutManager {
             let p = CGPoint(x: 0, y: height)
             let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
 
-            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds)
+            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, utf16Count: next - i)
             lineFragments.append(lineFragment)
 
             i = next
@@ -259,40 +259,41 @@ class LayoutManager {
             let line = layout(s, at: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
-
             var u16 = 0
             let next = buffer.lines.index(after: i)
 
+            var thisFrag = i
             for f in line.lineFragments {
-                let start: Rope.Index
-                // first line of the selection can start after the beginning of the line
-                if i < rangeInViewport.lowerBound {
-                    start = rangeInViewport.lowerBound
-                    u16 += buffer.contents.distance(from: i, to: start, using: .utf16)
-                } else {
-                    start = i
+                // TODO: not validating!
+                let nextFrag = buffer.contents.index(thisFrag, offsetBy: f.utf16Count, using: .utf16)
+
+                let fragRange = thisFrag..<nextFrag
+
+                // I think the only possible empty lineFragment would be the
+                // last line of a document if it's empty. I don't know if we
+                // represent those yet, but let's ignore them for now.
+                guard !fragRange.isEmpty else {
+                    return
                 }
 
-                let u16Count: Int
-                if rangeInViewport.upperBound < next  {
-                    u16Count = buffer.contents.distance(from: start, to: rangeInViewport.upperBound, using: .utf16)
-                } else {
-                    u16Count = s.length
-                }
+                let rangeInFrag = rangeInViewport.clamped(to: fragRange)
 
-                if u16Count == 0 {
-                    i = next
+                if rangeInFrag.isEmpty && !fragRange.contains(rangeInFrag.lowerBound){
                     continue
                 }
 
-                let xStart = locationForCharacter(atUTF16Offset: u16, in: f).x
+                let start = buffer.contents.distance(from: i, to: rangeInFrag.lowerBound, using: .utf16)
+                let xStart = locationForCharacter(atUTF16OffsetInLine: start, in: f).x
+
+                let last = buffer.index(before: fragRange.upperBound)
+                let c = buffer[last]
+                let shouldExtendSelection = (viewportRange.upperBound == fragRange.upperBound && c == "\n") || viewportRange.upperBound > fragRange.upperBound
 
                 let xEnd: CGFloat
-                if false /* shouldExtendSelection */ {
-                    // TODO: extending selection as necessary
+                if shouldExtendSelection {
                     xEnd = textContainer.lineWidth
                 } else {
-                    let x0 = locationForCharacter(atUTF16Offset: u16 + u16Count, in: f).x
+                    let x0 = locationForCharacter(atUTF16OffsetInLine: start + f.utf16Count, in: f).x
                     let x1 = textContainer.lineWidth
                     xEnd = min(x0, x1)
                 }
@@ -307,7 +308,62 @@ class LayoutManager {
                 let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
                 delegate.layoutManager(self, insertSelectionLayer: l)
 
-                u16 += u16Count
+                if viewportRange.upperBound <= fragRange.upperBound {
+                    break
+                }
+
+                thisFrag = nextFrag
+
+//                let start: Rope.Index
+//                // first line of the selection can start after the beginning of the line
+//                if thisFrag < rangeInViewport.lowerBound {
+//                    start = rangeInViewport.lowerBound
+//                    u16 += buffer.contents.distance(from: thisFrag, to: start, using: .utf16)
+//                } else {
+//                    start = thisFrag
+//                }
+//
+//                let u16Count: Int
+//                if rangeInViewport.upperBound < nextFrag  {
+//                    u16Count = buffer.contents.distance(from: start, to: rangeInViewport.upperBound, using: .utf16)
+//                } else {
+//                    u16Count = f.utf16Count
+//                }
+//
+//                if u16Count == 0 {
+//                    break
+//                }
+//
+//                let xStart = locationForCharacter(atUTF16Offset: u16, in: f).x
+//                let last = buffer.index(before: next)
+//                let lastChar = buffer[last]
+//                let shouldExtendSelection = (rangeInViewport.upperBound == next && lastChar == "\n") || rangeInViewport.upperBound > next
+//
+//                let xEnd: CGFloat
+//                if shouldExtendSelection {
+//                    xEnd = textContainer.lineWidth
+//                } else {
+//                    let x0 = locationForCharacter(atUTF16Offset: u16 + u16Count, in: f).x
+//                    let x1 = textContainer.lineWidth
+//                    xEnd = min(x0, x1)
+//                }
+//
+//                let bounds = f.typographicBounds
+//                let origin = f.position
+//                let padding = textContainer.lineFragmentPadding
+//
+//                // selection rect in line coordinates
+//                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
+//
+//                let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
+//                delegate.layoutManager(self, insertSelectionLayer: l)
+//
+//                if rangeInViewport.upperBound < nextFrag {
+//                    break
+//                }
+//
+//                u16 += u16Count
+//                thisFrag = nextFrag
             }
 
             i = next
@@ -349,17 +405,144 @@ class LayoutManager {
     }
 
     // offsetInLine is the offset in the Line, not the LineFragment.
-    func locationForCharacter(atUTF16Offset offsetInLine: Int, in f: LineFragment) -> CGPoint {
+    func locationForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
         CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
     }
 
+    func location(interactingAt point: CGPoint) -> Buffer.Index? {
+        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
+            return nil
+        }
 
-    // Converts a rect from line coordinates to textContainer coordinates.
+        return location
+    }
+
+    // TODO: this is gross and unsafe and needs to be different
+    func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
+        // If we click past the end of the document, select the last character
+        if point.y > contentHeight {
+            return (buffer.endIndex, .upstream)
+        }
+
+        guard let lineno = heights.lineno(for: point) else {
+            return nil
+        }
+
+        let y = heights.yOffset(forLine: lineno)
+        let lineStart = buffer.lines.index(at: lineno)
+        let s = NSAttributedString(string: buffer.lines[lineStart], attributes: [.font: (delegate as! TextView).font])
+        let line = layout(s, at: CGPoint(x: 0, y: y))
+
+        let pointInLine = convert(point, to: line)
+
+        // TODO: this could be a binary search, or we could even store line fragment info in Heights.
+        var lineFragment: LineFragment?
+        var offsetOfLineFragment = 0
+        for f in line.lineFragments {
+            let frame = f.frame
+            if (frame.minY..<frame.maxY).contains(pointInLine.y) {
+                lineFragment = f
+                break
+            }
+            offsetOfLineFragment += f.utf16Count
+        }
+
+        guard let lineFragment else {
+            return nil
+        }
+
+        let pointInLineFragment = convert(pointInLine, to: lineFragment)
+        let adjusted = CGPoint(
+            x: pointInLineFragment.x - textContainer.lineFragmentPadding,
+            y: pointInLineFragment.y
+        )
+
+        let offsetInLine = CTLineGetStringIndexForPosition(lineFragment.ctLine, adjusted)
+        if offsetInLine == kCFNotFound {
+            return nil
+        }
+
+        let offsetInLineFragment = offsetInLine - offsetOfLineFragment
+
+        // TODO: missing index validation here!
+        let fragStart = buffer.contents.index(lineStart, offsetBy: offsetOfLineFragment, using: .utf16)
+        var pos = buffer.contents.index(fragStart, offsetBy: offsetInLineFragment, using: .utf16)
+
+        // TODO: what if lineFragment is empty?
+        let next = buffer.contents.index(fragStart, offsetBy: lineFragment.utf16Count, using: .utf16)
+        let last = buffer.contents.index(before: next)
+        let c = buffer[last]
+
+        // Rules:
+        //   1. You cannot click to the right of a "\n". No matter how far
+        //      far right you go, you will always be before the newline until
+        //      you move down to the next line.
+        //   2. The first location in a line fragment is always downstream.
+        //      No exceptions.
+        //   3. The last location in a line fragment is upstream, unless the
+        //      line is empty (i.e. unless the text element is "\n").
+        //   4. All other locations are downstream.
+
+        let atEnd = pos == last
+        let afterEnd = pos == next
+
+        if afterEnd && c == "\n" {
+            pos = last
+        }
+
+        let affinity: Selection.Affinity
+        if pos != fragStart && (afterEnd || (c == "\n" && atEnd)) {
+            affinity = .upstream
+        } else {
+            affinity = .downstream
+        }
+
+        return (pos, affinity)
+    }
+
+    // MARK: - Converting coordinates
+
     func convert(_ rect: CGRect, from line: Line) -> CGRect {
-        let lineX = line.frame.minX
-        let lineY = line.frame.minY
-        let origin = CGPoint(x: rect.minX + lineX, y: rect.minY + lineY)
+        return CGRect(origin: convert(rect.origin, from: line), size: rect.size)
+    }
 
-        return CGRect(x: lineX + rect.minX, y: lineY + rect.minY, width: rect.width, height: rect.height)
+    func convert(_ rect: CGRect, to line: Line) -> CGRect {
+        return CGRect(origin: convert(rect.origin, to: line), size: rect.size)
+    }
+
+    func convert(_ point: CGPoint, from line: Line) -> CGPoint {
+        CGPoint(
+            x: line.frame.minX + point.x,
+            y: line.frame.minY + point.y
+        )
+    }
+
+    func convert(_ point: CGPoint, to line: Line) -> CGPoint {
+        CGPoint(
+            x: point.x - line.frame.minX,
+            y: point.y - line.frame.minY
+        )
+    }
+
+    func convert(_ rect: CGRect, from frag: LineFragment) -> CGRect {
+        return CGRect(origin: convert(rect.origin, from: frag), size: rect.size)
+    }
+
+    func convert(_ rect: CGRect, to frag: LineFragment) -> CGRect {
+        return CGRect(origin: convert(rect.origin, to: frag), size: rect.size)
+    }
+
+    func convert(_ point: CGPoint, from frag: LineFragment) -> CGPoint {
+        CGPoint(
+            x: frag.frame.minX + point.x,
+            y: frag.frame.minY + point.y
+        )
+    }
+
+    func convert(_ point: CGPoint, to frag: LineFragment) -> CGPoint {
+        CGPoint(
+            x: point.x - frag.frame.minX,
+            y: point.y - frag.frame.minY
+        )
     }
 }
