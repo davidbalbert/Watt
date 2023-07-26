@@ -259,9 +259,6 @@ class LayoutManager {
             let line = layout(s, at: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
-            var u16 = 0
-            let next = buffer.lines.index(after: i)
-
             var thisFrag = i
             for f in line.lineFragments {
                 // TODO: not validating!
@@ -279,6 +276,7 @@ class LayoutManager {
                 let rangeInFrag = rangeInViewport.clamped(to: fragRange)
 
                 if rangeInFrag.isEmpty && !fragRange.contains(rangeInFrag.lowerBound){
+                    thisFrag = nextFrag
                     continue
                 }
 
@@ -287,13 +285,14 @@ class LayoutManager {
 
                 let last = buffer.index(before: fragRange.upperBound)
                 let c = buffer[last]
-                let shouldExtendSelection = (viewportRange.upperBound == fragRange.upperBound && c == "\n") || viewportRange.upperBound > fragRange.upperBound
+                let shouldExtendSelection = (rangeInViewport.upperBound == fragRange.upperBound && c == "\n") || rangeInViewport.upperBound > fragRange.upperBound
 
                 let xEnd: CGFloat
                 if shouldExtendSelection {
                     xEnd = textContainer.lineWidth
                 } else {
-                    let x0 = locationForCharacter(atUTF16OffsetInLine: start + f.utf16Count, in: f).x
+                    let end = buffer.contents.distance(from: i, to: rangeInFrag.upperBound, using: .utf16)
+                    let x0 = locationForCharacter(atUTF16OffsetInLine: end, in: f).x
                     let x1 = textContainer.lineWidth
                     xEnd = min(x0, x1)
                 }
@@ -308,65 +307,14 @@ class LayoutManager {
                 let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
                 delegate.layoutManager(self, insertSelectionLayer: l)
 
-                if viewportRange.upperBound <= fragRange.upperBound {
+                if rangeInViewport.upperBound <= fragRange.upperBound {
                     break
                 }
 
                 thisFrag = nextFrag
-
-//                let start: Rope.Index
-//                // first line of the selection can start after the beginning of the line
-//                if thisFrag < rangeInViewport.lowerBound {
-//                    start = rangeInViewport.lowerBound
-//                    u16 += buffer.contents.distance(from: thisFrag, to: start, using: .utf16)
-//                } else {
-//                    start = thisFrag
-//                }
-//
-//                let u16Count: Int
-//                if rangeInViewport.upperBound < nextFrag  {
-//                    u16Count = buffer.contents.distance(from: start, to: rangeInViewport.upperBound, using: .utf16)
-//                } else {
-//                    u16Count = f.utf16Count
-//                }
-//
-//                if u16Count == 0 {
-//                    break
-//                }
-//
-//                let xStart = locationForCharacter(atUTF16Offset: u16, in: f).x
-//                let last = buffer.index(before: next)
-//                let lastChar = buffer[last]
-//                let shouldExtendSelection = (rangeInViewport.upperBound == next && lastChar == "\n") || rangeInViewport.upperBound > next
-//
-//                let xEnd: CGFloat
-//                if shouldExtendSelection {
-//                    xEnd = textContainer.lineWidth
-//                } else {
-//                    let x0 = locationForCharacter(atUTF16Offset: u16 + u16Count, in: f).x
-//                    let x1 = textContainer.lineWidth
-//                    xEnd = min(x0, x1)
-//                }
-//
-//                let bounds = f.typographicBounds
-//                let origin = f.position
-//                let padding = textContainer.lineFragmentPadding
-//
-//                // selection rect in line coordinates
-//                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
-//
-//                let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
-//                delegate.layoutManager(self, insertSelectionLayer: l)
-//
-//                if rangeInViewport.upperBound < nextFrag {
-//                    break
-//                }
-//
-//                u16 += u16Count
-//                thisFrag = nextFrag
             }
 
-            i = next
+            buffer.lines.formIndex(after: &i)
         }
 
         delegate.layoutManagerDidLayoutSelections(self)
