@@ -126,13 +126,18 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let range = heights.lineRange(for: overdrawBounds)
+        let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
+        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY - 0.00001, measuredIn: .yOffset)
 
-        var lineno = range.lowerBound
-        var y = heights.yOffset(forLine: range.lowerBound)
+        // TODO: maybe buffer.contents.index(inBaseMetricAt: Int)
+        var i = buffer.contents.utf8.index(at: baseStart)
+        let end = buffer.lines.index(after: buffer.contents.utf8.index(at: baseEnd))
 
-        var i = buffer.lines.index(at: range.lowerBound)
-        let end = buffer.lines.index(at: range.upperBound)
+        assert(i == buffer.lines.index(roundingDown: i))
+        assert(end == buffer.lines.index(roundingDown: end))
+
+        var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
+        var y = heights.count(.yOffset, upThrough: i.position)
 
         var scrollAdjustment: CGSize = .zero
 
@@ -148,18 +153,18 @@ class LayoutManager {
                 line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
                 layer = delegate.layoutManager(self, createTextLayerFor: line)
             }
-
+            
             delegate.layoutManager(self, insertTextLayer: layer)
             textLayerCache[lineno] = layer
-
+            
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }
-
-            let oldHeight = heights[lineno]
+            
+            let oldHeight = heights[i.position]
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
-
+            
             // TODO: after caching lines or breaks (whichever is more effective), moving the layer
             // cache out to the TextView, and possibly changing heights to be indexed by position
             // rather than lineno, do this calculation inside TextView.layoutText() rather than
@@ -167,7 +172,7 @@ class LayoutManager {
             // in the view at all.
             let minY = delegate.layoutManager(self, convertFromTextContainer: line.position).y
             let oldMaxY = minY + oldHeight
-
+            
             // TODO: I don't know why I have to use the previous frame's
             // viewport bounds here. My best guess is that it has something
             // to do with the fact that I'm doing deferred layout of my
@@ -181,8 +186,11 @@ class LayoutManager {
             if oldMaxY <= previousViewportBounds.minY && delta != 0 {
                 scrollAdjustment.height += delta
             }
+            
+            if oldHeight != newHeight {
+                heights[i.position] = newHeight
+            }
 
-            heights[lineno] = newHeight
             y += newHeight
             lineno += 1
             buffer.lines.formIndex(after: &i)
@@ -242,7 +250,12 @@ class LayoutManager {
 
         delegate.layoutManagerWillLayoutSelections(self)
 
-        let viewportRange = heights.textRange(for: overdrawBounds, in: buffer.contents)
+        let start = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
+        let end = heights.countBaseUnits(of: overdrawBounds.maxY - 0.00001, measuredIn: .yOffset)
+
+        let nextLine = buffer.lines.index(after: buffer.contents.utf8.index(at: end))
+
+        let viewportRange = buffer.contents.utf8.index(at: start)..<nextLine
         let rangeInViewport = selection.range.clamped(to: viewportRange)
 
         if rangeInViewport.isEmpty {
@@ -250,8 +263,7 @@ class LayoutManager {
         }
 
         var i = buffer.lines.index(roundingDown: rangeInViewport.lowerBound)
-        let lineno = buffer.contents.count(.newlines, upThrough: i.position)
-        var y = heights.yOffset(forLine: lineno)
+        var y = heights.count(.yOffset, upThrough: i.position)
 
         while i < rangeInViewport.upperBound {
             // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
@@ -372,12 +384,15 @@ class LayoutManager {
             return (buffer.endIndex, .upstream)
         }
 
-        guard let lineno = heights.lineno(for: point) else {
+        guard let offset = heights.offset(for: point) else {
             return nil
         }
 
-        let y = heights.yOffset(forLine: lineno)
-        let lineStart = buffer.lines.index(at: lineno)
+        let y = heights.count(.yOffset, upThrough: offset)
+        let lineStart = buffer.index(at: offset)
+
+        assert(lineStart == buffer.lines.index(roundingDown: lineStart))
+
         let s = NSAttributedString(string: buffer.lines[lineStart], attributes: [.font: (delegate as! TextView).font])
         let line = layout(s, at: CGPoint(x: 0, y: y))
 

@@ -35,7 +35,7 @@ protocol BTreeLeaf {
     var isUndersized: Bool { get }
     mutating func pushMaybeSplitting(other: Self) -> Self?
 
-    // Specified in base units. Should be O(1).
+    // Specified in base units from the start of self. Should be O(1).
     subscript(bounds: Range<Int>) -> Self { get }
 }
 
@@ -453,7 +453,15 @@ extension BTree where Summary: BTreeDefaultMetric {
 
 // MARK: - Builder
 
-
+// TODO: maybe rename BTree<Summary>.Builder -> BTreeBuilder<Summary>. Sometimes
+// you want to make a more specific builder that wraps BTree.Builder. For an example
+// see HeightsBuilder. This is as opposed to just extending a specific instantiation
+// of builder like in Rope.Builder. In the former situation, you might be tempted to
+// call the embedded builder Heights.Builder, but then you have HeightsBuilder and
+// Heights.Builder, which is pretty confusing. You could do what I did in
+// HeightsBuilder, which is name the nested builder BTree<HeightsSummary>.Builder
+// but then every time you do that, you have a question of which name should I use,
+// that or Heights.Builder. Probably better to just separate.
 extension BTree {
     struct Builder {
         typealias PartialTree = (node: Node, isUnique: Bool)

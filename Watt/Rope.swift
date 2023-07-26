@@ -745,6 +745,12 @@ extension Rope: Collection {
         limit.validate(for: root)
         return index(i, offsetBy: distance, limitedBy: limit, using: .characters)
     }
+
+    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
+        start.validate(for: root)
+        end.validate(for: root)
+        return distance(from: start, to: end, using: .characters)
+    }
 }
 
 extension Rope: BidirectionalCollection {
@@ -1088,6 +1094,12 @@ extension Rope.UTF8View: BidirectionalCollection {
         return base.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
     }
 
+    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
+        start.validate(for: base.root)
+        end.validate(for: base.root)
+        return base.distance(from: start, to: end, using: .utf8)
+    }
+
     var count: Int {
         base.measure(using: .utf8)
     }
@@ -1166,6 +1178,12 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
         i.validate(for: base.root)
         limit.validate(for: base.root)
         return base.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
+    }
+
+    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
+        start.validate(for: base.root)
+        end.validate(for: base.root)
+        return base.distance(from: start, to: end, using: .unicodeScalars)
     }
 
     var count: Int {
@@ -1291,6 +1309,18 @@ extension Rope.LinesView: BidirectionalCollection {
         }
 
         return index(i, offsetBy: distance)
+    }
+
+    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
+        start.validate(for: base.root)
+        end.validate(for: base.root)
+
+        var d = base.distance(from: start, to: end, using: .newlines)
+        if end == endIndex {
+            d += 1
+        }
+
+        return d
     }
 
     var count: Int {
