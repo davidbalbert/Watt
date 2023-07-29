@@ -993,11 +993,11 @@ final class RopeTests: XCTestCase {
         XCTAssert(r.root.height > 0)
 
         XCTAssertEqual(3, r.lines.count)
-        XCTAssertEqual(a, r.lines[0])
-        XCTAssertEqual(b, r.lines[1])
-        XCTAssertEqual(c, r.lines[2])
+        XCTAssertEqual(a, String(r.lines[0]))
+        XCTAssertEqual(b, String(r.lines[1]))
+        XCTAssertEqual(c, String(r.lines[2]))
 
-        XCTAssertEqual([a, b, c], Array(r.lines))
+        XCTAssertEqual([a, b, c], Array(r.lines.map { String($0) }))
     }
 
     // LinesView has to have some extra logic in its indexing

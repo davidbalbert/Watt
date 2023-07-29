@@ -475,8 +475,6 @@ extension BTree {
         }
 
         func next(_ offset: Int, in chunk: Chunk) -> Int? {
-            assert(offset < chunk.count)
-
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
                 buf[offset...].firstIndex(of: nl).map { $0 + 1 }
@@ -631,12 +629,22 @@ extension Rope.Index {
         return s[s.startIndex]
     }
 
-    func readLine() -> String? {
+    func readLine() -> Substring? {
         guard var (chunk, offset) = read() else {
             return nil
         }
 
+        // An optimization: if the entire line is within
+        // the chunk, return a Substring.
         var end = self
+        if end.next(withinLeafUsing: .newlines) != nil {
+            let i = chunk.string.utf8Index(at: offset)
+            let j = chunk.string.utf8Index(at: end.offsetInLeaf)
+
+            return chunk.string[i..<j]
+        }
+
+        end = self
         if end.next(using: .newlines) == nil {
             end = Rope.Index(endOf: root!)
         }
@@ -663,7 +671,7 @@ extension Rope.Index {
             (chunk, offset) = i.nextLeaf()!
         }
 
-        return s
+        return s[...]
     }
 }
 
@@ -834,7 +842,6 @@ extension Rope {
         self[index(at: offset, using: .characters)]
     }
 }
-
 
 // MARK: - Grapheme breaking
 
@@ -1218,7 +1225,7 @@ extension Rope {
             return base.index(roundingDown: i, using: .newlines)
         }
 
-        subscript(offset: Int) -> String {
+        subscript(offset: Int) -> Substring {
             self[base.index(at: offset, using: .newlines)]
         }
     }
@@ -1228,7 +1235,7 @@ extension Rope.LinesView: BidirectionalCollection {
     struct Iterator: IteratorProtocol {
         var index: Rope.Index
 
-        mutating func next() -> String? {
+        mutating func next() -> Substring? {
             guard let line = index.readLine() else {
                 return nil
             }
@@ -1250,7 +1257,7 @@ extension Rope.LinesView: BidirectionalCollection {
         base.endIndex
     }
 
-    subscript(position: Rope.Index) -> String {
+    subscript(position: Rope.Index) -> Substring {
         position.validate(for: base.root)
         return base.index(roundingDown: position, using: .newlines).readLine()!
     }

@@ -224,7 +224,7 @@ extension TextView: LayoutManagerDelegate {
     // MARK: - Selection layout
 
     func layoutSelectionLayer() {
-        layoutManager.layoutSelections()
+//        layoutManager.layoutSelections()
     }
     
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager) {
@@ -299,7 +299,7 @@ extension TextView: LayoutManagerDelegate {
     // MARK: - Insertion point layout
 
     func layoutInsertionPointLayer() {
-        layoutManager.layoutInsertionPoints()
+//        layoutManager.layoutInsertionPoints()
     }
 
     func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager) {

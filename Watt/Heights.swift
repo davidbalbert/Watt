@@ -25,7 +25,7 @@ struct HeightsSummary: BTreeSummary {
     }
 
     init(summarizing leaf: HeightsLeaf) {
-        self.height = leaf.heights.reduce(0, +)
+        self.height = leaf.yOffsets.last!
     }
 }
 
@@ -33,90 +33,175 @@ extension HeightsSummary: BTreeDefaultMetric {
     static var defaultMetric: Heights.HeightsBaseMetric { Heights.HeightsBaseMetric() }
 }
 
-struct HeightsLeaf: BTreeLeaf {
+struct HeightsLeaf: BTreeLeaf, Equatable {
     static let minSize = 32
     static let maxSize = 64
 
-    var count: Int
+    var count: Int {
+        positions.last ?? 0
+    }
 
-    // Offsets contains the start of each line, measured in
-    // UTF-8 code units from the start of the leaf. Heights
-    // contains the height of the line starting at each offset.
+    // Positions contains the index following each "\n" in the
+    // associated rope, measured in UTF-8 code units from the
+    // start of the string. YOffsets contains the y-offset of
+    // each line.
     //
-    // Invariants:
-    // - offsets.count == heights.count
-    // - if the leaf isn't empty, offsets[0] == 0
-    var offsets: [Int]
-    var heights: [CGFloat]
+    // Invariant: positions.count == yOffsets.count - 1.
+    //
+    // This is because yOffsets contains the the y-offset after
+    // the final line, which is the same as the height of the
+    // entire leaf.
+    //
+    // An HeightsLeaf where positions.count == 0 is invalid.
+    // An empty string has a single line of length 0, with an
+    // associated height.
+    //
+    // There are two situations in which you can have a line of
+    // length 0:
+    //
+    // - The empty string
+    // - When the string ends with a "\n".
+    //
+    // Otherwise, all lines, even empty ones, have length 1, because
+    // the length of an empty line that's not at the end of the
+    // document includes the "\n".
+    var positions: [Int]
+    var yOffsets: [CGFloat]
 
     static var zero: HeightsLeaf {
         HeightsLeaf()
     }
 
     var isUndersized: Bool {
-        heights.count < HeightsLeaf.minSize
+        positions.count < HeightsLeaf.minSize
     }
 
     init() {
-        self.count = 0
-        self.offsets = []
-        self.heights = []
+        self.positions = []
+        self.yOffsets = [0]
     }
 
-    init(count: Int, offsets: [Int], heights: [CGFloat]) {
-        assert(offsets.count == heights.count)
-        self.count = count
-        self.offsets = offsets
-        self.heights = heights
+    init(positions: [Int], yOffsets: [CGFloat]) {
+        assert(positions.count == yOffsets.count - 1)
+        self.positions = positions
+        self.yOffsets = yOffsets
     }
 
     mutating func pushMaybeSplitting(other: HeightsLeaf) -> HeightsLeaf? {
-        for o in other.offsets {
-            offsets.append(count + o)
+        assert(positions.count == yOffsets.count - 1)
+
+        let end = count
+        for p in other.positions {
+            positions.append(end + p)
         }
-        heights.append(contentsOf: other.heights)
-        count += other.count
 
-        assert(offsets.count == heights.count)
+        // yOffsets is never empty
+        let height = yOffsets.last!
 
-        if offsets.count < HeightsLeaf.maxSize {
+        // The current height of self will be the first
+        // y-offset of the combined leaf.
+        for y in other.yOffsets.dropFirst() {
+            yOffsets.append(height + y)
+        }
+
+        assert(positions.count == yOffsets.count - 1)
+
+        if positions.count < HeightsLeaf.maxSize {
             return nil
         } else {
-            let splitIndex = offsets.count / 2
-            let splitOffset = offsets[splitIndex]
+            let splitIndex = positions.count / 2
+            let leftCount = positions[splitIndex-1]
+            let leftHeight = yOffsets[splitIndex]
 
-            var rightOffsets = Array(offsets[splitIndex...])
-            for i in 0..<rightOffsets.count {
-                rightOffsets[i] -= splitOffset
+            var rightPositions = Array(positions[splitIndex...])
+            for i in 0..<rightPositions.count {
+                rightPositions[i] -= leftCount
             }
-            let rightHeights = Array(heights[splitIndex...])
 
-            assert(rightOffsets.count == rightHeights.count)
+            var rightYOffsets = Array(yOffsets[splitIndex...])
+            for i in 0..<rightYOffsets.count {
+                rightYOffsets[i] -= leftHeight
+            }
 
-            let rightCount = count - splitOffset
-            count = splitOffset
-            offsets.removeLast(rightOffsets.count)
-            heights.removeLast(rightOffsets.count)
+            assert(rightPositions.count == rightYOffsets.count - 1)
 
-            return HeightsLeaf(count: rightCount, offsets: rightOffsets, heights: rightHeights)
+            positions.removeLast(rightPositions.count)
+            yOffsets.removeLast(rightYOffsets.count - 1) // make sure to leave the height on the end
+
+            assert(positions.count == yOffsets.count - 1)
+            return HeightsLeaf(positions: rightPositions, yOffsets: rightYOffsets)
         }
     }
     
     subscript(bounds: Range<Int>) -> HeightsLeaf {
-        let (start, _) = offsets.binarySearch(for: bounds.lowerBound)
-        let (end, _) = offsets.binarySearch(for: bounds.upperBound)
+        assert(bounds.lowerBound <= count && bounds.upperBound <= count)
 
-        let range = start..<end
-
-        let startOffset = start == offsets.count ? count : offsets[start]
-        let endOffset = end == offsets.count ? count : offsets[end]
-
-        var newOffsets = Array(offsets[range])
-        for i in 0..<newOffsets.count {
-            newOffsets[i] -= startOffset
+        if positions == [0] {
+            assert(bounds == 0..<0)
+            return self
         }
 
-        return HeightsLeaf(count: endOffset - startOffset, offsets: newOffsets, heights: Array(heights[range]))
+        var start: Int, end: Int, found: Bool
+        (start, found) = positions.binarySearch(for: bounds.lowerBound)
+        if found {
+            start += 1
+        }
+        (end, found) = positions.binarySearch(for: bounds.upperBound)
+        if found {
+            end += 1
+        }
+
+        let emptyLastLine = positions[positions.count - 1] == positions[positions.count - 2]
+        if emptyLastLine && end == positions.count - 1 {
+            end += 1
+        }
+
+        let prefixCount = start == 0 ? 0 : positions[start-1]
+        let prefixHeight = yOffsets[start]
+
+        if (start..<end).isEmpty {
+            let i = min(start, positions.count - 1)
+            return HeightsLeaf(positions: [0], yOffsets: [0, yOffsets[i+1] - yOffsets[i]])
+        }
+
+        var newPositions = Array(positions[start..<end])
+        for i in 0..<newPositions.count {
+            newPositions[i] -= prefixCount
+        }
+
+        var newYOffsets = Array(yOffsets[start..<(end+1)])
+        for i in 0..<newYOffsets.count {
+            newYOffsets[i] -= prefixHeight
+        }
+
+        return HeightsLeaf(positions: newPositions, yOffsets: newYOffsets)
+    }
+
+}
+
+extension Heights.Index {
+    func readLeafIndex() -> (HeightsLeaf, Int)? {
+        guard let (leaf, offset) = read() else {
+            return nil
+        }
+
+        if offsetOfLeaf + offset == root!.count {
+            return (leaf, leaf.positions.count - 1)
+        }
+
+        let (i, found) = leaf.positions.binarySearch(for: offset)
+        if found {
+            return (leaf, i+1)
+        } else {
+            return (leaf, i)
+        }
+    }
+
+    func readHeight() -> CGFloat? {
+        guard let (leaf, i) = readLeafIndex() else {
+            return nil
+        }
+        return leaf.yOffsets[i+1] - leaf.yOffsets[i]
     }
 }
 
@@ -124,17 +209,8 @@ extension Heights {
     init(rope: Rope) {
         var b = HeightsBuilder()
 
-        if rope.startIndex == rope.endIndex {
-            b.push(height: 14, count: 0)
-        } else {
-            var i = rope.startIndex
-
-            repeat {
-                let next = rope.lines.index(after: i)
-                // TODO: maybe a method on BTree that gives you the base distance?
-                b.push(height: 14, count: next.position - i.position)
-                i = next
-            } while i < rope.endIndex
+        for l in rope.lines {
+            b.addLine(withBaseCount: l.utf8.count, height: 14)
         }
 
         self.init(b.build())
@@ -144,6 +220,7 @@ extension Heights {
         measure(using: .yOffset)
     }
 
+    // TODO: make sure this is still valid
     func offset(for point: CGPoint) -> Int? {
         if point.y < 0 || point.y > measure(using: .yOffset) {
             return nil
@@ -153,46 +230,44 @@ extension Heights {
     }
 
     // Returns the height of the line containing position.
-    subscript(position: Int) -> CGFloat {
+    subscript(i: Index) -> CGFloat {
         get {
-            // fail on endIndex.
-            precondition(position < measure(using: .heightsBaseMetric), "index out of bounds")
-            let i = Index(offsetBy: position, in: self)
-            let (leaf, _) = i.read()!
-            let (j, _) = leaf.offsets.binarySearch(for: position - i.offsetOfLeaf)
-            return leaf.heights[j]
+            i.validate(for: root)
+            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+
+            return i.readHeight()!
         }
         set {
-            // fail on endIndex.
-            precondition(position < measure(using: .heightsBaseMetric), "index out of bounds")
+            i.validate(for: root)
+            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.isBoundary(in: .yOffset), "not a boundary")
 
-            let i = Index(offsetBy: position, in: self)
-            let (leaf, _) = i.read()!
+            let (leaf, li) = i.readLeafIndex()!
+            let count = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
 
-            let offset = position - i.offsetOfLeaf
-
-            let (j, ok) = leaf.offsets.binarySearch(for: offset)
-
-            if !ok {
-                fatalError("you can only replace, not insert right now")
-            }
-
-            let count: Int
-            if j == leaf.offsets.count - 1 {
-                count = leaf.count - offset
-            } else {
-                count = leaf.offsets[j+1] - offset
-            }
-
-            let newLeaf = HeightsLeaf(count: count, offsets: [0], heights: [newValue])
+            let newLeaf = HeightsLeaf(positions: [count], yOffsets: [0, newValue])
 
             var b = Builder()
-            b.push(&root, slicedBy: 0..<position)
+
+            let prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
+            let suffixStart = li == leaf.positions.count ? root.count : i.offsetOfLeaf + leaf.positions[li]
+
+            b.push(&root, slicedBy: 0..<(prefixEnd))
             b.push(leaf: newLeaf)
-            b.push(&root, slicedBy: (position+1)..<root.count)
+            b.push(&root, slicedBy: suffixStart..<root.count)
 
             self.root = b.build()
         }
+    }
+
+    // Returns an index at a base offset
+    func index(at offset: Int) -> Index {
+        index(at: offset, using: .heightsBaseMetric)
+    }
+
+    func formIndex(after i: inout Index) {
+        let j = index(after: i, using: .yOffset)
+        i = j
     }
 }
 
@@ -203,63 +278,54 @@ extension BTree {
         }
         
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
-            var i = 0
-            var remaining = measuredUnits
-
-            while i < leaf.heights.count {
-                let height = leaf.heights[i]
-                if remaining < height {
-                    break
-                } 
-
-                remaining -= height
-                i += 1
-            }
-
-            if i == leaf.heights.count {
+            if measuredUnits > leaf.yOffsets.last! {
                 return leaf.count
-            } else {
-                return leaf.offsets[i]
             }
+
+            let (i, _) = leaf.yOffsets.binarySearch(for: measuredUnits)
+            return i == 0 ? 0 : leaf.positions[i-1]
         }
         
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
-            let (i, _) = leaf.offsets.binarySearch(for: baseUnits)
-            return leaf.heights[..<i].reduce(0, +)
+            if baseUnits >= leaf.count {
+                // Asking for anything >= rope.endIndex should give us
+                // the y-offset of the final line, not the height of the leaf.
+                return leaf.yOffsets[leaf.yOffsets.count - 2]
+            }
+
+            switch leaf.positions.binarySearch(for: baseUnits) {
+            case let (i, found: true):
+                return leaf.yOffsets[i+1]
+            case let (i, found: false):
+                return leaf.yOffsets[i]
+            }
         }
         
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            let (_, found) = leaf.offsets.binarySearch(for: offset)
+            let (_, found) = leaf.positions.binarySearch(for: offset)
             return found
         }
         
         func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            assert(offset > 0)
-            let (i, _) = leaf.offsets.binarySearch(for: offset)
+            assert(offset > 0 && offset <= leaf.count)
 
-            if i == 0 {
-                return nil
-            } else {
-                return leaf.offsets[i-1]
-            }
+            let (i, _) = leaf.positions.binarySearch(for: offset)
+            return i == 0 ? 0 : leaf.positions[i-1]
         }
         
         func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            assert(offset < leaf.heights.count)
-            var (i, found) = leaf.offsets.binarySearch(for: offset)
-            if found {
-                i += 1
-            }
-
-            if i == leaf.offsets.count {
-                return nil
-            } else {
-                return leaf.offsets[i]
+            assert(offset < leaf.count)
+            
+            switch leaf.positions.binarySearch(for: offset) {
+            case let (i, found: true):
+                return leaf.positions[i+1]
+            case let (i, found: false):
+                return leaf.positions[i]
             }
         }
 
         var canFragment: Bool {
-            true
+            false
         }
 
         var type: BTreeMetricType {
@@ -267,6 +333,8 @@ extension BTree {
         }
     }
 }
+
+
 
 extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
     static var yOffset: Heights.YOffsetMetric { Heights.YOffsetMetric() }
@@ -299,7 +367,7 @@ extension BTree {
         }
         
         var canFragment: Bool {
-            true
+            false
         }
 
         var type: BTreeMetricType {
@@ -321,18 +389,23 @@ struct HeightsBuilder {
         leaf = HeightsLeaf()
     }
 
-    mutating func push(height: CGFloat, count: Int) {
-        if leaf.offsets.count == HeightsLeaf.maxSize {
+    mutating func addLine(withBaseCount count: Int, height: CGFloat) {
+        if leaf.positions.count == HeightsLeaf.maxSize {
             b.push(leaf: leaf)
             leaf = HeightsLeaf()
         }
-        leaf.offsets.append(leaf.count)
-        leaf.heights.append(height)
-        leaf.count += count
+
+        leaf.positions.append(leaf.count + count)
+        leaf.yOffsets.append(leaf.yOffsets.last! + height)
     }
 
     consuming func build() -> BTree<HeightsSummary>.Node {
-        b.push(leaf: leaf)
-        return b.build()
+        if leaf.positions.count > 0 {
+            b.push(leaf: leaf)
+        }
+
+        let node = b.build()
+        assert(node.height > 0 || node.leaf.positions.count > 0)
+        return node
     }
 }

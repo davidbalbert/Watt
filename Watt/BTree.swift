@@ -383,7 +383,7 @@ extension BTree {
         }
 
         func convert<M1, M2>(_ m1: M1.Unit, from: M1, to: M2) -> M2.Unit where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
-            assert(m1 <= measure(using: from))
+//            assert(m1 <= measure(using: from))
 
             if m1 == 0 {
                 return 0

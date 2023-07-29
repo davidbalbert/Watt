@@ -129,9 +129,12 @@ class LayoutManager {
         let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
         let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY - 0.00001, measuredIn: .yOffset)
 
+        // TODO: I think there might be a bug here. baseEnd could be rope.endIndex, and we try to get the line after baseEnd.
+
         // TODO: maybe buffer.contents.index(inBaseMetricAt: Int)
         var i = buffer.contents.utf8.index(at: baseStart)
-        let end = buffer.lines.index(after: buffer.contents.utf8.index(at: baseEnd))
+        let end = buffer.contents.utf8.index(at: baseEnd)
+//        let end = buffer.lines.index(after: buffer.contents.utf8.index(at: baseEnd))
 
         assert(i == buffer.lines.index(roundingDown: i))
         assert(end == buffer.lines.index(roundingDown: end))
@@ -150,7 +153,7 @@ class LayoutManager {
                 layer = l
             } else {
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-                line = layout(NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
+                line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
                 layer = delegate.layoutManager(self, createTextLayerFor: line)
             }
             
@@ -160,11 +163,12 @@ class LayoutManager {
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }
-            
-            let oldHeight = heights[i.position]
+
+            let hi = heights.index(at: i.position)
+            let oldHeight = heights[hi]
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
-            
+
             // TODO: after caching lines or breaks (whichever is more effective), moving the layer
             // cache out to the TextView, and possibly changing heights to be indexed by position
             // rather than lineno, do this calculation inside TextView.layoutText() rather than
@@ -188,7 +192,8 @@ class LayoutManager {
             }
             
             if oldHeight != newHeight {
-                heights[i.position] = newHeight
+                print(heights.root.count, i.position)
+                heights[hi] = newHeight
             }
 
             y += newHeight
@@ -267,7 +272,7 @@ class LayoutManager {
 
         while i < rangeInViewport.upperBound {
             // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-            let s = NSAttributedString(string: buffer.lines[i], attributes: [.font: (delegate as! TextView).font])
+            let s = NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font])
             let line = layout(s, at: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
@@ -380,7 +385,7 @@ class LayoutManager {
     // TODO: this is gross and unsafe and needs to be different
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
         // If we click past the end of the document, select the last character
-        if point.y > contentHeight {
+        if point.y >= contentHeight {
             return (buffer.endIndex, .upstream)
         }
 
@@ -393,7 +398,7 @@ class LayoutManager {
 
         assert(lineStart == buffer.lines.index(roundingDown: lineStart))
 
-        let s = NSAttributedString(string: buffer.lines[lineStart], attributes: [.font: (delegate as! TextView).font])
+        let s = NSAttributedString(string: String(buffer.lines[lineStart]), attributes: [.font: (delegate as! TextView).font])
         let line = layout(s, at: CGPoint(x: 0, y: y))
 
         let pointInLine = convert(point, to: line)
