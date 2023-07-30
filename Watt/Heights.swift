@@ -218,15 +218,6 @@ extension Heights {
         measure(using: .height)
     }
 
-    // TODO: make sure this is still valid
-    func offset(for point: CGPoint) -> Int? {
-        if point.y < 0 || point.y > measure(using: .height) {
-            return nil
-        }
-
-        return countBaseUnits(of: point.y, measuredIn: .height)
-    }
-
     // Returns the height of the line containing position.
     subscript(i: Index) -> CGFloat {
         get {
@@ -271,6 +262,10 @@ extension BTree {
         }
         
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
+            if measuredUnits <= 0 {
+                return 0
+            }
+
             if measuredUnits >= leaf.yOffsets.dropLast().last! {
                 return leaf.count
             }
@@ -342,12 +337,18 @@ extension BTree {
         }
         
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
-            if measuredUnits >= leaf.yOffsets.last! {
+            if measuredUnits <= 0 {
+                return 0
+            }
+
+            if measuredUnits > leaf.yOffsets.last! {
                 return leaf.count
             }
 
-            let (i, _) = leaf.yOffsets.binarySearch(for: measuredUnits)
-            return i == 0 ? 0 : leaf.positions[i-1]
+            // TODO: I think this special case for 0 can be removed once we
+            // switch to positions.count == heights.count
+            var (i, _) = leaf.yOffsets.binarySearch(for: measuredUnits)
+            return i == 1 ? 0 : leaf.positions[i-2]
         }
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {

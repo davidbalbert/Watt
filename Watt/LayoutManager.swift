@@ -380,14 +380,16 @@ class LayoutManager {
 
     // TODO: this is gross and unsafe and needs to be different
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
+        if point.y <= 0 {
+            return (buffer.startIndex, .downstream)
+        }
+        
         // If we click past the end of the document, select the last character
         if point.y >= contentHeight {
             return (buffer.endIndex, .upstream)
         }
 
-        guard let offset = heights.offset(for: point) else {
-            return nil
-        }
+        let offset = heights.countBaseUnits(of: point.y, measuredIn: .yOffset)
 
         let y = heights.count(.yOffset, upThrough: offset)
         let lineStart = buffer.index(at: offset)
@@ -444,7 +446,7 @@ class LayoutManager {
         //   2. The first location in a line fragment is always downstream.
         //      No exceptions.
         //   3. The last location in a line fragment is upstream, unless the
-        //      line is empty (i.e. unless the text element is "\n").
+        //      line is empty (i.e. unless the line is "\n").
         //   4. All other locations are downstream.
 
         let atEnd = pos == last
