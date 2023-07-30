@@ -347,7 +347,7 @@ extension BTree {
 
             // TODO: I think this special case for 0 can be removed once we
             // switch to positions.count == heights.count
-            var (i, _) = leaf.yOffsets.binarySearch(for: measuredUnits)
+            let (i, _) = leaf.yOffsets.binarySearch(for: measuredUnits)
             return i == 1 ? 0 : leaf.positions[i-2]
         }
 
