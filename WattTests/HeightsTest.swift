@@ -20,17 +20,18 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual([0, 14], h.root.leaf.yOffsets)
 
         XCTAssertEqual(14, h[h.index(at: 0)])
-        XCTAssertEqual(0, h.count(.yOffset, upThrough: 0))
+        XCTAssertEqual(0, h.count(.minY, upThrough: 0))
 
-        XCTAssertEqual(0, h.countBaseUnits(of: 0, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 1, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 13, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 13.9999, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 14, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 14.0001, measuredIn: .yOffset))
-        XCTAssertEqual(0, h.countBaseUnits(of: 5000, measuredIn: .yOffset))
+        XCTAssertEqual(0, h.countBaseUnits(of: 0, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 1, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 13, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 13.9999, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 14, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 14.0001, measuredIn: .minY))
+        XCTAssertEqual(0, h.countBaseUnits(of: 5000, measuredIn: .minY))
 
-        XCTAssertEqual(0, h.count(.yOffset, upThrough: 0))
+        XCTAssertEqual(0, h.count(.minY, upThrough: 0))
+        XCTAssertEqual(14, h.count(.maxY, upThrough: 0))
     }
 
     func testInitReadAndWrite() {
@@ -47,17 +48,17 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(14, h[h.index(at: 1)])
         XCTAssertEqual(14, h[h.index(at: 2)])
 
-        XCTAssertEqual(0, h.count(.yOffset, upThrough: 0))
-        XCTAssertEqual(0, h.count(.yOffset, upThrough: 3))
-        XCTAssertEqual(14, h.count(.yOffset, upThrough: 4))
-        XCTAssertEqual(14, h.count(.yOffset, upThrough: 7))
-        XCTAssertEqual(28, h.count(.yOffset, upThrough: 8))
-        XCTAssertEqual(28, h.count(.yOffset, upThrough: 10))
+        XCTAssertEqual(0, h.count(.minY, upThrough: 0))
+        XCTAssertEqual(0, h.count(.minY, upThrough: 3))
+        XCTAssertEqual(14, h.count(.minY, upThrough: 4))
+        XCTAssertEqual(14, h.count(.minY, upThrough: 7))
+        XCTAssertEqual(28, h.count(.minY, upThrough: 8))
+        XCTAssertEqual(28, h.count(.minY, upThrough: 10))
 
         // Counting the y-offset through the end of the rope
         // should return the y-offset of the last line, not
         // the height of the rope.
-        XCTAssertEqual(28, h.count(.yOffset, upThrough: 11))
+        XCTAssertEqual(28, h.count(.minY, upThrough: 11))
     }
 
     func testOnBoundary() {
@@ -70,9 +71,9 @@ final class HeightsTest: XCTestCase {
         let h = Heights(b.build())
 
 
-        XCTAssertEqual(896, h.measure(using: .yOffset))
+        XCTAssertEqual(896, h.measure(using: .minY))
 
-        XCTAssertEqual(434, h.count(.yOffset, upThrough: 160))
+        XCTAssertEqual(434, h.count(.minY, upThrough: 160))
 
         let i = h.index(at: 160)
         XCTAssertEqual(14, h[i])

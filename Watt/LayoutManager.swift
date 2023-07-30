@@ -127,14 +127,11 @@ class LayoutManager {
         }
 
         let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
-        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY - 0.00001, measuredIn: .yOffset)
-
-        // TODO: I think there might be a bug here. baseEnd could be rope.endIndex, and we try to get the line after baseEnd.
+        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
 
         // TODO: maybe buffer.contents.index(inBaseMetricAt: Int)
         var i = buffer.contents.utf8.index(at: baseStart)
         let end = buffer.contents.utf8.index(at: baseEnd)
-//        let end = buffer.lines.index(after: buffer.contents.utf8.index(at: baseEnd))
 
         assert(i == buffer.lines.index(roundingDown: i))
         assert(end == buffer.lines.index(roundingDown: end))
@@ -192,7 +189,6 @@ class LayoutManager {
             }
             
             if oldHeight != newHeight {
-                print(heights.root.count, i.position)
                 heights[hi] = newHeight
             }
 
@@ -256,7 +252,7 @@ class LayoutManager {
         delegate.layoutManagerWillLayoutSelections(self)
 
         let start = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
-        let end = heights.countBaseUnits(of: overdrawBounds.maxY - 0.00001, measuredIn: .yOffset)
+        let end = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
 
         let nextLine = buffer.lines.index(after: buffer.contents.utf8.index(at: end))
 
