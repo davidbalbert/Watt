@@ -39,20 +39,7 @@ protocol LayoutManagerDelegate: AnyObject {
     func overdrawBounds(for layoutManager: LayoutManager) -> CGRect
 
     func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint
-
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
-
-    func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForText line: Line)
-    func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
-
-    func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect)
-    func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager)
-
-    func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForInsertionPointRect rect: CGRect)
-    func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager)
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -106,7 +93,7 @@ class LayoutManager {
         heights.contentHeight
     }
 
-    func layoutText() {
+    func layoutText(using block: (Line) -> Void) {
         guard let delegate else {
             return
         }
@@ -116,7 +103,6 @@ class LayoutManager {
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
 
-        delegate.layoutManagerWillLayoutText(self)
         if updateLineNumbers {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
@@ -145,7 +131,7 @@ class LayoutManager {
 //            } else {
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
-                delegate.layoutManager(self, configureRenderingSurfaceForText: line)
+                block(line)
 //            }
             
 //            textLayerCache[lineno] = layer
@@ -187,7 +173,6 @@ class LayoutManager {
             buffer.lines.formIndex(after: &i)
         }
 
-        delegate.layoutManagerDidLayoutText(self)
         if updateLineNumbers {
             lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
@@ -232,14 +217,12 @@ class LayoutManager {
     }
 
     // TODO: this is doing unnecessary layout. We need to cache Lines.
-    func layoutSelections() {
+    func layoutSelections(using block: (CGRect) -> Void) {
         guard let delegate else {
             return
         }
 
         let overdrawBounds = delegate.overdrawBounds(for: self)
-
-        delegate.layoutManagerWillLayoutSelections(self)
 
         let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
         let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
@@ -308,7 +291,7 @@ class LayoutManager {
                 // selection rect in line coordinates
                 let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
 
-                delegate.layoutManager(self, configureRenderingSurfaceForSelectionRect: convert(rect, from: line))
+                block(convert(rect, from: line))
 
                 if rangeInViewport.upperBound <= fragRange.upperBound {
                     break
@@ -319,12 +302,10 @@ class LayoutManager {
 
             buffer.lines.formIndex(after: &i)
         }
-
-        delegate.layoutManagerDidLayoutSelections(self)
     }
 
     // TODO: ditto re caching Lines
-    func layoutInsertionPoints() {
+    func layoutInsertionPoints(using block: (CGRect) -> Void) {
     }
 
     // returns glyphOrigin, typographicBounds

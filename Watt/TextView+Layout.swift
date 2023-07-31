@@ -193,23 +193,17 @@ extension TextView: LayoutManagerDelegate {
     // property. If we did it with a closure, we could just use a local variable and
     // everything could stay put.
     func layoutTextLayer() {
-        layoutManager.layoutText()
-    }
-
-    func layoutManagerWillLayoutText(_ layoutManager: LayoutManager) {
         textLayer.sublayers = nil
-    }
 
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForText line: Line) {
-        let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
-        l.bounds = line.typographicBounds
-        l.position = convertFromTextContainer(line.position)
-        textLayerCache[line.id] = l
+        layoutManager.layoutText { line in
+            let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
+            l.bounds = line.typographicBounds
+            l.position = convertFromTextContainer(line.position)
+            textLayerCache[line.id] = l
 
-        textLayer.addSublayer(l)
-    }
+            textLayer.addSublayer(l)
+        }
 
-    func layoutManagerDidLayoutText(_ layoutManager: LayoutManager) {
         updateFrameHeightIfNeeded()
     }
 
@@ -226,22 +220,14 @@ extension TextView: LayoutManagerDelegate {
     // MARK: - Selection layout
 
     func layoutSelectionLayer() {
-        layoutManager.layoutSelections()
-    }
-    
-    func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager) {
         selectionLayer.sublayers = nil
-    }
 
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect) {
-        let l = selectionLayerCache[rect] ?? makeLayer(forSelectionRect: rect)
-        selectionLayerCache[rect] = l
+        layoutManager.layoutSelections { rect in
+            let l = selectionLayerCache[rect] ?? makeLayer(forSelectionRect: rect)
+            selectionLayerCache[rect] = l
 
-        selectionLayer.addSublayer(l)
-    }
-
-    func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager) {
-        // no-op
+            selectionLayer.addSublayer(l)
+        }
     }
 
     func makeLayer(forSelectionRect rect: CGRect) -> CALayer {
@@ -259,22 +245,14 @@ extension TextView: LayoutManagerDelegate {
     // MARK: - Insertion point layout
 
     func layoutInsertionPointLayer() {
-        layoutManager.layoutInsertionPoints()
-    }
-
-    func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager) {
         insertionPointLayer.sublayers = nil
-    }
 
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForInsertionPointRect rect: CGRect) {
-        let l = insertionPointLayerCache[rect] ?? makeLayer(forInsertionPointRect: rect)
-        selectionLayerCache[rect] = l
+        layoutManager.layoutInsertionPoints { rect in
+            let l = insertionPointLayerCache[rect] ?? makeLayer(forInsertionPointRect: rect)
+            selectionLayerCache[rect] = l
 
-        insertionPointLayer.addSublayer(l)
-    }
-
-    func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager) {
-        // no-op
+            insertionPointLayer.addSublayer(l)
+        }
     }
 
     func makeLayer(forInsertionPointRect rect: CGRect) -> CALayer {
