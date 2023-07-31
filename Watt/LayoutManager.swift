@@ -323,9 +323,8 @@ class LayoutManager {
         delegate.layoutManagerDidLayoutSelections(self)
     }
 
+    // TODO: ditto re caching Lines
     func layoutInsertionPoints() {
-
-
     }
 
     // returns glyphOrigin, typographicBounds

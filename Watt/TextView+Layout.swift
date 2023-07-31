@@ -200,16 +200,6 @@ extension TextView: LayoutManagerDelegate {
         textLayer.sublayers = nil
     }
 
-    func makeLayer(forLine line: Line) -> CALayer {
-        let l = LineLayer(line: line)
-        l.anchorPoint = .zero
-        l.needsDisplayOnBoundsChange = true
-        l.delegate = self // NSViewLayerContentScaleDelegate
-        l.contentsScale = window?.backingScaleFactor ?? 1.0
-
-        return l
-    }
-
     func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForText line: Line) {
         let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
         l.bounds = line.typographicBounds
@@ -223,6 +213,16 @@ extension TextView: LayoutManagerDelegate {
         updateFrameHeightIfNeeded()
     }
 
+    func makeLayer(forLine line: Line) -> CALayer {
+        let l = LineLayer(line: line)
+        l.anchorPoint = .zero
+        l.needsDisplayOnBoundsChange = true
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
+
+        return l
+    }
+
     // MARK: - Selection layout
 
     func layoutSelectionLayer() {
@@ -231,6 +231,17 @@ extension TextView: LayoutManagerDelegate {
     
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager) {
         selectionLayer.sublayers = nil
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect) {
+        let l = selectionLayerCache[rect] ?? makeLayer(forSelectionRect: rect)
+        selectionLayerCache[rect] = l
+
+        selectionLayer.addSublayer(l)
+    }
+
+    func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager) {
+        // no-op
     }
 
     func makeLayer(forSelectionRect rect: CGRect) -> CALayer {
@@ -245,17 +256,6 @@ extension TextView: LayoutManagerDelegate {
         return l
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect) {
-        let l = selectionLayerCache[rect] ?? makeLayer(forSelectionRect: rect)
-        selectionLayerCache[rect] = l
-
-        selectionLayer.addSublayer(l)
-    }
-
-    func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager) {
-        // no-op
-    }
-
     // MARK: - Insertion point layout
 
     func layoutInsertionPointLayer() {
@@ -267,64 +267,68 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForInsertionPointRect rect: CGRect) {
-//        insertionPointLayer.addSublayer(layer)
+        let l = insertionPointLayerCache[rect] ?? makeLayer(forInsertionPointRect: rect)
+        selectionLayerCache[rect] = l
+
+        insertionPointLayer.addSublayer(l)
     }
 
     func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager) {
         // no-op
     }
 
-//    func layoutInsertionPointLayer() {
-//        insertionPointLayer.sublayers = nil
-//
-//        guard let selection else {
-//            return
-//        }
-//
-//        guard selection.isEmpty else {
-//            return
-//        }
-//
-//        guard let viewportRange = layoutManager.viewportRange else {
-//            return
-//        }
-//
-//        guard viewportRange.contains(selection.range.lowerBound) || viewportRange.upperBound == selection.range.upperBound else {
-//            return
-//        }
-//
-//        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound, affinity: selection.affinity) { [weak self] caretRect, location, leadingEdge in
-//            guard let self else {
-//                return false
-//            }
-//
-//            let next = buffer.location(location, offsetBy: 1)
-//
-//            let downstreamMatch = location == selection.range.lowerBound && leadingEdge && selection.affinity == .downstream
-//            let upstreamMatch = next == selection.range.lowerBound && !leadingEdge && selection.affinity == .upstream
-//
-//            guard downstreamMatch || upstreamMatch else {
-//                return true
-//            }
-//
-//            let l = insertionPointLayerCache[caretRect] ?? makeInsertionPointLayer(for: caretRect)
-//            l.position = convertFromTextContainer(caretRect.origin)
-//            l.bounds = CGRect(origin: .zero, size: caretRect.size)
-//
-//            insertionPointLayerCache[caretRect] = l
-//            insertionPointLayer.addSublayer(l)
-//
-//            return false
-//        }
-//    }
-//
-//    func makeInsertionPointLayer(for rect: CGRect) -> CALayer {
-//        let l = InsertionPointLayer()
-//        l.anchorPoint = .zero
-//        l.delegate = self // NSViewLayerContentScaleDelegate
-//        l.needsDisplayOnBoundsChange = true
-//        l.contentsScale = window?.backingScaleFactor ??  1.0
-//
-//        return l
-//    }
+    func makeLayer(forInsertionPointRect rect: CGRect) -> CALayer {
+        let l = InsertionPointLayer()
+        l.anchorPoint = .zero
+        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.needsDisplayOnBoundsChange = true
+        l.contentsScale = window?.backingScaleFactor ??  1.0
+
+        return l
+    }
+
+    //    func layoutInsertionPointLayer() {
+    //        insertionPointLayer.sublayers = nil
+    //
+    //        guard let selection else {
+    //            return
+    //        }
+    //
+    //        guard selection.isEmpty else {
+    //            return
+    //        }
+    //
+    //        guard let viewportRange = layoutManager.viewportRange else {
+    //            return
+    //        }
+    //
+    //        guard viewportRange.contains(selection.range.lowerBound) || viewportRange.upperBound == selection.range.upperBound else {
+    //            return
+    //        }
+    //
+    //        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound, affinity: selection.affinity) { [weak self] caretRect, location, leadingEdge in
+    //            guard let self else {
+    //                return false
+    //            }
+    //
+    //            let next = buffer.location(location, offsetBy: 1)
+    //
+    //            let downstreamMatch = location == selection.range.lowerBound && leadingEdge && selection.affinity == .downstream
+    //            let upstreamMatch = next == selection.range.lowerBound && !leadingEdge && selection.affinity == .upstream
+    //
+    //            guard downstreamMatch || upstreamMatch else {
+    //                return true
+    //            }
+    //
+    //            let l = insertionPointLayerCache[caretRect] ?? makeInsertionPointLayer(for: caretRect)
+    //            l.position = convertFromTextContainer(caretRect.origin)
+    //            l.bounds = CGRect(origin: .zero, size: caretRect.size)
+    //
+    //            insertionPointLayerCache[caretRect] = l
+    //            insertionPointLayer.addSublayer(l)
+    //
+    //            return false
+    //        }
+    //    }
+    //
 }
