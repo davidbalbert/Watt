@@ -39,6 +39,8 @@
 		63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */; };
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63C907822A7319E300E4D7C9 /* HeightsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907812A7319E300E4D7C9 /* HeightsTest.swift */; };
+		63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907832A7847BC00E4D7C9 /* IntervalCache.swift */; };
+		63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
 		63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468E2A65D417001B8DA8 /* RopeTests.swift */; };
@@ -107,6 +109,8 @@
 		63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTest.swift; sourceTree = "<group>"; };
+		63C907832A7847BC00E4D7C9 /* IntervalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCache.swift; sourceTree = "<group>"; };
+		63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCacheTests.swift; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
 		63F0468E2A65D417001B8DA8 /* RopeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RopeTests.swift; sourceTree = "<group>"; };
@@ -182,6 +186,7 @@
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				631FD2642A696D27005FA854 /* Heights.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
+				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
 				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
 				63F25BE02A689D2400DEACCF /* Line.swift */,
 				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
@@ -212,8 +217,9 @@
 		637288A029FD8E1A005B95E5 /* WattTests */ = {
 			isa = PBXGroup;
 			children = (
-				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 				63C907812A7319E300E4D7C9 /* HeightsTest.swift */,
+				63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */,
+				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 			);
 			path = WattTests;
 			sourceTree = "<group>";
@@ -394,6 +400,7 @@
 				63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */,
 				631FD2652A696D27005FA854 /* Heights.swift in Sources */,
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
+				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+Actions.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
@@ -408,6 +415,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63C907822A7319E300E4D7C9 /* HeightsTest.swift in Sources */,
+				63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */,
 				63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
