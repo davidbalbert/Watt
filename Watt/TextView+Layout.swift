@@ -143,20 +143,15 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     func convertToTextContainer(_ point: CGPoint) -> CGPoint {
         CGPoint(x: point.x - computedTextContainerInset.left, y: point.y - computedTextContainerInset.top)
     }
-
-    func convertFromTextContainer(_ rect: CGRect) -> CGRect {
-        CGRect(origin: convertFromTextContainer(rect.origin), size: rect.size)
-    }
-
-    func convertToTextContainer(_ rect: CGRect) -> CGRect {
-        CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
-    }
 }
 
 
 extension TextView: LayoutManagerDelegate {
     func visibleRect(for layoutManager: LayoutManager) -> CGRect {
-        visibleRect
+        var r = visibleRect
+        r.size.width = textContainer.width
+
+        return r
     }
 
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
@@ -167,13 +162,10 @@ extension TextView: LayoutManagerDelegate {
             bounds = visibleRect
         }
 
+        bounds.size.width = textContainer.width
+
         return bounds
     }
-
-    func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint {
-        convertFromTextContainer(point)
-    }
-
 
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {
         let current = scrollOffset

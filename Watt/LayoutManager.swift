@@ -8,37 +8,11 @@
 import Foundation
 import QuartzCore
 
-// Notes for a hypothetical, unlikely iOS port:
-//
-// On iOS, we'd probably want to render lines, selection, and
-// insertion points into UIViews rather than CALayers, just
-// because UIViews are lighter weight, and that seems to be
-// what other similar systems like UITextView, Runestone, etc.
-// do.
-//
-// But we still want LayoutManager to be in charge of caching
-// the rendering surfaces. To handle this, we could add a generic
-// parameter RenderingSurface to LayoutManager, as well as
-// a RenderingSurface associated type to both delegates.
-// RenderingSurface will end up either CALayer or UIView. There
-// are no constraints needed for the type. All the layout manager
-// will do is ask its delegate to create rendering surfaces,
-// cache them, and then hand them back to it's delegate to insert
-// them into its hierarchy.
-//
-// The reason we'd need all this nonsense, and the reason
-// LayoutManager is responsible for caching layers in the first
-// place, is because I'm not planning on caching Lines, which
-// contain the output of Core Text's layout process, and I don't
-// want to have to re-layout text in order to just give the
-// delegate enough info to to figure out whether it has a layer
-// in its cache.
-
 protocol LayoutManagerDelegate: AnyObject {
+    // Should be in text container coordinates.
     func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
 
-    func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 }
 
@@ -145,11 +119,8 @@ class LayoutManager {
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
 
-            // TODO: after caching lines or breaks (whichever is more effective), moving the layer
-            // cache out to the TextView.
-            let minY = delegate.layoutManager(self, convertFromTextContainer: line.position).y
-            let oldMaxY = minY + oldHeight
-            
+            let oldMaxY = line.position.y + oldHeight
+
             // TODO: I don't know why I have to use the previous frame's
             // visible rect here. My best guess is that it has something
             // to do with the fact that I'm doing deferred layout of my
