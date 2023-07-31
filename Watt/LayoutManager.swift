@@ -251,12 +251,13 @@ class LayoutManager {
 
         delegate.layoutManagerWillLayoutSelections(self)
 
-        let start = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
-        let end = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
+        let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
+        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
 
-        let nextLine = buffer.lines.index(after: buffer.contents.utf8.index(at: end))
+        let start = buffer.contents.utf8.index(at: baseStart)
+        let end = buffer.contents.utf8.index(at: baseEnd)
 
-        let viewportRange = buffer.contents.utf8.index(at: start)..<nextLine
+        let viewportRange = start..<end
         let rangeInViewport = selection.range.clamped(to: viewportRange)
 
         if rangeInViewport.isEmpty {
