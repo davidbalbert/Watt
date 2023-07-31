@@ -167,10 +167,7 @@ class LayoutManager {
             let delta = newHeight - oldHeight
 
             // TODO: after caching lines or breaks (whichever is more effective), moving the layer
-            // cache out to the TextView, and possibly changing heights to be indexed by position
-            // rather than lineno, do this calculation inside TextView.layoutText() rather than
-            // inside LayoutManager. That way, layoutManager doesn't need to care about position
-            // in the view at all.
+            // cache out to the TextView.
             let minY = delegate.layoutManager(self, convertFromTextContainer: line.position).y
             let oldMaxY = minY + oldHeight
             
