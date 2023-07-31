@@ -9,7 +9,8 @@ import Foundation
 import CoreGraphics
 import CoreText
 
-struct Line {
+struct Line: Identifiable {
+    var id: UUID = UUID()
     var position: CGPoint
     let typographicBounds: CGRect
     let lineFragments: [LineFragment]

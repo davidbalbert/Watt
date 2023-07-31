@@ -200,7 +200,7 @@ extension TextView: LayoutManagerDelegate {
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer {
+    func makeLayer(forLine line: Line) -> CALayer {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
         l.needsDisplayOnBoundsChange = true
@@ -210,11 +210,13 @@ extension TextView: LayoutManagerDelegate {
         return l
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer) {
-        layer.bounds = layer.line.typographicBounds
-        layer.position = convertFromTextContainer(layer.line.position)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForText line: Line) {
+        let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
+        l.bounds = line.typographicBounds
+        l.position = convertFromTextContainer(line.position)
+        textLayerCache[line.id] = l
 
-        textLayer.addSublayer(layer)
+        textLayer.addSublayer(l)
     }
 
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager) {
@@ -231,8 +233,8 @@ extension TextView: LayoutManagerDelegate {
         selectionLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, createSelectionLayerFor rect: CGRect) -> CALayer {
-        let l = SelectionLayer(textView: self)
+    func makeLayer(forSelectionRect rect: CGRect) -> CALayer {
+        let l = SelectionLayer()
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
@@ -243,8 +245,11 @@ extension TextView: LayoutManagerDelegate {
         return l
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertSelectionLayer layer: CALayer) {
-        selectionLayer.addSublayer(layer)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect) {
+        let l = selectionLayerCache[rect] ?? makeLayer(forSelectionRect: rect)
+        selectionLayerCache[rect] = l
+
+        selectionLayer.addSublayer(l)
     }
 
     func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager) {
@@ -306,8 +311,8 @@ extension TextView: LayoutManagerDelegate {
         insertionPointLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointLayer layer: CALayer) {
-        insertionPointLayer.addSublayer(layer)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForInsertionPointRect rect: CGRect) {
+//        insertionPointLayer.addSublayer(layer)
     }
 
     func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager) {

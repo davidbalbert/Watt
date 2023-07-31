@@ -93,8 +93,8 @@ class TextView: NSView, ClipViewDelegate {
     let textLayer: CALayer = CALayer()
     let insertionPointLayer: CALayer = CALayer()
 
-//    var textLayerCache: WeakDictionary<LayoutFragment.ID, CALayer> = WeakDictionary()
-//    var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
+    var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
+    var textLayerCache: WeakDictionary<Line.ID, CALayer> = WeakDictionary()
 //    var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
 
     var insertionPointTimer: Timer?

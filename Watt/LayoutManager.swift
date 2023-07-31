@@ -43,17 +43,15 @@ protocol LayoutManagerDelegate: AnyObject {
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 
     func layoutManagerWillLayoutText(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, createTextLayerFor line: Line) -> LineLayer
-    func layoutManager(_ layoutManager: LayoutManager, insertTextLayer layer: LineLayer)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForText line: Line)
     func layoutManagerDidLayoutText(_ layoutManager: LayoutManager)
 
     func layoutManagerWillLayoutSelections(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, createSelectionLayerFor rect: CGRect) -> CALayer
-    func layoutManager(_ layoutManager: LayoutManager, insertSelectionLayer layer: CALayer)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForSelectionRect rect: CGRect)
     func layoutManagerDidLayoutSelections(_ layoutManager: LayoutManager)
 
     func layoutManagerWillLayoutInsertionPoints(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, insertInsertionPointLayer layer: CALayer)
+    func layoutManager(_ layoutManager: LayoutManager, configureRenderingSurfaceForInsertionPointRect rect: CGRect)
     func layoutManagerDidLayoutInsertionPoints(_ layoutManager: LayoutManager)
 }
 
@@ -94,14 +92,11 @@ class LayoutManager {
 
     var selection: Selection
 
-    var textLayerCache: WeakDictionary<Int, LineLayer>
-
     init() {
         self.buffer = Buffer()
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
         self.previousViewportBounds = .zero
-        self.textLayerCache = WeakDictionary()
 
         // TODO: subscribe to changes to buffer.
         self.selection = Selection(head: buffer.startIndex)
@@ -142,20 +137,18 @@ class LayoutManager {
         var scrollAdjustment: CGSize = .zero
 
         while i < end {
-            let layer: LineLayer
             let line: Line
-            if let l = textLayerCache[lineno] {
-                l.line.position.y = y
-                line = l.line
-                layer = l
-            } else {
+//            if let l = textLayerCache[lineno] {
+//                l.line.position.y = y
+//                line = l.line
+//                layer = l
+//            } else {
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
-                layer = delegate.layoutManager(self, createTextLayerFor: line)
-            }
+                delegate.layoutManager(self, configureRenderingSurfaceForText: line)
+//            }
             
-            delegate.layoutManager(self, insertTextLayer: layer)
-            textLayerCache[lineno] = layer
+//            textLayerCache[lineno] = layer
             
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
@@ -315,8 +308,7 @@ class LayoutManager {
                 // selection rect in line coordinates
                 let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
 
-                let l = delegate.layoutManager(self, createSelectionLayerFor: convert(rect, from: line))
-                delegate.layoutManager(self, insertSelectionLayer: l)
+                delegate.layoutManager(self, configureRenderingSurfaceForSelectionRect: convert(rect, from: line))
 
                 if rangeInViewport.upperBound <= fragRange.upperBound {
                     break
@@ -360,7 +352,7 @@ class LayoutManager {
     }
 
     func invalidateLayout() {
-        textLayerCache.removeAll()
+//        textLayerCache.removeAll()
     }
 
     // offsetInLine is the offset in the Line, not the LineFragment.
