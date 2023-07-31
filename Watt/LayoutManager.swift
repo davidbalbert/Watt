@@ -75,7 +75,7 @@ class LayoutManager {
         }
     }
 
-    var previousViewportBounds: CGRect
+    var previousVisibleRect: CGRect
 
     var selection: Selection
 
@@ -83,7 +83,7 @@ class LayoutManager {
         self.buffer = Buffer()
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
-        self.previousViewportBounds = .zero
+        self.previousVisibleRect = .zero
 
         // TODO: subscribe to changes to buffer.
         self.selection = Selection(head: buffer.startIndex)
@@ -151,7 +151,7 @@ class LayoutManager {
             let oldMaxY = minY + oldHeight
             
             // TODO: I don't know why I have to use the previous frame's
-            // viewport bounds here. My best guess is that it has something
+            // visible rect here. My best guess is that it has something
             // to do with the fact that I'm doing deferred layout of my
             // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
             // changing the deferred layout calls in prepareContent(in:)
@@ -160,7 +160,7 @@ class LayoutManager {
             // gotten scroll correction right here anyways (there are
             // sometimes things that look like jumps during scrolling).
             // I'll come back to this later.
-            if oldMaxY <= previousViewportBounds.minY && delta != 0 {
+            if oldMaxY <= previousVisibleRect.minY && delta != 0 {
                 scrollAdjustment.height += delta
             }
             
@@ -181,7 +181,7 @@ class LayoutManager {
             delegate.layoutManager(self, adjustScrollOffsetBy: scrollAdjustment)
         }
 
-        previousViewportBounds = visibleRect
+        previousVisibleRect = visibleRect
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
