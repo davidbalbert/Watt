@@ -256,51 +256,6 @@ extension TextView: LayoutManagerDelegate {
         // no-op
     }
 
-//    func layoutSelectionLayer() {
-//        selectionLayer.sublayers = nil
-//
-//        guard let selection else {
-//            return
-//        }
-//
-//        if selection.isEmpty {
-//            return
-//        }
-//
-//        guard let viewportRange = layoutManager.viewportRange else {
-//            return
-//        }
-//
-//        let rangeInViewport = selection.range.clamped(to: viewportRange)
-//
-//        if rangeInViewport.isEmpty {
-//            return
-//        }
-//
-//        layoutManager.enumerateTextSegments(in: rangeInViewport, type: .selection) { _, frame in
-//            let l = selectionLayerCache[frame] ?? makeSelectionLayer(for: frame)
-//
-//            let position = convertFromTextContainer(frame.origin)
-//            l.position = position
-//            l.bounds = CGRect(origin: .zero, size: frame.size)
-//
-//            selectionLayerCache[frame] = l
-//            selectionLayer.addSublayer(l)
-//
-//            return true
-//        }
-//    }
-//
-//    func makeSelectionLayer(for frame: CGRect) -> CALayer {
-//        let l = SelectionLayer(textView: self)
-//        l.anchorPoint = .zero
-//        l.delegate = self // NSViewLayerContentScaleDelegate
-//        l.needsDisplayOnBoundsChange = true
-//        l.contentsScale = window?.backingScaleFactor ??  1.0
-//
-//        return l
-//    }
-
     // MARK: - Insertion point layout
 
     func layoutInsertionPointLayer() {
