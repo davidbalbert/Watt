@@ -260,6 +260,57 @@ extension Heights {
 }
 
 extension BTree {
+    struct HeightsBaseMetric: BTreeMetric {
+        func measure(summary: HeightsSummary, count: Int) -> Int {
+            count
+        }
+
+        func convertToBaseUnits(_ measuredUnits: Int, in leaf: HeightsLeaf) -> Int {
+            measuredUnits
+        }
+
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> Int {
+            baseUnits
+        }
+
+        func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
+            let (_, found) = leaf.positions.binarySearch(for: offset)
+            return found
+        }
+
+        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            assert(offset > 0 && offset <= leaf.count)
+
+            let (i, _) = leaf.positions.binarySearch(for: offset)
+            return i == 0 ? 0 : leaf.positions[i-1]
+        }
+
+        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            assert(offset < leaf.count)
+
+            switch leaf.positions.binarySearch(for: offset) {
+            case let (i, found: true):
+                return leaf.positions[i+1]
+            case let (i, found: false):
+                return leaf.positions[i]
+            }
+        }
+
+        var canFragment: Bool {
+            false
+        }
+
+        var type: BTreeMetricType {
+            .atomic
+        }
+    }
+}
+
+extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
+    static var heightsBaseMetric: Heights.HeightsBaseMetric { Heights.HeightsBaseMetric() }
+}
+
+extension BTree {
     struct YOffsetMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> CGFloat {
             summary.height
@@ -294,26 +345,15 @@ extension BTree {
         }
         
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            let (_, found) = leaf.positions.binarySearch(for: offset)
-            return found
+            HeightsBaseMetric().isBoundary(offset, in: leaf)
         }
         
         func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            assert(offset > 0 && offset <= leaf.count)
-
-            let (i, _) = leaf.positions.binarySearch(for: offset)
-            return i == 0 ? 0 : leaf.positions[i-1]
+            HeightsBaseMetric().prev(offset, in: leaf)
         }
         
         func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            assert(offset < leaf.count)
-            
-            switch leaf.positions.binarySearch(for: offset) {
-            case let (i, found: true):
-                return leaf.positions[i+1]
-            case let (i, found: false):
-                return leaf.positions[i]
-            }
+            HeightsBaseMetric().next(offset, in: leaf)
         }
 
         var canFragment: Bool {
@@ -362,15 +402,15 @@ extension BTree {
         }
         
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            YOffsetMetric().isBoundary(offset, in: leaf)
+            HeightsBaseMetric().isBoundary(offset, in: leaf)
         }
 
         func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            YOffsetMetric().prev(offset, in: leaf)
+            HeightsBaseMetric().prev(offset, in: leaf)
         }
 
         func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            YOffsetMetric().next(offset, in: leaf)
+            HeightsBaseMetric().next(offset, in: leaf)
         }
 
         var canFragment: Bool {
@@ -385,46 +425,6 @@ extension BTree {
 
 extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
     static var height: Heights.HeightMetric { Heights.HeightMetric() }
-}
-
-extension BTree {
-    struct HeightsBaseMetric: BTreeMetric {
-        func measure(summary: HeightsSummary, count: Int) -> Int {
-            count
-        }
-        
-        func convertToBaseUnits(_ measuredUnits: Int, in leaf: HeightsLeaf) -> Int {
-            measuredUnits
-        }
-        
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> Int {
-            baseUnits
-        }
-        
-        func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            YOffsetMetric().isBoundary(offset, in: leaf)
-        }
-        
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            YOffsetMetric().prev(offset, in: leaf)
-        }
-        
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            YOffsetMetric().next(offset, in: leaf)
-        }
-        
-        var canFragment: Bool {
-            false
-        }
-
-        var type: BTreeMetricType {
-            .atomic
-        }
-    }
-}
-
-extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
-    static var heightsBaseMetric: Heights.HeightsBaseMetric { Heights.HeightsBaseMetric() }
 }
 
 struct HeightsBuilder {
