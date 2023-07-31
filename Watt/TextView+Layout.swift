@@ -155,11 +155,11 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
 
 extension TextView: LayoutManagerDelegate {
-    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
+    func visibleRect(for layoutManager: LayoutManager) -> CGRect {
         visibleRect
     }
 
-    func overdrawBounds(for layoutManager: LayoutManager) -> CGRect {
+    func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
         var bounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
             bounds = preparedContentRect.union(visibleRect)

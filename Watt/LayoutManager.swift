@@ -35,8 +35,8 @@ import QuartzCore
 // in its cache.
 
 protocol LayoutManagerDelegate: AnyObject {
+    func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    func overdrawBounds(for layoutManager: LayoutManager) -> CGRect
 
     func layoutManager(_ layoutManager: LayoutManager, convertFromTextContainer point: CGPoint) -> CGPoint
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
@@ -98,8 +98,8 @@ class LayoutManager {
             return
         }
 
+        let visibleRect = delegate.visibleRect(for: self)
         let viewportBounds = delegate.viewportBounds(for: self)
-        let overdrawBounds = delegate.overdrawBounds(for: self)
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
 
@@ -107,8 +107,8 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
-        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
+        let baseStart = heights.countBaseUnits(of: viewportBounds.minY, measuredIn: .yOffset)
+        let baseEnd = heights.countBaseUnits(of: viewportBounds.maxY, measuredIn: .height)
 
         // TODO: maybe buffer.contents.index(inBaseMetricAt: Int)
         var i = buffer.contents.utf8.index(at: baseStart)
@@ -181,7 +181,7 @@ class LayoutManager {
             delegate.layoutManager(self, adjustScrollOffsetBy: scrollAdjustment)
         }
 
-        previousViewportBounds = viewportBounds
+        previousViewportBounds = visibleRect
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
@@ -222,10 +222,10 @@ class LayoutManager {
             return
         }
 
-        let overdrawBounds = delegate.overdrawBounds(for: self)
+        let viewportBounds = delegate.viewportBounds(for: self)
 
-        let baseStart = heights.countBaseUnits(of: overdrawBounds.minY, measuredIn: .yOffset)
-        let baseEnd = heights.countBaseUnits(of: overdrawBounds.maxY, measuredIn: .height)
+        let baseStart = heights.countBaseUnits(of: viewportBounds.minY, measuredIn: .yOffset)
+        let baseEnd = heights.countBaseUnits(of: viewportBounds.maxY, measuredIn: .height)
 
         let start = buffer.contents.utf8.index(at: baseStart)
         let end = buffer.contents.utf8.index(at: baseEnd)
