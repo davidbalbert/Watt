@@ -19,6 +19,10 @@ struct IntervalCache<T> {
         self.spans = spans
     }
 
+    var upperBound: Int {
+        spans.count
+    }
+
     var count: Int {
         spans.spanCount
     }
@@ -49,8 +53,19 @@ struct IntervalCache<T> {
         let (startLeaf, startOffset) = i.read()!
         let (endLeaf, endOffset) = j.read()!
 
-        let start = startLeaf.spans.first(where: { $0.range.contains(startOffset) })?.range.lowerBound ?? bounds.lowerBound
-        let end = endLeaf.spans.first(where: { $0.range.contains(endOffset) })?.range.upperBound ?? bounds.upperBound
+        let start: Int
+        if let span = startLeaf.spans.first(where: { $0.range.contains(startOffset) }) {
+            start = i.offsetOfLeaf + span.range.lowerBound
+        } else {
+            start = bounds.lowerBound
+        }
+
+        let end: Int
+        if let span = endLeaf.spans.first(where: { $0.range.contains(endOffset) }) {
+            end = j.offsetOfLeaf + span.range.upperBound
+        } else {
+            end = bounds.upperBound
+        }
 
         var b = BTree<SpansSummary<T>>.Builder()
         var prefix = SpansBuilder<T>(totalCount: start).build().t
@@ -96,6 +111,15 @@ struct IntervalCache<T> {
         b.push(&t.root, slicedBy: end..<spans.count)
 
         self.spans = Spans(BTree(b.build()))
+    }
+
+    mutating func removeAll() {
+        guard count > 0 else {
+            return
+        }
+
+        let b = SpansBuilder<T>(totalCount: spans.count)
+        spans = b.build()
     }
 }
 

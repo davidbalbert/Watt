@@ -35,6 +35,7 @@ class LayoutManager {
             // TODO: subscribe to changes to new buffer
             selection = Selection(head: buffer.documentRange.lowerBound)
             heights = Heights(rope: buffer.contents)
+            lineCache = IntervalCache(upperBound: buffer.utf8Count)
             invalidateLayout()
         }
     }
@@ -53,11 +54,14 @@ class LayoutManager {
 
     var selection: Selection
 
+    var lineCache: IntervalCache<Line>
+
     init() {
         self.buffer = Buffer()
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
         self.previousVisibleRect = .zero
+        self.lineCache = IntervalCache(upperBound: buffer.utf8Count)
 
         // TODO: subscribe to changes to buffer.
         self.selection = Selection(head: buffer.startIndex)
@@ -94,22 +98,31 @@ class LayoutManager {
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
         var y = heights.count(.yOffset, upThrough: i.position)
 
+        lineCache = lineCache[baseStart..<baseEnd]
+
         var scrollAdjustment: CGSize = .zero
 
         while i < end {
-            let line: Line
-//            if let l = textLayerCache[lineno] {
-//                l.line.position.y = y
-//                line = l.line
-//                layer = l
-//            } else {
+            var line: Line
+            let changed: Bool
+            if var l = lineCache[i.position] {
+                changed = l.position.y != y
+                l.position.y = y
+                line = l
+            } else {
+                changed = true
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
-                block(line)
-//            }
-            
-//            textLayerCache[lineno] = layer
-            
+            }
+
+            block(line)
+
+            let next = buffer.lines.index(after: i)
+
+            if changed {
+                lineCache.set(line, forRange: i.position..<next.position)
+            }
+
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
             }
@@ -141,7 +154,7 @@ class LayoutManager {
 
             y += newHeight
             lineno += 1
-            buffer.lines.formIndex(after: &i)
+            i = next
         }
 
         if updateLineNumbers {
@@ -303,7 +316,7 @@ class LayoutManager {
     }
 
     func invalidateLayout() {
-//        textLayerCache.removeAll()
+        lineCache.removeAll()
     }
 
     // offsetInLine is the offset in the Line, not the LineFragment.

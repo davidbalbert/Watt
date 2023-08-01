@@ -10,6 +10,14 @@ import Foundation
 struct Span<T> {
     var range: Range<Int>
     var data: T
+
+    init(range: Range<Int>, data: T) {
+        if range.lowerBound == 40462 {
+            print("got it!")
+        }
+        self.range = range
+        self.data = data
+    }
 }
 
 struct SpansLeaf<T>: BTreeLeaf {
@@ -45,7 +53,7 @@ struct SpansLeaf<T>: BTreeLeaf {
         }
         count += other.count
 
-        if count <= SpansLeaf.maxSize {
+        if spans.count <= SpansLeaf.maxSize {
             return nil
         } else {
             let splitIndex = spans.count / 2
@@ -285,7 +293,7 @@ struct SpansBuilder<T> {
     }
 
     mutating func add(_ data: T, covering range: Range<Int>) {
-        assert(range.lowerBound > count + (leaf.spans.last?.range.upperBound ?? 0))
+        assert(range.lowerBound >= count + (leaf.spans.last?.range.upperBound ?? 0))
 
         if leaf.spans.count == SpansLeaf<T>.maxSize {
             leaf.count = range.lowerBound - count
@@ -294,7 +302,7 @@ struct SpansBuilder<T> {
             leaf = SpansLeaf()
         }
 
-        leaf.spans.append(Span(range: range, data: data))
+        leaf.spans.append(Span(range: range.offset(by: -count), data: data))
         totalCount = Swift.max(totalCount, range.upperBound)
     }
 
