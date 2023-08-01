@@ -10,7 +10,7 @@ import XCTest
 
 final class IntervalCacheTests: XCTestCase {
     func testStoreAndLoad() {
-        var cache = IntervalCache<Int>()
+        var cache = IntervalCache<Int>(upperBound: 20)
         cache.set(20, forRange: 5..<10)
 
         XCTAssert(cache.count == 1)
@@ -22,7 +22,7 @@ final class IntervalCacheTests: XCTestCase {
     }
 
     func testInvalidate() {
-        var cache = IntervalCache<Int>()
+        var cache = IntervalCache<Int>(upperBound: 20)
         cache.set(20, forRange: 5..<10)
 
         XCTAssert(cache.count == 1)
@@ -33,7 +33,7 @@ final class IntervalCacheTests: XCTestCase {
     }
 
     func testSubscript() {
-        var cache = IntervalCache<Int>()
+        var cache = IntervalCache<Int>(upperBound: 50)
 
         cache.set(1, forRange: 5..<10)
         cache.set(2, forRange: 15..<20)
