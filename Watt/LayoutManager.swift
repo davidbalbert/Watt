@@ -103,25 +103,19 @@ class LayoutManager {
         var scrollAdjustment: CGSize = .zero
 
         while i < end {
+            let next = buffer.lines.index(after: i)
+
             var line: Line
-            let changed: Bool
             if var l = lineCache[i.position] {
-                changed = l.position.y != y
                 l.position.y = y
                 line = l
             } else {
-                changed = true
                 // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
                 line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
+                lineCache.set(line, forRange: i.position..<next.position)
             }
 
             block(line)
-
-            let next = buffer.lines.index(after: i)
-
-            if changed {
-                lineCache.set(line, forRange: i.position..<next.position)
-            }
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
@@ -226,8 +220,11 @@ class LayoutManager {
 
         while i < rangeInViewport.upperBound {
             // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-            let s = NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font])
-            let line = layout(s, at: CGPoint(x: 0, y: y))
+//            let s = NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font])
+//            let line = layout(s, at: CGPoint(x: 0, y: y))
+
+            // TODO: this force unwrap might not be safe if we drag out of the viewport
+            let line = lineCache[i.position]!
             y += line.typographicBounds.height
 
             var thisFrag = i
@@ -350,8 +347,10 @@ class LayoutManager {
 
         assert(lineStart == buffer.lines.index(roundingDown: lineStart))
 
-        let s = NSAttributedString(string: String(buffer.lines[lineStart]), attributes: [.font: (delegate as! TextView).font])
-        let line = layout(s, at: CGPoint(x: 0, y: y))
+//        let s = NSAttributedString(string: String(buffer.lines[lineStart]), attributes: [.font: (delegate as! TextView).font])
+//        let line = layout(s, at: CGPoint(x: 0, y: y))
+        // TODO: this force unwrap doesn't work if we mouse pass the end of the visible content.
+        let line = lineCache[lineStart.position]!
 
         let pointInLine = convert(point, to: line)
 

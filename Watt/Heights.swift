@@ -185,10 +185,11 @@ extension Heights.Index {
             return nil
         }
 
-        // End of rope
-        if offsetOfLeaf + offset == root!.count {
-            return (leaf, leaf.positions.count - 1)
-        }
+        // End of rope, return the height of the
+        // last line.
+//        if offsetOfLeaf + offset == root!.count {
+//            return (leaf, leaf.positions.count - 1)
+//        }
 
         let (i, found) = leaf.positions.binarySearch(for: offset)
         if found {
@@ -196,13 +197,6 @@ extension Heights.Index {
         } else {
             return (leaf, i)
         }
-    }
-
-    func readHeight() -> CGFloat? {
-        guard let (leaf, i) = readLeafIndex() else {
-            return nil
-        }
-        return i == 0 ? leaf.heights[0] : leaf.heights[i] - leaf.heights[i-1]
     }
 }
 
@@ -219,7 +213,16 @@ extension Heights {
     }
 
     var contentHeight: CGFloat {
-        measure(using: .height)
+        measure(using: .yOffset)
+    }
+
+    subscript(position: Int) -> CGFloat {
+        get {
+            self[index(at: position)]
+        }
+        set {
+            self[index(at: position)] = newValue
+        }
     }
 
     // Returns the height of the line containing position.
@@ -227,8 +230,15 @@ extension Heights {
         get {
             i.validate(for: root)
             precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
-            return i.readHeight()!
+            let (leaf, li) = i.readLeafIndex()!
+            // The end of the string is a valid boundary, but it's only
+            // a valid position if the string ends with a blank line (i.e.
+            // the end of the string is also the beginning of a line).
+            precondition(li < leaf.heights.count, "not a boundary")
+
+            return li == 0 ? leaf.heights[0] : leaf.heights[li] - leaf.heights[li-1]
         }
         set {
             i.validate(for: root)
@@ -236,6 +246,9 @@ extension Heights {
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
+            // See comment in get.
+            precondition(li < leaf.heights.count, "not a boundary")
+
             let count = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
 
             let newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
@@ -300,8 +313,16 @@ extension BTree {
             false
         }
 
+        // Even though this looks a lot like the Rope's base metric, and
+        // in fact the units are the same (bytes), there exist (many) strings
+        // when put into Heights where you can find a non-empty string for
+        // which HeightsLeaf has a measure of 0, so the measure is non-atomic.
+        // E.g. if the first line is "abc", positions 0, 1, and 2 will all
+        // have a measure of zero.
+        //
+        // This is not the clearest explanation :/.
         var type: BTreeMetricType {
-            .atomic
+            .trailing
         }
     }
 }
@@ -317,12 +338,8 @@ extension BTree {
         }
         
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
-            if measuredUnits <= 0 {
-                return 0
-            }
-
-            if measuredUnits > leaf.heights.last! {
-                return leaf.count
+            if measuredUnits >= leaf.heights.last! {
+                return leaf.positions.dropLast().last ?? 0
             }
 
             var (i, found) = leaf.heights.binarySearch(for: measuredUnits)
@@ -334,7 +351,7 @@ extension BTree {
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
             if baseUnits >= leaf.count {
-                return leaf.heights.last!
+                return leaf.heights.dropLast().last ?? 0
             }
 
             var (i, found) = leaf.positions.binarySearch(for: baseUnits)
