@@ -334,7 +334,7 @@ extension BTree {
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
             if baseUnits >= leaf.count {
-                return leaf.heights.dropLast().last ?? 0
+                return leaf.heights.last!
             }
 
             var (i, found) = leaf.positions.binarySearch(for: baseUnits)
@@ -390,6 +390,7 @@ extension BTree {
         }
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
+            // TODO: I think this is wrong, though I think the real issue is that the whole Heights metric is wrong.
             if baseUnits >= leaf.count {
                 return leaf.heights.last!
             }
