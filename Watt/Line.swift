@@ -11,14 +11,14 @@ import CoreText
 
 struct Line: Identifiable {
     var id: UUID = UUID()
-    var position: CGPoint
+    var origin: CGPoint
     let typographicBounds: CGRect
     let lineFragments: [LineFragment]
 
     var frame: CGRect {
         CGRect(
-            x: position.x + typographicBounds.minX,
-            y: position.y + typographicBounds.minY,
+            x: origin.x + typographicBounds.minX,
+            y: origin.y + typographicBounds.minY,
             width: typographicBounds.width,
             height: typographicBounds.height
         )

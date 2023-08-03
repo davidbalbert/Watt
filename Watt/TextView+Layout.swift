@@ -190,7 +190,7 @@ extension TextView: LayoutManagerDelegate {
         layoutManager.layoutText { line in
             let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
             l.bounds = line.typographicBounds
-            l.position = convertFromTextContainer(line.position)
+            l.position = convertFromTextContainer(line.origin)
             textLayerCache[line.id] = l
 
             textLayer.addSublayer(l)

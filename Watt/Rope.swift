@@ -1122,6 +1122,12 @@ extension Rope {
             i.validate(for: base.root)
             return base.index(i, offsetBy: distance, using: .utf16)
         }
+
+        func distance(from start: Index, to end: Index) -> Int {
+            start.validate(for: base.root)
+            end.validate(for: base.root)
+            return base.distance(from: start, to: end, using: .utf16)
+        }
     }
 }
 

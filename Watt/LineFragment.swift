@@ -12,13 +12,12 @@ import CoreText
 struct LineFragment {
     var ctLine: CTLine
     let glyphOrigin: CGPoint
-    let position: CGPoint
+    let origin: CGPoint
     let typographicBounds: CGRect
-    let utf8Count: Int
     let utf16Count: Int
 
     var frame: CGRect {
-        CGRect(origin: position, size: typographicBounds.size)
+        CGRect(origin: origin, size: typographicBounds.size)
     }
 
     func draw(at point: CGPoint, in ctx: CGContext) {

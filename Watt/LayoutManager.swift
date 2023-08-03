@@ -101,7 +101,7 @@ class LayoutManager {
             block(line)
 
             if updateLineNumbers {
-                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.position, withLineHeight: line.typographicBounds.height)
+                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.origin, withLineHeight: line.typographicBounds.height)
             }
 
             let hi = heights.index(at: i.position)
@@ -109,7 +109,7 @@ class LayoutManager {
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
 
-            let oldMaxY = line.position.y + oldHeight
+            let oldMaxY = line.origin.y + oldHeight
 
             // TODO: I don't know why I have to use the previous frame's
             // visible rect here. My best guess is that it has something
@@ -169,8 +169,7 @@ class LayoutManager {
 
             var thisFrag = i
             for f in line.lineFragments {
-                // TODO: not validating!
-                let nextFrag = buffer.contents.index(thisFrag, offsetBy: f.utf16Count, using: .utf16)
+                let nextFrag = buffer.utf16.index(thisFrag, offsetBy: f.utf16Count)
 
                 let fragRange = thisFrag..<nextFrag
 
@@ -188,7 +187,7 @@ class LayoutManager {
                     continue
                 }
 
-                let start = buffer.contents.distance(from: i, to: rangeInFrag.lowerBound, using: .utf16)
+                let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
                 let xStart = locationForCharacter(atUTF16OffsetInLine: start, in: f).x
 
                 let last = buffer.index(before: fragRange.upperBound)
@@ -199,14 +198,14 @@ class LayoutManager {
                 if shouldExtendSelection {
                     xEnd = textContainer.lineWidth
                 } else {
-                    let end = buffer.contents.distance(from: i, to: rangeInFrag.upperBound, using: .utf16)
+                    let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
                     let x0 = locationForCharacter(atUTF16OffsetInLine: end, in: f).x
                     let x1 = textContainer.lineWidth
                     xEnd = min(x0, x1)
                 }
 
                 let bounds = f.typographicBounds
-                let origin = f.position
+                let origin = f.origin
                 let padding = textContainer.lineFragmentPadding
 
                 // selection rect in line coordinates
@@ -252,7 +251,6 @@ class LayoutManager {
 
         let pointInLine = convert(point, to: line)
 
-        // TODO: this could be a binary search, or we could even store line fragment info in Heights.
         var lineFragment: LineFragment?
         var offsetOfLineFragment = 0
         for f in line.lineFragments {
@@ -269,24 +267,23 @@ class LayoutManager {
         }
 
         let pointInLineFragment = convert(pointInLine, to: lineFragment)
-        let adjusted = CGPoint(
+        let pointInCTLine = CGPoint(
             x: pointInLineFragment.x - textContainer.lineFragmentPadding,
             y: pointInLineFragment.y
         )
 
-        let offsetInLine = CTLineGetStringIndexForPosition(lineFragment.ctLine, adjusted)
+        let offsetInLine = CTLineGetStringIndexForPosition(lineFragment.ctLine, pointInCTLine)
         if offsetInLine == kCFNotFound {
             return nil
         }
 
         let offsetInLineFragment = offsetInLine - offsetOfLineFragment
 
-        // TODO: missing index validation here!
-        let fragStart = buffer.contents.index(start, offsetBy: offsetOfLineFragment, using: .utf16)
-        var pos = buffer.contents.index(fragStart, offsetBy: offsetInLineFragment, using: .utf16)
+        let fragStart = buffer.utf16.index(start, offsetBy: offsetOfLineFragment)
+        var pos = buffer.utf16.index(fragStart, offsetBy: offsetInLineFragment)
 
         // TODO: what if lineFragment is empty?
-        let next = buffer.contents.index(fragStart, offsetBy: lineFragment.utf16Count, using: .utf16)
+        let next = buffer.utf16.index(fragStart, offsetBy: lineFragment.utf16Count)
         let last = buffer.contents.index(before: next)
         let c = buffer[last]
 
@@ -322,7 +319,7 @@ class LayoutManager {
         assert(range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
         if var line = lineCache[range.lowerBound.position] {
-            line.position.y = point.y
+            line.origin.y = point.y
             return line
         } else {
             let line = makeLine(from: range, at: point)
@@ -345,14 +342,11 @@ class LayoutManager {
         var width: CGFloat = 0
         var height: CGFloat = 0
         var i = 0
-        var bi = range.lowerBound
 
         var lineFragments: [LineFragment] = []
 
         while i < attrStr.length {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
-            let bnext = buffer.utf16.index(bi, offsetBy: next - i)
-
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let p = CGPoint(x: 0, y: height)
@@ -361,20 +355,18 @@ class LayoutManager {
             let lineFragment = LineFragment(
                 ctLine: ctLine,
                 glyphOrigin: glyphOrigin,
-                position: p,
+                origin: p,
                 typographicBounds: typographicBounds,
-                utf8Count: buffer.utf8.distance(from: bi, to: bnext),
                 utf16Count: next - i
             )
             lineFragments.append(lineFragment)
 
             i = next
-            bi = bnext
             width = max(width, typographicBounds.width)
             height += typographicBounds.height
         }
 
-        return Line(position: point, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
+        return Line(origin: point, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
     }
 
     // returns glyphOrigin, typographicBounds
