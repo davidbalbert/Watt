@@ -85,18 +85,21 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let baseStart = heights.countBaseUnits(of: viewportBounds.minY, measuredIn: .yOffset)
-        let baseEnd = heights.countBaseUnits(of: viewportBounds.maxY, measuredIn: .height)
+        let baseStart = heights.position(upThroughYOffset: viewportBounds.minY)
+        let baseEnd = heights.position(upThroughYOffset: viewportBounds.maxY)
 
-        // TODO: maybe buffer.contents.index(inBaseMetricAt: Int)
         var i = buffer.contents.utf8.index(at: baseStart)
-        let end = buffer.contents.utf8.index(at: baseEnd)
+        var end = buffer.contents.utf8.index(at: baseEnd)
+
+        if baseEnd < buffer.utf8Count {
+            end = buffer.lines.index(after: end)
+        }
 
         assert(i == buffer.lines.index(roundingDown: i))
         assert(end == buffer.lines.index(roundingDown: end))
 
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
-        var y = heights.count(.yOffset, upThrough: i.position)
+        var y = heights.yOffset(upThroughPosition: i.position)
 
         lineCache = lineCache[baseStart..<baseEnd]
 
@@ -202,11 +205,15 @@ class LayoutManager {
 
         let viewportBounds = delegate.viewportBounds(for: self)
 
-        let baseStart = heights.countBaseUnits(of: viewportBounds.minY, measuredIn: .yOffset)
-        let baseEnd = heights.countBaseUnits(of: viewportBounds.maxY, measuredIn: .height)
+        let baseStart = heights.position(upThroughYOffset: viewportBounds.minY)
+        let baseEnd = heights.position(upThroughYOffset: viewportBounds.maxY)
 
         let start = buffer.contents.utf8.index(at: baseStart)
-        let end = buffer.contents.utf8.index(at: baseEnd)
+        var end = buffer.contents.utf8.index(at: baseEnd)
+
+        if baseEnd < buffer.utf8Count {
+            end = buffer.lines.index(after: end)
+        }
 
         let viewportRange = start..<end
         let rangeInViewport = selection.range.clamped(to: viewportRange)
@@ -216,7 +223,7 @@ class LayoutManager {
         }
 
         var i = buffer.lines.index(roundingDown: rangeInViewport.lowerBound)
-        var y = heights.count(.yOffset, upThrough: i.position)
+        var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < rangeInViewport.upperBound {
             // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
@@ -340,9 +347,9 @@ class LayoutManager {
             return (buffer.endIndex, .upstream)
         }
 
-        let offset = heights.countBaseUnits(of: point.y, measuredIn: .yOffset)
+        let offset = heights.position(upThroughYOffset: point.y)
 
-        let y = heights.count(.yOffset, upThrough: offset)
+        let y = heights.yOffset(upThroughPosition: offset)
         let lineStart = buffer.index(at: offset)
 
         assert(lineStart == buffer.lines.index(roundingDown: lineStart))

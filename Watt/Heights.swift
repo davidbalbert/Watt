@@ -255,7 +255,7 @@ extension Heights {
         // of values that already exist in the underlying tree.
         //
         // N.b. if we do something like that, we have to update all the trailing heights in
-        // the tree as well.
+        // the leaf as well.
         set {
             i.validate(for: root)
             precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
@@ -320,6 +320,34 @@ extension Heights {
         }
     }
 
+    func yOffset(upThroughPosition offset: Int) -> CGFloat {
+        if offset >= root.count {
+            let i = endIndex
+            let (leaf, _) = i.read()!
+
+            let li = leaf.heights.count - 1
+            let height = li == 0 ? leaf.heights[0] : leaf.heights[li] - leaf.heights[li - 1]
+
+            return root.measure(using: .yOffset) - height
+        }
+
+        return count(.yOffset, upThrough: offset)
+    }
+
+    func position(upThroughYOffset yOffset: CGFloat) -> Int {
+        if yOffset >= root.measure(using: .yOffset) {
+            let i = endIndex
+            let (leaf, _) = i.read()!
+
+            let li = leaf.positions.count - 1
+            let lineLength = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
+
+            return root.count - lineLength
+        }
+
+        return countBaseUnits(of: yOffset, measuredIn: .yOffset)
+    }
+
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
         index(at: offset, using: .heightsBaseMetric)
@@ -364,7 +392,7 @@ extension BTree {
         }
 
         var canFragment: Bool {
-            false
+            true
         }
 
         // Even though this looks a lot like the Rope's base metric, and
@@ -393,7 +421,7 @@ extension BTree {
         
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
             if measuredUnits >= leaf.heights.last! {
-                return leaf.positions.dropLast().last ?? 0
+                return leaf.positions.last!
             }
 
             var (i, found) = leaf.heights.binarySearch(for: measuredUnits)
@@ -405,7 +433,7 @@ extension BTree {
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
             if baseUnits >= leaf.count {
-                return leaf.heights.dropLast().last ?? 0
+                return leaf.heights.last!
             }
 
             var (i, found) = leaf.positions.binarySearch(for: baseUnits)
@@ -428,7 +456,7 @@ extension BTree {
         }
 
         var canFragment: Bool {
-            false
+            true
         }
 
         var type: BTreeMetricType {
@@ -439,64 +467,6 @@ extension BTree {
 
 extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
     static var yOffset: Heights.YOffsetMetric { Heights.YOffsetMetric() }
-}
-
-extension BTree {
-    struct HeightMetric: BTreeMetric {
-        func measure(summary: HeightsSummary, count: Int) -> CGFloat {
-            summary.height
-        }
-        
-        func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
-            if measuredUnits < 0 {
-                return 0
-            }
-
-            if measuredUnits > leaf.heights.last! {
-                return leaf.count
-            }
-
-            let (i, _) = leaf.heights.binarySearch(for: measuredUnits)
-            return leaf.positions[i]
-        }
-
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
-            // TODO: I think this is wrong, though I think the real issue is that the whole Heights metric is wrong.
-            if baseUnits >= leaf.count {
-                return leaf.heights.last!
-            }
-
-            var (i, found) = leaf.positions.binarySearch(for: baseUnits)
-            if found {
-                i += 1
-            }
-            return leaf.heights[i]
-        }
-        
-        func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            HeightsBaseMetric().isBoundary(offset, in: leaf)
-        }
-
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf)
-        }
-
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf)
-        }
-
-        var canFragment: Bool {
-            false
-        }
-
-        var type: BTreeMetricType {
-            .trailing
-        }
-    }
-}
-
-extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
-    static var height: Heights.HeightMetric { Heights.HeightMetric() }
 }
 
 struct HeightsBuilder {
