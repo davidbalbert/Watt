@@ -184,17 +184,25 @@ extension Heights.Index {
         guard let (leaf, offset) = read() else {
             return nil
         }
+        
+        let hasEmptyLine = leaf.positions[0] == 0 || leaf.positions.count >= 2 && leaf.positions.last! == leaf.positions.dropLast().last!
 
-        // End of rope, return the height of the
-        // last line.
-//        if offsetOfLeaf + offset == root!.count {
-//            return (leaf, leaf.positions.count - 1)
-//        }
+        // We're addressing an empty line at the end of the
+        // rope. In that case, just return the index of
+        // the last element.
+        if hasEmptyLine && offset == leaf.positions.last! {
+            return (leaf, leaf.positions.count - 1)
+        }
 
         let (i, found) = leaf.positions.binarySearch(for: offset)
+        // Because leaf stores line lengths, the index of a line
+        // starting at positions[n] will be n+1.
         if found {
             return (leaf, i+1)
         } else {
+            // offset == 0 is a boundary even though positions
+            // usually doesn't contain 0, so we have to handle
+            // this case.
             return (leaf, i)
         }
     }
@@ -233,30 +241,76 @@ extension Heights {
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
-            // The end of the string is a valid boundary, but it's only
-            // a valid position if the string ends with a blank line (i.e.
-            // the end of the string is also the beginning of a line).
+
+            // readLeafIndex can return li == leaf.heights.count if
+            // i.offsetInLeaf == leaf.positions.last. The only time
+            // this is valid is if we're addressing an empty line
+            // at the end of the string, but we handle that in
+            // readLeafIndex by returning leaf.heights.count - 1.
             precondition(li < leaf.heights.count, "not a boundary")
 
             return li == 0 ? leaf.heights[0] : leaf.heights[li] - leaf.heights[li-1]
         }
+        // TODO: this would be much simpler if we had a technique for replacing a known number
+        // of values that already exist in the underlying tree.
+        //
+        // N.b. if we do something like that, we have to update all the trailing heights in
+        // the tree as well.
         set {
             i.validate(for: root)
             precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
-            // See comment in get.
+
+            // See comment in get
             precondition(li < leaf.heights.count, "not a boundary")
 
             let count = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
 
-            let newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
+            let prefixEnd: Int
+            let suffixStart: Int
+            let newLeaf: HeightsLeaf
+
+            if count == 0 && li == 0 {
+                // Updating a zero length line that's the only line in the leaf.
+                assert(i.offsetOfLeaf + leaf.count == root.count)
+
+                prefixEnd = i.offsetOfLeaf
+                suffixStart = leaf.positions.last!
+                newLeaf = HeightsLeaf(positions: [0], heights: [newValue])
+            } else if count == 0 && li == 1 {
+                // Updating a zero length line that's the second line in the leaf
+                assert(i.offsetOfLeaf + leaf.count == root.count)
+
+                prefixEnd = i.offsetOfLeaf
+                suffixStart = leaf.positions.last!
+
+                assert(leaf.positions[0] == leaf.positions[1])
+                let pos = leaf.positions[0]
+
+                newLeaf = HeightsLeaf(positions: [pos, pos], heights: [leaf.heights[0], leaf.heights[0] + newValue])
+            } else if count == 0 {
+                // Updating a zero length line later in the leaf – it's by definition the last line.
+                assert(i.offsetOfLeaf + leaf.count == root.count)
+
+                prefixEnd = i.offsetOfLeaf + leaf.positions[leaf.positions.count - 3]
+                suffixStart = leaf.positions.last!
+
+                assert(leaf.positions[leaf.positions.count - 2] == leaf.positions[leaf.positions.count - 1])
+
+                let pos = leaf.positions[leaf.positions.count - 2] - leaf.positions[leaf.positions.count - 3]
+                let penultimateHeight = leaf.heights[leaf.heights.count - 2] - leaf.heights[leaf.heights.count - 3]
+
+                newLeaf = HeightsLeaf(positions: [pos, pos], heights: [penultimateHeight, penultimateHeight + newValue])
+            } else {
+                // Updating a line with length > 0
+                prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
+                suffixStart = li == leaf.positions.count ? root.count : i.offsetOfLeaf + leaf.positions[li]
+                newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
+            }
 
             var b = Builder()
-
-            let prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
-            let suffixStart = li == leaf.positions.count ? root.count : i.offsetOfLeaf + leaf.positions[li]
 
             b.push(&root, slicedBy: 0..<prefixEnd)
             b.push(leaf: newLeaf)
