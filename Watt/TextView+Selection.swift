@@ -41,19 +41,19 @@ extension TextView {
     }
 
     func updateInsertionPointTimer() {
-//        insertionPointTimer?.invalidate()
-//
-//        insertionPointLayer.isHidden = false
-//
-//        if insertionPointOffInterval == 0 {
-//            return
-//        }
-//
-//        if !(layoutManager.selection?.isEmpty ?? true) {
-//            return
-//        }
-//
-//        scheduleInsertionPointTimer()
+        insertionPointTimer?.invalidate()
+
+        insertionPointLayer.isHidden = false
+
+        if insertionPointOffInterval == 0 {
+            return
+        }
+
+        if !layoutManager.selection.isEmpty {
+            return
+        }
+
+        scheduleInsertionPointTimer()
     }
 
     func scheduleInsertionPointTimer() {
