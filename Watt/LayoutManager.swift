@@ -80,32 +80,21 @@ class LayoutManager {
         let viewportBounds = delegate.viewportBounds(for: self)
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
-
         if updateLineNumbers {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let baseStart = heights.position(upThroughYOffset: viewportBounds.minY)
-        let baseEnd = heights.position(upThroughYOffset: viewportBounds.maxY)
+        let viewportRange = lineRange(intersecting: viewportBounds)
 
-        var i = buffer.contents.utf8.index(at: baseStart)
-        var end = buffer.contents.utf8.index(at: baseEnd)
-
-        if baseEnd < buffer.utf8Count {
-            end = buffer.lines.index(after: end)
-        }
-
-        assert(i == buffer.lines.index(roundingDown: i))
-        assert(end == buffer.lines.index(roundingDown: end))
-
+        var i = viewportRange.lowerBound
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
         var y = heights.yOffset(upThroughPosition: i.position)
 
-        lineCache = lineCache[baseStart..<baseEnd]
+        lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
         var scrollAdjustment: CGSize = .zero
 
-        while i < end {
+        while i < viewportRange.upperBound {
             let next = buffer.lines.index(after: i)
 
             var line: Line
@@ -204,18 +193,8 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
+        let viewportRange = lineRange(intersecting: viewportBounds)
 
-        let baseStart = heights.position(upThroughYOffset: viewportBounds.minY)
-        let baseEnd = heights.position(upThroughYOffset: viewportBounds.maxY)
-
-        let start = buffer.contents.utf8.index(at: baseStart)
-        var end = buffer.contents.utf8.index(at: baseEnd)
-
-        if baseEnd < buffer.utf8Count {
-            end = buffer.lines.index(after: end)
-        }
-
-        let viewportRange = start..<end
         let rangeInViewport = selection.range.clamped(to: viewportRange)
 
         if rangeInViewport.isEmpty {
@@ -424,6 +403,27 @@ class LayoutManager {
         }
 
         return (pos, affinity)
+    }
+
+    // Returns the range of the buffer contained by rect. The start
+    // and end of the range are rounded down and up to the nearest line
+    // boundary respectively, so that if you were to lay out those lines,
+    // you'd fill the entire viewport.
+    func lineRange(intersecting rect: CGRect) -> Range<Buffer.Index> {
+        let baseStart = heights.position(upThroughYOffset: rect.minY)
+        let baseEnd = heights.position(upThroughYOffset: rect.maxY)
+
+        let start = buffer.contents.utf8.index(at: baseStart)
+        var end = buffer.contents.utf8.index(at: baseEnd)
+
+        if baseEnd < buffer.utf8Count {
+            end = buffer.lines.index(after: end)
+        }
+
+        assert(start == buffer.lines.index(roundingDown: start))
+        assert(end == buffer.lines.index(roundingDown: end))
+
+        return start..<end
     }
 
     // MARK: - Converting coordinates
