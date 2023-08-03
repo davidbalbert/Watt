@@ -242,6 +242,9 @@ class LayoutManager {
 
         let offset = heights.position(upThroughYOffset: point.y)
         let start = buffer.index(at: offset)
+
+        assert(start == buffer.lines.index(roundingDown: start))
+
         let end = buffer.lines.index(after: start)
         let y = heights.yOffset(upThroughPosition: offset)
 
@@ -322,11 +325,8 @@ class LayoutManager {
             line.position.y = point.y
             return line
         } else {
-            // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-            let line = layout(NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font]), at: point)
-
+            let line = makeLine(from: range, at: point)
             lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
-
             return line
         }
     }
@@ -335,32 +335,46 @@ class LayoutManager {
     // method could return a LineFragment. That way, we won't have to worry about
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
     // of the Line (e.g. see locationForCharacter(atUTF16Offset:in:)).
-    func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
+    func makeLine(from range: Range<Buffer.Index>, at point: CGPoint) -> Line {
+        // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
+        let attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
+
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
         let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
 
         var width: CGFloat = 0
         var height: CGFloat = 0
         var i = 0
+        var bi = range.lowerBound
 
         var lineFragments: [LineFragment] = []
 
         while i < attrStr.length {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
+            let bnext = buffer.utf16.index(bi, offsetBy: next - i)
+
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let p = CGPoint(x: 0, y: height)
             let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
 
-            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, utf16Count: next - i)
+            let lineFragment = LineFragment(
+                ctLine: ctLine,
+                glyphOrigin: glyphOrigin,
+                position: p,
+                typographicBounds: typographicBounds,
+                utf8Count: buffer.utf8.distance(from: bi, to: bnext),
+                utf16Count: next - i
+            )
             lineFragments.append(lineFragment)
 
             i = next
+            bi = bnext
             width = max(width, typographicBounds.width)
             height += typographicBounds.height
         }
 
-        return Line(position: position, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
+        return Line(position: point, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
     }
 
     // returns glyphOrigin, typographicBounds

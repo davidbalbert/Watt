@@ -1016,14 +1016,6 @@ extension BTree {
 
 // MARK: - Views
 
-// There's no UTF16View, but this seems like as good a place as any.
-extension Rope {
-    var utf16Count: Int {
-        measure(using: .utf16)
-    }
-}
-
-
 // N.b. These will be accessable as BTree.*View, BTree<RopeSummary>.*View,
 // and Rope.*View, but not BTree<SomeOtherSummary>.*View.
 extension Rope {
@@ -1109,6 +1101,27 @@ extension Rope.UTF8View: BidirectionalCollection {
 
     var count: Int {
         base.measure(using: .utf8)
+    }
+}
+
+// We don't have a full UTF-16 view because dealing with trailing surrogates
+// was a pain. If we need it, we'll add it.
+extension Rope {
+    var utf16: UTF16View {
+        UTF16View(base: self)
+    }
+
+    struct UTF16View {
+        var base: Rope
+        
+        var count: Int {
+            base.measure(using: .utf16)
+        }
+
+        func index(_ i: Index, offsetBy distance: Int) -> Index {
+            i.validate(for: base.root)
+            return base.index(i, offsetBy: distance, using: .utf16)
+        }
     }
 }
 
@@ -1371,11 +1384,11 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        guard range.lowerBound >= 0 && range.lowerBound <= rope.utf16Count else {
+        guard range.lowerBound >= 0 && range.lowerBound <= rope.utf16.count else {
             return nil
         }
 
-        guard range.upperBound >= 0 && range.upperBound <= rope.utf16Count else {
+        guard range.upperBound >= 0 && range.upperBound <= rope.utf16.count else {
             return nil
         }
 

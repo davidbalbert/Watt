@@ -29,11 +29,19 @@ class Buffer {
     }
 
     var utf16Count: Int {
-        contents.utf16Count
+        contents.utf16.count
     }
 
     var lineCount: Int {
         contents.lines.count
+    }
+
+    var utf8: Rope.UTF8View {
+        contents.utf8
+    }
+
+    var utf16: Rope.UTF16View {
+        contents.utf16
     }
 
     var lines: Rope.LinesView {
