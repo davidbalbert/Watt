@@ -227,7 +227,7 @@ extension TextView: LayoutManagerDelegate {
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
-        l.contentsScale = window?.backingScaleFactor ??  1.0
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
@@ -252,53 +252,10 @@ extension TextView: LayoutManagerDelegate {
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
-        l.contentsScale = window?.backingScaleFactor ??  1.0
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.bounds = CGRect(origin: .zero, size: rect.size)
+        l.position = convertFromTextContainer(rect.origin)
 
         return l
     }
-
-    //    func layoutInsertionPointLayer() {
-    //        insertionPointLayer.sublayers = nil
-    //
-    //        guard let selection else {
-    //            return
-    //        }
-    //
-    //        guard selection.isEmpty else {
-    //            return
-    //        }
-    //
-    //        guard let viewportRange = layoutManager.viewportRange else {
-    //            return
-    //        }
-    //
-    //        guard viewportRange.contains(selection.range.lowerBound) || viewportRange.upperBound == selection.range.upperBound else {
-    //            return
-    //        }
-    //
-    //        layoutManager.enumerateCaretRectsInLineFragment(at: selection.range.lowerBound, affinity: selection.affinity) { [weak self] caretRect, location, leadingEdge in
-    //            guard let self else {
-    //                return false
-    //            }
-    //
-    //            let next = buffer.location(location, offsetBy: 1)
-    //
-    //            let downstreamMatch = location == selection.range.lowerBound && leadingEdge && selection.affinity == .downstream
-    //            let upstreamMatch = next == selection.range.lowerBound && !leadingEdge && selection.affinity == .upstream
-    //
-    //            guard downstreamMatch || upstreamMatch else {
-    //                return true
-    //            }
-    //
-    //            let l = insertionPointLayerCache[caretRect] ?? makeInsertionPointLayer(for: caretRect)
-    //            l.position = convertFromTextContainer(caretRect.origin)
-    //            l.bounds = CGRect(origin: .zero, size: caretRect.size)
-    //
-    //            insertionPointLayerCache[caretRect] = l
-    //            insertionPointLayer.addSublayer(l)
-    //
-    //            return false
-    //        }
-    //    }
-    //
 }

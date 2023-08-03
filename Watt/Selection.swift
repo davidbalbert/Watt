@@ -41,6 +41,14 @@ struct Selection {
         }
     }
 
+    var lowerBound: Rope.Index {
+        range.lowerBound
+    }
+
+    var upperBound: Rope.Index {
+        range.upperBound
+    }
+
     var isEmpty: Bool {
         head == anchor
     }

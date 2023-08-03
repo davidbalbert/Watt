@@ -188,7 +188,7 @@ class LayoutManager {
                 }
 
                 let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
-                let xStart = locationForCharacter(atUTF16OffsetInLine: start, in: f).x
+                let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
 
                 let last = buffer.index(before: fragRange.upperBound)
                 let c = buffer[last]
@@ -199,7 +199,7 @@ class LayoutManager {
                     xEnd = textContainer.lineWidth
                 } else {
                     let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
-                    let x0 = locationForCharacter(atUTF16OffsetInLine: end, in: f).x
+                    let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
                     let x1 = textContainer.lineWidth
                     xEnd = min(x0, x1)
                 }
@@ -224,11 +224,101 @@ class LayoutManager {
         }
     }
 
-    // TODO: ditto re caching Lines
     func layoutInsertionPoints(using block: (CGRect) -> Void) {
+        guard let delegate else {
+            return
+        }
+
+        guard selection.isEmpty else {
+            return
+        }
+
+        let viewportBounds = delegate.viewportBounds(for: self)
+        let viewportRange = lineRange(intersecting: viewportBounds)
+
+        guard viewportRange.contains(selection.lowerBound) || viewportRange.upperBound == selection.upperBound else {
+            return
+        }
+
+        let start = buffer.lines.index(roundingDown: selection.lowerBound)
+
+        let end: Buffer.Index
+        if start == buffer.endIndex {
+            end = start
+        } else {
+            end = buffer.lines.index(after: start)
+        }
+
+        let y = heights.yOffset(upThroughPosition: selection.lowerBound.position)
+        let line = layoutLineIfNecessary(inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+
+        var frag: LineFragment?
+        var i = start
+        var offsetOfLineFragment = 0
+        for f in line.lineFragments {
+            let next = buffer.utf16.index(i, offsetBy: f.utf16Count)
+            let r = i..<next
+
+            if selection.lowerBound == r.upperBound && selection.affinity == .upstream {
+                frag = f
+                break
+            }
+
+            if r.contains(selection.lowerBound) {
+                frag = f
+                break
+            }
+
+            offsetOfLineFragment += f.utf16Count
+            i = next
+        }
+
+        guard let frag else {
+            return
+        }
+
+        var rect: CGRect?
+        var prevOffsetInLineFragment = 0
+        CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
+            guard let self else {
+                stop.pointee = true
+                return
+            }
+
+            let offsetInLineFragment = offsetInLine - offsetOfLineFragment
+            i = buffer.utf16.index(i, offsetBy: offsetInLineFragment - prevOffsetInLineFragment)
+            prevOffsetInLineFragment = offsetInLineFragment
+
+            // TODO: is it possible for i == buffer.endIndex?
+            let next = buffer.utf16.index(i, offsetBy: 1)
+
+            let downstreamMatch = i == selection.lowerBound && leadingEdge && selection.affinity == .downstream
+            let upstreamMatch = next == selection.lowerBound && !leadingEdge && selection.affinity == .upstream
+
+            guard downstreamMatch || upstreamMatch else {
+                return
+            }
+
+            let origin = convert(convert(CGPoint(x: caretOffset, y: 0), from: frag), from: line)
+            let height = frag.typographicBounds.height
+
+            rect = CGRect(
+                x: round(min(origin.x + textContainer.lineFragmentPadding, textContainer.width - textContainer.lineFragmentPadding)),
+                y: origin.y,
+                width: 1,
+                height: height
+            )
+
+            stop.pointee = true
+        }
+
+        guard let rect else {
+            return
+        }
+
+        block(rect)
     }
 
-    // TODO: this is gross and unsafe and needs to be different
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
         if point.y <= 0 {
             return (buffer.startIndex, .downstream)
@@ -331,7 +421,7 @@ class LayoutManager {
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
     // method could return a LineFragment. That way, we won't have to worry about
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
-    // of the Line (e.g. see locationForCharacter(atUTF16Offset:in:)).
+    // of the Line (e.g. see positionForCharacter(atUTF16Offset:in:)).
     func makeLine(from range: Range<Buffer.Index>, at point: CGPoint) -> Line {
         // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
         let attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
@@ -397,7 +487,7 @@ class LayoutManager {
     }
 
     // offsetInLine is the offset in the Line, not the LineFragment.
-    func locationForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
+    func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
         CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
     }
 
