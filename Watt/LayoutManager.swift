@@ -96,16 +96,7 @@ class LayoutManager {
 
         while i < viewportRange.upperBound {
             let next = buffer.lines.index(after: i)
-
-            var line: Line
-            if var l = lineCache[i.position] {
-                l.position.y = y
-                line = l
-            } else {
-                // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-                line = layout(NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font]), at: CGPoint(x: 0, y: y))
-                lineCache.set(line, forRange: i.position..<next.position)
-            }
+            let line = layoutLineIfNecessary(inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             block(line)
 
@@ -154,39 +145,6 @@ class LayoutManager {
         previousVisibleRect = visibleRect
     }
 
-    // TODO: once we save breaks, perhaps attrStr could be a visual line and this
-    // method could return a LineFragment. That way, we won't have to worry about
-    // calculating UTF-16 offsets into a LineFragment starting from the beginning
-    // of the Line (e.g. see locationForCharacter(atUTF16Offset:in:)).
-    func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
-        // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
-        let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
-
-        var width: CGFloat = 0
-        var height: CGFloat = 0
-        var i = 0
-
-        var lineFragments: [LineFragment] = []
-
-        while i < attrStr.length {
-            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
-            let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
-
-            let p = CGPoint(x: 0, y: height)
-            let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
-
-            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, utf16Count: next - i)
-            lineFragments.append(lineFragment)
-
-            i = next
-            width = max(width, typographicBounds.width)
-            height += typographicBounds.height
-        }
-
-        return Line(position: position, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
-    }
-
-    // TODO: this is doing unnecessary layout. We need to cache Lines.
     func layoutSelections(using block: (CGRect) -> Void) {
         guard let delegate else {
             return
@@ -205,12 +163,8 @@ class LayoutManager {
         var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < rangeInViewport.upperBound {
-            // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-//            let s = NSAttributedString(string: String(buffer.lines[i]), attributes: [.font: (delegate as! TextView).font])
-//            let line = layout(s, at: CGPoint(x: 0, y: y))
-
-            // TODO: this force unwrap might not be safe if we drag out of the viewport
-            let line = lineCache[i.position]!
+            let next = buffer.lines.index(after: i)
+            let line = layoutLineIfNecessary(inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
             var thisFrag = i
@@ -229,7 +183,7 @@ class LayoutManager {
 
                 let rangeInFrag = rangeInViewport.clamped(to: fragRange)
 
-                if rangeInFrag.isEmpty && !fragRange.contains(rangeInFrag.lowerBound){
+                if rangeInFrag.isEmpty && !fragRange.contains(rangeInFrag.lowerBound) {
                     thisFrag = nextFrag
                     continue
                 }
@@ -267,7 +221,7 @@ class LayoutManager {
                 thisFrag = nextFrag
             }
 
-            buffer.lines.formIndex(after: &i)
+            i = next
         }
     }
 
@@ -298,23 +252,6 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
-    func invalidateLayout() {
-        lineCache.removeAll()
-    }
-
-    // offsetInLine is the offset in the Line, not the LineFragment.
-    func locationForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
-        CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
-    }
-
-    func location(interactingAt point: CGPoint) -> Buffer.Index? {
-        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
-            return nil
-        }
-
-        return location
-    }
-
     // TODO: this is gross and unsafe and needs to be different
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
         if point.y <= 0 {
@@ -327,16 +264,11 @@ class LayoutManager {
         }
 
         let offset = heights.position(upThroughYOffset: point.y)
-
+        let start = buffer.index(at: offset)
+        let end = buffer.lines.index(after: start)
         let y = heights.yOffset(upThroughPosition: offset)
-        let lineStart = buffer.index(at: offset)
 
-        assert(lineStart == buffer.lines.index(roundingDown: lineStart))
-
-//        let s = NSAttributedString(string: String(buffer.lines[lineStart]), attributes: [.font: (delegate as! TextView).font])
-//        let line = layout(s, at: CGPoint(x: 0, y: y))
-        // TODO: this force unwrap doesn't work if we mouse pass the end of the visible content.
-        let line = lineCache[lineStart.position]!
+        let line = layoutLineIfNecessary(inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
         let pointInLine = convert(point, to: line)
 
@@ -370,7 +302,7 @@ class LayoutManager {
         let offsetInLineFragment = offsetInLine - offsetOfLineFragment
 
         // TODO: missing index validation here!
-        let fragStart = buffer.contents.index(lineStart, offsetBy: offsetOfLineFragment, using: .utf16)
+        let fragStart = buffer.contents.index(start, offsetBy: offsetOfLineFragment, using: .utf16)
         var pos = buffer.contents.index(fragStart, offsetBy: offsetInLineFragment, using: .utf16)
 
         // TODO: what if lineFragment is empty?
@@ -403,6 +335,72 @@ class LayoutManager {
         }
 
         return (pos, affinity)
+    }
+
+    func layoutLineIfNecessary(inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> Line {
+        assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
+        assert(range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
+
+        if var line = lineCache[range.lowerBound.position] {
+            line.position.y = point.y
+            return line
+        } else {
+            // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
+            let line = layout(NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font]), at: point)
+
+            lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
+
+            return line
+        }
+    }
+
+    // TODO: once we save breaks, perhaps attrStr could be a visual line and this
+    // method could return a LineFragment. That way, we won't have to worry about
+    // calculating UTF-16 offsets into a LineFragment starting from the beginning
+    // of the Line (e.g. see locationForCharacter(atUTF16Offset:in:)).
+    func layout(_ attrStr: NSAttributedString, at position: CGPoint) -> Line {
+        // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
+        let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
+
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+        var i = 0
+
+        var lineFragments: [LineFragment] = []
+
+        while i < attrStr.length {
+            let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
+            let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
+
+            let p = CGPoint(x: 0, y: height)
+            let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
+
+            let lineFragment = LineFragment(ctLine: ctLine, glyphOrigin: glyphOrigin, position: p, typographicBounds: typographicBounds, utf16Count: next - i)
+            lineFragments.append(lineFragment)
+
+            i = next
+            width = max(width, typographicBounds.width)
+            height += typographicBounds.height
+        }
+
+        return Line(position: position, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
+    }
+
+    func invalidateLayout() {
+        lineCache.removeAll()
+    }
+
+    // offsetInLine is the offset in the Line, not the LineFragment.
+    func locationForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
+        CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
+    }
+
+    func location(interactingAt point: CGPoint) -> Buffer.Index? {
+        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
+            return nil
+        }
+
+        return location
     }
 
     // Returns the range of the buffer contained by rect. The start
