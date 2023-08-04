@@ -16,7 +16,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     // TODO: deal with changes in the number of lines:
     // 1. Add a currentLineCount property
     // 2. Subscribe to changes in buffer's text. Any time the text changes,
-    //    compare buffer.lineCount to currentLineCount and call invalidateIntrinsicContentSize
+    //    compare buffer.lines.count to currentLineCount and call invalidateIntrinsicContentSize
     //    if we need to add or remove a digit.
     var buffer: Buffer {
         willSet {
@@ -63,7 +63,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         // TODO: ensure that this only gets called after intrinsicContentSize is invalidated
 
         // max(100, ...) -> minimum 3 digits worth of space
-        let lineCount = max(100, buffer.lineCount)
+        let lineCount = max(100, buffer.lines.count)
         let maxDigits = floor(log10(CGFloat(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)

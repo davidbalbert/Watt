@@ -303,7 +303,7 @@ final class RopeTests: XCTestCase {
         var r = Rope("foo\u{0301}\nbar\nbaz") // "foó"
         XCTAssertEqual(11, r.count)
         XCTAssertEqual(12, r.unicodeScalars.count)
-        XCTAssertEqual(12, r.utf16Count)
+        XCTAssertEqual(12, r.utf16.count)
         XCTAssertEqual(13, r.utf8.count)
         XCTAssertEqual(3, r.lines.count)
 
@@ -316,7 +316,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(12, r.count)
         XCTAssertEqual(13, r.unicodeScalars.count)
-        XCTAssertEqual(13, r.utf16Count)
+        XCTAssertEqual(13, r.utf16.count)
         XCTAssertEqual(14, r.utf8.count)
         XCTAssertEqual(3, r.lines.count)
     }
@@ -325,7 +325,7 @@ final class RopeTests: XCTestCase {
         let r = Rope("foo\u{0301}") // "foó"
         XCTAssertEqual(3, r.count)
         XCTAssertEqual(4, r.unicodeScalars.count)
-        XCTAssertEqual(4, r.utf16Count)
+        XCTAssertEqual(4, r.utf16.count)
         XCTAssertEqual(5, r.utf8.count)
 
         var r0 = r
@@ -335,7 +335,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("afoo\u{0301}", String(r0)) // "afoó"
         XCTAssertEqual(4, r0.count)
         XCTAssertEqual(5, r0.unicodeScalars.count)
-        XCTAssertEqual(5, r0.utf16Count)
+        XCTAssertEqual(5, r0.utf16.count)
         XCTAssertEqual(6, r0.utf8.count)
 
         var r1 = r
@@ -344,7 +344,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("faoo\u{0301}", String(r1)) // "faóo"
         XCTAssertEqual(4, r1.count)
         XCTAssertEqual(5, r1.unicodeScalars.count)
-        XCTAssertEqual(5, r1.utf16Count)
+        XCTAssertEqual(5, r1.utf16.count)
         XCTAssertEqual(6, r1.utf8.count)
 
         var r2 = r
@@ -353,7 +353,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("foao\u{0301}", String(r2)) // "foaó"
         XCTAssertEqual(4, r2.count)
         XCTAssertEqual(5, r2.unicodeScalars.count)
-        XCTAssertEqual(5, r2.utf16Count)
+        XCTAssertEqual(5, r2.utf16.count)
         XCTAssertEqual(6, r2.utf8.count)
 
         var r3 = r
@@ -362,7 +362,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("foao\u{0301}", String(r2)) // "foaó"
         XCTAssertEqual(4, r3.count)
         XCTAssertEqual(5, r3.unicodeScalars.count)
-        XCTAssertEqual(5, r3.utf16Count)
+        XCTAssertEqual(5, r3.utf16.count)
         XCTAssertEqual(6, r3.utf8.count)
 
         var r4 = r
@@ -371,7 +371,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("foao\u{0301}", String(r2)) // "foaó"
         XCTAssertEqual(4, r4.count)
         XCTAssertEqual(5, r4.unicodeScalars.count)
-        XCTAssertEqual(5, r4.utf16Count)
+        XCTAssertEqual(5, r4.utf16.count)
         XCTAssertEqual(6, r4.utf8.count)
 
         var r5 = r
@@ -380,7 +380,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("foo\u{0301}a", String(r5)) // "foóa"
         XCTAssertEqual(4, r5.count)
         XCTAssertEqual(5, r5.unicodeScalars.count)
-        XCTAssertEqual(5, r5.utf16Count)
+        XCTAssertEqual(5, r5.utf16.count)
         XCTAssertEqual(6, r5.utf8.count)
     }
 
@@ -391,7 +391,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(1000, r.count)
         XCTAssertEqual(1000, r.unicodeScalars.count)
-        XCTAssertEqual(1000, r.utf16Count)
+        XCTAssertEqual(1000, r.utf16.count)
         XCTAssertEqual(1000, r.utf8.count)
 
         XCTAssertEqual(0, r.root.height)
@@ -414,7 +414,7 @@ final class RopeTests: XCTestCase {
         // the beginning of children[1] to form a single character.
         XCTAssertEqual(1999, r.count)
         XCTAssertEqual(2000, r.unicodeScalars.count)
-        XCTAssertEqual(2000, r.utf16Count)
+        XCTAssertEqual(2000, r.utf16.count)
         XCTAssertEqual(2001, r.utf8.count)
 
         XCTAssertEqual("a\u{0301}", r[999])
@@ -613,7 +613,7 @@ final class RopeTests: XCTestCase {
         var r = Rope("🇺🇸🇺🇸🇺🇸🇺🇸🇺🇸") // 5 * [U+1F1FA REGIONAL INDICATOR SYMBOL LETTER U, U+1F1F8 REGIONAL INDICATOR SYMBOL LETTER S]
         XCTAssertEqual(5, r.count)
         XCTAssertEqual(10, r.unicodeScalars.count)
-        XCTAssertEqual(20, r.utf16Count)
+        XCTAssertEqual(20, r.utf16.count)
         XCTAssertEqual(40, r.utf8.count)
         XCTAssertEqual(1, r.lines.count)
 
@@ -623,7 +623,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(6, r.count)
         XCTAssertEqual(12, r.unicodeScalars.count)
-        XCTAssertEqual(24, r.utf16Count)
+        XCTAssertEqual(24, r.utf16.count)
         XCTAssertEqual(48, r.utf8.count)
         XCTAssertEqual(1, r.lines.count)
 
@@ -633,7 +633,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(7, r.count)
         XCTAssertEqual(13, r.unicodeScalars.count)
-        XCTAssertEqual(26, r.utf16Count)
+        XCTAssertEqual(26, r.utf16.count)
         XCTAssertEqual(52, r.utf8.count)
         XCTAssertEqual(1, r.lines.count)
     }
@@ -721,7 +721,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(2, r.count)
         XCTAssertEqual(6, r.unicodeScalars.count)
-        XCTAssertEqual(10, r.utf16Count)
+        XCTAssertEqual(10, r.utf16.count)
         XCTAssertEqual(22, r.utf8.count)
 
         XCTAssertEqual(11, r.index(after: r.utf8.index(at: 0)).position)
@@ -802,7 +802,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(2, r.count)
         XCTAssertEqual(6, r.unicodeScalars.count)
-        XCTAssertEqual(10, r.utf16Count)
+        XCTAssertEqual(10, r.utf16.count)
         XCTAssertEqual(22, r.utf8.count)
 
         XCTAssertEqual(0, r.index(before: r.utf8.index(at: 1)).position)
@@ -883,7 +883,7 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(2, r.count)
         XCTAssertEqual(6, r.unicodeScalars.count)
-        XCTAssertEqual(10, r.utf16Count)
+        XCTAssertEqual(10, r.utf16.count)
         XCTAssertEqual(22, r.utf8.count)
 
         XCTAssertEqual(0, r.index(roundingDown: r.utf8.index(at: 0)).position)

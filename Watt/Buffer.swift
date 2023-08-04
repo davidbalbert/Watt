@@ -24,18 +24,6 @@ class Buffer {
         Data(contents)
     }
 
-    var utf8Count: Int {
-        contents.utf8.count
-    }
-
-    var utf16Count: Int {
-        contents.utf16.count
-    }
-
-    var lineCount: Int {
-        contents.lines.count
-    }
-
     var utf8: Rope.UTF8View {
         contents.utf8
     }

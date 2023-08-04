@@ -35,7 +35,7 @@ class LayoutManager {
             // TODO: subscribe to changes to new buffer
             selection = Selection(head: buffer.documentRange.lowerBound)
             heights = Heights(rope: buffer.contents)
-            lineCache = IntervalCache(upperBound: buffer.utf8Count)
+            lineCache = IntervalCache(upperBound: buffer.utf8.count)
             invalidateLayout()
         }
     }
@@ -61,7 +61,7 @@ class LayoutManager {
         self.heights = Heights(rope: buffer.contents)
         self.textContainer = TextContainer()
         self.previousVisibleRect = .zero
-        self.lineCache = IntervalCache(upperBound: buffer.utf8Count)
+        self.lineCache = IntervalCache(upperBound: buffer.utf8.count)
 
         // TODO: subscribe to changes to buffer.
         self.selection = Selection(head: buffer.startIndex)
@@ -75,6 +75,10 @@ class LayoutManager {
         guard let delegate else {
             return
         }
+
+//        if buffer.utf8.count > 63711 {
+//            print(buffer[buffer.utf8.index(at: 63711)])
+//        }
 
         let visibleRect = delegate.visibleRect(for: self)
         let viewportBounds = delegate.viewportBounds(for: self)
@@ -510,7 +514,7 @@ class LayoutManager {
         let start = buffer.contents.utf8.index(at: baseStart)
         var end = buffer.contents.utf8.index(at: baseEnd)
 
-        if baseEnd < buffer.utf8Count {
+        if baseEnd < buffer.utf8.count {
             end = buffer.lines.index(after: end)
         }
 
