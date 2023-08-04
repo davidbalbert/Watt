@@ -10,14 +10,6 @@ import Foundation
 struct Span<T> {
     var range: Range<Int>
     var data: T
-
-    init(range: Range<Int>, data: T) {
-        if range.lowerBound == 40462 {
-            print("got it!")
-        }
-        self.range = range
-        self.data = data
-    }
 }
 
 struct SpansLeaf<T>: BTreeLeaf {

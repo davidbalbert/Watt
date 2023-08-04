@@ -9,6 +9,8 @@ import XCTest
 @testable import Watt
 
 final class RopeTests: XCTestCase {
+    // MARK: - Editing
+
     func testAppendCharacter() {
         var rope = Rope()
         rope.append("a")
@@ -182,6 +184,8 @@ final class RopeTests: XCTestCase {
         XCTAssert(isKnownUniquelyReferenced(&r1.root))
         XCTAssert(isKnownUniquelyReferenced(&r2.root))
     }
+
+    // MARK: - Summarization
 
     func testSummarizeASCII() {
         var r = Rope("foo\nbar\nbaz")
@@ -674,7 +678,7 @@ final class RopeTests: XCTestCase {
     }
 
 
-    // Index tests
+    // MARK: - Index tests
 
     func testIndexBeforeAfterASCII() {
         let r = Rope("Hello, world!")
@@ -960,8 +964,8 @@ final class RopeTests: XCTestCase {
     }
 
 
-    // Lines
-    
+    // MARK: - Lines
+
     func testShortLines() {
         var r = Rope("foo\nbar\nbaz")
 
@@ -1065,5 +1069,65 @@ final class RopeTests: XCTestCase {
         i = r1.lines.index(r1.index(at: 2), offsetBy: 3, limitedBy: r1.startIndex)
         XCTAssertEqual(r1.endIndex, i)
         XCTAssertEqual(11, i?.position)
+    }
+
+    // MARK: - Regression tests
+
+    func testNextCharacterAtBoundaryWithoutCombining() {
+        let s = String(repeating: "a", count: 1023) + String(repeating: "b", count: 1023) 
+        let r = Rope(s)
+
+        let i = r.utf8.index(at: 1022)
+        XCTAssertEqual(1023, r.index(after: i).position)
+    }
+
+    func testNextCharacterAtBoundaryWithCombining() {
+        let s = String(repeating: "a", count: 1023) + "\u{0301}" + String(repeating: "b", count: 1022) // U+0301 COMBINING ACUTE ACCENT
+        let r = Rope(s)
+
+        let i = r.utf8.index(at: 1022)
+        XCTAssertEqual(1025, r.index(after: i).position)
+    }
+
+    func testPrevCharacterAtBoundaryWithoutCombining() {
+        let s = String(repeating: "a", count: 1023) + String(repeating: "b", count: 1023)
+        let r = Rope(s)
+
+        var i = r.utf8.index(at: 1024)
+
+        i = r.index(before: i)
+        XCTAssertEqual(1023, i.position)
+
+        i = r.index(before: i)
+        XCTAssertEqual(1022, i.position)
+    }
+
+    func testPrevCharacterAtBoundaryWithCombining() {
+        let s = String(repeating: "a", count: 1023) + "\u{0301}" + String(repeating: "b", count: 1022) // U+0301 COMBINING ACUTE ACCENT
+        let r = Rope(s)
+
+        let i = r.utf8.index(at: 1025)
+        XCTAssertEqual(1022, r.index(before: i).position)
+    }
+    
+    func testConvertMultiChunkRopeToStringAsSequence() {
+        let s = String(repeating: "a", count: 1023) + String(repeating: "b", count: 1023)
+        let r = Rope(s)
+
+        let seq: any Sequence<Character> = r
+        // This shouldn't crash
+        XCTAssertEqual(s, String(seq))
+    }
+
+    func testReadCharacterAtLeafBoundary() {
+        let s = String(repeating: "a", count: 1023) + String(repeating: "b", count: 1023)
+        let r = Rope(s)
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+        XCTAssertEqual(1023, r.root.children[0].count)
+        XCTAssertEqual(1023, r.root.children[1].count)
+        // This shouldn't crash either
+        XCTAssertEqual("a", r[1022])
     }
 }

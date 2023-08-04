@@ -194,12 +194,12 @@ extension BTree {
             true
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
             assert(offset > 0)
             return offset - 1
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
             assert(offset < chunk.count)
             return offset + 1
         }
@@ -250,7 +250,7 @@ extension BTree {
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -263,7 +263,7 @@ extension BTree {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -312,7 +312,7 @@ extension BTree {
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -325,7 +325,7 @@ extension BTree {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -384,7 +384,7 @@ extension BTree {
             return chunk.isValidCharacterIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -402,13 +402,18 @@ extension BTree {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func needsLookahead(_ offset: Int, in chunk: Chunk) -> Bool {
+            let current = chunk.string.utf8Index(at: offset)
+            return current >= chunk.lastBreak
+        }
+
+        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
 
-            if current >= chunk.lastBreak {
+            if current >= chunk.lastBreak && (nextLeaf == nil || nextLeaf!.prefixCount > 0) {
                 return nil
             }
 
@@ -465,7 +470,7 @@ extension BTree {
             }
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
             assert(offset > 0)
 
             let nl = UInt8(ascii: "\n")
@@ -474,7 +479,7 @@ extension BTree {
             }
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
                 buf[offset...].firstIndex(of: nl).map { $0 + 1 }

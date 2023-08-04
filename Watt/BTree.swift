@@ -55,12 +55,25 @@ protocol BTreeMetric<Summary> {
     func convertFromBaseUnits(_ baseUnits: Int, in leaf: Summary.Leaf) -> Unit
     func isBoundary(_ offset: Int, in leaf: Summary.Leaf) -> Bool
 
+    func needsLookback(_ offset: Int, in leaf: Summary.Leaf) -> Bool
+    func needsLookahead(_ offset: Int, in leaf: Summary.Leaf) -> Bool
+
     // Prev is never called with offset == 0
-    func prev(_ offset: Int, in leaf: Summary.Leaf) -> Int?
-    func next(_ offset: Int, in leaf: Summary.Leaf) -> Int?
+    func prev(_ offset: Int, in leaf: Summary.Leaf, prevLeaf: Summary.Leaf?) -> Int?
+    func next(_ offset: Int, in leaf: Summary.Leaf, nextLeaf: Summary.Leaf?) -> Int?
 
     var canFragment: Bool { get }
     var type: BTreeMetricType { get }
+}
+
+extension BTreeMetric {
+    func needsLookback(_ offset: Int, in leaf: Summary.Leaf) -> Bool {
+        false
+    }
+
+    func needsLookahead(_ offset: Int, in leaf: Summary.Leaf) -> Bool {
+        false
+    }
 }
 
 
@@ -859,7 +872,13 @@ extension BTree {
                 return nil
             }
 
-            let newOffsetInLeaf = metric.prev(offsetInLeaf, in: leaf!)
+            var prev: Leaf?
+            if metric.needsLookback(offsetInLeaf, in: leaf!) {
+                var i = self
+                prev = i.prevLeaf()?.0
+            }
+
+            let newOffsetInLeaf = metric.prev(offsetInLeaf, in: leaf!, prevLeaf: prev)
 
             if let newOffsetInLeaf {
                 position = offsetOfLeaf + newOffsetInLeaf
@@ -882,7 +901,13 @@ extension BTree {
 
             let isLastLeaf = offsetOfLeaf + leaf!.count == root!.count
 
-            let newOffsetInLeaf = metric.next(offsetInLeaf, in: leaf!)
+            var next: Leaf?
+            if metric.needsLookahead(offsetInLeaf, in: leaf!) {
+                var i = self
+                next = i.nextLeaf()?.0
+            }
+
+            let newOffsetInLeaf = metric.next(offsetInLeaf, in: leaf!, nextLeaf: next)
 
             if newOffsetInLeaf == nil && isLastLeaf && (metric.type == .leading || metric.type == .atomic) {
                 // Didn't find a boundary, but leading and atomic metrics have a

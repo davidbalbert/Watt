@@ -373,14 +373,14 @@ extension BTree {
             return found
         }
 
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
             assert(offset > 0 && offset <= leaf.count)
 
             let (i, _) = leaf.positions.binarySearch(for: offset)
             return i == 0 ? 0 : leaf.positions[i-1]
         }
 
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
             assert(offset < leaf.count)
 
             switch leaf.positions.binarySearch(for: offset) {
@@ -447,12 +447,12 @@ extension BTree {
             HeightsBaseMetric().isBoundary(offset, in: leaf)
         }
         
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf)
+        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
+            HeightsBaseMetric().prev(offset, in: leaf, prevLeaf: prevLeaf)
         }
         
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf)
+        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
+            HeightsBaseMetric().next(offset, in: leaf, nextLeaf: nextLeaf)
         }
 
         var canFragment: Bool {
