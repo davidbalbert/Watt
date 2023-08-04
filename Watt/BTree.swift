@@ -354,11 +354,6 @@ extension BTree {
         // Mutating. Self must be unique at this point.
         func merge(withLeaf other: Node) -> Node {
             assert(isLeaf && other.isLeaf)
-
-            if !isUndersized && !other.isUndersized {
-                return Node([self, other])
-            }
-
             mutationCount &+= 1
 
             let newLeaf = leaf.pushMaybeSplitting(other: other.leaf)
