@@ -168,4 +168,16 @@ class TextView: NSView, ClipViewDelegate {
     func viewDidMoveToClipView() {
         addLineNumberView()
     }
+
+    override func viewDidMoveToWindow() {
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
+
+        guard let window else {
+            return
+        }
+
+        NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
+        NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+    }
 }

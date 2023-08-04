@@ -226,6 +226,7 @@ extension TextView: LayoutManagerDelegate {
         let l = SelectionLayer()
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
+        l.selectionDelegate = self
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)

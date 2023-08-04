@@ -7,9 +7,15 @@
 
 import Cocoa
 
+protocol SelectionLayerDelegate: AnyObject {
+    func textSelectionBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor
+}
+
 class SelectionLayer: CALayer {
+    weak var selectionDelegate: SelectionLayerDelegate?
+
     override func display() {
-        backgroundColor = NSColor.selectedTextBackgroundColor.cgColor
+        backgroundColor = selectionDelegate?.textSelectionBackgroundColor(for: self).cgColor ?? NSColor.selectedTextBackgroundColor.cgColor
     }
 
     override func action(forKey event: String) -> CAAction? {

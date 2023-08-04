@@ -40,8 +40,23 @@ extension TextView {
         }
     }
 
+    func setSelectionNeedsDisplay() {
+        for l in selectionLayer.sublayers ?? [] {
+            l.setNeedsDisplay()
+        }
+    }
+
+    var shouldDrawInsertionPoint: Bool {
+        isFirstResponder && windowIsKey && superview != nil
+    }
+
     func updateInsertionPointTimer() {
         insertionPointTimer?.invalidate()
+
+        guard shouldDrawInsertionPoint else {
+            insertionPointLayer.isHidden = true
+            return
+        }
 
         insertionPointLayer.isHidden = false
 
@@ -58,10 +73,19 @@ extension TextView {
 
     func scheduleInsertionPointTimer() {
         insertionPointTimer = Timer.scheduledTimer(withTimeInterval: insertionPointBlinkInterval, repeats: false) { [weak self] timer in
-
             guard let self = self else { return }
             self.insertionPointLayer.isHidden.toggle()
             scheduleInsertionPointTimer()
+        }
+    }
+}
+
+extension TextView: SelectionLayerDelegate {
+    func textSelectionBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor {
+        if windowIsKey && isFirstResponder {
+            return .selectedTextBackgroundColor
+        } else {
+            return .unemphasizedSelectedTextBackgroundColor
         }
     }
 }
