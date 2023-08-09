@@ -167,8 +167,7 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         let (start, _) = positions.binarySearch(for: bounds.lowerBound + 1)
         var (end, _) = positions.binarySearch(for: bounds.upperBound + 1)
 
-        let emptyLastLine = positions.last! == positions.dropLast().last!
-        if emptyLastLine && end == positions.count - 1 {
+        if endsWithBlankLine && end == positions.count - 1 {
             end += 1
         }
 
@@ -181,8 +180,7 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
             // we want the line height to be the height of
             // the last line.
             let i = min(start, heights.count - 1)
-            let lineHeight = i == 0 ? heights[0] : heights[i] - heights[i-1]
-            return HeightsLeaf(positions: [0], heights: [lineHeight])
+            return HeightsLeaf(positions: [0], heights: [lineHeight(atIndex: i)])
         }
 
         var newPositions = Array(positions[start..<end])
@@ -205,6 +203,14 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
     func lineLength(atIndex i: Int) -> Int {
         i == 0 ? positions[0] : positions[i] - positions[i-1]
     }
+
+    func position(atIndex i: Int) -> Int {
+        i == 0 ? 0 : positions[i-1]
+    }
+
+    func height(atIndex i: Int) -> CGFloat {
+        i == 0 ? 0 : heights[i-1]
+    }
 }
 
 extension Heights.Index {
@@ -212,13 +218,11 @@ extension Heights.Index {
         guard let (leaf, offset) = read() else {
             return nil
         }
-        
-        let hasEmptyLine = leaf.positions[0] == 0 || leaf.positions.count >= 2 && leaf.positions.last! == leaf.positions.dropLast().last!
 
         // We're addressing an empty line at the end of the
         // rope. In that case, just return the index of
         // the last element.
-        if hasEmptyLine && offset == leaf.positions.last! {
+        if leaf.endsWithBlankLine && offset == leaf.positions.last! {
             return (leaf, leaf.positions.count - 1)
         }
 
@@ -294,7 +298,7 @@ extension Heights {
             // See comment in get
             precondition(li < leaf.heights.count, "not a boundary")
 
-            let count = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
+            let count = leaf.lineLength(atIndex: li)
 
             let prefixEnd: Int
             let suffixStart: Int
@@ -327,8 +331,8 @@ extension Heights {
 
                 assert(leaf.positions[leaf.positions.count - 2] == leaf.positions[leaf.positions.count - 1])
 
-                let pos = leaf.positions[leaf.positions.count - 2] - leaf.positions[leaf.positions.count - 3]
-                let penultimateHeight = leaf.heights[leaf.heights.count - 2] - leaf.heights[leaf.heights.count - 3]
+                let pos = leaf.lineLength(atIndex: leaf.positions.count - 2)
+                let penultimateHeight = leaf.lineHeight(atIndex: leaf.heights.count - 2)
 
                 newLeaf = HeightsLeaf(positions: [pos, pos], heights: [penultimateHeight, penultimateHeight + newValue])
             } else {
@@ -352,9 +356,7 @@ extension Heights {
         if offset >= root.count {
             let i = endIndex
             let (leaf, _) = i.read()!
-
-            let li = leaf.heights.count - 1
-            let height = li == 0 ? leaf.heights[0] : leaf.heights[li] - leaf.heights[li - 1]
+            let height = leaf.lineHeight(atIndex: leaf.heights.count - 1)
 
             return root.measure(using: .yOffset) - height
         }
@@ -366,9 +368,7 @@ extension Heights {
         if yOffset >= root.measure(using: .yOffset) {
             let i = endIndex
             let (leaf, _) = i.read()!
-
-            let li = leaf.positions.count - 1
-            let lineLength = li == 0 ? leaf.positions[0] : leaf.positions[li] - leaf.positions[li - 1]
+            let lineLength = leaf.lineLength(atIndex: leaf.positions.count - 1)
 
             return root.count - lineLength
         }
@@ -405,7 +405,7 @@ extension BTree {
             assert(offset > 0 && offset <= leaf.count)
 
             let (i, _) = leaf.positions.binarySearch(for: offset)
-            return i == 0 ? 0 : leaf.positions[i-1]
+            return leaf.position(atIndex: i)
         }
 
         func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
@@ -456,7 +456,7 @@ extension BTree {
             if found {
                 i += 1
             }
-            return i == 0 ? 0 : leaf.positions[i-1]
+            return leaf.position(atIndex: i)
         }
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
@@ -468,7 +468,7 @@ extension BTree {
             if found {
                 i += 1
             }
-            return i == 0 ? 0 : leaf.heights[i - 1]
+            return leaf.height(atIndex: i)
         }
         
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
