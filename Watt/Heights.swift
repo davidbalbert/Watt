@@ -352,6 +352,83 @@ extension Heights {
         }
     }
 
+    mutating func handleReplaceSubrange(_ subrange: Range<Int>, with string: String) {
+        let start: Int
+        if subrange.lowerBound == root.count && !root.summary.endsWithBlankLine {
+            start = index(before: index(at: subrange.lowerBound), using: .heightsBaseMetric).position
+        } else {
+            start = index(roundingDown: index(at: subrange.lowerBound), using: .heightsBaseMetric).position
+        }
+
+        let end: Int
+        if subrange.upperBound == root.count {
+            end = subrange.upperBound
+        } else {
+            end = index(after: index(at: subrange.upperBound), using: .heightsBaseMetric).position
+        }
+
+        let prefixCount = subrange.lowerBound - start
+        let suffixCount = end - subrange.upperBound
+
+        var hb = HeightsBuilder()
+
+        var s = string
+        let nLines = s.withUTF8 { countNewlines(in: $0) + 1 }
+
+        // - make a new height builder
+        // - iterate over the lengths of each line in the string, calling addLine on the height builder
+        // - if we're on the first line, add prefixCount to the length of the first line
+        // - if we're on the last line, add suffixCount to the length of the last line
+        // - remember that the first line can also be the last line
+
+        var i = s.startIndex
+        var lineLength = 0
+        var lineCount = 0
+
+        let last = s.isEmpty ? s.startIndex : s.index(before: s.endIndex)
+
+        while i < s.endIndex {
+            let c = s.utf8[i]
+            if c == UInt8(ascii: "\n") || i == last {
+                if i == last {
+                    lineLength += 1
+                }
+
+                if lineCount == 0 {
+                    lineLength += prefixCount
+                }
+
+                if lineCount == nLines - 1 {
+                    assert(!(c == UInt8(ascii: "\n") && i == last))
+                    lineLength += suffixCount
+                }
+
+                hb.addLine(withBaseCount: lineLength, height: 14)
+
+                // If we have a trailing newline, add a blank line.
+                if c == UInt8(ascii: "\n") && i == last {
+                    hb.addLine(withBaseCount: suffixCount, height: 14)
+                }
+
+                lineLength = 0
+                lineCount += 1
+            } else {
+                lineLength += 1
+            }
+
+            i = s.index(after: i)
+        }
+
+        var b = Heights.Builder()
+        var r = root
+        b.push(&r, slicedBy: 0..<start)
+        var new = hb.build()
+        b.push(&new)
+        b.push(&r, slicedBy: end..<r.count)
+
+        root = b.build()
+    }
+
     func yOffset(upThroughPosition offset: Int) -> CGFloat {
         if offset >= root.count {
             let i = endIndex
@@ -525,4 +602,17 @@ struct HeightsBuilder {
         assert(node.height > 0 || node.leaf.positions.count > 0)
         return node
     }
+}
+
+fileprivate func countNewlines(in buf: UnsafeBufferPointer<UInt8>) -> Int {
+    let nl = UInt8(ascii: "\n")
+    var count = 0
+
+    for b in buf {
+        if b == nl {
+            count += 1
+        }
+    }
+
+    return count
 }

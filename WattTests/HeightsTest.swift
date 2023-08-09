@@ -621,4 +621,81 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(65, ps.dropLast().last)
         XCTAssertEqual(66, ps.last)
     }
+
+    func testInsertIntoPenultimateLineWithEmptyLastLine() {
+        // 33 lines total, with an empty last line.
+        // Total characters = 64; endIndex == 64.
+        let r = Rope(String(repeating: "a\n", count: 32))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(64, h.root.count)
+        XCTAssertEqual(462, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(33, ps.count)
+        XCTAssertEqual(64, ps.dropLast().last)
+        XCTAssertEqual(64, ps.last)
+
+        h.handleReplaceSubrange(61..<61, with: "abc")
+
+        XCTAssertEqual(67, h.root.count)
+        XCTAssertEqual(462, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(33, ps.count)
+        XCTAssertEqual(67, ps.dropLast().last)
+        XCTAssertEqual(67, ps.last)
+    }
+
+    func testInsertNewlineIntoEmpty() {
+        let r = Rope()
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(0, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(0..<0, with: "\n")
+
+        XCTAssertEqual(1, h.root.count)
+        XCTAssertEqual(28, h.contentHeight)
+    }
+
+    func testInsertNewlineIntoOneLineBeginning() {
+        let r = Rope("ab")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(2, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(0..<0, with: "\n")
+
+        XCTAssertEqual(3, h.root.count)
+        XCTAssertEqual(28, h.contentHeight)
+    }
+
+    func testInsertNewlineIntoOneLineMiddle() {
+        let r = Rope("ab")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(2, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(1..<1, with: "\n")
+
+        XCTAssertEqual(3, h.root.count)
+        XCTAssertEqual(28, h.contentHeight)
+    }
+
+    func testInsertNewlineIntoOneLineEnd() {
+        let r = Rope("ab")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(2, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(2..<2, with: "\n")
+
+        XCTAssertEqual(3, h.root.count)
+        XCTAssertEqual(28, h.contentHeight)
+    }
 }
