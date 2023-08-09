@@ -76,10 +76,6 @@ class LayoutManager {
             return
         }
 
-//        if buffer.utf8.count > 63711 {
-//            print(buffer[buffer.utf8.index(at: 63711)])
-//        }
-
         let visibleRect = delegate.visibleRect(for: self)
         let viewportBounds = delegate.viewportBounds(for: self)
 
