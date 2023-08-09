@@ -11,9 +11,11 @@ typealias Heights = BTree<HeightsSummary>
 
 struct HeightsSummary: BTreeSummary {
     var height: CGFloat
+    var endsWithBlankLine: Bool
 
     static func += (left: inout HeightsSummary, right: HeightsSummary) {
         left.height += right.height
+        left.endsWithBlankLine = left.endsWithBlankLine || right.endsWithBlankLine
     }
 
     static var zero: HeightsSummary {
@@ -22,10 +24,12 @@ struct HeightsSummary: BTreeSummary {
 
     init() {
         self.height = 0
+        self.endsWithBlankLine = false
     }
 
     init(summarizing leaf: HeightsLeaf) {
         self.height = leaf.heights.last!
+        self.endsWithBlankLine = leaf.endsWithBlankLine
     }
 }
 
@@ -72,6 +76,10 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         positions.count < HeightsLeaf.minSize
     }
 
+    var endsWithBlankLine: Bool {
+        lineLength(atIndex: positions.count - 1) == 0
+    }
+
     init() {
         self.positions = []
         self.heights = []
@@ -86,6 +94,18 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
 
     mutating func pushMaybeSplitting(other: HeightsLeaf) -> HeightsLeaf? {
         assert(positions.count == heights.count)
+
+        // May temporarily create an invalid empty leaf if positions == [0].
+        if endsWithBlankLine {
+            positions.removeLast()
+            heights.removeLast()
+        }
+
+        // If we created an invalid leaf above, just use other.
+        if positions.isEmpty {
+            self = other
+            return nil
+        }
 
         let end = count
         for p in other.positions {
@@ -176,6 +196,14 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         }
 
         return HeightsLeaf(positions: newPositions, heights: newYOffsets)
+    }
+
+    func lineHeight(atIndex i: Int) -> CGFloat {
+        i == 0 ? heights[0] : heights[i] - heights[i-1]
+    }
+
+    func lineLength(atIndex i: Int) -> Int {
+        i == 0 ? positions[0] : positions[i] - positions[i-1]
     }
 }
 

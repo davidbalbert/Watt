@@ -521,4 +521,104 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(l[10..<11], HeightsLeaf(positions: [6, 6], heights: [15, 31]))
         XCTAssertEqual(l[11..<11], HeightsLeaf(positions: [0], heights: [16]))
     }
+
+    // MARK: - Updating the associated Rope
+    func testInsertIntoEmpty() {
+        let r = Rope()
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(0, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(0..<0, with: "abc")
+
+        XCTAssertEqual(3, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+    }
+
+    func testInsertIntoOneLine() {
+        let r = Rope("a")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(1, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(0..<0, with: "abc")
+
+        XCTAssertEqual(4, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+    }
+
+    func testInsertIntoNonEmptyLastLine() {
+        // 32 lines total. The final line is "a".
+        // Total characters == 63; endIndex == 63.
+
+        let r = Rope(Array(repeating: "a", count: 32).joined(separator: "\n"))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(63, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(63, ps.last)
+
+        h.handleReplaceSubrange(63..<63, with: "abc")
+
+        XCTAssertEqual(66, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(66, ps.last)
+    }
+
+    func testInsertIntoEmptyLastLine() {
+        // 33 lines total, with an empty last line.
+        // Total characters = 64; endIndex == 64.
+        let r = Rope(String(repeating: "a\n", count: 32))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(64, h.root.count)
+        XCTAssertEqual(462, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(33, ps.count)
+        XCTAssertEqual(64, ps.last)
+
+        h.handleReplaceSubrange(64..<64, with: "abc")
+
+        XCTAssertEqual(67, h.root.count)
+        XCTAssertEqual(462, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(33, ps.count)
+        XCTAssertEqual(67, ps.last)
+    }
+
+    func testInsertIntoPenultimateLineWithNonEmptyLastLine() {
+        // 32 lines total. The final line is "a".
+        // Total characters == 63; endIndex == 63.
+
+        let r = Rope(Array(repeating: "a", count: 32).joined(separator: "\n"))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(63, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(62, ps.dropLast().last)
+        XCTAssertEqual(63, ps.last)
+
+        h.handleReplaceSubrange(61..<61, with: "abc")
+
+        XCTAssertEqual(66, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(65, ps.dropLast().last)
+        XCTAssertEqual(66, ps.last)
+    }
 }
