@@ -642,9 +642,9 @@ extension Rope.Index {
         // An optimization: if the entire line is within
         // the chunk, return a Substring.
         var end = self
-        if end.next(withinLeafUsing: .newlines) != nil {
+        if let endOffset = end.next(withinLeafUsing: .newlines) {
             let i = chunk.string.utf8Index(at: offset)
-            let j = chunk.string.utf8Index(at: end.offsetInLeaf)
+            let j = chunk.string.utf8Index(at: endOffset - offsetOfLeaf)
 
             return chunk.string[i..<j]
         }
