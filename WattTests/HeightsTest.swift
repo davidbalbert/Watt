@@ -698,4 +698,45 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(3, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
     }
+
+    func testReplaceRangeOneLine() {
+        let r = Rope("foo bar baz")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(11, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        h.handleReplaceSubrange(4..<7, with: "quux")
+
+        XCTAssertEqual(12, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+    }
+
+    func testReplaceRangeOverNewline() {
+        let r = Rope("foo\nbar\nbaz")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(11, h.root.count)
+        XCTAssertEqual(42, h.contentHeight)
+
+        // overwrite "oo\nbar\b" with "qux". The final string would be "fquxaz".
+        h.handleReplaceSubrange(1..<9, with: "qux")
+
+        XCTAssertEqual(6, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+    }
+
+    func testReplaceRangeInsertingNewlines() {
+        let r = Rope("hello")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(5, h.root.count)
+        XCTAssertEqual(14, h.contentHeight)
+
+        // overwrite "ll" with "foo\nbar\nbaz". The finall string would be "hefoo\nbar\nbazo".
+        h.handleReplaceSubrange(2..<4, with: "foo\nbar\nbaz")
+
+        XCTAssertEqual(14, h.root.count)
+        XCTAssertEqual(42, h.contentHeight)
+    }
 }

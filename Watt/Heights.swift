@@ -390,9 +390,7 @@ extension Heights {
         while i < s.endIndex {
             let c = s.utf8[i]
             if c == UInt8(ascii: "\n") || i == last {
-                if i == last {
-                    lineLength += 1
-                }
+                lineLength += 1
 
                 if lineCount == 0 {
                     lineLength += prefixCount
