@@ -403,9 +403,15 @@ extension Heights {
 
                 hb.addLine(withBaseCount: lineLength, height: 14)
 
-                // If we have a trailing newline, add a blank line.
                 if c == UInt8(ascii: "\n") && i == last {
+                    // String ends with a newline. We need to add one more line to cover
+                    // the suffix. If suffixCount == 0, this will be an empty line.
                     hb.addLine(withBaseCount: suffixCount, height: 14)
+                } else if lineCount == nLines - 1 && suffixCount > 0 && end == root.count && root.summary.endsWithBlankLine {
+                    // If we're on the last line of string, and we're replacing a portion, but
+                    // not all of the last line of the rope, and the rope ends in an empty line,
+                    // make sure to include the empty line.
+                    hb.addLine(withBaseCount: 0, height: 14)
                 }
 
                 lineLength = 0
