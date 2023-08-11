@@ -29,13 +29,16 @@ class LayoutManager {
 
     weak var buffer: Buffer? {
         didSet {
-            guard let buffer else {
-                return
+            if let buffer {
+                selection = Selection(head: buffer.documentRange.lowerBound)
+                heights = Heights(rope: buffer.contents)
+                lineCache = IntervalCache(upperBound: buffer.utf8.count)
+            } else {
+                selection = nil
+                heights = Heights()
+                lineCache = IntervalCache(upperBound: 0)
             }
 
-            selection = Selection(head: buffer.documentRange.lowerBound)
-            heights = Heights(rope: buffer.contents)
-            lineCache = IntervalCache(upperBound: buffer.utf8.count)
             invalidateLayout()
         }
     }
