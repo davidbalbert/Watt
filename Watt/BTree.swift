@@ -788,14 +788,14 @@ extension BTree {
 
             // If we didn't find a boundary, go to the previous leaf and
             // try again.
-            guard let (leaf, _) = prevLeaf() else {
+            if prevLeaf() == nil {
                 // We were on the first leaf, so we're done.
                 // prevLeaf invalidates if necessary
                 return nil
             }
 
             // one more shot
-            position = offsetOfLeaf + leaf.count
+            position = offsetOfLeaf + leaf!.count
             if let offset = prev(withinLeafUsing: metric) {
                 return offset
             }
@@ -808,7 +808,8 @@ extension BTree {
             let measure = measure(upToLeafContaining: offsetOfLeaf, using: metric)
             descend(toLeafContaining: measure, asMeasuredBy: metric)
 
-            position = offsetOfLeaf + leaf.count
+            // We're always valid after the above two lines
+            position = offsetOfLeaf + leaf!.count
             if let offset = prev(withinLeafUsing: metric) {
                 return offset
             }

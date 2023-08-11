@@ -1163,5 +1163,18 @@ final class RopeTests: XCTestCase {
         // This shouldn't crash
         XCTAssertEqual(String(repeating: "b", count: 510) + "\n", r.lines[1])
     }
+
+    func testMoveToPreviousLineInAFourChunkStretchOfNoNewlines() {
+        var r = Rope()
+        r += String(repeating: "a", count: 1020)
+        r += String(repeating: "b", count: 1021)
+        r += String(repeating: "c", count: 1022)
+
+        let i = r.endIndex
+        // This shouldn't crash
+        let j = r.lines.index(roundingDown: i)
+
+        XCTAssertEqual(0, j.position)
+    }
 }
 

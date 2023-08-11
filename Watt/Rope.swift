@@ -463,7 +463,7 @@ extension BTree {
         }
 
         func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            assert(offset > 0)
+            assert(offset > 0 && offset <= chunk.count)
 
             return chunk.string.withExistingUTF8 { buf in
                 buf[offset - 1] == UInt8(ascii: "\n")
@@ -471,7 +471,7 @@ extension BTree {
         }
 
         func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
-            assert(offset > 0)
+            assert(offset > 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
@@ -480,6 +480,8 @@ extension BTree {
         }
 
         func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+            assert(offset >= 0 && offset <= chunk.count)
+
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
                 buf[offset...].firstIndex(of: nl).map { $0 + 1 }
