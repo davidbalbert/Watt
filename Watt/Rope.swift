@@ -448,6 +448,7 @@ extension BTree {
             var count = 0
             chunk.string.withExistingUTF8 { buf in
                 while count < measuredUnits {
+                    precondition(offset <= buf.count)
                     offset = buf[offset...].firstIndex(of: nl)! + 1
                     count += 1
                 }
@@ -458,12 +459,13 @@ extension BTree {
 
         func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk) -> Int {
             return chunk.string.withExistingUTF8 { buf in
-                countNewlines(in: buf[..<baseUnits])
+                precondition(baseUnits <= buf.count)
+                return countNewlines(in: buf[..<baseUnits])
             }
         }
 
         func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            assert(offset > 0 && offset <= chunk.count)
+            precondition(offset > 0 && offset <= chunk.count)
 
             return chunk.string.withExistingUTF8 { buf in
                 buf[offset - 1] == UInt8(ascii: "\n")
@@ -471,7 +473,7 @@ extension BTree {
         }
 
         func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
-            assert(offset > 0 && offset <= chunk.count)
+            precondition(offset > 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
@@ -480,7 +482,7 @@ extension BTree {
         }
 
         func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
-            assert(offset >= 0 && offset <= chunk.count)
+            precondition(offset >= 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
@@ -542,6 +544,8 @@ fileprivate func boundaryForMerge(_ s: Substring) -> String.Index {
 
 fileprivate func boundary(for s: Substring, startingAt minSplit: Int) -> String.Index {
     let maxSplit = min(Chunk.maxSize, s.utf8.count - Chunk.minSize)
+
+    precondition(minSplit >= 1 && maxSplit <= s.utf8.count)
 
     let nl = UInt8(ascii: "\n")
     let lineBoundary = s.withExistingUTF8 { buf in
