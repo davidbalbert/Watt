@@ -43,7 +43,8 @@ class TextView: NSView, ClipViewDelegate {
 
     var buffer: Buffer {
         didSet {
-            layoutManager.buffer = buffer
+            oldValue.removeLayoutManager(layoutManager)
+            buffer.addLayoutManager(layoutManager)
 
             selectionLayer.setNeedsLayout()
             textLayer.setNeedsLayout()

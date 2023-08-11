@@ -15,9 +15,7 @@ extension TextView: NSTextInputClient {
             return
         }
 
-//        buffer.performEditingTransaction {
-//            buffer.replaceCharacters(in: range, with: string)
-//        }
+        buffer.replaceSubrange(range, with: string)
 
         updateInsertionPointTimer()
         unmarkText()
@@ -28,6 +26,7 @@ extension TextView: NSTextInputClient {
         insertionPointLayer.setNeedsLayout()
     }
 
+    // TODO: when re-enabling marked text, make sure to look at insertNewline(_:) and see if there's anything we have to change.
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         let string = attributedString(anyString: string, attributes: markedTextAttributes)
 
@@ -39,17 +38,17 @@ extension TextView: NSTextInputClient {
 //            buffer.replaceCharacters(in: range, with: string)
 //        }
 //
-        let anchor = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
-        let head = buffer.index(anchor, offsetBy: selectedRange.length)
-        layoutManager.selection = Selection(head: head, anchor: anchor)
-
-        if string.length == 0 {
-            unmarkText()
-        } else {
-            let start = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location)
-            let end = buffer.index(start, offsetBy: string.length)
-            layoutManager.selection.markedRange = start..<end
-        }
+//        let anchor = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
+//        let head = buffer.index(anchor, offsetBy: selectedRange.length)
+//        layoutManager.selection = Selection(head: head, anchor: anchor)
+//
+//        if string.length == 0 {
+//            unmarkText()
+//        } else {
+//            let start = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location)
+//            let end = buffer.index(start, offsetBy: string.length)
+//            layoutManager.selection.markedRange = start..<end
+//        }
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
@@ -60,19 +59,23 @@ extension TextView: NSTextInputClient {
     }
 
     func unmarkText() {
-        layoutManager.selection.markedRange = nil
-        
+        layoutManager.selection?.markedRange = nil
+
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
     }
 
     func selectedRange() -> NSRange {
-        return NSRange(layoutManager.selection.range, in: buffer)
+        guard let range = layoutManager.selection?.range else {
+            return .notFound
+        }
+
+        return NSRange(range, in: buffer)
     }
 
     func markedRange() -> NSRange {
-        guard let markedRange = layoutManager.selection.markedRange else {
+        guard let markedRange = layoutManager.selection?.markedRange else {
             return .notFound
         }
 
@@ -80,7 +83,11 @@ extension TextView: NSTextInputClient {
     }
 
     func hasMarkedText() -> Bool {
-        layoutManager.selection.markedRange != nil
+        guard let selection else {
+            return false
+        }
+
+        return selection.markedRange != nil
     }
 
     func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? {
@@ -167,14 +174,12 @@ extension TextView {
         }
     }
 
-    private func getReplacementRange(for proposed: NSRange) -> NSRange? {
+    private func getReplacementRange(for proposed: NSRange) -> Range<Buffer.Index>? {
         if proposed != .notFound {
-            return proposed
+            return Range(proposed, in: buffer)
         }
 
-        let range = layoutManager.selection.markedRange ?? layoutManager.selection.range
-
-        return NSRange(range, in: buffer)
+        return layoutManager.selection?.markedRange ?? layoutManager.selection?.range
     }
 
     var markedTextAttributes: [NSAttributedString.Key : Any] {

@@ -358,28 +358,25 @@ extension Heights {
         }
     }
 
-    mutating func handleReplaceSubrange(_ subrange: Range<Int>, with string: String) {
+    mutating func replaceSubrange(_ oldRange: Range<Int>, with rope: Rope) {
         let start: Int
-        if subrange.lowerBound == root.count && !root.summary.endsWithBlankLine {
-            start = index(before: index(at: subrange.lowerBound), using: .heightsBaseMetric).position
+        if oldRange.lowerBound == root.count && !root.summary.endsWithBlankLine {
+            start = index(before: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
         } else {
-            start = index(roundingDown: index(at: subrange.lowerBound), using: .heightsBaseMetric).position
+            start = index(roundingDown: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
         }
 
         let end: Int
-        if subrange.upperBound == root.count {
-            end = subrange.upperBound
+        if oldRange.upperBound == root.count {
+            end = oldRange.upperBound
         } else {
-            end = index(after: index(at: subrange.upperBound), using: .heightsBaseMetric).position
+            end = index(after: index(at: oldRange.upperBound), using: .heightsBaseMetric).position
         }
 
-        let prefixCount = subrange.lowerBound - start
-        let suffixCount = end - subrange.upperBound
+        let prefixCount = oldRange.lowerBound - start
+        let suffixCount = end - oldRange.upperBound
 
         var hb = HeightsBuilder()
-
-        var s = string
-        let nLines = s.withUTF8 { countNewlines(in: $0) + 1 }
 
         // - make a new height builder
         // - iterate over the lengths of each line in the string, calling addLine on the height builder
@@ -387,14 +384,15 @@ extension Heights {
         // - if we're on the last line, add suffixCount to the length of the last line
         // - remember that the first line can also be the last line
 
-        var i = s.startIndex
+        var i = rope.startIndex
         var lineLength = 0
         var lineCount = 0
 
-        let last = s.isEmpty ? s.startIndex : s.index(before: s.endIndex)
+        let endIndex = rope.endIndex
+        let last = rope.isEmpty ? rope.startIndex : rope.index(before: endIndex)
 
-        while i < s.endIndex {
-            let c = s.utf8[i]
+        while i < endIndex {
+            let c = rope.utf8[i]
             if c == UInt8(ascii: "\n") || i == last {
                 lineLength += 1
 
@@ -402,7 +400,7 @@ extension Heights {
                     lineLength += prefixCount
                 }
 
-                if lineCount == nLines - 1 {
+                if lineCount == rope.lines.count - 1 {
                     assert(!(c == UInt8(ascii: "\n") && i == last))
                     lineLength += suffixCount
                 }
@@ -413,7 +411,7 @@ extension Heights {
                     // String ends with a newline. We need to add one more line to cover
                     // the suffix. If suffixCount == 0, this will be an empty line.
                     hb.addLine(withBaseCount: suffixCount, height: 14)
-                } else if lineCount == nLines - 1 && suffixCount > 0 && end == root.count && root.summary.endsWithBlankLine {
+                } else if lineCount == rope.lines.count - 1 && suffixCount > 0 && end == root.count && root.summary.endsWithBlankLine {
                     // If we're on the last line of string, and we're replacing a portion, but
                     // not all of the last line of the rope, and the rope ends in an empty line,
                     // make sure to include the empty line.
@@ -426,7 +424,7 @@ extension Heights {
                 lineLength += 1
             }
 
-            i = s.index(after: i)
+            i = rope.index(after: i)
         }
 
         var b = Heights.Builder()

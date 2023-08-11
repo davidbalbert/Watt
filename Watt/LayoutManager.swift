@@ -524,6 +524,22 @@ class LayoutManager {
         return start..<end
     }
 
+    // MARK: - Editing
+    func bufferContentsDidChange(from old: Rope, to new: Rope, delta: Rope.Delta) {
+        // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
+        let (oldRange, count) = delta.summary()
+
+        let newRange = Range(oldRange.lowerBound..<(oldRange.lowerBound + count), in: new)
+
+        heights.replaceSubrange(oldRange, with: new[newRange])
+
+        // TODO: in addition to the todo above delta.summary(), once we have multiple selections we need to figure out a way to put each selection in the correct location. I think the interface to this function is probably too low level. In Delta, we can make as many changes as we want. With multiple selections, each selection can be a different length, but they all need to be replaced by the same string.
+        selection = Selection(head: newRange.upperBound)
+
+        // TODO: don't invalidate all layout
+        invalidateLayout()
+    }
+
     // MARK: - Converting coordinates
 
     func convert(_ rect: CGRect, from line: Line) -> CGRect {

@@ -75,7 +75,7 @@ class Buffer {
     }
 
     func addLayoutManager(_ layoutManager: LayoutManager) {
-        if layoutManagers.contains(where: {$0 === layoutManager}) {
+        if layoutManagers.contains(where: { $0 === layoutManager }) {
             return
         }
 
@@ -83,8 +83,25 @@ class Buffer {
         layoutManager.buffer = self
     }
 
+    func removeLayoutManager(_ layoutManager: LayoutManager) {
+        layoutManagers.removeAll { $0 === layoutManager }
+        layoutManager.buffer = nil
+   }
+
     func replaceSubrange(_ subrange: Range<Index>, with attrString: NSAttributedString) {
-        contents.replaceSubrange(subrange, with: attrString.string)
+        let rope = Rope(attrString.string)
+        let range = subrange.lowerBound.position..<subrange.upperBound.position
+
+        var b = Rope.DeltaBuilder(contents.count)
+        b.replace(range, with: rope)
+        let delta = b.build()
+
+        let old = contents
+        contents = contents.applying(delta: delta)
+
+        for layoutManager in layoutManagers {
+            layoutManager.bufferContentsDidChange(from: old, to: contents, delta: delta)
+        }
     }
 }
 

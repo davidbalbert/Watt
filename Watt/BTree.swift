@@ -1185,6 +1185,110 @@ extension BTree.LeavesView: BidirectionalCollection {
 }
 
 
+// MARK: - Deltas
+
+extension BTree {
+    enum DeltaElement {
+        case copy(Int, Int)
+        case insert(Node)
+    }
+
+    // An ordered list of changes to to a tree. Deletes of a given range
+    // are represented by the absence of a copy over that range.
+    struct Delta {
+        var elements: [DeltaElement]
+        var baseCount: Int // the count of the associated BTree
+
+        // Returns a range covering the entire changed portion of the
+        // original tree and the length of the newly inserted tree.
+        func summary() -> (Range<Int>, Int) {
+            var els = elements
+
+            // The only way the replaced range can have a lowerBound
+            // greater than 0, is if the first element is a copy that
+            // starts at 0.
+            var start = 0
+            if case let .copy(0, upperBound) = els.first {
+                start = upperBound
+                els.removeFirst()
+            }
+
+            // Ditto for upperBound and the end of the string. For
+            // the replaced range's upperBound to be less than the
+            // length of the string, the final element has to be a
+            // copy that ends at the end of the string.
+            var end = baseCount
+            if case let .copy(lowerBound, upperBound) = els.last {
+                if upperBound == baseCount {
+                    end = lowerBound
+                    els.removeLast()
+                }
+            }
+
+            let count = els.reduce(0) { sum, el in
+                switch el {
+                case let .copy(start, end):
+                    return sum + (start - end)
+                case let .insert(tree):
+                    return sum + tree.count
+                }
+            }
+
+            return (start..<end, count)
+        }
+    }
+
+    struct DeltaBuilder {
+        var delta: Delta
+        var lastOffset: Int
+
+        init(_ baseCount: Int) {
+            self.delta = Delta(elements: [], baseCount: baseCount)
+            self.lastOffset = 0
+        }
+
+        mutating func delete(_ range: Range<Int>) {
+            precondition(range.lowerBound >= lastOffset, "ranges must be sorted")
+            if range.lowerBound > lastOffset {
+                delta.elements.append(.copy(lastOffset, range.lowerBound))
+            }
+            lastOffset = range.upperBound
+        }
+
+        mutating func replace(_ range: Range<Int>, with tree: BTree) {
+            delete(range)
+            if !tree.isEmpty {
+                delta.elements.append(.insert(tree.root))
+            }
+        }
+
+        consuming func build() -> Delta {
+            if lastOffset < delta.baseCount {
+                delta.elements.append(.copy(lastOffset, delta.baseCount))
+            }
+            
+            return delta
+        }
+    }
+}
+
+extension BTree {
+    func applying(delta: Delta) -> BTree {
+        var r = root
+        var b = Builder()
+        for el in delta.elements {
+            switch el {
+            case let .copy(start, end):
+                b.push(&r, slicedBy: start..<end)
+            case let .insert(node):
+                var n = node.clone()
+                b.push(&n)
+            }
+        }
+        return BTree(b.build())
+    }
+}
+
 // MARK: - Helpers
 
 

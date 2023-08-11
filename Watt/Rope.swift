@@ -1420,7 +1420,17 @@ extension Range where Bound == Rope.Index {
             fatalError("Got NSRange with upperBound referencing a trailing surrogate")
         }
 
-        self.init(uncheckedBounds: (Rope.Index(offsetBy: i, in: rope), Rope.Index(offsetBy: j, in: rope)))
+        self.init(uncheckedBounds: (rope.utf8.index(at: i), rope.utf8.index(at: j)))
+    }
+
+    init(_ range: Range<Int>, in rope: Rope) {
+        precondition(range.lowerBound >= 0 || range.lowerBound < rope.utf8.count + 1, "lowerBound is out of bounds")
+        precondition(range.upperBound >= 0 || range.upperBound < rope.utf8.count + 1, "upperBound is out of bounds")
+
+        let i = range.lowerBound
+        let j = range.upperBound
+
+        self.init(uncheckedBounds: (rope.utf8.index(at: i), rope.utf8.index(at: j)))
     }
 }
 
