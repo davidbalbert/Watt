@@ -794,4 +794,79 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(10, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
     }
+
+    func testReplaceInNonEmptyLastLine() {
+        // 32 lines total. The final line is "a".
+        // Total characters == 63; endIndex == 63.
+
+        let r = Rope(Array(repeating: "a", count: 32).joined(separator: "\n"))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(63, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(63, ps.last)
+
+        h.handleReplaceSubrange(62..<63, with: "abc")
+
+        XCTAssertEqual(65, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(65, ps.last)
+    }
+
+    func testReplaceInEmptyLastLine() {
+        // 33 lines total, with an empty last line.
+        // Total characters = 64; endIndex == 64.
+
+        let r = Rope(String(repeating: "a\n", count: 32))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(64, h.root.count)
+        XCTAssertEqual(462, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(33, ps.count)
+        XCTAssertEqual(64, ps.last)
+
+        // this replaces the newline, so we lose the empty last line.
+        h.handleReplaceSubrange(63..<64, with: "abc")
+
+        XCTAssertEqual(66, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(66, ps.last)
+    }
+
+    func testReplaceInPenultimateLineWithNonEmptyLastLine() {
+        // 32 lines total. The final line is "a".
+        // Total characters == 63; endIndex == 63.
+
+        let r = Rope(Array(repeating: "a", count: 32).joined(separator: "\n"))
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(63, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(62, ps.dropLast().last)
+        XCTAssertEqual(63, ps.last)
+
+        h.handleReplaceSubrange(60..<61, with: "abc")
+
+        XCTAssertEqual(65, h.root.count)
+        XCTAssertEqual(448, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(32, ps.count)
+        XCTAssertEqual(64, ps.dropLast().last)
+        XCTAssertEqual(65, ps.last)
+    }
 }
