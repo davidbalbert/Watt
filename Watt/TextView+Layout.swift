@@ -167,6 +167,12 @@ extension TextView: LayoutManagerDelegate {
         return bounds
     }
 
+    func setNeedsLayout(for layoutManager: LayoutManager) {
+        textLayer.setNeedsLayout()
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+    }
+
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {
         let current = scrollOffset
         scroll(CGPoint(x: current.x + adjustment.width, y: current.y + adjustment.height))

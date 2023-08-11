@@ -25,10 +25,6 @@ extension TextView {
         updateInsertionPointTimer()
         unmarkText()
         inputContext?.invalidateCharacterCoordinates()
-
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
     }
 
     // MARK: - Selection

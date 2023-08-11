@@ -20,10 +20,6 @@ extension TextView: NSTextInputClient {
         updateInsertionPointTimer()
         unmarkText()
         inputContext?.invalidateCharacterCoordinates()
-
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
     }
 
     // TODO: when re-enabling marked text, make sure to look at insertNewline(_:) and see if there's anything we have to change.
