@@ -27,12 +27,12 @@ class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
     weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
-    var buffer: Buffer {
-        willSet {
-            // TODO: unsubscribe from changes to old buffer
-        }
+    weak var buffer: Buffer? {
         didSet {
-            // TODO: subscribe to changes to new buffer
+            guard let buffer else {
+                return
+            }
+
             selection = Selection(head: buffer.documentRange.lowerBound)
             heights = Heights(rope: buffer.contents)
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
@@ -52,19 +52,16 @@ class LayoutManager {
 
     var previousVisibleRect: CGRect
 
-    var selection: Selection
+    var selection: Selection?
 
     var lineCache: IntervalCache<Line>
 
     init() {
-        self.buffer = Buffer()
-        self.heights = Heights(rope: buffer.contents)
+        self.heights = Heights()
         self.textContainer = TextContainer()
         self.previousVisibleRect = .zero
-        self.lineCache = IntervalCache(upperBound: buffer.utf8.count)
-
-        // TODO: subscribe to changes to buffer.
-        self.selection = Selection(head: buffer.startIndex)
+        self.lineCache = IntervalCache(upperBound: 0)
+        self.selection = nil
     }
 
     var contentHeight: CGFloat {
@@ -72,7 +69,7 @@ class LayoutManager {
     }
 
     func layoutText(using block: (Line) -> Void) {
-        guard let delegate else {
+        guard let delegate, let buffer else {
             return
         }
 
@@ -84,7 +81,7 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
 
         var i = viewportRange.lowerBound
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
@@ -96,7 +93,7 @@ class LayoutManager {
 
         while i < viewportRange.upperBound {
             let next = buffer.lines.index(after: i)
-            let line = layoutLineIfNecessary(inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             block(line)
 
@@ -146,12 +143,12 @@ class LayoutManager {
     }
 
     func layoutSelections(using block: (CGRect) -> Void) {
-        guard let delegate else {
+        guard let delegate, let selection, let buffer else {
             return
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
 
         let rangeInViewport = selection.range.clamped(to: viewportRange)
 
@@ -164,7 +161,7 @@ class LayoutManager {
 
         while i < rangeInViewport.upperBound {
             let next = buffer.lines.index(after: i)
-            let line = layoutLineIfNecessary(inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
             var thisFrag = i
@@ -225,7 +222,7 @@ class LayoutManager {
     }
 
     func layoutInsertionPoints(using block: (CGRect) -> Void) {
-        guard let delegate else {
+        guard let delegate, let selection, let buffer else {
             return
         }
 
@@ -234,7 +231,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
 
         guard viewportRange.contains(selection.lowerBound) || viewportRange.upperBound == selection.upperBound else {
             return
@@ -250,7 +247,7 @@ class LayoutManager {
         }
 
         let y = heights.yOffset(upThroughPosition: selection.lowerBound.position)
-        let line = layoutLineIfNecessary(inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let line = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
         var frag: LineFragment?
         var i = start
@@ -320,6 +317,10 @@ class LayoutManager {
     }
 
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
+        guard let buffer else {
+            return nil
+        }
+
         if point.y <= 0 {
             return (buffer.startIndex, .downstream)
         }
@@ -337,7 +338,7 @@ class LayoutManager {
         let end = buffer.lines.index(after: start)
         let y = heights.yOffset(upThroughPosition: offset)
 
-        let line = layoutLineIfNecessary(inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let line = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
         let pointInLine = convert(point, to: line)
 
@@ -404,7 +405,7 @@ class LayoutManager {
         return (pos, affinity)
     }
 
-    func layoutLineIfNecessary(inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> Line {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> Line {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
@@ -412,7 +413,7 @@ class LayoutManager {
             line.origin.y = point.y
             return line
         } else {
-            let line = makeLine(from: range, at: point)
+            let line = makeLine(from: range, in: buffer, at: point)
             lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
             return line
         }
@@ -422,7 +423,7 @@ class LayoutManager {
     // method could return a LineFragment. That way, we won't have to worry about
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
     // of the Line (e.g. see positionForCharacter(atUTF16Offset:in:)).
-    func makeLine(from range: Range<Buffer.Index>, at point: CGPoint) -> Line {
+    func makeLine(from range: Range<Buffer.Index>, in buffer: Buffer, at point: CGPoint) -> Line {
         // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
         let attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
 
@@ -503,7 +504,7 @@ class LayoutManager {
     // and end of the range are rounded down and up to the nearest line
     // boundary respectively, so that if you were to lay out those lines,
     // you'd fill the entire viewport.
-    func lineRange(intersecting rect: CGRect) -> Range<Buffer.Index> {
+    func lineRange(intersecting rect: CGRect, in buffer: Buffer) -> Range<Buffer.Index> {
         let baseStart = heights.position(upThroughYOffset: rect.minY)
         let baseEnd = heights.position(upThroughYOffset: rect.maxY)
 

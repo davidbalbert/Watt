@@ -27,7 +27,7 @@ struct Selection {
     var affinity: Affinity
     var markedRange: Range<Rope.Index>?
 
-    init(head: Rope.Index, anchor: Rope.Index? = nil, affinity: Affinity? = nil) {
+    init(head: Buffer.Index, anchor: Buffer.Index? = nil, affinity: Affinity? = nil) {
         self.head = head
         self.anchor = anchor ?? head
         self.affinity = affinity ?? .downstream

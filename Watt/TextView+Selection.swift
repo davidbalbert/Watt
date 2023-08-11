@@ -21,7 +21,7 @@ extension TextView {
             return
         }
 
-        layoutManager.selection.head = location
+        layoutManager.selection?.head = location
     }
 
     private var insertionPointOnInterval: TimeInterval {
@@ -53,6 +53,10 @@ extension TextView {
     func updateInsertionPointTimer() {
         insertionPointTimer?.invalidate()
 
+        guard let selection else {
+            return
+        }
+
         guard shouldDrawInsertionPoint else {
             insertionPointLayer.isHidden = true
             return
@@ -64,7 +68,7 @@ extension TextView {
             return
         }
 
-        if !layoutManager.selection.isEmpty {
+        if !selection.isEmpty {
             return
         }
 

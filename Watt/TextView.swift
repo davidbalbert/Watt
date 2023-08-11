@@ -53,7 +53,7 @@ class TextView: NSView, ClipViewDelegate {
 
     let layoutManager: LayoutManager
 
-    var selection: Selection {
+    var selection: Selection? {
         get {
             layoutManager.selection
         }

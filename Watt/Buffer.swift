@@ -11,6 +11,7 @@ class Buffer {
     typealias Index = Rope.Index
 
     var contents: Rope
+    var layoutManagers: [LayoutManager]
 
     convenience init() {
         self.init("")
@@ -18,6 +19,7 @@ class Buffer {
 
     init(_ string: String) {
         self.contents = Rope(string)
+        self.layoutManagers = []
     }
 
     var data: Data {
@@ -70,6 +72,19 @@ class Buffer {
 
     func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
         NSAttributedString(string: String(contents[range]))
+    }
+
+    func addLayoutManager(_ layoutManager: LayoutManager) {
+        if layoutManagers.contains(where: {$0 === layoutManager}) {
+            return
+        }
+
+        layoutManagers.append(layoutManager)
+        layoutManager.buffer = self
+    }
+
+    func replaceSubrange(_ subrange: Range<Index>, with attrString: NSAttributedString) {
+        contents.replaceSubrange(subrange, with: attrString.string)
     }
 }
 

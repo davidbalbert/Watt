@@ -252,6 +252,12 @@ extension Heights {
         self.init(b.build())
     }
 
+    init() {
+        var b = HeightsBuilder()
+        b.addLine(withBaseCount: 0, height: 14)
+        self.init(b.build())
+    }
+
     var contentHeight: CGFloat {
         measure(using: .yOffset)
     }
