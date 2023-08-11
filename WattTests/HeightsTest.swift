@@ -781,7 +781,7 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(56, h.contentHeight)   
     }
 
-    func testHmm() {
+    func testReplaceRangeInsertingNewlinesMaintainingTrailingBlankLineAfterReplacementRange() {
         let r = Rope("foo\nbar\n")
         var h = Heights(rope: r)
 
