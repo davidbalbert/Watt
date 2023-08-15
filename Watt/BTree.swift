@@ -675,6 +675,14 @@ extension BTree {
             self.init(offsetBy: offset, in: tree.root)
         }
 
+        init(startOf tree: BTree) {
+            self.init(offsetBy: 0, in: tree.root)
+        }
+
+        init(endOf tree: BTree) {
+            self.init(offsetBy: tree.root.count, in: tree.root)
+        }
+
         mutating func descend() {
             path = []
             var node = root! // assume we have a root
@@ -1188,16 +1196,42 @@ extension BTree.LeavesView: BidirectionalCollection {
 // MARK: - Deltas
 
 extension BTree {
-    enum DeltaElement {
+    enum DeltaElement: Equatable {
         case copy(Int, Int)
         case insert(Node)
+
+        static func == (lhs: BTree<Summary>.DeltaElement, rhs: BTree<Summary>.DeltaElement) -> Bool {
+            switch (lhs, rhs) {
+            case let (.copy(a, b), .copy(c, d)):
+                return a == c && b == d
+            case let (.insert(a), .insert(b)):
+                // Kind of a hack. The equatable conformance is just for testing.
+                return a === b
+            default:
+                return false
+            }
+        }
+
+        var isCopy: Bool {
+            switch self {
+            case .copy(_, _): return true
+            case .insert(_):  return false
+            }
+        }
+
+        var isInsert: Bool {
+            switch self {
+            case .copy(_, _): return false
+            case .insert(_):  return true
+            }
+        }
     }
 
     // An ordered list of changes to to a tree. Deletes of a given range
     // are represented by the absence of a copy over that range.
     struct Delta {
         var elements: [DeltaElement]
-        var baseCount: Int // the count of the associated BTree
+        var baseCount: Int // the count of the associated BTree before applying the delta.
 
         // Returns a range covering the entire changed portion of the
         // original tree and the length of the newly inserted tree.
@@ -1249,7 +1283,7 @@ extension BTree {
 
         mutating func delete(_ range: Range<Int>) {
             precondition(range.lowerBound >= lastOffset, "ranges must be sorted")
-            if range.lowerBound > lastOffset {
+            if lastOffset < range.lowerBound {
                 delta.elements.append(.copy(lastOffset, range.lowerBound))
             }
             lastOffset = range.upperBound

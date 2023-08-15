@@ -12,6 +12,9 @@ struct Span<T> {
     var data: T
 }
 
+extension Span: Equatable where T: Equatable {
+}
+
 struct SpansLeaf<T>: BTreeLeaf {
     static var minSize: Int { 32 }
     static var maxSize: Int { 64 }
@@ -285,7 +288,7 @@ struct SpansBuilder<T> {
     }
 
     mutating func add(_ data: T, covering range: Range<Int>) {
-        assert(range.lowerBound >= count + (leaf.spans.last?.range.upperBound ?? 0))
+        precondition(range.lowerBound >= count + (leaf.spans.last?.range.upperBound ?? 0))
 
         if leaf.spans.count == SpansLeaf<T>.maxSize {
             leaf.count = range.lowerBound - count
