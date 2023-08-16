@@ -1489,6 +1489,182 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
+    func testInvalidateReplaceShrinkBeginningAndEndOfTreeAcrossLeaves() {
+        var cache = makeContiguousCache(upperBound: 660, stride: 10)
+
+        XCTAssertEqual(66, cache.count)
+        XCTAssertEqual(660, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let a = Rope("a")
+        b.replace(0..<2, with: a)
+        b.replace(658..<660, with: a)
+        let delta = b.build()
+
+        XCTAssertEqual(3, delta.elements.count)
+        XCTAssertEqual(.insert(a.root), delta.elements[0])
+        XCTAssertEqual(.copy(2, 658), delta.elements[1])
+        XCTAssertEqual(.insert(a.root), delta.elements[2])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(64, cache.count)
+        XCTAssertEqual(658, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(329, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(329, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 9..<19, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 19..<29, data: 2), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 299..<309, data: 30), iter.next())
+        XCTAssertEqual(Span(range: 309..<319, data: 31), iter.next())
+        // next leaf
+        XCTAssertEqual(Span(range: 329..<339, data: 33), iter.next())
+        XCTAssertEqual(Span(range: 339..<349, data: 34), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 639..<649, data: 63), iter.next())
+        XCTAssertEqual(Span(range: 649..<659, data: 64), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateReplaceSameLengthBeginningAndEndOfTreeAcrossLeaves() {
+        var cache = makeContiguousCache(upperBound: 660, stride: 10)
+
+        XCTAssertEqual(66, cache.count)
+        XCTAssertEqual(660, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let ab = Rope("ab")
+        b.replace(0..<2, with: ab)
+        b.replace(658..<660, with: ab)
+        let delta = b.build()
+
+        XCTAssertEqual(3, delta.elements.count)
+        XCTAssertEqual(.insert(ab.root), delta.elements[0])
+        XCTAssertEqual(.copy(2, 658), delta.elements[1])
+        XCTAssertEqual(.insert(ab.root), delta.elements[2])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(64, cache.count)
+        XCTAssertEqual(660, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 10..<20, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 20..<30, data: 2), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 300..<310, data: 30), iter.next())
+        XCTAssertEqual(Span(range: 310..<320, data: 31), iter.next())
+        // next leaf
+        XCTAssertEqual(Span(range: 330..<340, data: 33), iter.next())
+        XCTAssertEqual(Span(range: 340..<350, data: 34), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 630..<640, data: 63), iter.next())
+        XCTAssertEqual(Span(range: 640..<650, data: 64), iter.next())
+    }
+
+    func testInvalidateReplaceGrowBeginningAndEndOfTreeAcrossLeaves() {
+        var cache = makeContiguousCache(upperBound: 660, stride: 10)
+
+        XCTAssertEqual(66, cache.count)
+        XCTAssertEqual(660, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(330, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(33, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let abc = Rope("abc")
+        b.replace(0..<2, with: abc)
+        b.replace(658..<660, with: abc)
+        let delta = b.build()
+
+        XCTAssertEqual(3, delta.elements.count)
+        XCTAssertEqual(.insert(abc.root), delta.elements[0])
+        XCTAssertEqual(.copy(2, 658), delta.elements[1])
+        XCTAssertEqual(.insert(abc.root), delta.elements[2])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(64, cache.count)
+        XCTAssertEqual(662, cache.upperBound)
+
+        XCTAssertEqual(1, cache.spans.t.root.height)
+        XCTAssertEqual(2, cache.spans.t.root.children.count)
+        XCTAssertEqual(331, cache.spans.t.root.children[0].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[0].leaf.spans.count)
+        XCTAssertEqual(331, cache.spans.t.root.children[1].leaf.count)
+        XCTAssertEqual(32, cache.spans.t.root.children[1].leaf.spans.count)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 11..<21, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 21..<31, data: 2), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 301..<311, data: 30), iter.next())
+        XCTAssertEqual(Span(range: 311..<321, data: 31), iter.next())
+        // next leaf
+        XCTAssertEqual(Span(range: 331..<341, data: 33), iter.next())
+        XCTAssertEqual(Span(range: 341..<351, data: 34), iter.next())
+
+        for _ in 0..<28 {
+            _ = iter.next()
+        }
+
+        XCTAssertEqual(Span(range: 631..<641, data: 63), iter.next())
+        XCTAssertEqual(Span(range: 641..<651, data: 64), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
     func makeContiguousCache(upperBound: Int, stride: Int, includeEmptyLine: Bool = false) -> IntervalCache<Int> {
         precondition(upperBound % stride == 0)
 
