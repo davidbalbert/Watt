@@ -39,7 +39,24 @@ struct IntervalCache<T> {
             return nil
         }
 
-        return leaf.spans.first(where: { $0.range.contains(offset) })?.data
+        return leaf.spans.first(where: { $0.range.contains(offset) || $0.range.isEmpty && $0.range.lowerBound == position })?.data
+    }
+
+    func range(forSpanContaining position: Int) -> Range<Int>? {
+        precondition(position >= 0 && position <= spans.count)
+
+        let i = BTree.Index(offsetBy: position, in: spans.t)
+        guard let (leaf, offset) = i.read() else {
+            return nil
+        }
+
+        let range = leaf.spans.first(where: { $0.range.contains(offset) || $0.range.isEmpty && $0.range.lowerBound == position })?.range
+
+        guard let range else {
+            return nil
+        }
+
+        return (i.offsetOfLeaf + range.lowerBound)..<(i.offsetOfLeaf + range.upperBound)
     }
 
     // Returns a cache of the same size, but only with the spans that
@@ -89,122 +106,75 @@ struct IntervalCache<T> {
     }
 
     mutating func invalidate<Summary>(delta: BTree<Summary>.Delta) where Summary: BTreeSummary {
-        // How to invalidate using a Delta:
-        // Create a new SpanBuilder. At this point, we already have to know the size of the new
-        // tree (the one created by applying delta to the current tree), so this description may
-        // be a bit out of order.
-        //
-        // Loop over each DeltaElement. Spaces between a space between two copies is a deletion.
-        // We need to take each deletion range, expand it so that its lower and upper bounds
-        // don't fall inside a span, and then insert an empty span at that range. We're going to
-        // have an index i, that starts at 0, and we'll advance as we go.
-        //
-        // There's nuance to the size of the empty span that we insert. If the deletion range was
-        // 1, but it's inside of a span of length 10, the expanded range will be of length 10. But
-        // we don't insert an empty span of length 10. Instead we insert an empty span of length 9.
-        // This simultaneously invalidates the entire line that was there before, and also takes
-        // the deletion into account.
-        //
-        // But! When we advance i, we have to advance it by 10, not 9, because i is an index into
-        // the original span.
-        //
-        // Insertions are a bit easier. We just insert an append an empty span of the appropriate
-        // length, and don't increment i at all.
-
         precondition(delta.baseCount == upperBound)
 
         var b = BTree<SpansSummary<T>>.Builder()
 
-        var newCount = 0
-        for i in 0..<delta.elements.count {
-            let el = delta.elements[i]
+        var prev: BTree<Summary>.DeltaElement? = nil
+        var lastCopyEndedOnRangeBoundary = true
 
+        for (i, el) in delta.elements.enumerated() {
             switch el {
             case let .copy(start, end):
-                assert(end > start)
-
-                let firstLine = nonOverlappingRange(expanding: start..<start)
-                // -1 because we end is exclusive, and if we're at a boundary between
+                // -1 because end is exclusive, and if we're at a boundary between
                 // spans, we'd like to get the span where end is still exclusive – i.e.
                 // where end is at the end of the span, rather than the start.
-                let lastLine = nonOverlappingRange(expanding: (end-1)..<(end-1))
+                let firstRange = range(forSpanContaining: start)
+                let lastRange = range(forSpanContaining: end-1)
 
-                let aheadBy = max(0, newCount - firstLine.lowerBound)
+                let startsOnBoundary = firstRange?.lowerBound == start
+                let endsOnBoundary = lastRange?.upperBound == end
 
-                // Add a blank span for the portion of start..<end that falls before
-                // the first full line.
-                if firstLine.lowerBound < aheadBy + start {
-                    let count = firstLine.upperBound - start
-                    var blank = SpansBuilder<T>(totalCount: count).build()
-                    b.push(&blank.t.root)
-                    newCount += count
-                }
+                let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
 
-                let prevEl = i == 0 ? nil : delta.elements[i-1]
-                let nextEl = i == delta.elements.count-1 ? nil : delta.elements[i+1]
+                let insertedIntoThisLine = prev != nil && prev!.isInsert && startsOnBoundary && lastCopyEndedOnRangeBoundary
 
-                let insertedBefore = prevEl != nil && prevEl!.isInsert
-                let willInsertAfter = nextEl != nil && nextEl!.isInsert
+                let willInsert = next != nil && next!.isInsert
+                let atEndOfCache = end == upperBound
 
-                // Copy any full lines covered by start..<end
-                let fullLinesStart = firstLine.lowerBound == aheadBy + start && !insertedBefore ? start : firstLine.upperBound
-
-                let fullLinesEnd: Int
-                if end == upperBound && willInsertAfter {
-                    // We're inserting at the very end of the cache.
-                    // Invalidate the last range of the copy.
-                    fullLinesEnd = lastLine.lowerBound
-                } else if end == lastLine.upperBound {
-                    // The copy lines up with the end of a range
-                    // or the copy is outside of a range. Don't
-                    // invalidate anything.
-                    fullLinesEnd = lastLine.upperBound
+                let prefix: Int
+                if (startsOnBoundary && !insertedIntoThisLine) || firstRange == nil {
+                    prefix = 0
                 } else {
-                    // The copy ends inside a range. Invalidate the
-                    // last range of the copy.
-                    fullLinesEnd = lastLine.lowerBound
+                    prefix = firstRange!.upperBound - start
                 }
 
-                var r = spans.t.root
-                if fullLinesStart < fullLinesEnd {
-                    b.push(&r, slicedBy: fullLinesStart..<fullLinesEnd)
-                    newCount += fullLinesEnd - fullLinesStart
+                let suffix: Int
+                if (endsOnBoundary && !(willInsert && atEndOfCache)) || lastRange == nil {
+                    suffix = 0
+                } else {
+                    suffix = end - lastRange!.lowerBound
                 }
 
-                // Add a blank span for the portion of start..<end that falls after
-                // the last full line.
-                if fullLinesEnd < aheadBy + end {
-                    let count = end - fullLinesEnd
-                    var blank = SpansBuilder<T>(totalCount: count).build()
+                // firstRange and lastRange are always present when prefix and suffix are > 0 (respectively).
+                let copyStart = prefix == 0 ? start : firstRange!.upperBound
+                let copyEnd = suffix == 0 ? end : lastRange!.lowerBound
+
+                if prefix > 0 {
+                    var blank = SpansBuilder<T>(totalCount: prefix).build()
                     b.push(&blank.t.root)
-                    newCount += count
                 }
+
+                if copyStart < copyEnd {
+                    var r = spans.t.root
+                    b.push(&r, slicedBy: copyStart..<copyEnd)
+                }
+
+                if suffix > 0 {
+                    var blank = SpansBuilder<T>(totalCount: suffix).build()
+                    b.push(&blank.t.root)
+                }
+
+                lastCopyEndedOnRangeBoundary = endsOnBoundary
             case let .insert(node):
                 var s = SpansBuilder<T>(totalCount: node.count).build()
                 b.push(&s.t.root)
-                newCount += node.count
             }
+
+            prev = el
         }
 
         spans = Spans(BTree(b.build()))
-    }
-
-    // Expands range until its lower and upper bounds no longer
-    // fall inside a span. N.b. if either of range's bounds are
-    // between spans, they won't be modified.
-    func nonOverlappingRange(expanding range: Range<Int>) -> Range<Int> {
-        precondition(range.lowerBound >= 0 && range.upperBound <= spans.count)
-
-        let i = BTree.Index(offsetBy: range.lowerBound, in: spans.t)
-        let j = BTree.Index(offsetBy: range.upperBound, in: spans.t)
-
-        let (startLeaf, startOffset) = i.read()!
-        let (endLeaf, endOffset) = j.read()!
-
-        let start = startLeaf.spans.first(where: { $0.range.contains(startOffset) })?.range.lowerBound ?? range.lowerBound - i.offsetOfLeaf
-        let end = endLeaf.spans.first(where: { $0.range.contains(endOffset) })?.range.upperBound ?? range.upperBound - j.offsetOfLeaf
-
-        return (i.offsetOfLeaf + start)..<(j.offsetOfLeaf + end)
     }
 
     mutating func removeAll() {

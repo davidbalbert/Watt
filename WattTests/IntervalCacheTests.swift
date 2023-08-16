@@ -284,7 +284,6 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-
     func testInvalidateDeltaInsertBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
@@ -377,8 +376,6 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(Span(range: 93..<103, data: 9), iter.next())
     }
 
-    // We don't have a way to detect whether there's an empty line
-    // 
     func testInvalidateDeltaInsertEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
@@ -393,6 +390,41 @@ final class IntervalCacheTests: XCTestCase {
 
         cache.invalidate(delta: delta)
 
+        XCTAssertEqual(9, cache.count)
+        XCTAssertEqual(103, cache.upperBound)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 0..<10, data: 0), iter.next())
+        XCTAssertEqual(Span(range: 10..<20, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 20..<30, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 30..<40, data: 3), iter.next())
+        XCTAssertEqual(Span(range: 40..<50, data: 4), iter.next())
+        XCTAssertEqual(Span(range: 50..<60, data: 5), iter.next())
+        XCTAssertEqual(Span(range: 60..<70, data: 6), iter.next())
+        XCTAssertEqual(Span(range: 70..<80, data: 7), iter.next())
+        XCTAssertEqual(Span(range: 80..<90, data: 8), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateDeltaInsertEndOfTreeWithTrailingBlankRange() {
+        var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
+
+        XCTAssertEqual(11, cache.count)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let abc = Rope("abc")
+        b.replace(100..<100, with: abc)
+        let delta = b.build()
+
+        XCTAssertEqual(2, delta.elements.count)
+        XCTAssertEqual(.copy(0, 100), delta.elements[0])
+        XCTAssertEqual(.insert(abc.root), delta.elements[1])
+
+        cache.invalidate(delta: delta)
+
+        // Even though the tree ends with a blank range, and in theory we only have to
+        // invalidate the last range, we invalidate the last two ranges because
+        // invalidating just the final one would be a pain.
         XCTAssertEqual(9, cache.count)
         XCTAssertEqual(103, cache.upperBound)
 
@@ -468,7 +500,96 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInvalidateDeltaReplace() {
+    func testInvalidateDeltaDeleteMultipleRanges() {
+        var cache = makeContiguousCache(upperBound: 100, stride: 10)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        b.delete(0..<8)
+        b.delete(23..<35)
+        b.delete(62..<78)
+        b.delete(92..<99)
+        let delta = b.build()
+
+        XCTAssertEqual(4, delta.elements.count)
+        XCTAssertEqual(.copy(8, 23), delta.elements[0])
+        XCTAssertEqual(.copy(35, 62), delta.elements[1])
+        XCTAssertEqual(.copy(78, 92), delta.elements[2])
+        XCTAssertEqual(.copy(99, 100), delta.elements[3])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(4, cache.count)
+        XCTAssertEqual(57, cache.upperBound)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 2..<12, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 20..<30, data: 4), iter.next())
+        XCTAssertEqual(Span(range: 30..<40, data: 5), iter.next())
+        XCTAssertEqual(Span(range: 44..<54, data: 8), iter.next())
+    }
+
+    func testInvalidateDeltaReplaceBeginningOfTree() {
+        var cache = makeContiguousCache(upperBound: 100, stride: 10)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let abc = Rope("abc")
+        b.replace(0..<2, with: abc)
+        let delta = b.build()
+
+        XCTAssertEqual(2, delta.elements.count)
+        XCTAssertEqual(.insert(abc.root), delta.elements[0])
+        XCTAssertEqual(.copy(2, 100), delta.elements[1])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(9, cache.count)
+        XCTAssertEqual(101, cache.upperBound)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 11..<21, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 21..<31, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 31..<41, data: 3), iter.next())
+        XCTAssertEqual(Span(range: 41..<51, data: 4), iter.next())
+        XCTAssertEqual(Span(range: 51..<61, data: 5), iter.next())
+        XCTAssertEqual(Span(range: 61..<71, data: 6), iter.next())
+        XCTAssertEqual(Span(range: 71..<81, data: 7), iter.next())
+        XCTAssertEqual(Span(range: 81..<91, data: 8), iter.next())
+        XCTAssertEqual(Span(range: 91..<101, data: 9), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateDeltaReplaceBeginningOfSpan() {
+        var cache = makeContiguousCache(upperBound: 100, stride: 10)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let abc = Rope("abc")
+        b.replace(10..<12, with: abc)
+        let delta = b.build()
+
+        XCTAssertEqual(3, delta.elements.count)
+        XCTAssertEqual(.copy(0, 10), delta.elements[0])
+        XCTAssertEqual(.insert(abc.root), delta.elements[1])
+        XCTAssertEqual(.copy(12, 100), delta.elements[2])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(9, cache.count)
+        XCTAssertEqual(101, cache.upperBound)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 0..<10, data: 0), iter.next())
+        XCTAssertEqual(Span(range: 21..<31, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 31..<41, data: 3), iter.next())
+        XCTAssertEqual(Span(range: 41..<51, data: 4), iter.next())
+        XCTAssertEqual(Span(range: 51..<61, data: 5), iter.next())
+        XCTAssertEqual(Span(range: 61..<71, data: 6), iter.next())
+        XCTAssertEqual(Span(range: 71..<81, data: 7), iter.next())
+        XCTAssertEqual(Span(range: 81..<91, data: 8), iter.next())
+        XCTAssertEqual(Span(range: 91..<101, data: 9), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateDeltaReplaceMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
         var b = Rope.DeltaBuilder(cache.upperBound)
@@ -480,6 +601,37 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(.copy(0, 15), delta.elements[0])
         XCTAssertEqual(.insert(abc.root), delta.elements[1])
         XCTAssertEqual(.copy(17, 100), delta.elements[2])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(9, cache.count)
+        XCTAssertEqual(101, cache.upperBound)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 0..<10, data: 0), iter.next())
+        XCTAssertEqual(Span(range: 21..<31, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 31..<41, data: 3), iter.next())
+        XCTAssertEqual(Span(range: 41..<51, data: 4), iter.next())
+        XCTAssertEqual(Span(range: 51..<61, data: 5), iter.next())
+        XCTAssertEqual(Span(range: 61..<71, data: 6), iter.next())
+        XCTAssertEqual(Span(range: 71..<81, data: 7), iter.next())
+        XCTAssertEqual(Span(range: 81..<91, data: 8), iter.next())
+        XCTAssertEqual(Span(range: 91..<101, data: 9), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateDeltaReplaceEndOfSpan() {
+        var cache = makeContiguousCache(upperBound: 100, stride: 10)
+
+        var b = Rope.DeltaBuilder(cache.upperBound)
+        let abc = Rope("abc")
+        b.replace(18..<20, with: abc)
+        let delta = b.build()
+
+        XCTAssertEqual(3, delta.elements.count)
+        XCTAssertEqual(.copy(0, 18), delta.elements[0])
+        XCTAssertEqual(.insert(abc.root), delta.elements[1])
+        XCTAssertEqual(.copy(20, 100), delta.elements[2])
 
         cache.invalidate(delta: delta)
 
