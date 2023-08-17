@@ -167,10 +167,13 @@ extension TextView: LayoutManagerDelegate {
         return bounds
     }
 
-    func setNeedsLayout(for layoutManager: LayoutManager) {
+    func didInvalidateLayout(for layoutManager: LayoutManager) {
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
+
+        updateInsertionPointTimer()
+        inputContext?.invalidateCharacterCoordinates()
     }
 
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {

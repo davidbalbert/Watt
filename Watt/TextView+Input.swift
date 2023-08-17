@@ -17,12 +17,10 @@ extension TextView: NSTextInputClient {
 
         buffer.replaceSubrange(range, with: string)
 
-        updateInsertionPointTimer()
+        print("insertText - ", terminator: "")
         unmarkText()
-        inputContext?.invalidateCharacterCoordinates()
     }
 
-    // TODO: when re-enabling marked text, make sure to look at insertNewline(_:) and see if there's anything we have to change.
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         let string = attributedString(anyString: string, attributes: markedTextAttributes)
 
@@ -30,33 +28,31 @@ extension TextView: NSTextInputClient {
             return
         }
 
-//        buffer.performEditingTransaction {
-//            buffer.replaceCharacters(in: range, with: string)
-//        }
-//
-//        let anchor = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location + selectedRange.location)
-//        let head = buffer.index(anchor, offsetBy: selectedRange.length)
-//        layoutManager.selection = Selection(head: head, anchor: anchor)
-//
-//        if string.length == 0 {
-//            unmarkText()
-//        } else {
-//            let start = buffer.index(buffer.documentRange.lowerBound, offsetBy: range.location)
-//            let end = buffer.index(start, offsetBy: string.length)
-//            layoutManager.selection.markedRange = start..<end
-//        }
+        buffer.replaceSubrange(range, with: string)
 
-        updateInsertionPointTimer()
-        inputContext?.invalidateCharacterCoordinates()
+        let start = buffer.index(fromOldIndex: range.lowerBound)
+        let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
+        let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
+        var selection = Selection(head: head, anchor: anchor)
+
+        if string.length == 0 {
+            print("setMarkedText - ", terminator: "")
+            unmarkText()
+        } else {
+            let end = buffer.utf16.index(start, offsetBy: string.length)
+            selection.markedRange = start..<end
+        }
+
+        layoutManager.selection = selection
     }
 
     func unmarkText() {
+        print("unmarkText")
         layoutManager.selection?.markedRange = nil
 
+        // TODO: if we're the only one who calls unmarkText(), we can remove
+        // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
         textLayer.setNeedsLayout()
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()

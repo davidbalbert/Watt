@@ -12,7 +12,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    func setNeedsLayout(for layoutManager: LayoutManager)
+    func didInvalidateLayout(for layoutManager: LayoutManager)
 
     func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 }
@@ -557,7 +557,7 @@ class LayoutManager {
 
         lineCache.invalidate(delta: delta)
 
-        delegate?.setNeedsLayout(for: self)
+        delegate?.didInvalidateLayout(for: self)
     }
 
     // MARK: - Converting coordinates

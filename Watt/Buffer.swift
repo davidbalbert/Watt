@@ -70,6 +70,10 @@ class Buffer {
         contents.index(startIndex, offsetBy: offset)
     }
 
+    func index(fromOldIndex oldIndex: Index) -> Index {
+        contents.utf8.index(at: oldIndex.position)
+    }
+
     func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
         NSAttributedString(string: String(contents[range]))
     }
