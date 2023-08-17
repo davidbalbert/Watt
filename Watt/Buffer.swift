@@ -92,7 +92,7 @@ class Buffer {
         let rope = Rope(attrString.string)
         let range = subrange.lowerBound.position..<subrange.upperBound.position
 
-        var b = Rope.DeltaBuilder(contents.count)
+        var b = Rope.DeltaBuilder(contents.utf8.count)
         b.replace(range, with: rope)
         let delta = b.build()
 
