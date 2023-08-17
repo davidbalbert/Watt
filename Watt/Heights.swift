@@ -389,7 +389,7 @@ extension Heights {
         var lineCount = 0
 
         let endIndex = rope.endIndex
-        let last = rope.isEmpty ? rope.startIndex : rope.index(before: endIndex)
+        let last = rope.isEmpty ? rope.startIndex : rope.utf8.index(before: endIndex)
 
         while i < endIndex {
             let c = rope.utf8[i]
@@ -424,7 +424,7 @@ extension Heights {
                 lineLength += 1
             }
 
-            i = rope.index(after: i)
+            i = rope.utf8.index(after: i)
         }
 
         var b = Heights.Builder()

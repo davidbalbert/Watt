@@ -712,6 +712,19 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(42, h.contentHeight)
     }
 
+    func testInsertMultibyteCharacter() {
+        let r = Rope("foo\nbar\nbaz")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(11, h.root.count)
+        XCTAssertEqual(42, h.contentHeight)
+
+        h.replaceSubrange(0..<0, with: Rope("🙂"))
+
+        XCTAssertEqual(15, h.root.count)
+        XCTAssertEqual(42, h.contentHeight)
+    }
+
     func testReplaceRangeOneLine() {
         let r = Rope("foo bar baz")
         var h = Heights(rope: r)
