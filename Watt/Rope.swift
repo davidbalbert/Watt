@@ -780,6 +780,7 @@ extension Rope: BidirectionalCollection {
 }
 
 extension Rope: RangeReplaceableCollection {
+    // TODO: this should smartly handle the situation where newElements is a Rope. In that situation, instead of calling push(string:breaker:), we should just push newElements and resync breaks afterwards.
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
         subrange.lowerBound.validate(for: root)
         subrange.upperBound.validate(for: root)
