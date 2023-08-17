@@ -21,6 +21,13 @@ extension TextView: NSTextInputClient {
         unmarkText()
     }
 
+    override func doCommand(by selector: Selector) {
+        print("doCommand(by: #selector(\(selector)))")
+        if responds(to: selector) {
+            perform(selector, with: nil)
+        }
+    }
+
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         let string = attributedString(anyString: string, attributes: markedTextAttributes)
 
@@ -88,12 +95,14 @@ extension TextView: NSTextInputClient {
         }
 
         let documentRange = buffer.documentRange
-
         if !range.overlaps(documentRange) {
             return nil
         }
 
-        return buffer.attributedSubstring(for: range.clamped(to: documentRange))
+        let clamped = range.clamped(to: documentRange)
+        actualRange?.pointee = NSRange(clamped, in: buffer)
+
+        return buffer.attributedSubstring(for: clamped)
     }
 
     func validAttributesForMarkedText() -> [NSAttributedString.Key] {
@@ -111,10 +120,7 @@ extension TextView: NSTextInputClient {
         var rect: CGRect = .zero
         layoutManager.enumerateTextSegments(in: range) { segmentRange, frame in
             rect = frame
-
-            if let actualRange {
-                actualRange.pointee = NSRange(segmentRange, in: buffer)
-            }
+            actualRange?.pointee = NSRange(segmentRange, in: buffer)
 
             return false
         }
@@ -140,13 +146,6 @@ extension TextView: NSTextInputClient {
         }
 
         return buffer.utf16.distance(from: buffer.documentRange.lowerBound, to: characterIndex)
-    }
-
-    override func doCommand(by selector: Selector) {
-        print("doCommand(by: #selector(\(selector)))")
-        if responds(to: selector) {
-            perform(selector, with: nil)
-        }
     }
 }
 
