@@ -13,17 +13,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
 
-    // TODO: deal with changes in the number of lines:
-    // 1. Add a currentLineCount property
-    // 2. Subscribe to changes in buffer's text. Any time the text changes,
-    //    compare buffer.lines.count to currentLineCount and call invalidateIntrinsicContentSize
-    //    if we need to add or remove a digit.
     var buffer: Buffer {
-        willSet {
-            // TODO: unsubscribe from buffer
-        }
         didSet {
-            // TODO: subscribe to buffer
             invalidateIntrinsicContentSize()
         }
     }
@@ -60,11 +51,9 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     }
 
     override var intrinsicContentSize: NSSize {
-        // TODO: ensure that this only gets called after intrinsicContentSize is invalidated
-
         // max(100, ...) -> minimum 3 digits worth of space
         let lineCount = max(100, buffer.lines.count)
-        let maxDigits = floor(log10(CGFloat(lineCount))) + 1
+        let maxDigits = floor(log10(Double(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)
         var glyphs: [CGGlyph] = Array(repeating: 0, count: characters.count)
@@ -131,6 +120,12 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
 
     func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager) {
         // no-op
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int) {
+        if log10(Double(old)) != log10(Double(new)) {
+            invalidateIntrinsicContentSize()
+        }
     }
 
     func makeLayer(for lineNumber: Int) -> CALayer {

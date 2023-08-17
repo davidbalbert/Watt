@@ -45,6 +45,7 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)
+            lineNumberView.buffer = buffer
 
             selectionLayer.setNeedsLayout()
             textLayer.setNeedsLayout()

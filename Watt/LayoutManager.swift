@@ -22,6 +22,7 @@ protocol LayoutManagerLineNumberDelegate: AnyObject {
     func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
     func layoutManager(_ layoutManager: LayoutManager, addLineNumber lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat)
     func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager)
+    func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int)
 }
 
 class LayoutManager {
@@ -630,6 +631,10 @@ class LayoutManager {
         lineCache.invalidate(delta: delta)
 
         delegate?.didInvalidateLayout(for: self)
+
+        if old.lines.count != new.lines.count {
+            lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
+        }
     }
 
     // MARK: - Converting coordinates
