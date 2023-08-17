@@ -104,27 +104,26 @@ extension TextView: NSTextInputClient {
     }
 
     func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect {
-//        guard let range = buffer.range(from: range) else {
-//            return .zero
-//        }
-//
-//        var rect: CGRect = .zero
-//        layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
-//            rect = frame
-//
-//            if let actualRange {
-//                actualRange.pointee = buffer.nsRange(from: segmentRange)
-//            }
-//
-//            return false
-//        }
-//
-//        let viewRect = convertFromTextContainer(rect)
-//        let windowRect = convert(viewRect, to: nil)
-//        let screenRect = window?.convertToScreen(windowRect) ?? .zero
-//
-//        return screenRect
-        .zero
+        guard let range = Range(range, in: buffer) else {
+            return .zero
+        }
+
+        var rect: CGRect = .zero
+        layoutManager.enumerateTextSegments(in: range) { segmentRange, frame in
+            rect = frame
+
+            if let actualRange {
+                actualRange.pointee = NSRange(segmentRange, in: buffer)
+            }
+
+            return false
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        let windowRect = convert(viewRect, to: nil)
+        let screenRect = window?.convertToScreen(windowRect) ?? .zero
+
+        return screenRect
     }
 
     func characterIndex(for screenPoint: NSPoint) -> Int {

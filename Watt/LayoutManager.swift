@@ -172,18 +172,18 @@ class LayoutManager {
             for f in line.lineFragments {
                 let nextFrag = buffer.utf16.index(thisFrag, offsetBy: f.utf16Count)
 
-                let fragRange = thisFrag..<nextFrag
+                let rangeOfFrag = thisFrag..<nextFrag
 
                 // I think the only possible empty lineFragment would be the
                 // last line of a document if it's empty. I don't know if we
                 // represent those yet, but let's ignore them for now.
-                guard !fragRange.isEmpty else {
+                guard !rangeOfFrag.isEmpty else {
                     return
                 }
 
-                let rangeInFrag = rangeInViewport.clamped(to: fragRange)
+                let rangeInFrag = rangeInViewport.clamped(to: rangeOfFrag)
 
-                if rangeInFrag.isEmpty && !fragRange.contains(rangeInFrag.lowerBound) {
+                if rangeInFrag.isEmpty && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
                     thisFrag = nextFrag
                     continue
                 }
@@ -191,9 +191,9 @@ class LayoutManager {
                 let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
                 let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
 
-                let last = buffer.index(before: fragRange.upperBound)
+                let last = buffer.index(before: rangeOfFrag.upperBound)
                 let c = buffer[last]
-                let shouldExtendSelection = (rangeInViewport.upperBound == fragRange.upperBound && c == "\n") || rangeInViewport.upperBound > fragRange.upperBound
+                let shouldExtendSelection = (rangeInViewport.upperBound == rangeOfFrag.upperBound && c == "\n") || rangeInViewport.upperBound > rangeOfFrag.upperBound
 
                 let xEnd: CGFloat
                 if shouldExtendSelection {
@@ -214,7 +214,7 @@ class LayoutManager {
 
                 block(convert(rect, from: line))
 
-                if rangeInViewport.upperBound <= fragRange.upperBound {
+                if rangeInViewport.upperBound <= rangeOfFrag.upperBound {
                     break
                 }
 
@@ -336,6 +336,78 @@ class LayoutManager {
         }
 
         block(rect)
+    }
+
+    // TODO: this is very similar to layoutSelections(using:). If we extended this to have an option to
+    // work with selections (i.e. extending the rect to the end of the line when necessary,) we can rewrite
+    // most of the body of layoutSelections(using:) in terms of enumerateTextSegments.
+    func enumerateTextSegments(in range: Range<Buffer.Index>, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
+        guard let buffer else {
+            return
+        }
+
+        var i = buffer.lines.index(roundingDown: range.lowerBound)
+        var y = heights.yOffset(upThroughPosition: i.position)
+
+        // TODO: layoutSelections(using:) has this as i < range.upperBound. That's because it
+        // doesn't have to deal with empty ranges. When we make layoutSelections(using:) depend
+        // on enumerateTextSegments, we need to make sure this logic works.
+        while i <= range.upperBound {
+            if !range.isEmpty && i == range.upperBound {
+                return
+            }
+
+            let next = buffer.lines.index(after: i)
+            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            y += line.typographicBounds.height
+
+            var thisFrag = i
+            for f in line.lineFragments {
+                let nextFrag = buffer.utf16.index(thisFrag, offsetBy: f.utf16Count)
+                
+                let rangeOfFrag = thisFrag..<nextFrag
+
+                // I think the only possible empty lineFragment would be the
+                // last line of a document if it's empty. I don't know if we
+                // represent those yet, but let's ignore them for now.
+                if rangeOfFrag.isEmpty {
+                    return
+                }
+
+                let rangeInFrag = range.clamped(to: rangeOfFrag)
+
+                if rangeInFrag.isEmpty && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
+                    thisFrag = nextFrag
+                    continue
+                }
+
+                let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
+                let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
+
+                let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
+                let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
+                let x1 = textContainer.lineWidth
+                let xEnd = min(x0, x1)
+
+                let bounds = f.typographicBounds
+                let origin = f.origin
+                let padding = textContainer.lineFragmentPadding
+
+                // selection rect in line coordinates
+                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
+                if !block(rangeInFrag, convert(rect, from: line)) {
+                    return
+                }
+
+                if range.upperBound < rangeOfFrag.lowerBound {
+                    return
+                }
+
+                thisFrag = nextFrag
+            }
+
+            i = next
+        }
     }
 
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
