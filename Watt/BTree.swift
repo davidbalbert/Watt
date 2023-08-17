@@ -1212,13 +1212,6 @@ extension BTree {
             }
         }
 
-        var isCopy: Bool {
-            switch self {
-            case .copy(_, _): return true
-            case .insert(_):  return false
-            }
-        }
-
         var isInsert: Bool {
             switch self {
             case .copy(_, _): return false
