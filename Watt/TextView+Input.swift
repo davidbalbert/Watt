@@ -127,20 +127,19 @@ extension TextView: NSTextInputClient {
     }
 
     func characterIndex(for screenPoint: NSPoint) -> Int {
-//        guard let window else {
-//            return NSNotFound
-//        }
-//
-//        let windowPoint = window.convertPoint(fromScreen: screenPoint)
-//        let viewPoint = convert(windowPoint, from: nil)
-//        let textContainerPoint = convertToTextContainer(viewPoint)
-//
-//        guard let characterIndex = layoutManager.location(interactingAt: textContainerPoint) else {
-//            return NSNotFound
-//        }
-//
-//        return buffer.offset(from: buffer.documentRange.lowerBound, to: characterIndex)
-        .zero
+        guard let window else {
+            return NSNotFound
+        }
+
+        let windowPoint = window.convertPoint(fromScreen: screenPoint)
+        let viewPoint = convert(windowPoint, from: nil)
+        let textContainerPoint = convertToTextContainer(viewPoint)
+
+        guard let characterIndex = layoutManager.location(interactingAt: textContainerPoint) else {
+            return NSNotFound
+        }
+
+        return buffer.utf16.distance(from: buffer.documentRange.lowerBound, to: characterIndex)
     }
 
     override func doCommand(by selector: Selector) {
