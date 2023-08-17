@@ -31,7 +31,7 @@ class LayoutManager {
     weak var buffer: Buffer? {
         didSet {
             if let buffer {
-                selection = Selection(head: buffer.documentRange.lowerBound)
+                selection = Selection(head: buffer.startIndex)
                 heights = Heights(rope: buffer.contents)
                 lineCache = IntervalCache(upperBound: buffer.utf8.count)
             } else {

@@ -145,7 +145,7 @@ extension TextView: NSTextInputClient {
             return NSNotFound
         }
 
-        return buffer.utf16.distance(from: buffer.documentRange.lowerBound, to: characterIndex)
+        return buffer.utf16.distance(from: buffer.startIndex, to: characterIndex)
     }
 }
 

@@ -29,7 +29,7 @@ extension TextView {
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
-        layoutManager.selection = Selection(head: buffer.documentRange.upperBound, anchor: buffer.documentRange.lowerBound, affinity: .downstream)
+        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
