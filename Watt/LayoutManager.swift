@@ -287,7 +287,25 @@ class LayoutManager {
             }
 
             let offsetInLineFragment = offsetInLine - offsetOfLineFragment
+            let prev = i
             i = buffer.utf16.index(i, offsetBy: offsetInLineFragment - prevOffsetInLineFragment)
+
+            // CTLineEnumerateCaretOffsets calls block for trailing surrogates,
+            // which we want to ignore. Buffer.utf16.index(_:offsetBy:) will round
+            // to the nearest grapheme cluster boundary, so when prev == i, we're
+            // looking at a trailing surrogate. We need the prevOffset != offset
+            // check because block gets called twice for each offsetInLine
+            // once with leadingEdge true and the other time when it's false,
+            // and we want to process both of those as long as we're on a
+            // grapheme cluster boundary.
+            //
+            // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
+            // will no longer round down. Instead, we need to do
+            // i.isBoundary(in: .characters).
+            if prevOffsetInLineFragment != offsetInLineFragment && prev == i {
+                return
+            }
+
             prevOffsetInLineFragment = offsetInLineFragment
 
             // TODO: is it possible for i == buffer.endIndex?
@@ -335,7 +353,7 @@ class LayoutManager {
         }
 
         let offset = heights.position(upThroughYOffset: point.y)
-        let start = buffer.index(at: offset)
+        let start = buffer.utf8.index(at: offset)
 
         assert(start == buffer.lines.index(roundingDown: start))
 

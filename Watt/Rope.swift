@@ -1118,6 +1118,12 @@ extension Rope.UTF8View: BidirectionalCollection {
 
 // We don't have a full UTF-16 view because dealing with trailing surrogates
 // was a pain. If we need it, we'll add it.
+//
+// TODO: if we add a proper UTF-16 view, make sure to change the block passed
+// to CTLineEnumerateCaretOffsets in layoutInsertionPoints to remove the
+// prev == i check and replace it with i.isBoundary(in: .characters), as
+// buffer.utf16.index(_:offsetBy:) will no longer round down. If we don't
+// do this, our ability to click on a line fragment after an emoji will fail.
 extension Rope {
     var utf16: UTF16View {
         UTF16View(base: self)
