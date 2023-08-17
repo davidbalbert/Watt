@@ -1533,8 +1533,8 @@ final class IntervalCacheTests: XCTestCase {
             _ = iter.next()
         }
 
-        XCTAssertEqual(Span(range: 299..<309, data: 30), iter.next())
         XCTAssertEqual(Span(range: 309..<319, data: 31), iter.next())
+        XCTAssertEqual(Span(range: 319..<329, data: 32), iter.next())
         // next leaf
         XCTAssertEqual(Span(range: 329..<339, data: 33), iter.next())
         XCTAssertEqual(Span(range: 339..<349, data: 34), iter.next())
@@ -1543,8 +1543,8 @@ final class IntervalCacheTests: XCTestCase {
             _ = iter.next()
         }
 
-        XCTAssertEqual(Span(range: 639..<649, data: 63), iter.next())
-        XCTAssertEqual(Span(range: 649..<659, data: 64), iter.next())
+        XCTAssertEqual(Span(range: 629..<639, data: 63), iter.next())
+        XCTAssertEqual(Span(range: 639..<649, data: 64), iter.next())
         XCTAssertNil(iter.next())
     }
 
@@ -1592,8 +1592,8 @@ final class IntervalCacheTests: XCTestCase {
             _ = iter.next()
         }
 
-        XCTAssertEqual(Span(range: 300..<310, data: 30), iter.next())
         XCTAssertEqual(Span(range: 310..<320, data: 31), iter.next())
+        XCTAssertEqual(Span(range: 320..<330, data: 32), iter.next())
         // next leaf
         XCTAssertEqual(Span(range: 330..<340, data: 33), iter.next())
         XCTAssertEqual(Span(range: 340..<350, data: 34), iter.next())
@@ -1650,8 +1650,8 @@ final class IntervalCacheTests: XCTestCase {
             _ = iter.next()
         }
 
-        XCTAssertEqual(Span(range: 301..<311, data: 30), iter.next())
         XCTAssertEqual(Span(range: 311..<321, data: 31), iter.next())
+        XCTAssertEqual(Span(range: 321..<331, data: 32), iter.next())
         // next leaf
         XCTAssertEqual(Span(range: 331..<341, data: 33), iter.next())
         XCTAssertEqual(Span(range: 341..<351, data: 34), iter.next())
