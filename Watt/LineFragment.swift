@@ -33,4 +33,13 @@ struct LineFragment {
         CTLineDraw(ctLine, ctx)
         ctx.restoreGState()
     }
+
+    func characterIndex(for point: CGPoint) -> Int {
+        // empty last line
+        if utf16Count == 0 {
+            return 0
+        }
+
+        return CTLineGetStringIndexForPosition(ctLine, point)
+    }
 }

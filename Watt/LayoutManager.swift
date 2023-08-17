@@ -96,8 +96,16 @@ class LayoutManager {
 
         var scrollAdjustment: CGSize = .zero
 
-        while i < viewportRange.upperBound {
-            let next = buffer.lines.index(after: i)
+        let hasEmptyLastLine = viewportRange.upperBound == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n")
+
+        while i < viewportRange.upperBound || (hasEmptyLastLine && i == buffer.endIndex) {
+            let next: Buffer.Index
+            if hasEmptyLastLine && i == buffer.endIndex {
+                next = i
+            } else {
+                next = buffer.lines.index(after: i)
+            }
+
             let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             block(line)
@@ -129,6 +137,13 @@ class LayoutManager {
             
             if oldHeight != newHeight {
                 heights[hi] = newHeight
+            }
+
+            // We just finished processing the empty last line. If we
+            // don't break here, we'll have an infinite loop because
+            // i == next.
+            if hasEmptyLastLine && i == buffer.endIndex {
+                break
             }
 
             y += newHeight
@@ -310,7 +325,13 @@ class LayoutManager {
             prevOffsetInLineFragment = offsetInLineFragment
 
             // TODO: is it possible for i == buffer.endIndex?
-            let next = buffer.utf16.index(i, offsetBy: 1)
+            let next: Buffer.Index
+            if i == buffer.endIndex {
+                // empty last line
+                next = i
+            } else {
+                next = buffer.utf16.index(i, offsetBy: 1)
+            }
 
             let downstreamMatch = i == selection.lowerBound && leadingEdge && selection.affinity == .downstream
             let upstreamMatch = next == selection.lowerBound && !leadingEdge && selection.affinity == .upstream
@@ -428,6 +449,11 @@ class LayoutManager {
         let offset = heights.position(upThroughYOffset: point.y)
         let start = buffer.utf8.index(at: offset)
 
+        // the document ends with an empty last line.
+        if start == buffer.endIndex {
+            return (buffer.endIndex, .upstream)
+        }
+
         assert(start == buffer.lines.index(roundingDown: start))
 
         let end = buffer.lines.index(after: start)
@@ -458,7 +484,7 @@ class LayoutManager {
             y: pointInLineFragment.y
         )
 
-        let offsetInLine = CTLineGetStringIndexForPosition(lineFragment.ctLine, pointInCTLine)
+        let offsetInLine = lineFragment.characterIndex(for: pointInCTLine)
         if offsetInLine == kCFNotFound {
             return nil
         }
@@ -502,7 +528,7 @@ class LayoutManager {
 
     func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> Line {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
-        assert(range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
+        assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
         if var line = lineCache[range.lowerBound.position] {
             line.origin.y = point.y
@@ -519,8 +545,15 @@ class LayoutManager {
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
     // of the Line (e.g. see positionForCharacter(atUTF16Offset:in:)).
     func makeLine(from range: Range<Buffer.Index>, in buffer: Buffer, at point: CGPoint) -> Line {
+        let isEmptyLastLine = range.lowerBound == buffer.endIndex
+
         // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-        let attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
+        let attrStr: NSAttributedString
+        if isEmptyLastLine {
+            attrStr = NSAttributedString(string: "\n", attributes: [.font: (delegate as! TextView).font])
+        } else {
+            attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
+        }
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
         let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
@@ -536,14 +569,18 @@ class LayoutManager {
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let p = CGPoint(x: 0, y: height)
-            let (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
+            var (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine, in: textContainer)
+
+            if isEmptyLastLine {
+                typographicBounds.size.width = 0
+            }
 
             let lineFragment = LineFragment(
                 ctLine: ctLine,
                 glyphOrigin: glyphOrigin,
                 origin: p,
                 typographicBounds: typographicBounds,
-                utf16Count: next - i
+                utf16Count: isEmptyLastLine ? 0 : next - i
             )
             lineFragments.append(lineFragment)
 
@@ -611,7 +648,7 @@ class LayoutManager {
         }
 
         assert(start == buffer.lines.index(roundingDown: start))
-        assert(end == buffer.lines.index(roundingDown: end))
+        assert(end == buffer.endIndex || end == buffer.lines.index(roundingDown: end))
 
         return start..<end
     }

@@ -43,7 +43,6 @@ struct SpansLeaf<T>: BTreeLeaf {
     mutating func pushMaybeSplitting(other: SpansLeaf) -> SpansLeaf? {
         for span in other.spans {
             let range = span.range.offset(by: count)
-            assert(!range.isEmpty)
             spans.append(Span(range: range, data: span.data))
         }
         count += other.count
