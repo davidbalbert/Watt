@@ -882,4 +882,247 @@ final class HeightsTest: XCTestCase {
         XCTAssertEqual(64, ps.dropLast().last)
         XCTAssertEqual(65, ps.last)
     }
+
+    func testReplaceBeforeEmptyLastLine() {
+        let r = Rope("foo\nbar\nbaz\n")
+        var h = Heights(rope: r)
+
+        XCTAssertEqual(12, h.root.count)
+        XCTAssertEqual(56, h.contentHeight)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(4, ps.count)
+        XCTAssertEqual(4, ps[0])
+        XCTAssertEqual(8, ps[1])
+        XCTAssertEqual(12, ps[2])
+        XCTAssertEqual(12, ps[3])
+
+        h.replaceSubrange(11..<11, with: Rope("\n"))
+
+        XCTAssertEqual(13, h.root.count)
+        XCTAssertEqual(70, h.contentHeight)
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(5, ps.count)
+        XCTAssertEqual(4, ps[0])
+        XCTAssertEqual(8, ps[1])
+        XCTAssertEqual(12, ps[2])
+        XCTAssertEqual(13, ps[3])
+        XCTAssertEqual(13, ps[4])
+    }
+
+    func testInsertNewlineAfterBlankLine() {
+        let r = Rope("foo\n")
+        var h = Heights(rope: r)
+
+        h.replaceSubrange(4..<4, with: Rope("\n"))
+
+        // "foo\n\n"
+        XCTAssertEqual(h.root.leaf.positions, [4, 5, 5])
+    }
+
+    func testInsertNewlineBeforeBlankLine() {
+        let r = Rope("foo\n")
+        var h = Heights(rope: r)
+
+        h.replaceSubrange(3..<3, with: Rope("\n"))
+
+        // "foo\n\n"
+        XCTAssertEqual(h.root.leaf.positions, [4, 5, 5])
+    }
+
+    func testReplaceBeforeEmptyTwoLastLines() {
+        let r = Rope("foo\nbar\nbaz\n\n")
+        var h = Heights(rope: r)
+
+        var ps = h.root.leaf.positions
+        XCTAssertEqual(5, ps.count)
+        XCTAssertEqual(4, ps[0])
+        XCTAssertEqual(8, ps[1])
+        XCTAssertEqual(12, ps[2])
+        XCTAssertEqual(13, ps[3])
+        XCTAssertEqual(13, ps[4])
+
+        XCTAssertEqual(13, h.root.count)
+        XCTAssertEqual(70, h.contentHeight)
+
+        h.replaceSubrange(12..<12, with: Rope("\n"))
+
+        XCTAssertEqual(14, h.root.count)
+        XCTAssertEqual(84, h.contentHeight)
+
+        XCTAssertEqual(14, h.position(upThroughYOffset: 100))
+
+        ps = h.root.leaf.positions
+        XCTAssertEqual(6, ps.count)
+        XCTAssertEqual(4, ps[0])
+        XCTAssertEqual(8, ps[1])
+        XCTAssertEqual(12, ps[2])
+        XCTAssertEqual(13, ps[3])
+        XCTAssertEqual(14, ps[4])
+        XCTAssertEqual(14, ps[5])
+    }
+
+    // MARK: Index manipulation
+
+    func testIndexBefore() {
+        var h = Heights(rope: Rope("foo"))
+        var i = h.index(before: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(0, i.position)
+
+        h = Heights(rope: Rope("foo\n"))
+        i = h.index(before: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(0, i.position)
+
+        h = Heights(rope: Rope("foo\nbar"))
+        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(4, i.position)
+
+        h = Heights(rope: Rope("foo\nbar\n"))
+        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(8, i.position)
+
+        // TODO: test index(before:) startIndex
+    }
+
+    func testIndexAfter() {
+        var h = Heights(rope: Rope("foo"))
+        var i = h.startIndex
+        // can't use h.index(after:) because that would panic with "index out of bounds"
+        XCTAssertNil(i.next(using: .heightsBaseMetric))
+
+        h = Heights(rope: Rope("foo\n"))
+        i = h.index(after: h.startIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(4, i.position)
+
+        h = Heights(rope: Rope("foo\nbar"))
+        i = h.index(after: h.startIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(4, i.position)
+
+        h = Heights(rope: Rope("foo\nbar"))
+        i = h.index(at: 4)
+        XCTAssertNil(i.next(using: .heightsBaseMetric))
+
+        h = Heights(rope: Rope("foo\nbar\n"))
+        i = h.index(after: h.index(at: 4), using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(8, i.position)
+    }
+
+    func testRoundingDown() {
+        var h = Heights(rope: Rope("foo"))
+        var i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(0, i.position)
+
+        h = Heights(rope: Rope("foo\n"))
+        i =  h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(4, i.position)
+
+        h = Heights(rope: Rope("foo\nbar"))
+        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(4, i.position)
+
+        h = Heights(rope: Rope("foo\nbar\n"))
+        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        XCTAssertTrue(i.isValid)
+        XCTAssertEqual(8, i.position)
+    }
+
+    // MARK: - Slicing leaves
+
+    // "foo\nbar"
+    // [4, 7]
+
+    // slice(0..<7) => [4, 7]
+    // slice(1..<7) => [3, 6]
+    // slice(2..<7) => [2, 5]
+    // slice(3..<7) => [1, 4]
+    // slice(4..<7) => [3]
+    // slice(5..<7) => [2]
+    // slice(6..<7) => [1]
+    // slice(7..<7) => [0]
+
+    // slice(0..<7) => [4, 7]
+    // slice(0..<6) => [4, 6]
+    // slice(0..<5) => [4, 5]
+    // slice(0..<4) => [4, 4]
+    // slice(0..<3) => [3]
+    // slice(0..<2) => [2]
+    // slice(0..<1) => [1]
+    // slice(0..<0) => [0]
+
+    func testSliceLeafNoTrailingNewline() {
+        let l = HeightsLeaf(positions: [4, 7], heights: [14, 28])
+//        XCTAssertEqual(l[0..<7], l)
+        XCTAssertEqual(l[1..<7], HeightsLeaf(positions: [3, 6], heights: [14, 28]))
+        XCTAssertEqual(l[2..<7], HeightsLeaf(positions: [2, 5], heights: [14, 28]))
+        XCTAssertEqual(l[3..<7], HeightsLeaf(positions: [1, 4], heights: [14, 28]))
+        XCTAssertEqual(l[4..<7], HeightsLeaf(positions: [3], heights: [14]))
+        XCTAssertEqual(l[5..<7], HeightsLeaf(positions: [2], heights: [14]))
+        XCTAssertEqual(l[6..<7], HeightsLeaf(positions: [1], heights: [14]))
+        XCTAssertEqual(l[7..<7], HeightsLeaf(positions: [0], heights: [14]))
+
+        XCTAssertEqual(l[0..<7], l)
+        XCTAssertEqual(l[0..<6], HeightsLeaf(positions: [4, 6], heights: [14, 28]))
+        XCTAssertEqual(l[0..<5], HeightsLeaf(positions: [4, 5], heights: [14, 28]))
+        XCTAssertEqual(l[0..<4], HeightsLeaf(positions: [4, 4], heights: [14, 28]))
+        XCTAssertEqual(l[0..<3], HeightsLeaf(positions: [3], heights: [14]))
+        XCTAssertEqual(l[0..<2], HeightsLeaf(positions: [2], heights: [14]))
+        XCTAssertEqual(l[0..<1], HeightsLeaf(positions: [1], heights: [14]))
+        XCTAssertEqual(l[0..<0], HeightsLeaf(positions: [0], heights: [14]))
+    }
+
+    // "foo\nbar\n"
+    // [4, 8, 8]
+
+    // slice(0..<8) => [4, 8, 8]
+    // slice(1..<8) => [3, 7, 7]
+    // slice(2..<8) => [2, 6, 6]
+    // slice(3..<8) => [1, 5, 5]
+    // slice(4..<8) => [4, 4]
+    // slice(5..<8) => [3, 3]
+    // slice(6..<8) => [2, 2]
+    // slice(7..<8) => [1, 1]
+    // slice(8..<8) => [0, 0]
+
+    // slice(0..<8) => [4, 8, 8]
+    // slice(0..<7) => [4, 7]
+    // slice(0..<6) => [4, 6]
+    // slice(0..<5) => [4, 5]
+    // slice(0..<4) => [4, 4]
+    // slice(0..<3) => [3]
+    // slice(0..<2) => [2]
+    // slice(0..<1) => [1]
+    // slice(0..<0) => [0]
+    func testSliceLeafWithTrailingNewline() {
+        let l = HeightsLeaf(positions: [4, 8, 8], heights: [14, 28, 42])
+        XCTAssertEqual(l[0..<8], l)
+        XCTAssertEqual(l[1..<8], HeightsLeaf(positions: [3, 7, 7], heights: [14, 28, 42]))
+        XCTAssertEqual(l[2..<8], HeightsLeaf(positions: [2, 6, 6], heights: [14, 28, 42]))
+        XCTAssertEqual(l[3..<8], HeightsLeaf(positions: [1, 5, 5], heights: [14, 28, 42]))
+        XCTAssertEqual(l[4..<8], HeightsLeaf(positions: [4, 4], heights: [14, 28]))
+        XCTAssertEqual(l[5..<8], HeightsLeaf(positions: [3, 3], heights: [14, 28]))
+        XCTAssertEqual(l[6..<8], HeightsLeaf(positions: [2, 2], heights: [14, 28]))
+        XCTAssertEqual(l[7..<8], HeightsLeaf(positions: [1, 1], heights: [14, 28]))
+        XCTAssertEqual(l[8..<8], HeightsLeaf(positions: [0, 0], heights: [14, 28]))
+
+        XCTAssertEqual(l[0..<8], l)
+        XCTAssertEqual(l[0..<7], HeightsLeaf(positions: [4, 7], heights: [14, 28]))
+        XCTAssertEqual(l[0..<6], HeightsLeaf(positions: [4, 6], heights: [14, 28]))
+        XCTAssertEqual(l[0..<5], HeightsLeaf(positions: [4, 5], heights: [14, 28]))
+        XCTAssertEqual(l[0..<4], HeightsLeaf(positions: [4, 4], heights: [14, 28]))
+        XCTAssertEqual(l[0..<3], HeightsLeaf(positions: [3], heights: [14]))
+        XCTAssertEqual(l[0..<2], HeightsLeaf(positions: [2], heights: [14]))
+        XCTAssertEqual(l[0..<1], HeightsLeaf(positions: [1], heights: [14]))
+        XCTAssertEqual(l[0..<0], HeightsLeaf(positions: [0], heights: [14]))
+    }
 }

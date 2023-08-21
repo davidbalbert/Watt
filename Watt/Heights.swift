@@ -204,11 +204,11 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         i == 0 ? positions[0] : positions[i] - positions[i-1]
     }
 
-    func position(atIndex i: Int) -> Int {
+    func offset(ofLine i: Int) -> Int {
         i == 0 ? 0 : positions[i-1]
     }
 
-    func height(atIndex i: Int) -> CGFloat {
+    func height(ofLine i: Int) -> CGFloat {
         i == 0 ? 0 : heights[i-1]
     }
 }
@@ -482,6 +482,22 @@ extension BTree {
         }
 
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
+            // binarySearch(for:) will return (i, true) for all boundaries other than
+            // 0. Specifically for [3, 6], search(3) will return (0, true),
+            // search(6) will return (1, true), but search(0) will return
+            // (0, false). This means we can't use found alone as a measure
+            // of whether we're at a boundary.
+            if offset == 0 {
+                return true
+            }
+
+            // The end of the leaf is only a valid boundary if the leaf ends with
+            // an empty line. E.g. in [3, 6], 0 and 3 are valid boundaries, but in
+            // [3, 6, 6], 0, 3, and 6 are all valid boundaries.
+            if offset == leaf.count {
+                return leaf.endsWithBlankLine
+            }
+
             let (_, found) = leaf.positions.binarySearch(for: offset)
             return found
         }
@@ -489,23 +505,73 @@ extension BTree {
         func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
             assert(offset > 0 && offset <= leaf.count)
 
-            let (i, _) = leaf.positions.binarySearch(for: offset)
-            return leaf.position(atIndex: i)
+            // Handle special cases where leaf ends in a blank line.
+            //
+            // Note: we don't handle offset == leaf.count where positions.count == 1,
+            // because that would imply positions == [0], implying leaf.count 0,
+            // and thus, offset == 0, and offset is not allowed to be 0.
+            if offset == leaf.count && leaf.endsWithBlankLine && leaf.positions.count == 2 {
+                return 0
+            } else if offset == leaf.count && leaf.endsWithBlankLine {
+                return leaf.positions[leaf.positions.count - 3]
+            }
+
+            for i in 0..<leaf.positions.count {
+                if offset <= leaf.positions[i] {
+                    if i == 0 {
+                        return nil
+                    } else {
+                        return leaf.positions[i-1]
+                    }
+                }
+            }
+
+            fatalError("this is unreachable, offset must be <= leaf.count")
         }
 
         func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
-            assert(offset < leaf.count)
+            assert(offset >= 0 && offset < leaf.count)
 
-            switch leaf.positions.binarySearch(for: offset) {
-            case let (i, found: true):
-                return leaf.positions[i+1]
-            case let (i, found: false):
-                return leaf.positions[i]
+            // situations:
+            //   endsWithBlankLine
+            //     offset == 0, positions == [0] – Impossible. Leaf.count would be 0.
+            //     positions == [n, n], offset < n – returns n
+            //     positions == [..., x, n, n], offset in x..<n – returns n.
+            //   else
+            //     let (i, found) = binarySearch(offset)
+            //     found ? positions[i+1] : positions[i]
+
+            if leaf.endsWithBlankLine {
+                if leaf.positions.count == 2 {
+                    return leaf.positions[0]
+                } else if leaf.positions[leaf.positions.count - 3] <= offset && offset < leaf.positions[leaf.positions.count - 2] {
+                    return leaf.positions[leaf.positions.count - 2]
+                }
             }
+
+            // binarySearch(for:) doesn't work if we're searching for repeated elements,
+            // but we know offset < leaf.count, and the only repeated elements will be
+            // leaf.count, so we're ok.
+            let n: Int
+            switch leaf.positions.binarySearch(for: offset) {
+            case let (i, true):
+                n = i + 1
+            case let (i, false):
+                n = i
+            }
+
+            // At this we know offset < leaf.count, so we're not looking at
+            // a trailing blank line, which means the length of the leaf
+            // is never a boundary.
+            if n == leaf.positions.count - 1 {
+                return nil
+            }
+
+            return leaf.positions[n]
         }
 
         var canFragment: Bool {
-            true
+            false
         }
 
         // Even though this looks a lot like the Rope's base metric, and
@@ -541,7 +607,7 @@ extension BTree {
             if found {
                 i += 1
             }
-            return leaf.position(atIndex: i)
+            return leaf.offset(ofLine: i)
         }
 
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
@@ -553,7 +619,7 @@ extension BTree {
             if found {
                 i += 1
             }
-            return leaf.height(atIndex: i)
+            return leaf.height(ofLine: i)
         }
         
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {

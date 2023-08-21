@@ -1085,6 +1085,11 @@ extension BTree {
             self.offsetOfLeaf = offset
         }
 
+        // For testing.
+        var isValid: Bool {
+            leaf != nil
+        }
+
         func validate(for root: Node) {
             precondition(self.root === root)
             precondition(self.mutationCount == root.mutationCount)
