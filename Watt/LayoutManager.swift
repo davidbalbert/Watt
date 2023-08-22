@@ -294,8 +294,6 @@ class LayoutManager {
             return
         }
 
-        print("\n=== \(selection.range) \(selection.affinity)")
-
         var rect: CGRect?
         var prevOffsetInLine = 0
         CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
@@ -325,24 +323,36 @@ class LayoutManager {
             // s = "🙂b"
             //
             //   caretOffset=0  offsetInLine=0 leadingEdge=true
-            //   caretOffset=20 offsetInLine=1 leadingEdge=false
-            //   caretOffset=20 offsetInLine=2 leadingEdge=true
-            //   caretOffset=34 offsetInLine=2 leadingEdge=false
+            //   caretOffset=17 offsetInLine=1 leadingEdge=false
+            //   caretOffset=17 offsetInLine=2 leadingEdge=true
+            //   caretOffset=31 offsetInLine=2 leadingEdge=false
             //
             // The difference is that the trailing edge of the emoji is
             // called with offsetInLine pointing to its trailing surrogate.
             // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
             //
+            // For multi-scalar grapheme clusters like "👨‍👩‍👧‍👦", offsetInLine
+            // for the trailing edge will point to the trailing surrogate
+            // of the last unicode scalar.
+            //
+            //   caretOffset=0  offsetInLine=0  leadingEdge=true
+            //   caretOffset=17 offsetInLine=10 leadingEdge=false
+            //
+            // The above grapheme cluster is made up of 4 emoji, each
+            // represented by a surrogate pair, and three zero-width
+            // joiners, each represented by a single UTF-16 code unit,
+            // for 11 code units in all (4*2 + 3). The last unicode
+            // scalar is a surrogate pair, so the trailing edge of the
+            // glyph has offset in line == 10, which is the offset of
+            // the final trailing surrogate (11 - 1).
+            //
             // Rope.Index can't represent trailing surrogate indices, so
             // we need a way to detect that we're looking at a trailing
-            // surrogate. We do this by saving the previous offsetInLine
-            // and comparing it with the current one, as well as the
-            // previous and current Rope.Indexes.
+            // surrogate.
             //
-            // Because Rope.utf16.index(_:offsetBy:) rounds down to the
-            // nearest grapheme cluster boundary, when prev == i, but
-            // offsetInLine != prevOffsetInLine, we know we're looking
-            // at a trailing surrogate.
+            // We know we're looking at a trailing surrogate when we're
+            // looking at a trailing edge of a glyph and the previous
+            // offsetInLine is not equal to the current offsetInLine.
             //
             // We only set prevOffsetInLine when we know we're not at
             // a trailing surrogate. If we didn't do this, i would stop
@@ -353,13 +363,9 @@ class LayoutManager {
             // to handle surrogate pairs, likely relying on the fact
             // that a proper UTF-16 view implies that Rope.Index supports
             // surrogate pairs.
-            let prev = i
             i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
 
-            let isTrailingSurrogate = offsetInLine != prevOffsetInLine && prev == i
-
-            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) i=\(i) isTrailingSurrogate=\(isTrailingSurrogate) iOffset=\(offsetInLine - prevOffsetInLine) caretOffset=\(caretOffset)")
-
+            let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
             if !isTrailingSurrogate {
                 prevOffsetInLine = offsetInLine
             }
