@@ -164,14 +164,23 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
             return self
         }
 
-        let (start, _) = positions.binarySearch(for: bounds.lowerBound + 1)
-        var (end, _) = positions.binarySearch(for: bounds.upperBound + 1)
-
-        if endsWithBlankLine && end == positions.count - 1 {
-            end += 1
+        var start = positions.count
+        for i in 0..<positions.count {
+            if bounds.lowerBound + 1 <= positions[i] {
+                start = i
+                break
+            }
         }
 
-        let prefixCount = start == 0 ? 0 : positions[start-1]
+        var end = positions.count
+        for i in 0..<positions.count {
+            if bounds.upperBound + 1 <= positions[i] {
+                end = i + 1
+                break
+            }
+        }
+
+        let prefixCount = bounds.lowerBound
         let prefixHeight = start == 0 ? 0 : heights[start-1]
 
         if (start..<end).isEmpty {
@@ -186,6 +195,10 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         var newPositions = Array(positions[start..<end])
         for i in 0..<newPositions.count {
             newPositions[i] -= prefixCount
+
+            if i == newPositions.count - 1 {
+                newPositions[i] = min(newPositions[i], bounds.count)
+            }
         }
 
         var newYOffsets = Array(heights[start..<end])
