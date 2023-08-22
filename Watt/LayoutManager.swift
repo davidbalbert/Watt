@@ -378,27 +378,21 @@ class LayoutManager {
                 return
             }
 
-            let next = buffer.lines.index(after: i)
+            let next = i == buffer.endIndex ? i : buffer.lines.index(after: i)
             let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
             y += line.typographicBounds.height
 
-            var thisFrag = i
+            var fragStart = i
             for f in line.lineFragments {
-                let nextFrag = buffer.utf16.index(thisFrag, offsetBy: f.utf16Count)
+                let fragEnd = buffer.utf16.index(fragStart, offsetBy: f.utf16Count)
                 
-                let rangeOfFrag = thisFrag..<nextFrag
+                let rangeOfFrag = fragStart..<fragEnd
 
-                // I think the only possible empty lineFragment would be the
-                // last line of a document if it's empty. I don't know if we
-                // represent those yet, but let's ignore them for now.
-                if rangeOfFrag.isEmpty {
-                    return
-                }
-
+                let onEmptyLastLine = rangeOfFrag.isEmpty
                 let rangeInFrag = range.clamped(to: rangeOfFrag)
 
-                if rangeInFrag.isEmpty && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
-                    thisFrag = nextFrag
+                if rangeInFrag.isEmpty && !onEmptyLastLine && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
+                    fragStart = fragEnd
                     continue
                 }
 
@@ -424,7 +418,7 @@ class LayoutManager {
                     return
                 }
 
-                thisFrag = nextFrag
+                fragStart = fragEnd
             }
 
             i = next
