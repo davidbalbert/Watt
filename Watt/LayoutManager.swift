@@ -294,6 +294,8 @@ class LayoutManager {
             return
         }
 
+        print("\n=== \(selection.range) \(selection.affinity)")
+
         var rect: CGRect?
         var prevOffsetInLineFragment = 0
         CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
@@ -305,6 +307,15 @@ class LayoutManager {
             let offsetInLineFragment = offsetInLine - offsetOfLineFragment
             let prev = i
             i = buffer.utf16.index(i, offsetBy: offsetInLineFragment - prevOffsetInLineFragment)
+
+            let isTrailingSurrogate = prevOffsetInLineFragment != offsetInLineFragment && prev == i
+
+
+            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) i=\(i) isTrailingSurrogate=\(isTrailingSurrogate) iOffset=\(offsetInLineFragment - prevOffsetInLineFragment) caretOffset=\(caretOffset)")
+
+            if !isTrailingSurrogate {
+                prevOffsetInLineFragment = offsetInLineFragment
+            }
 
             // CTLineEnumerateCaretOffsets calls block for trailing surrogates,
             // which we want to ignore. Buffer.utf16.index(_:offsetBy:) will round
@@ -318,16 +329,20 @@ class LayoutManager {
             // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
             // will no longer round down. Instead, we need to do
             // i.isBoundary(in: .characters).
-            if prevOffsetInLineFragment != offsetInLineFragment && prev == i {
-                return
-            }
-
-            prevOffsetInLineFragment = offsetInLineFragment
+//            if prevOffsetInLineFragment != offsetInLineFragment && prev == i {
+//                return
+//            }
 
             let next: Buffer.Index
             if i == buffer.endIndex {
                 // empty last line
                 next = i
+            } else if isTrailingSurrogate {
+                // If offsetInLine is pointing at a trailing surrogate, i will
+                // still be pointing at the leading surrogate because
+                // Buffer.utf16.index(_:offsetBy:) rounds down to the nearest
+                // grapheme cluster boundary.
+                next = buffer.utf16.index(i, offsetBy: 2)
             } else {
                 next = buffer.utf16.index(i, offsetBy: 1)
             }
@@ -338,6 +353,8 @@ class LayoutManager {
             guard downstreamMatch || upstreamMatch else {
                 return
             }
+
+            print("downstreamMatch=\(downstreamMatch) upstreamMatch=\(upstreamMatch)")
 
             let origin = convert(convert(CGPoint(x: caretOffset, y: 0), from: frag), from: line)
             let height = frag.typographicBounds.height
