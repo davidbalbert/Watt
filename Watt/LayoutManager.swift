@@ -324,7 +324,6 @@ class LayoutManager {
 
             prevOffsetInLineFragment = offsetInLineFragment
 
-            // TODO: is it possible for i == buffer.endIndex?
             let next: Buffer.Index
             if i == buffer.endIndex {
                 // empty last line
@@ -664,6 +663,9 @@ class LayoutManager {
 
         // TODO: in addition to the todo above delta.summary(), once we have multiple selections we need to figure out a way to put each selection in the correct location. I think the interface to this function is probably too low level. In Delta, we can make as many changes as we want. With multiple selections, each selection can be a different length, but they all need to be replaced by the same string.
         selection = Selection(head: newRange.upperBound)
+        if newRange.upperBound == new.endIndex {
+            selection!.affinity = .upstream
+        }
 
         lineCache.invalidate(delta: delta)
 
