@@ -15,7 +15,10 @@ struct HeightsSummary: BTreeSummary {
 
     static func += (left: inout HeightsSummary, right: HeightsSummary) {
         left.height += right.height
-        left.endsWithBlankLine = left.endsWithBlankLine || right.endsWithBlankLine
+        // A subtree to the left of another subtree cannot
+        // possibly end in a blank line.
+        assert(!left.endsWithBlankLine)
+        left.endsWithBlankLine = right.endsWithBlankLine
     }
 
     static var zero: HeightsSummary {
@@ -392,14 +395,14 @@ extension Heights {
 
             if i == 0 {
                 len += prefixCount
-                }
+            }
 
             if i == rope.lines.count - 1 {
                 len += suffixCount
-                }
+            }
 
             hb.addLine(withBaseCount: len, height: 14)
-            }
+        }
 
         // Pushing end..<r.count onto a BTree.Builder will always be a no-op even
         // if there is an empty last line, because pushing an empty range is defined
