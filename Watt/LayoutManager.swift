@@ -297,41 +297,72 @@ class LayoutManager {
         print("\n=== \(selection.range) \(selection.affinity)")
 
         var rect: CGRect?
-        var prevOffsetInLineFragment = 0
+        var prevOffsetInLine = 0
         CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
             guard let self else {
                 stop.pointee = true
                 return
             }
 
-            let offsetInLineFragment = offsetInLine - offsetOfLineFragment
-            let prev = i
-            i = buffer.utf16.index(i, offsetBy: offsetInLineFragment - prevOffsetInLineFragment)
-
-            let isTrailingSurrogate = prevOffsetInLineFragment != offsetInLineFragment && prev == i
-
-
-            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) i=\(i) isTrailingSurrogate=\(isTrailingSurrogate) iOffset=\(offsetInLineFragment - prevOffsetInLineFragment) caretOffset=\(caretOffset)")
-
-            if !isTrailingSurrogate {
-                prevOffsetInLineFragment = offsetInLineFragment
-            }
-
-            // CTLineEnumerateCaretOffsets calls block for trailing surrogates,
-            // which we want to ignore. Buffer.utf16.index(_:offsetBy:) will round
-            // to the nearest grapheme cluster boundary, so when prev == i, we're
-            // looking at a trailing surrogate. We need the prevOffset != offset
-            // check because block gets called twice for each offsetInLine
-            // once with leadingEdge true and the other time when it's false,
-            // and we want to process both of those as long as we're on a
-            // grapheme cluster boundary.
+            // Normally, CTLineEnumerateCaretOffsets calls block in like
+            // this (note: caretOffsets have been fudged for simplicity):
+            //
+            // s = "ab"
+            //
+            //   caretOffset=0  offsetInLine=0 leadingEdge=true
+            //   caretOffset=7  offsetInLine=0 leadingEdge=false
+            //   caretOffset=7  offsetInLine=1 leadingEdge=true
+            //   caretOffset=14 offsetInLine=1 leadingEdge=false
+            //
+            // For each UTF-16 offsetInLine, the block is called first
+            // for the leadingEdge of the glyph, and then for the trailing
+            // edge. The trailing edge of one glyph is at the same location
+            // as the leading edge of the following glyph.
+            //
+            // If the a glyph is represented by a surrogate pair however,
+            // the block is called like this:
+            //
+            // s = "🙂b"
+            //
+            //   caretOffset=0  offsetInLine=0 leadingEdge=true
+            //   caretOffset=20 offsetInLine=1 leadingEdge=false
+            //   caretOffset=20 offsetInLine=2 leadingEdge=true
+            //   caretOffset=34 offsetInLine=2 leadingEdge=false
+            //
+            // The difference is that the trailing edge of the emoji is
+            // called with offsetInLine pointing to its trailing surrogate.
+            // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
+            //
+            // Rope.Index can't represent trailing surrogate indices, so
+            // we need a way to detect that we're looking at a trailing
+            // surrogate. We do this by saving the previous offsetInLine
+            // and comparing it with the current one, as well as the
+            // previous and current Rope.Indexes.
+            //
+            // Because Rope.utf16.index(_:offsetBy:) rounds down to the
+            // nearest grapheme cluster boundary, when prev == i, but
+            // offsetInLine != prevOffsetInLine, we know we're looking
+            // at a trailing surrogate.
+            //
+            // We only set prevOffsetInLine when we know we're not at
+            // a trailing surrogate. If we didn't do this, i would stop
+            // incrementing once we saw the first surrogate pair.
             //
             // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
-            // will no longer round down. Instead, we need to do
-            // i.isBoundary(in: .characters).
-//            if prevOffsetInLineFragment != offsetInLineFragment && prev == i {
-//                return
-//            }
+            // will no longer round down. We'd need to find another way
+            // to handle surrogate pairs, likely relying on the fact
+            // that a proper UTF-16 view implies that Rope.Index supports
+            // surrogate pairs.
+            let prev = i
+            i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
+
+            let isTrailingSurrogate = offsetInLine != prevOffsetInLine && prev == i
+
+            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) i=\(i) isTrailingSurrogate=\(isTrailingSurrogate) iOffset=\(offsetInLine - prevOffsetInLine) caretOffset=\(caretOffset)")
+
+            if !isTrailingSurrogate {
+                prevOffsetInLine = offsetInLine
+            }
 
             let next: Buffer.Index
             if i == buffer.endIndex {
