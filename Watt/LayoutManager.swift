@@ -387,7 +387,6 @@ class LayoutManager {
                 let fragEnd = buffer.utf16.index(fragStart, offsetBy: f.utf16Count)
                 
                 let rangeOfFrag = fragStart..<fragEnd
-                let onLastLine = fragEnd == buffer.endIndex
 
                 let rangesOverlap = range.overlaps(rangeOfFrag) || range.isEmpty && rangeOfFrag.contains(range.lowerBound)
                 let atEndOfDocument = fragEnd == buffer.endIndex && fragEnd == range.lowerBound
