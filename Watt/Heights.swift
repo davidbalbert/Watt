@@ -372,16 +372,12 @@ extension Heights {
     }
 
     mutating func replaceSubrange(_ oldRange: Range<Int>, with rope: Rope) {
-        let start: Int
-        if oldRange.lowerBound == root.count && !root.summary.endsWithBlankLine {
-            start = index(before: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
-        } else {
-            start = index(roundingDown: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
-        }
+        let start = index(roundingDown: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
+        let lastBoundary = index(roundingDown: endIndex, using: .heightsBaseMetric).position
 
         let end: Int
-        if oldRange.upperBound == root.count {
-            end = oldRange.upperBound
+        if oldRange.upperBound >= lastBoundary {
+            end = root.count
         } else {
             end = index(after: index(at: oldRange.upperBound), using: .heightsBaseMetric).position
         }
@@ -391,53 +387,27 @@ extension Heights {
 
         var hb = HeightsBuilder()
 
-        // - make a new height builder
-        // - iterate over the lengths of each line in the string, calling addLine on the height builder
-        // - if we're on the first line, add prefixCount to the length of the first line
-        // - if we're on the last line, add suffixCount to the length of the last line
-        // - remember that the first line can also be the last line
+        for (i, line) in rope.lines.enumerated() {
+            var len = line.utf8.count
 
-        var i = rope.startIndex
-        var lineLength = 0
-        var lineCount = 0
-
-        let endIndex = rope.endIndex
-        let last = rope.isEmpty ? rope.startIndex : rope.utf8.index(before: endIndex)
-
-        while i < endIndex {
-            let c = rope.utf8[i]
-            if c == UInt8(ascii: "\n") || i == last {
-                lineLength += 1
-
-                if lineCount == 0 {
-                    lineLength += prefixCount
+            if i == 0 {
+                len += prefixCount
                 }
 
-                if lineCount == rope.lines.count - 1 {
-                    assert(!(c == UInt8(ascii: "\n") && i == last))
-                    lineLength += suffixCount
+            if i == rope.lines.count - 1 {
+                len += suffixCount
                 }
 
-                hb.addLine(withBaseCount: lineLength, height: 14)
-
-                if c == UInt8(ascii: "\n") && i == last {
-                    // String ends with a newline. We need to add one more line to cover
-                    // the suffix. If suffixCount == 0, this will be an empty line.
-                    hb.addLine(withBaseCount: suffixCount, height: 14)
-                } else if lineCount == rope.lines.count - 1 && suffixCount > 0 && end == root.count && root.summary.endsWithBlankLine {
-                    // If we're on the last line of string, and we're replacing a portion, but
-                    // not all of the last line of the rope, and the rope ends in an empty line,
-                    // make sure to include the empty line.
-                    hb.addLine(withBaseCount: 0, height: 14)
-                }
-
-                lineLength = 0
-                lineCount += 1
-            } else {
-                lineLength += 1
+            hb.addLine(withBaseCount: len, height: 14)
             }
 
-            i = rope.utf8.index(after: i)
+        // Pushing end..<r.count onto a BTree.Builder will always be a no-op even
+        // if there is an empty last line, because pushing an empty range is defined
+        // to do nothing. Instead, we have to account for that here by including the
+        // empty last line in new if necessary. The check for suffixCount > 0 ensures
+        // that we don't include two empty lines at the end.
+        if end == root.count && suffixCount > 0 && root.summary.endsWithBlankLine {
+            hb.addLine(withBaseCount: 0, height: 14)
         }
 
         var b = Heights.Builder()
