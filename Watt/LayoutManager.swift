@@ -387,14 +387,18 @@ class LayoutManager {
                 let fragEnd = buffer.utf16.index(fragStart, offsetBy: f.utf16Count)
                 
                 let rangeOfFrag = fragStart..<fragEnd
+                let onLastLine = fragEnd == buffer.endIndex
 
-                let onEmptyLastLine = rangeOfFrag.isEmpty
-                let rangeInFrag = range.clamped(to: rangeOfFrag)
+                let rangesOverlap = range.overlaps(rangeOfFrag) || range.isEmpty && rangeOfFrag.contains(range.lowerBound)
+                let atEndOfDocument = fragEnd == buffer.endIndex && fragEnd == range.lowerBound
+                assert(!atEndOfDocument || (atEndOfDocument && range.isEmpty))
 
-                if rangeInFrag.isEmpty && !onEmptyLastLine && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
+                guard rangesOverlap || atEndOfDocument else {
                     fragStart = fragEnd
                     continue
                 }
+
+                let rangeInFrag = range.clamped(to: rangeOfFrag)
 
                 let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
                 let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
