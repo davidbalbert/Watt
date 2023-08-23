@@ -363,12 +363,15 @@ class LayoutManager {
             // to handle surrogate pairs, likely relying on the fact
             // that a proper UTF-16 view implies that Rope.Index supports
             // surrogate pairs.
-            i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
+
 
             let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
             if !isTrailingSurrogate {
+                i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
                 prevOffsetInLine = offsetInLine
             }
+
+            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) prevOffsetInLine=\(prevOffsetInLine) i=\(i) ")
 
             let next: Buffer.Index
             if i == buffer.endIndex {
@@ -378,8 +381,8 @@ class LayoutManager {
                 // If offsetInLine is pointing at a trailing surrogate, i will
                 // still be pointing at the leading surrogate because
                 // Buffer.utf16.index(_:offsetBy:) rounds down to the nearest
-                // grapheme cluster boundary.
-                next = buffer.utf16.index(i, offsetBy: 2)
+                // unicode scalar boundary.
+                next = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine + 1)
             } else {
                 next = buffer.utf16.index(i, offsetBy: 1)
             }
@@ -391,7 +394,8 @@ class LayoutManager {
                 return
             }
 
-            print("downstreamMatch=\(downstreamMatch) upstreamMatch=\(upstreamMatch)")
+            print("downstreamMatch=\(downstreamMatch) upstreamMatch=\(upstreamMatch)\n")
+
 
             let origin = convert(convert(CGPoint(x: caretOffset, y: 0), from: frag), from: line)
             let height = frag.typographicBounds.height

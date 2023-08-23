@@ -1000,6 +1000,34 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(1022, r.index(before: i).position)
     }
 
+    func testIndexOffsetByUTF16Surrogates() {
+        var r = Rope("🙂")
+        XCTAssertEqual(1, r.unicodeScalars.count)
+        XCTAssertEqual(2, r.utf16.count)
+
+        var i = r.utf16.index(r.startIndex, offsetBy: 1)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.utf16.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(r.unicodeScalars.index(at: 1), i)
+
+        r = Rope("🇺🇸")
+        XCTAssertEqual(2, r.unicodeScalars.count)
+        XCTAssertEqual(4, r.utf16.count)
+
+        i = r.utf16.index(r.startIndex, offsetBy: 1)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.utf16.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(r.unicodeScalars.index(at: 1), i)
+
+        i = r.utf16.index(r.startIndex, offsetBy: 3)
+        XCTAssertEqual(r.unicodeScalars.index(at: 1), i)
+
+        i = r.utf16.index(r.startIndex, offsetBy: 4)
+        XCTAssertEqual(r.unicodeScalars.index(at: 2), i)
+    }
+
     // MARK: - Lines
 
     func testShortLines() {
