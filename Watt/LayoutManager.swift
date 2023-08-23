@@ -394,9 +394,6 @@ class LayoutManager {
                 return
             }
 
-            print("downstreamMatch=\(downstreamMatch) upstreamMatch=\(upstreamMatch)\n")
-
-
             let origin = convert(convert(CGPoint(x: caretOffset, y: 0), from: frag), from: line)
             let height = frag.typographicBounds.height
 
