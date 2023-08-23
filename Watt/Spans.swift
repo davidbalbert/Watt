@@ -199,13 +199,13 @@ struct Spans<T> {
                 if let transformed = transform(spanLeft.data, nil) {
                     sb.add(transformed, covering: prefix)
                 }
-                rangeRight = rangeRight.suffix(prefix)
+                rangeLeft = rangeLeft.suffix(prefix)
             } else if rangeRight.lowerBound < rangeLeft.lowerBound {
                 let prefix = rangeRight.prefix(rangeLeft)
                 if let transformed = transform(spanRight.data, nil) {
                     sb.add(transformed, covering: prefix)
                 }
-                rangeLeft = rangeLeft.suffix(prefix)
+                rangeRight = rangeRight.suffix(prefix)
             }
 
             assert(rangeLeft.lowerBound == rangeRight.lowerBound)
