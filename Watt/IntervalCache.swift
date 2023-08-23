@@ -140,10 +140,19 @@ struct IntervalCache<T> {
                 }
 
                 let suffix: Int
-                if (endsOnBoundary && !(willInsert && atEndOfCache)) || lastRange == nil {
-                    suffix = 0
-                } else {
+                // Normally, if this copy ends on a boundary, and the next operation
+                // is an insert, we want that insert to invalidate the range covered
+                // by whatever copy comes next, not the range whose end coincides
+                // with this coyp.
+                //
+                // But if we're about to insert at the end of the cache, we want to
+                // invalidate the current line instead. This is because we don't know
+                // whether the last line of the associated Rope ends with a newline
+                // or not.
+                if !endsOnBoundary || (willInsert && atEndOfCache) {
                     suffix = end - lastRange!.lowerBound
+                } else {
+                    suffix = 0
                 }
 
                 // firstRange and lastRange are always present when prefix and suffix are > 0 (respectively).
