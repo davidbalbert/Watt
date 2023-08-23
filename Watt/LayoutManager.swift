@@ -364,14 +364,11 @@ class LayoutManager {
             // that a proper UTF-16 view implies that Rope.Index supports
             // surrogate pairs.
 
-
             let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
             if !isTrailingSurrogate {
                 i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
                 prevOffsetInLine = offsetInLine
             }
-
-            print("offsetInLine=\(offsetInLine) leadingEdge=\(leadingEdge) prevOffsetInLine=\(prevOffsetInLine) i=\(i) ")
 
             let next: Buffer.Index
             if i == buffer.endIndex {
