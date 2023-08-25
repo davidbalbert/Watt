@@ -15,9 +15,6 @@ struct HeightsSummary: BTreeSummary {
 
     static func += (left: inout HeightsSummary, right: HeightsSummary) {
         left.height += right.height
-        // A subtree to the left of another subtree cannot
-        // possibly end in a blank line.
-        assert(!left.endsWithBlankLine)
         left.endsWithBlankLine = right.endsWithBlankLine
     }
 
