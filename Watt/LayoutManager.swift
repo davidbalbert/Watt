@@ -88,37 +88,21 @@ class LayoutManager {
 
         let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
 
-        var i = viewportRange.lowerBound
-        var lineno = buffer.lines.distance(from: buffer.startIndex, to: i)
-        var y = heights.yOffset(upThroughPosition: i.position)
-
         lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
+        var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
         var scrollAdjustment: CGSize = .zero
 
-        let hasEmptyLastLine = viewportRange.upperBound == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n")
-
-        while i < viewportRange.upperBound || (hasEmptyLastLine && i == buffer.endIndex) {
-            let next: Buffer.Index
-            if hasEmptyLastLine && i == buffer.endIndex {
-                next = i
-            } else {
-                next = buffer.lines.index(after: i)
-            }
-
-            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
-
+        enumerateLines(in: viewportRange) { range, line in
             block(line)
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.origin, withLineHeight: line.typographicBounds.height)
             }
 
-            let hi = heights.index(at: i.position)
-            let oldHeight = heights[hi]
+            let oldHeight = heights[range.lowerBound.position]
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
-
             let oldMaxY = line.origin.y + oldHeight
 
             // TODO: I don't know why I have to use the previous frame's
@@ -134,21 +118,10 @@ class LayoutManager {
             if oldMaxY <= previousVisibleRect.minY && delta != 0 {
                 scrollAdjustment.height += delta
             }
-            
-            if oldHeight != newHeight {
-                heights[hi] = newHeight
-            }
 
-            // We just finished processing the empty last line. If we
-            // don't break here, we'll have an infinite loop because
-            // i == next.
-            if hasEmptyLastLine && i == buffer.endIndex {
-                break
-            }
-
-            y += newHeight
             lineno += 1
-            i = next
+
+            return true
         }
 
         if updateLineNumbers {
@@ -477,6 +450,49 @@ class LayoutManager {
             }
 
             i = next
+        }
+    }
+
+    func enumerateLines(in range: Range<Buffer.Index>, using block: (Range<Buffer.Index>, Line) -> Bool) {
+        guard let buffer else {
+            return
+        }
+
+        var i = range.lowerBound
+        var y = heights.yOffset(upThroughPosition: i.position)
+
+        while i < range.upperBound {
+            let next = buffer.lines.index(after: i)
+            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+
+            let stop = !block(i..<next, line)
+
+            updateHeightsIfNecessary(forLine: line, at: i)
+
+            if stop {
+                return
+            }
+
+            y += line.typographicBounds.height
+            i = next
+        }
+
+        if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n") {
+            let line = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+            
+            _ = block(i..<i, line)
+
+            updateHeightsIfNecessary(forLine: line, at: i)
+        }
+    }
+
+    func updateHeightsIfNecessary(forLine line: Line, at index: Buffer.Index) {
+        let hi = heights.index(at: index.position)
+        let oldHeight = heights[hi]
+        let newHeight = line.typographicBounds.height
+
+        if oldHeight != newHeight {
+            heights[hi] = newHeight
         }
     }
 
