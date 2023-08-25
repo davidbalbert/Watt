@@ -354,10 +354,17 @@ extension Heights {
                 let penultimateHeight = leaf.lineHeight(atIndex: leaf.heights.count - 2)
 
                 newLeaf = HeightsLeaf(positions: [pos, pos], heights: [penultimateHeight, penultimateHeight + newValue])
+            } else if li == leaf.positions.count - 2 && leaf.lineLength(atIndex: li + 1) == 0 {
+                // Updating the second to last line with length > 0, with an empty line following.
+                prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
+                suffixStart = i.offsetOfLeaf + leaf.positions[li]
+
+                let lastHeight = leaf.lineHeight(atIndex: li + 1)
+                newLeaf = HeightsLeaf(positions: [count, count], heights: [newValue, newValue + lastHeight])
             } else {
                 // Updating a line with length > 0
                 prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
-                suffixStart = li == leaf.positions.count ? root.count : i.offsetOfLeaf + leaf.positions[li]
+                suffixStart = i.offsetOfLeaf + leaf.positions[li]
                 newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
             }
 
@@ -367,7 +374,9 @@ extension Heights {
             b.push(leaf: newLeaf)
             b.push(&root, slicedBy: suffixStart..<root.count)
 
+            let oldCount = root.count
             self.root = b.build()
+            assert(root.count == oldCount)
         }
     }
 

@@ -1035,4 +1035,19 @@ final class HeightsTest: XCTestCase {
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(8, i.position)
     }
+
+    // MARK: - Regression tests
+
+    func testUpdatingPenultimateHeightKeepsEndsWithBlankLine() {
+        var h = Heights(rope: Rope("foo\nbar\nbaz\n"))
+
+        XCTAssertEqual(14, h[8])
+        XCTAssertEqual(12, h.root.count)
+        XCTAssertTrue(h.root.summary.endsWithBlankLine)
+
+        h[8] = 15
+        XCTAssertEqual(15, h[8])
+        XCTAssertEqual(12, h.root.count)
+        XCTAssertTrue(h.root.summary.endsWithBlankLine)
+    }
 }
