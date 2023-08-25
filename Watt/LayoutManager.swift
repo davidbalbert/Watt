@@ -268,7 +268,7 @@ class LayoutManager {
         }
 
         var rect: CGRect?
-        var prevOffsetInLine = 0
+        var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
         CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
             guard let self else {
                 stop.pointee = true
