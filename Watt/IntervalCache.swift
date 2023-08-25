@@ -106,8 +106,6 @@ struct IntervalCache<T> {
     }
 
     mutating func invalidate<Summary>(delta: BTree<Summary>.Delta) where Summary: BTreeSummary {
-        precondition(delta.baseCount == upperBound)
-
         var b = BTree<SpansSummary<T>>.Builder()
 
         var prev: BTree<Summary>.DeltaElement? = nil
@@ -115,54 +113,8 @@ struct IntervalCache<T> {
         // precondition: invalidatedThrough will always be 0 or
         // the upperBound of a span.
         var invalidatedThrough = 0
-
         for (i, el) in delta.elements.enumerated() {
             switch el {
-            case let .copy(start, end) where invalidatedThrough > end:
-                var s = SpansBuilder<T>(totalCount: end - start).build()
-                b.push(&s.t.root)
-
-                // I think we don't have to modify invalidatedThrough here. invalidatedThrough
-                // should already be on a range boundary.
-            case let .copy(start, end) where invalidatedThrough > start:
-                let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
-                let willInsert = next != nil && next!.isInsert
-
-                // -1 because end is exclusive, and if we're at a boundary between
-                // spans, we'd like to get the span where end is still exclusive – i.e.
-                // where end is at the end of the span, rather than the start.
-                let firstRange = range(forSpanContaining: start) // TODO: maybe invalidated through?
-                let lastRange = range(forSpanContaining: end-1)
-
-                let copyStart = invalidatedThrough
-                let copyEnd: Int
-
-                let prefix = invalidatedThrough - start
-
-                let suffix: Int
-                if let lastRange, firstRange != lastRange && (end < lastRange.upperBound || willInsert) {
-                    copyEnd = lastRange.lowerBound
-                    suffix = end - max(lastRange.lowerBound, start)
-                    invalidatedThrough = lastRange.upperBound
-                } else {
-                    copyEnd = end
-                    suffix = 0
-                }
-
-                if prefix > 0 {
-                    var blank = SpansBuilder<T>(totalCount: prefix).build()
-                    b.push(&blank.t.root)
-                }
-
-                if copyStart < copyEnd {
-                    var r = spans.t.root
-                    b.push(&r, slicedBy: copyStart..<copyEnd)
-                }
-
-                if suffix > 0 {
-                    var blank = SpansBuilder<T>(totalCount: suffix).build()
-                    b.push(&blank.t.root)
-                }
             case let .copy(start, end):
                 let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
 
@@ -175,27 +127,52 @@ struct IntervalCache<T> {
                 let firstRange = range(forSpanContaining: start)
                 let lastRange = range(forSpanContaining: end-1)
 
+                let prefix: Int
                 let copyStart: Int
                 let copyEnd: Int
-
-                let prefix: Int
-                if let firstRange, (start > firstRange.lowerBound || didInsert) {
-                    prefix = min(firstRange.upperBound, end) - start
-                    copyStart = firstRange.upperBound
-                    invalidatedThrough = firstRange.upperBound
-                } else {
-                    prefix = 0
-                    copyStart = start
-                }
-
                 let suffix: Int
-                if let lastRange, (prefix == 0 || lastRange != firstRange) && (end < lastRange.upperBound || willInsert) {
-                    copyEnd = lastRange.lowerBound
-                    suffix = end - max(lastRange.lowerBound, start)
+
+                if invalidatedThrough > end {
+                    prefix = end - start
+                    copyStart = 0
+                    copyEnd = 0
+                    suffix = 0
+                } else if invalidatedThrough > start, let lastRange {
+                    prefix = invalidatedThrough - start
+                    copyStart = invalidatedThrough
+
+                    if lastRange.upperBound == end && !willInsert {
+                        copyEnd = lastRange.upperBound
+                    } else {
+                        copyEnd = lastRange.lowerBound
+                    }
+
+                    suffix = copyEnd == end || firstRange == lastRange ? 0 : end - copyEnd
+
                     invalidatedThrough = lastRange.upperBound
-                } else {
+                } else if invalidatedThrough > start {
+                    prefix = invalidatedThrough - start
+                    copyStart = invalidatedThrough
                     copyEnd = end
                     suffix = 0
+                } else {
+                    if let firstRange, (start > firstRange.lowerBound || didInsert) {
+                        prefix = min(firstRange.upperBound, end) - start
+                        copyStart = firstRange.upperBound
+                        invalidatedThrough = firstRange.upperBound
+                    } else {
+                        prefix = 0
+                        copyStart = start
+                    }
+
+                    if let lastRange, (prefix == 0 || lastRange != firstRange) && (end < lastRange.upperBound || willInsert) {
+                        copyEnd = lastRange.lowerBound
+                        suffix = end - max(lastRange.lowerBound, start)
+                        invalidatedThrough = lastRange.upperBound
+                    } else {
+                        copyEnd = end
+                        suffix = 0
+                    }
                 }
 
                 if prefix > 0 {
