@@ -111,53 +111,43 @@ struct IntervalCache<T> {
         var b = BTree<SpansSummary<T>>.Builder()
 
         var prev: BTree<Summary>.DeltaElement? = nil
-        var lastCopyEndedOnRangeBoundary = true
+
+        // precondition: invalidatedThrough will always be 0 or
+        // the upperBound of a span.
+        var invalidatedThrough = 0
 
         for (i, el) in delta.elements.enumerated() {
             switch el {
-            case let .copy(start, end):
+            case let .copy(start, end) where invalidatedThrough > end:
+                var s = SpansBuilder<T>(totalCount: end - start).build()
+                b.push(&s.t.root)
+
+                // I think we don't have to modify invalidatedThrough here. invalidatedThrough
+                // should already be on a range boundary.
+            case let .copy(start, end) where invalidatedThrough > start:
+                let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
+                let willInsert = next != nil && next!.isInsert
+
                 // -1 because end is exclusive, and if we're at a boundary between
                 // spans, we'd like to get the span where end is still exclusive – i.e.
                 // where end is at the end of the span, rather than the start.
-                let firstRange = range(forSpanContaining: start)
+                let firstRange = range(forSpanContaining: start) // TODO: maybe invalidated through?
                 let lastRange = range(forSpanContaining: end-1)
 
-                let startsOnBoundary = firstRange?.lowerBound == start
-                let endsOnBoundary = lastRange?.upperBound == end
+                let copyStart = invalidatedThrough
+                let copyEnd: Int
 
-                let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
-
-                let insertedIntoThisLine = prev != nil && prev!.isInsert && startsOnBoundary && lastCopyEndedOnRangeBoundary
-
-                let willInsert = next != nil && next!.isInsert
-                let atEndOfCache = end == upperBound
-
-                let prefix: Int
-                if (startsOnBoundary && !insertedIntoThisLine) || firstRange == nil {
-                    prefix = 0
-                } else {
-                    prefix = firstRange!.upperBound - start
-                }
+                let prefix = invalidatedThrough - start
 
                 let suffix: Int
-                // Normally, if this copy ends on a boundary, and the next operation
-                // is an insert, we want that insert to invalidate the range covered
-                // by whatever copy comes next, not the range whose end coincides
-                // with this coyp.
-                //
-                // But if we're about to insert at the end of the cache, we want to
-                // invalidate the current line instead. This is because we don't know
-                // whether the last line of the associated Rope ends with a newline
-                // or not.
-                if !endsOnBoundary || (willInsert && atEndOfCache) {
-                    suffix = end - lastRange!.lowerBound
+                if let lastRange, firstRange != lastRange && (end < lastRange.upperBound || willInsert) {
+                    copyEnd = lastRange.lowerBound
+                    suffix = end - max(lastRange.lowerBound, start)
+                    invalidatedThrough = lastRange.upperBound
                 } else {
+                    copyEnd = end
                     suffix = 0
                 }
-
-                // firstRange and lastRange are always present when prefix and suffix are > 0 (respectively).
-                let copyStart = prefix == 0 ? start : firstRange!.upperBound
-                let copyEnd = suffix == 0 ? end : lastRange!.lowerBound
 
                 if prefix > 0 {
                     var blank = SpansBuilder<T>(totalCount: prefix).build()
@@ -173,8 +163,55 @@ struct IntervalCache<T> {
                     var blank = SpansBuilder<T>(totalCount: suffix).build()
                     b.push(&blank.t.root)
                 }
+            case let .copy(start, end):
+                let next = i == delta.elements.count-1 ? nil : delta.elements[i+1]
 
-                lastCopyEndedOnRangeBoundary = endsOnBoundary
+                let didInsert = prev != nil && prev!.isInsert
+                let willInsert = next != nil && next!.isInsert
+
+                // -1 because end is exclusive, and if we're at a boundary between
+                // spans, we'd like to get the span where end is still exclusive – i.e.
+                // where end is at the end of the span, rather than the start.
+                let firstRange = range(forSpanContaining: start)
+                let lastRange = range(forSpanContaining: end-1)
+
+                let copyStart: Int
+                let copyEnd: Int
+
+                let prefix: Int
+                if let firstRange, (start > firstRange.lowerBound || didInsert) {
+                    prefix = min(firstRange.upperBound, end) - start
+                    copyStart = firstRange.upperBound
+                    invalidatedThrough = firstRange.upperBound
+                } else {
+                    prefix = 0
+                    copyStart = start
+                }
+
+                let suffix: Int
+                if let lastRange, (prefix == 0 || lastRange != firstRange) && (end < lastRange.upperBound || willInsert) {
+                    copyEnd = lastRange.lowerBound
+                    suffix = end - max(lastRange.lowerBound, start)
+                    invalidatedThrough = lastRange.upperBound
+                } else {
+                    copyEnd = end
+                    suffix = 0
+                }
+
+                if prefix > 0 {
+                    var blank = SpansBuilder<T>(totalCount: prefix).build()
+                    b.push(&blank.t.root)
+                }
+
+                if copyStart < copyEnd {
+                    var r = spans.t.root
+                    b.push(&r, slicedBy: copyStart..<copyEnd)
+                }
+
+                if suffix > 0 {
+                    var blank = SpansBuilder<T>(totalCount: suffix).build()
+                    b.push(&blank.t.root)
+                }
             case let .insert(node):
                 var s = SpansBuilder<T>(totalCount: node.count).build()
                 b.push(&s.t.root)
