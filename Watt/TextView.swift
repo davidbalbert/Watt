@@ -101,6 +101,9 @@ class TextView: NSView, ClipViewDelegate {
 
     var insertionPointTimer: Timer?
 
+    // HACK: See layoutTextLayer() for context.
+    var previousVisibleRect: CGRect = .zero
+
     override init(frame frameRect: NSRect) {
         buffer = Buffer()
         layoutManager = LayoutManager()

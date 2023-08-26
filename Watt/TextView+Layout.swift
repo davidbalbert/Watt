@@ -151,13 +151,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
 
 extension TextView: LayoutManagerDelegate {
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect {
-        var r = visibleRect
-        r.size.width = textContainer.width
-
-        return r
-    }
-
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
         var bounds: CGRect
         if preparedContentRect.intersects(visibleRect) {
@@ -180,11 +173,6 @@ extension TextView: LayoutManagerDelegate {
         inputContext?.invalidateCharacterCoordinates()
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize) {
-        let current = scrollOffset
-        scroll(CGPoint(x: current.x + adjustment.width, y: current.y + adjustment.height))
-    }
-
     // MARK: - Text layout
 
     // TODO: once we're caching breaks and/or lines in the layout manager, switch from
@@ -200,13 +188,46 @@ extension TextView: LayoutManagerDelegate {
     func layoutTextLayer() {
         textLayer.sublayers = nil
 
-        layoutManager.layoutText { line in
+        var scrollAdjustment: CGFloat = 0
+
+        layoutManager.layoutText { line, previousBounds in
             let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
             l.bounds = line.typographicBounds
             l.position = convertFromTextContainer(line.origin)
             textLayerCache[line.id] = l
 
             textLayer.addSublayer(l)
+
+            let oldHeight = previousBounds.height
+            let newHeight = line.typographicBounds.height
+            let delta = newHeight - oldHeight
+            let oldMaxY = line.origin.y + oldHeight
+
+            // TODO: I don't know why I have to use the previous frame's
+            // visible rect here. My best guess is that it has something
+            // to do with the fact that I'm doing deferred layout of my
+            // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
+            // changing the deferred layout calls in prepareContent(in:)
+            // to immediate layout calls, but it didn't seem to fix the
+            // problem. On the other hand, I'm not sure if I've totally
+            // gotten scroll correction right here anyways (there are
+            // sometimes things that look like jumps during scrolling).
+            // I'll come back to this later.
+            if oldMaxY <= previousVisibleRect.minY && delta != 0 {
+                scrollAdjustment += delta
+            }
+        }
+
+        previousVisibleRect = visibleRect
+
+        // Adjust scroll offset.
+        // TODO: is it possible to move this into prepareContent(in:) directly?
+        // That way it would only happen when we scroll. It's also possible
+        // that would let us get rid of previousVisibleRect, but according to
+        // the comment below, I tried that, so I'm doubtful.
+        if scrollAdjustment != 0 {
+            let current = scrollOffset
+            scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
         }
 
         updateFrameHeightIfNeeded()

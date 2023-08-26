@@ -6,15 +6,12 @@
 //
 
 import Foundation
-import QuartzCore
+import CoreText
 
 protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
-
-    func layoutManager(_ layoutManager: LayoutManager, adjustScrollOffsetBy adjustment: CGSize)
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -55,8 +52,6 @@ class LayoutManager {
         }
     }
 
-    var previousVisibleRect: CGRect
-
     var selection: Selection?
 
     var lineCache: IntervalCache<Line>
@@ -64,7 +59,6 @@ class LayoutManager {
     init() {
         self.heights = Heights()
         self.textContainer = TextContainer()
-        self.previousVisibleRect = .zero
         self.lineCache = IntervalCache(upperBound: 0)
         self.selection = nil
     }
@@ -73,12 +67,11 @@ class LayoutManager {
         heights.contentHeight
     }
 
-    func layoutText(using block: (Line) -> Void) {
+    func layoutText(using block: (_ line: Line, _ previousBounds: CGRect) -> Void) {
         guard let delegate, let buffer else {
             return
         }
 
-        let visibleRect = delegate.visibleRect(for: self)
         let viewportBounds = delegate.viewportBounds(for: self)
 
         let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
@@ -91,32 +84,12 @@ class LayoutManager {
         lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
-        var scrollAdjustment: CGSize = .zero
 
         enumerateLines(in: viewportRange) { range, line, previousBounds in
-            block(line)
+            block(line, previousBounds)
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.origin, withLineHeight: line.typographicBounds.height)
-            }
-
-            let oldHeight = previousBounds.height
-            let newHeight = line.typographicBounds.height
-            let delta = newHeight - oldHeight
-            let oldMaxY = line.origin.y + oldHeight
-
-            // TODO: I don't know why I have to use the previous frame's
-            // visible rect here. My best guess is that it has something
-            // to do with the fact that I'm doing deferred layout of my
-            // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
-            // changing the deferred layout calls in prepareContent(in:)
-            // to immediate layout calls, but it didn't seem to fix the
-            // problem. On the other hand, I'm not sure if I've totally
-            // gotten scroll correction right here anyways (there are
-            // sometimes things that look like jumps during scrolling).
-            // I'll come back to this later.
-            if oldMaxY <= previousVisibleRect.minY && delta != 0 {
-                scrollAdjustment.height += delta
             }
 
             lineno += 1
@@ -127,12 +100,6 @@ class LayoutManager {
         if updateLineNumbers {
             lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
-
-        if scrollAdjustment != .zero {
-            delegate.layoutManager(self, adjustScrollOffsetBy: scrollAdjustment)
-        }
-
-        previousVisibleRect = visibleRect
     }
 
     func layoutSelections(using block: (CGRect) -> Void) {
