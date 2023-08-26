@@ -303,9 +303,6 @@ class LayoutManager {
         case selection
     }
 
-    // TODO: this is very similar to layoutSelections(using:). If we extended this to have an option to
-    // work with selections (i.e. extending the rect to the end of the line when necessary,) we can rewrite
-    // most of the body of layoutSelections(using:) in terms of enumerateTextSegments.
     func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
         guard let buffer else {
             return
