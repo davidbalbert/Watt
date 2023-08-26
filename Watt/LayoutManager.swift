@@ -154,7 +154,11 @@ class LayoutManager {
 
         while i < rangeInViewport.upperBound {
             let next = buffer.lines.index(after: i)
-            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            if didLayout {
+                updateHeightsIfNecessary(forLine: line, at: i)
+            }
+
             y += line.typographicBounds.height
 
             var thisFrag = i
@@ -240,7 +244,10 @@ class LayoutManager {
         }
 
         let y = heights.yOffset(upThroughPosition: selection.lowerBound.position)
-        let line = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        if didLayout {
+            updateHeightsIfNecessary(forLine: line, at: start)
+        }
 
         var frag: LineFragment?
         var i = start
@@ -461,11 +468,13 @@ class LayoutManager {
 
         while i < end {
             let next = buffer.lines.index(after: i)
-            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             let stop = !block(i..<next, line)
 
-            updateHeightsIfNecessary(forLine: line, at: i)
+            if didLayout {
+                updateHeightsIfNecessary(forLine: line, at: i)
+            }
 
             if stop {
                 return
@@ -476,11 +485,13 @@ class LayoutManager {
         }
 
         if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n") {
-            let line = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
-            
+            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+
             _ = block(i..<i, line)
 
-            updateHeightsIfNecessary(forLine: line, at: i)
+            if didLayout {
+                updateHeightsIfNecessary(forLine: line, at: i)
+            }
         }
     }
 
@@ -521,7 +532,10 @@ class LayoutManager {
         let end = buffer.lines.index(after: start)
         let y = heights.yOffset(upThroughPosition: offset)
 
-        let line = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        if didLayout {
+            updateHeightsIfNecessary(forLine: line, at: start)
+        }
 
         let pointInLine = convert(point, to: line)
 
@@ -588,17 +602,17 @@ class LayoutManager {
         return (pos, affinity)
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> Line {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, didLayout: Bool) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
         if var line = lineCache[range.lowerBound.position] {
             line.origin.y = point.y
-            return line
+            return (line, false)
         } else {
             let line = makeLine(from: range, in: buffer, at: point)
             lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
-            return line
+            return (line, true)
         }
     }
 
