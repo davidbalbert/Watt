@@ -104,7 +104,8 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
 
         let currentHeight = frame.height
-        let newHeight = round(max(scrollView.contentSize.height, layoutManager.contentHeight))
+        let clipviewHeight = scrollView.contentSize.height
+        let newHeight = round(max(clipviewHeight, layoutManager.contentHeight))
 
         if abs(currentHeight - newHeight) > 1e-10 {
             setFrameSize(CGSize(width: frame.width, height: newHeight))
