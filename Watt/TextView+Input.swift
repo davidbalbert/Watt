@@ -118,7 +118,7 @@ extension TextView: NSTextInputClient {
         }
 
         var rect: CGRect = .zero
-        layoutManager.enumerateTextSegments(in: range) { segmentRange, frame in
+        layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
             rect = frame
             actualRange?.pointee = NSRange(segmentRange, in: buffer)
 

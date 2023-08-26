@@ -116,69 +116,15 @@ class LayoutManager {
             return
         }
 
-        var i = buffer.lines.index(roundingDown: rangeInViewport.lowerBound)
-        var y = heights.yOffset(upThroughPosition: i.position)
-
-        while i < rangeInViewport.upperBound {
-            let next = buffer.lines.index(after: i)
-            let (line, _) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
-
-            y += line.typographicBounds.height
-
-            var thisFrag = i
-            for f in line.lineFragments {
-                let nextFrag = buffer.utf16.index(thisFrag, offsetBy: f.utf16Count)
-
-                let rangeOfFrag = thisFrag..<nextFrag
-
-                // I think the only possible empty lineFragment would be the
-                // last line of a document if it's empty. I don't know if we
-                // represent those yet, but let's ignore them for now.
-                guard !rangeOfFrag.isEmpty else {
-                    return
-                }
-
-                let rangeInFrag = rangeInViewport.clamped(to: rangeOfFrag)
-
-                if rangeInFrag.isEmpty && !rangeOfFrag.contains(rangeInFrag.lowerBound) {
-                    thisFrag = nextFrag
-                    continue
-                }
-
-                let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
-                let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
-
-                let last = buffer.index(before: rangeOfFrag.upperBound)
-                let c = buffer[last]
-                let shouldExtendSelection = (rangeInViewport.upperBound == rangeOfFrag.upperBound && c == "\n") || rangeInViewport.upperBound > rangeOfFrag.upperBound
-
-                let xEnd: CGFloat
-                if shouldExtendSelection {
-                    xEnd = textContainer.lineWidth
-                } else {
-                    let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
-                    let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
-                    let x1 = textContainer.lineWidth
-                    xEnd = min(x0, x1)
-                }
-
-                let bounds = f.typographicBounds
-                let origin = f.origin
-                let padding = textContainer.lineFragmentPadding
-
-                // selection rect in line coordinates
-                let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
-
-                block(convert(rect, from: line))
-
-                if rangeInViewport.upperBound <= rangeOfFrag.upperBound {
-                    break
-                }
-
-                thisFrag = nextFrag
+        enumerateTextSegments(in: rangeInViewport, type: .selection) { range, rect in
+            if range.isEmpty {
+                assert(range.upperBound == buffer.endIndex)
+                return false
             }
 
-            i = next
+            block(rect)
+
+            return true
         }
     }
 
@@ -352,10 +298,15 @@ class LayoutManager {
         block(rect)
     }
 
+    enum SegmentType {
+        case standard
+        case selection
+    }
+
     // TODO: this is very similar to layoutSelections(using:). If we extended this to have an option to
     // work with selections (i.e. extending the rect to the end of the line when necessary,) we can rewrite
     // most of the body of layoutSelections(using:) in terms of enumerateTextSegments.
-    func enumerateTextSegments(in range: Range<Buffer.Index>, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
+    func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
         guard let buffer else {
             return
         }
@@ -380,12 +331,26 @@ class LayoutManager {
                 let rangeInFrag = range.clamped(to: rangeOfFrag)
 
                 let start = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.lowerBound)
-                let end = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.upperBound)
-
                 let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
-                let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
-                let x1 = textContainer.lineWidth
-                let xEnd = min(x0, x1)
+
+                let shouldExtendSegment: Bool
+                if type == .selection && !rangeOfFrag.isEmpty {
+                    let last = buffer.index(before: rangeOfFrag.upperBound)
+                    let c = buffer[last]
+                    shouldExtendSegment = (range.upperBound == rangeOfFrag.upperBound && c == "\n") || range.upperBound > rangeOfFrag.upperBound
+                } else {
+                    shouldExtendSegment = false
+                }
+
+                let xEnd: CGFloat
+                if shouldExtendSegment {
+                    xEnd = textContainer.lineWidth
+                } else {
+                    let end = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.upperBound)
+                    let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
+                    let x1 = textContainer.lineWidth
+                    xEnd = min(x0, x1)
+                }
 
                 let bounds = f.typographicBounds
                 let origin = f.origin
@@ -397,7 +362,7 @@ class LayoutManager {
                     return false
                 }
 
-                if range.upperBound < rangeOfFrag.lowerBound {
+                if range.upperBound <= rangeOfFrag.upperBound {
                     return false
                 }
 
