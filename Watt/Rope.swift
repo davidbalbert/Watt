@@ -1262,6 +1262,16 @@ extension Rope {
             return base.index(roundingDown: i, using: .newlines)
         }
 
+        func index(roundingUp i: Index) -> Index {
+            i.validate(for: base.root)
+
+            if i.isBoundary(in: .newlines) || i == endIndex {
+                return i
+            }
+
+            return index(after: i)
+        }
+
         subscript(offset: Int) -> Substring {
             self[base.index(at: offset, using: .newlines)]
         }

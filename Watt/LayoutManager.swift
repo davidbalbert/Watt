@@ -392,25 +392,12 @@ class LayoutManager {
             return
         }
 
-        var i = buffer.lines.index(roundingDown: range.lowerBound)
-        var y = heights.yOffset(upThroughPosition: i.position)
+        enumerateLines(in: range) { lineRange, line in
+            var fragStart = lineRange.lowerBound
 
-        // TODO: layoutSelections(using:) has this as i < range.upperBound. That's because it
-        // doesn't have to deal with empty ranges. When we make layoutSelections(using:) depend
-        // on enumerateTextSegments, we need to make sure this logic works.
-        while i <= range.upperBound {
-            if !range.isEmpty && i == range.upperBound {
-                return
-            }
-
-            let next = i == buffer.endIndex ? i : buffer.lines.index(after: i)
-            let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
-            y += line.typographicBounds.height
-
-            var fragStart = i
             for f in line.lineFragments {
                 let fragEnd = buffer.utf16.index(fragStart, offsetBy: f.utf16Count)
-                
+
                 let rangeOfFrag = fragStart..<fragEnd
 
                 let rangesOverlap = range.overlaps(rangeOfFrag) || range.isEmpty && rangeOfFrag.contains(range.lowerBound)
@@ -424,8 +411,8 @@ class LayoutManager {
 
                 let rangeInFrag = range.clamped(to: rangeOfFrag)
 
-                let start = buffer.utf16.distance(from: i, to: rangeInFrag.lowerBound)
-                let end = buffer.utf16.distance(from: i, to: rangeInFrag.upperBound)
+                let start = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.lowerBound)
+                let end = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.upperBound)
 
                 let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
                 let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
@@ -439,29 +426,40 @@ class LayoutManager {
                 // selection rect in line coordinates
                 let rect = CGRect(x: xStart + padding, y: origin.y, width: xEnd - xStart, height: bounds.height)
                 if !block(rangeInFrag, convert(rect, from: line)) {
-                    return
+                    return false
                 }
 
                 if range.upperBound < rangeOfFrag.lowerBound {
-                    return
+                    return false
                 }
 
                 fragStart = fragEnd
             }
 
-            i = next
+            return true
         }
     }
 
+    // Empty ranges will still yield the line that contains them.
     func enumerateLines(in range: Range<Buffer.Index>, using block: (Range<Buffer.Index>, Line) -> Bool) {
         guard let buffer else {
             return
         }
 
-        var i = range.lowerBound
+        var i = buffer.lines.index(roundingDown: range.lowerBound)
+
+        let end: Buffer.Index
+        if range.upperBound == buffer.endIndex {
+            end = buffer.endIndex
+        } else if range.isEmpty {
+            end = buffer.lines.index(after: range.upperBound)
+        } else {
+            end = buffer.lines.index(roundingUp: range.upperBound)
+        }
+
         var y = heights.yOffset(upThroughPosition: i.position)
 
-        while i < range.upperBound {
+        while i < end {
             let next = buffer.lines.index(after: i)
             let line = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
@@ -609,11 +607,15 @@ class LayoutManager {
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
     // of the Line (e.g. see positionForCharacter(atUTF16Offset:in:)).
     func makeLine(from range: Range<Buffer.Index>, in buffer: Buffer, at point: CGPoint) -> Line {
+        assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
+        assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
+
         let isEmptyLastLine = range.lowerBound == buffer.endIndex
 
         // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
         let attrStr: NSAttributedString
         if isEmptyLastLine {
+            // TODO: try making this an empty string, or add a comment explaining why it has to be a newline.
             attrStr = NSAttributedString(string: "\n", attributes: [.font: (delegate as! TextView).font])
         } else {
             attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
