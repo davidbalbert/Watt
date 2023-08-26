@@ -93,14 +93,14 @@ class LayoutManager {
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
         var scrollAdjustment: CGSize = .zero
 
-        enumerateLines(in: viewportRange) { range, line in
+        enumerateLines(in: viewportRange) { range, line, previousBounds in
             block(line)
 
             if updateLineNumbers {
                 lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.origin, withLineHeight: line.typographicBounds.height)
             }
 
-            let oldHeight = heights[range.lowerBound.position]
+            let oldHeight = previousBounds.height
             let newHeight = line.typographicBounds.height
             let delta = newHeight - oldHeight
             let oldMaxY = line.origin.y + oldHeight
@@ -154,10 +154,7 @@ class LayoutManager {
 
         while i < rangeInViewport.upperBound {
             let next = buffer.lines.index(after: i)
-            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
-            if didLayout {
-                updateHeightsIfNecessary(forLine: line, at: i)
-            }
+            let (line, _) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             y += line.typographicBounds.height
 
@@ -244,10 +241,7 @@ class LayoutManager {
         }
 
         let y = heights.yOffset(upThroughPosition: selection.lowerBound.position)
-        let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
-        if didLayout {
-            updateHeightsIfNecessary(forLine: line, at: start)
-        }
+        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
         var frag: LineFragment?
         var i = start
@@ -399,7 +393,7 @@ class LayoutManager {
             return
         }
 
-        enumerateLines(in: range) { lineRange, line in
+        enumerateLines(in: range) { lineRange, line, _ in
             var fragStart = lineRange.lowerBound
 
             for f in line.lineFragments {
@@ -448,7 +442,12 @@ class LayoutManager {
     }
 
     // Empty ranges will still yield the line that contains them.
-    func enumerateLines(in range: Range<Buffer.Index>, using block: (Range<Buffer.Index>, Line) -> Bool) {
+    //
+    // Block parameters:
+    //   range - the range of the line in buffer
+    //   line - the line
+    //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
+    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ range: Range<Buffer.Index>, _ line: Line, _ previousBounds: CGRect) -> Bool) {
         guard let buffer else {
             return
         }
@@ -468,13 +467,9 @@ class LayoutManager {
 
         while i < end {
             let next = buffer.lines.index(after: i)
-            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, oldBounds) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
-            let stop = !block(i..<next, line)
-
-            if didLayout {
-                updateHeightsIfNecessary(forLine: line, at: i)
-            }
+            let stop = !block(i..<next, line, oldBounds)
 
             if stop {
                 return
@@ -485,23 +480,9 @@ class LayoutManager {
         }
 
         if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n") {
-            let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+            let (line, oldBounds) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
 
-            _ = block(i..<i, line)
-
-            if didLayout {
-                updateHeightsIfNecessary(forLine: line, at: i)
-            }
-        }
-    }
-
-    func updateHeightsIfNecessary(forLine line: Line, at index: Buffer.Index) {
-        let hi = heights.index(at: index.position)
-        let oldHeight = heights[hi]
-        let newHeight = line.typographicBounds.height
-
-        if oldHeight != newHeight {
-            heights[hi] = newHeight
+            _ = block(i..<i, line, oldBounds)
         }
     }
 
@@ -532,10 +513,7 @@ class LayoutManager {
         let end = buffer.lines.index(after: start)
         let y = heights.yOffset(upThroughPosition: offset)
 
-        let (line, didLayout) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
-        if didLayout {
-            updateHeightsIfNecessary(forLine: line, at: start)
-        }
+        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
         let pointInLine = convert(point, to: line)
 
@@ -602,17 +580,29 @@ class LayoutManager {
         return (pos, affinity)
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, didLayout: Bool) {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, previousBounds: CGRect) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
         if var line = lineCache[range.lowerBound.position] {
             line.origin.y = point.y
-            return (line, false)
+            return (line, line.typographicBounds)
         } else {
             let line = makeLine(from: range, in: buffer, at: point)
             lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
-            return (line, true)
+
+            let hi = heights.index(at: range.lowerBound.position)
+            let oldHeight = heights[hi]
+            let newHeight = line.typographicBounds.height
+
+            if oldHeight != newHeight {
+                heights[hi] = newHeight
+            }
+
+            var old = line.typographicBounds
+            old.size.height = oldHeight
+
+            return (line, old)
         }
     }
 
