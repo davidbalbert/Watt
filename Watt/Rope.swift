@@ -1416,22 +1416,21 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        let i = rope.countBaseUnits(of: range.lowerBound, measuredIn: .utf16)
+        var i = rope.countBaseUnits(of: range.lowerBound, measuredIn: .utf16)
         var j = rope.countBaseUnits(of: range.upperBound, measuredIn: .utf16)
 
-        // NSTextInputClient seems to sometimes receive ranges that end on
-        // on a trailing surrogate. Round them up to the nearest
+        // NSTextInputClient seems to sometimes receive ranges that start
+        // or end on a trailing surrogate. Round them to the nearest
         // unicode scalar.
+        if rope.count(.utf16, upThrough: i) != range.lowerBound {
+            assert(rope.count(.utf16, upThrough: i) == range.lowerBound - 1)
+            print("!!! got NSRange starting on a trailing surrogate: \(range). I think this is expected, but try to reproduce and figure out if it's ok")
+            i -= 1
+        }
+
         if rope.count(.utf16, upThrough: j) != range.upperBound {
             assert(rope.count(.utf16, upThrough: j) == range.upperBound - 1)
             j += 1
-        }
-
-        // I'm not sure if we can get a range that starts on a trailing
-        // surrogate, so I'm leaving this in just in case. Who knows
-        // what NSTextInputClient will get.
-        if rope.count(.utf16, upThrough: i) != range.lowerBound {
-            fatalError("Got NSRange with lowerBound referencing a trailing surrogate")
         }
 
         self.init(uncheckedBounds: (rope.utf8.index(at: i), rope.utf8.index(at: j)))
