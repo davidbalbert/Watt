@@ -12,9 +12,23 @@ final class AttributedRopeTests: XCTestCase {
     // MARK: - NSAttributedString conversion
 
     func testEmptyAttributedRope() {
-        let r = AttributedRope("")
+        var r = AttributedRope("")
         XCTAssertEqual(r.runs.count, 0)
 
+        XCTAssertNil(r.font)
+        XCTAssertNil(r.foregroundColor)
+        XCTAssertNil(r.backgroundColor)
+        XCTAssertNil(r.underlineStyle)
+        XCTAssertNil(r.underlineColor)
+
+        // setting attributes has no effect
+        r.font = .systemFont(ofSize: 12)
+        r.foregroundColor = .red
+        r.backgroundColor = .blue
+        r.underlineStyle = .single
+        r.underlineColor = .green
+
+        XCTAssertEqual(r.runs.count, 0)
         XCTAssertNil(r.font)
         XCTAssertNil(r.foregroundColor)
         XCTAssertNil(r.backgroundColor)

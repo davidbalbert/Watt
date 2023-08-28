@@ -77,6 +77,10 @@ extension AttributedRope {
             spans.data(covering: 0..<spans.count)?.font
         }
         set {
+            if text.isEmpty {
+                return
+            }
+
             var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(font: newValue), covering: 0..<text.utf8.count)
 
@@ -93,6 +97,10 @@ extension AttributedRope {
             spans.data(covering: 0..<spans.count)?.foregroundColor
         }
         set {
+            if text.isEmpty {
+                return
+            }
+
             var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(foregroundColor: newValue), covering: 0..<text.utf8.count)
 
@@ -109,6 +117,10 @@ extension AttributedRope {
             spans.data(covering: 0..<spans.count)?.backgroundColor
         }
         set {
+            if text.isEmpty {
+                return
+            }
+
             var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(backgroundColor: newValue), covering: 0..<text.utf8.count)
 
@@ -125,6 +137,10 @@ extension AttributedRope {
             spans.data(covering: 0..<spans.count)?.underlineStyle
         }
         set {
+            if text.isEmpty {
+                return
+            }
+
             var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(underlineStyle: newValue), covering: 0..<text.utf8.count)
 
@@ -141,6 +157,10 @@ extension AttributedRope {
             spans.data(covering: 0..<spans.count)?.underlineColor
         }
         set {
+            if text.isEmpty {
+                return
+            }
+
             var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(underlineColor: newValue), covering: 0..<text.utf8.count)
 
