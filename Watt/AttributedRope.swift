@@ -163,7 +163,7 @@ struct AttributedSubrope {
 
         spans = spans.merging(b.build()) { a, b in
             var a = a ?? Style()
-            a[keyPath: key] = b?[keyPath: key] ?? a[keyPath: key]
+            a[keyPath: key] = b?[keyPath: key]
             return a
         }
     }
