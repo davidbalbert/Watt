@@ -125,12 +125,12 @@ struct AttributedSubrope {
     var spans: Spans<Style>
     var bounds: Range<AttributedRope.Index>
 
-    func value<Value>(forKey key: KeyPath<Style, Value?>, coveringEntiretyOf range: Range<AttributedRope.Index>) -> Value? where Value: Equatable {
-        let r = Range(range)
+    func value<Value>(forKey key: KeyPath<Style, Value?>) -> Value? where Value: Equatable {
+        let r = Range(bounds)
         var first = true
         var v: Value?
 
-        // TODO: Spans should be a collection and we should be able to slice and iterate through only the spans that overlap bounds.
+        // TODO: Spans should be a collection and we should be able to slice and iterate through only the spans that overlap range.
         for span in spans {
             if span.range.endIndex <= r.lowerBound {
                 continue
@@ -153,7 +153,7 @@ struct AttributedSubrope {
 
     var font: NSFont? {
         get {
-            value(forKey: \.font, coveringEntiretyOf: bounds)
+            value(forKey: \.font)
         }
         set {
             if bounds.isEmpty {
@@ -173,7 +173,7 @@ struct AttributedSubrope {
 
     var foregroundColor: NSColor? {
         get {
-            value(forKey: \.foregroundColor, coveringEntiretyOf: bounds)
+            value(forKey: \.foregroundColor)
         }
         set {
             if bounds.isEmpty {
@@ -193,7 +193,7 @@ struct AttributedSubrope {
 
     var backgroundColor: NSColor? {
         get {
-            value(forKey: \.backgroundColor, coveringEntiretyOf: bounds)
+            value(forKey: \.backgroundColor)
         }
         set {
             if bounds.isEmpty {
@@ -213,7 +213,7 @@ struct AttributedSubrope {
 
     var underlineStyle: NSUnderlineStyle? {
         get {
-            value(forKey: \.underlineStyle, coveringEntiretyOf: bounds)
+            value(forKey: \.underlineStyle)
         }
         set {
             if bounds.isEmpty {
@@ -233,7 +233,7 @@ struct AttributedSubrope {
 
     var underlineColor: NSColor? {
         get {
-            value(forKey: \.underlineColor, coveringEntiretyOf: bounds)
+            value(forKey: \.underlineColor)
         }
         set {
             if bounds.isEmpty {
