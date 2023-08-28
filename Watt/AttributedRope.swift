@@ -130,6 +130,7 @@ struct AttributedSubrope {
         var first = true
         var v: Value?
 
+        // TODO: Spans should be a collection and we should be able to slice and iterate through only the spans that overlap bounds.
         for span in spans {
             if span.range.endIndex <= r.lowerBound {
                 continue
