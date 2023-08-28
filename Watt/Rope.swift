@@ -15,7 +15,6 @@ import Foundation
 
 typealias Rope = BTree<RopeSummary>
 
-
 struct RopeSummary: BTreeSummary {
     var utf16: Int
     var scalars: Int

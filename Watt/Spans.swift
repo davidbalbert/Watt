@@ -127,6 +127,24 @@ struct Spans<T> {
         self.t = tree
     }
 
+    // Returns data covering the given range if there is a single Span
+    // that covers the entire range. Otherwise returns nil.
+    func data(covering range: Range<Int>) -> T? {
+        var i = BTree.Index(offsetBy: range.lowerBound, in: t)
+        guard let (leaf, _) = i.read() else {
+            return nil
+        }
+
+        let r = range.offset(by: -i.offsetOfLeaf)
+        for span in leaf.spans {
+            if span.range == r {
+                return span.data
+            }
+        }
+
+        return nil
+    }
+
     func merging<O>(_ other: Spans<T>, transform: (T?, T?) -> O?) -> Spans<O> {
         precondition(count == other.count)
 

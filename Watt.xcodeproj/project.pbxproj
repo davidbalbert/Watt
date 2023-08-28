@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		6315D2FE2A96630F00B8A077 /* SpansTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FD2A96630F00B8A077 /* SpansTests.swift */; };
+		6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FF2A9B769100B8A077 /* AttributedRope.swift */; };
+		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
@@ -72,6 +74,8 @@
 
 /* Begin PBXFileReference section */
 		6315D2FD2A96630F00B8A077 /* SpansTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpansTests.swift; sourceTree = "<group>"; };
+		6315D2FF2A9B769100B8A077 /* AttributedRope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedRope.swift; sourceTree = "<group>"; };
+		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
@@ -180,6 +184,7 @@
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
+				6315D2FF2A9B769100B8A077 /* AttributedRope.swift */,
 				63F046892A65D3EA001B8DA8 /* BTree.swift */,
 				63F25BD82A683CC500DEACCF /* Buffer.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
@@ -222,10 +227,11 @@
 		637288A029FD8E1A005B95E5 /* WattTests */ = {
 			isa = PBXGroup;
 			children = (
-				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
+				6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */,
 				63C907812A7319E300E4D7C9 /* HeightsTest.swift */,
 				63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
+				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
 			);
 			path = WattTests;
 			sourceTree = "<group>";
@@ -381,6 +387,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
+				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
@@ -421,6 +428,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */,
 				63C907822A7319E300E4D7C9 /* HeightsTest.swift in Sources */,
 				63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */,
 				63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */,
