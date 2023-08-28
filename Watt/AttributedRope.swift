@@ -151,23 +151,29 @@ struct AttributedSubrope {
         return v
     }
 
+    mutating func setValue<Value>(_ value: Value?, forKey key: WritableKeyPath<Style, Value?>) where Value: Equatable {
+        if bounds.isEmpty {
+            return
+        }
+
+        var b = SpansBuilder<Style>(totalCount: text.utf8.count)
+        var s = Style()
+        s[keyPath: key] = value
+        b.add(s, covering: Range(bounds))
+
+        spans = spans.merging(b.build()) { a, b in
+            var a = a ?? Style()
+            a[keyPath: key] = b?[keyPath: key] ?? a[keyPath: key]
+            return a
+        }
+    }
+
     var font: NSFont? {
         get {
             value(forKey: \.font)
         }
         set {
-            if bounds.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(font: newValue), covering: Range(bounds))
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.font = b?.font ?? a.font
-                return a
-            }
+            setValue(newValue, forKey: \.font)
         }
     }
 
@@ -176,18 +182,7 @@ struct AttributedSubrope {
             value(forKey: \.foregroundColor)
         }
         set {
-            if bounds.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(foregroundColor: newValue), covering: Range(bounds))
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.foregroundColor = b?.foregroundColor ?? a.foregroundColor
-                return a
-            }
+            setValue(newValue, forKey: \.foregroundColor)
         }
     }
 
@@ -196,18 +191,7 @@ struct AttributedSubrope {
             value(forKey: \.backgroundColor)
         }
         set {
-            if bounds.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(backgroundColor: newValue), covering: Range(bounds))
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.backgroundColor = b?.backgroundColor ?? a.backgroundColor
-                return a
-            }
+            setValue(newValue, forKey: \.backgroundColor)
         }
     }
 
@@ -216,18 +200,7 @@ struct AttributedSubrope {
             value(forKey: \.underlineStyle)
         }
         set {
-            if bounds.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(underlineStyle: newValue), covering: Range(bounds))
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.underlineStyle = b?.underlineStyle ?? a.underlineStyle
-                return a
-            }
+            setValue(newValue, forKey: \.underlineStyle)
         }
     }
 
@@ -236,18 +209,7 @@ struct AttributedSubrope {
             value(forKey: \.underlineColor)
         }
         set {
-            if bounds.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(underlineColor: newValue), covering: Range(bounds))
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.underlineColor = b?.underlineColor ?? a.underlineColor
-                return a
-            }
+            setValue(newValue, forKey: \.underlineColor)
         }
     }
 
