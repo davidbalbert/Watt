@@ -80,6 +80,21 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
         XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
         XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
+
+        // unsetting attributes
+        r.font = nil
+        r.foregroundColor = nil
+        r.backgroundColor = nil
+        r.underlineStyle = nil
+        r.underlineColor = nil
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        XCTAssertNil(r.font)
+        XCTAssertNil(r.foregroundColor)
+        XCTAssertNil(r.backgroundColor)
+        XCTAssertNil(r.underlineStyle)
+        XCTAssertNil(r.underlineColor)
     }
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
