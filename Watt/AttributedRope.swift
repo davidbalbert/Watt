@@ -121,24 +121,50 @@ extension AttributedRope {
 // MARK: - Collection
 
 struct AttributedSubrope {
-    var base: AttributedRope
+    var text: Rope
+    var spans: Spans<Style>
     var bounds: Range<AttributedRope.Index>
+
+    func value<Value>(forKey key: KeyPath<Style, Value?>, coveringEntiretyOf range: Range<AttributedRope.Index>) -> Value? where Value: Equatable {
+        let r = Range(range)
+        var first = true
+        var v: Value?
+
+        for span in spans {
+            if span.range.endIndex <= r.lowerBound {
+                continue
+            }
+
+            if span.range.startIndex >= r.upperBound {
+                break
+            }
+
+            if first {
+                v = span.data[keyPath: key]
+                first = false
+            } else if span.data[keyPath: key] != v {
+                return nil
+            }
+        }
+
+        return v
+    }
 
     var font: NSFont? {
         get {
-            base.spans.data(covering: Range(bounds))?.font
+            value(forKey: \.font, coveringEntiretyOf: bounds)
         }
         set {
             if bounds.isEmpty {
                 return
             }
 
-            var b = SpansBuilder<Style>(totalCount: base.text.utf8.count)
+            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(font: newValue), covering: Range(bounds))
 
-            base.spans = base.spans.merging(b.build()) { a, b in
+            spans = spans.merging(b.build()) { a, b in
                 var a = a ?? Style()
-                a.font = b?.font
+                a.font = b?.font ?? a.font
                 return a
             }
         }
@@ -146,19 +172,19 @@ struct AttributedSubrope {
 
     var foregroundColor: NSColor? {
         get {
-            base.spans.data(covering: Range(bounds))?.foregroundColor
+            value(forKey: \.foregroundColor, coveringEntiretyOf: bounds)
         }
         set {
             if bounds.isEmpty {
                 return
             }
 
-            var b = SpansBuilder<Style>(totalCount: base.text.utf8.count)
+            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(foregroundColor: newValue), covering: Range(bounds))
 
-            base.spans = base.spans.merging(b.build()) { a, b in
+            spans = spans.merging(b.build()) { a, b in
                 var a = a ?? Style()
-                a.foregroundColor = b?.foregroundColor
+                a.foregroundColor = b?.foregroundColor ?? a.foregroundColor
                 return a
             }
         }
@@ -166,19 +192,19 @@ struct AttributedSubrope {
 
     var backgroundColor: NSColor? {
         get {
-            base.spans.data(covering: Range(bounds))?.backgroundColor
+            value(forKey: \.backgroundColor, coveringEntiretyOf: bounds)
         }
         set {
             if bounds.isEmpty {
                 return
             }
 
-            var b = SpansBuilder<Style>(totalCount: base.text.utf8.count)
+            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(backgroundColor: newValue), covering: Range(bounds))
 
-            base.spans = base.spans.merging(b.build()) { a, b in
+            spans = spans.merging(b.build()) { a, b in
                 var a = a ?? Style()
-                a.backgroundColor = b?.backgroundColor
+                a.backgroundColor = b?.backgroundColor ?? a.backgroundColor
                 return a
             }
         }
@@ -186,19 +212,19 @@ struct AttributedSubrope {
 
     var underlineStyle: NSUnderlineStyle? {
         get {
-            base.spans.data(covering: Range(bounds))?.underlineStyle
+            value(forKey: \.underlineStyle, coveringEntiretyOf: bounds)
         }
         set {
             if bounds.isEmpty {
                 return
             }
 
-            var b = SpansBuilder<Style>(totalCount: base.text.utf8.count)
+            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(underlineStyle: newValue), covering: Range(bounds))
 
-            base.spans = base.spans.merging(b.build()) { a, b in
+            spans = spans.merging(b.build()) { a, b in
                 var a = a ?? Style()
-                a.underlineStyle = b?.underlineStyle
+                a.underlineStyle = b?.underlineStyle ?? a.underlineStyle
                 return a
             }
         }
@@ -206,19 +232,19 @@ struct AttributedSubrope {
 
     var underlineColor: NSColor? {
         get {
-            base.spans.data(covering: Range(bounds))?.underlineColor
+            value(forKey: \.underlineColor, coveringEntiretyOf: bounds)
         }
         set {
             if bounds.isEmpty {
                 return
             }
 
-            var b = SpansBuilder<Style>(totalCount: base.text.utf8.count)
+            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
             b.add(Style(underlineColor: newValue), covering: Range(bounds))
 
-            base.spans = base.spans.merging(b.build()) { a, b in
+            spans = spans.merging(b.build()) { a, b in
                 var a = a ?? Style()
-                a.underlineColor = b?.underlineColor
+                a.underlineColor = b?.underlineColor ?? a.underlineColor
                 return a
             }
         }
@@ -243,8 +269,8 @@ struct AttributedSubrope {
 //
 //            yield &r
 //
-//            text = r.base.text
-//            spans = r.base.spans
+//            text = r.text
+//            spans = r.spans
 //        }
 //        set {
 //            fatalError("not yet")
@@ -274,17 +300,17 @@ extension AttributedRope {
 
     subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
         _read {
-            yield AttributedSubrope(base: self, bounds: bounds)
+            yield AttributedSubrope(text: text, spans: spans, bounds: bounds)
         }
         _modify {
-            var r = AttributedSubrope(base: self, bounds: bounds)
+            var r = AttributedSubrope(text: text, spans: spans, bounds: bounds)
             text = Rope()
             spans = SpansBuilder<Style>(totalCount: 0).build()
 
             yield &r
 
-            text = r.base.text
-            spans = r.base.spans
+            text = r.text
+            spans = r.spans
         }
     }
 }

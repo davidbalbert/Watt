@@ -112,24 +112,24 @@ final class AttributedRopeTests: XCTestCase {
     }
 
     func testAttributesOnAPortionOfTheRope() {
-//        var r = AttributedRope("Hello, world!")
-//
-//        r.font = NSFont.systemFont(ofSize: 12)
-//        r.foregroundColor = .red
-//        r.backgroundColor = .blue
-//        r.underlineStyle = .single
-//        r.underlineColor = .green
-//
-//        r[r.startIndex..<r.index(at: 5)].font = NSFont.systemFont(ofSize: 14)
-//        r[r.startIndex..<r.index(at: 5)].foregroundColor = .yellow
-//
-//        XCTAssertEqual(r.runs.count, 2)
-//
-//        XCTAssertNil(r.font)
-//        XCTAssertNil(r.foregroundColor)
-//        XCTAssertEqual(r.backgroundColor, .blue)
-//        XCTAssertEqual(r.underlineStyle, .single)
-//        XCTAssertEqual(r.underlineColor, .green)
+        var r = AttributedRope("Hello, world!")
+
+        r.font = NSFont.systemFont(ofSize: 12)
+        r.foregroundColor = .red
+        r.backgroundColor = .blue
+        r.underlineStyle = .single
+        r.underlineColor = .green
+
+        r[r.startIndex..<r.index(at: 5)].font = NSFont.systemFont(ofSize: 14)
+        r[r.startIndex..<r.index(at: 5)].foregroundColor = .yellow
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        XCTAssertNil(r.font)
+        XCTAssertNil(r.foregroundColor)
+        XCTAssertEqual(r.backgroundColor, .blue)
+        XCTAssertEqual(r.underlineStyle, .single)
+        XCTAssertEqual(r.underlineColor, .green)
 
 //        let r0 = r.runs[0]
 //        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
