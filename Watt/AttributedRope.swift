@@ -74,101 +74,46 @@ struct AttributedRope {
 extension AttributedRope {
     var font: NSFont? {
         get {
-            spans.data(covering: 0..<spans.count)?.font
+            self[startIndex..<endIndex].font
         }
         set {
-            if text.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(font: newValue), covering: 0..<text.utf8.count)
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.font = b?.font
-                return a
-            }
+            self[startIndex..<endIndex].font = newValue
         }
     }
 
     var foregroundColor: NSColor? {
         get {
-            spans.data(covering: 0..<spans.count)?.foregroundColor
+            self[startIndex..<endIndex].foregroundColor
         }
         set {
-            if text.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(foregroundColor: newValue), covering: 0..<text.utf8.count)
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.foregroundColor = b?.foregroundColor
-                return a
-            }
+            self[startIndex..<endIndex].foregroundColor = newValue
         }
     }
 
     var backgroundColor: NSColor? {
         get {
-            spans.data(covering: 0..<spans.count)?.backgroundColor
+            self[startIndex..<endIndex].backgroundColor
         }
         set {
-            if text.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(backgroundColor: newValue), covering: 0..<text.utf8.count)
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.backgroundColor = b?.backgroundColor
-                return a
-            }
+            self[startIndex..<endIndex].backgroundColor = newValue
         }
     }
 
     var underlineStyle: NSUnderlineStyle? {
         get {
-            spans.data(covering: 0..<spans.count)?.underlineStyle
+            self[startIndex..<endIndex].underlineStyle
         }
         set {
-            if text.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(underlineStyle: newValue), covering: 0..<text.utf8.count)
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.underlineStyle = b?.underlineStyle
-                return a
-            }
+            self[startIndex..<endIndex].underlineStyle = newValue
         }
     }
 
     var underlineColor: NSColor? {
         get {
-            spans.data(covering: 0..<spans.count)?.underlineColor
+            self[startIndex..<endIndex].underlineColor
         }
         set {
-            if text.isEmpty {
-                return
-            }
-
-            var b = SpansBuilder<Style>(totalCount: text.utf8.count)
-            b.add(Style(underlineColor: newValue), covering: 0..<text.utf8.count)
-
-            spans = spans.merging(b.build()) { a, b in
-                var a = a ?? Style()
-                a.underlineColor = b?.underlineColor
-                return a
-            }
+            self[startIndex..<endIndex].underlineColor = newValue
         }
     }
 }
