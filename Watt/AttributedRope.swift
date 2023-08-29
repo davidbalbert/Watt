@@ -7,7 +7,7 @@
 
 import AppKit
 
-struct Style {
+struct Style: Equatable {
     static let knownAttributes: Set<NSAttributedString.Key> = [.font, .underlineStyle, .foregroundColor, .backgroundColor, .underlineColor]
 
     var font: NSFont?

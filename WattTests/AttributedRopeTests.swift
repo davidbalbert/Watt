@@ -174,17 +174,17 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
         XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
         XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
-//
-//        // merging ranges
-//        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
-//        r[r.startIndex..<r.index(at: 5)].foregroundColor = .red
-//
-//        XCTAssertEqual(r.runs.count, 1)
-//        XCTAssertEqual(r.font, .systemFont(ofSize: 12))
-//        XCTAssertEqual(r.foregroundColor, .red)
-//        XCTAssertEqual(r.backgroundColor, .blue)
-//        XCTAssertEqual(r.underlineStyle, .single)
-//        XCTAssertEqual(r.underlineColor, .green)
+
+        // merging ranges
+        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
+        r[r.startIndex..<r.index(at: 5)].foregroundColor = .red
+
+        XCTAssertEqual(r.runs.count, 1)
+        XCTAssertEqual(r.font, .systemFont(ofSize: 12))
+        XCTAssertEqual(r.foregroundColor, .red)
+        XCTAssertEqual(r.backgroundColor, .blue)
+        XCTAssertEqual(r.underlineStyle, .single)
+        XCTAssertEqual(r.underlineColor, .green)
     }
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {

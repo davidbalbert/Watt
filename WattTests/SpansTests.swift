@@ -9,6 +9,98 @@ import XCTest
 
 @testable import Watt
 final class SpansTests: XCTestCase {
+    // MARK: - Merging adjacent equatable spans
+    func testAdjacentEquatableSpansGetMerged() {
+        var b = SpansBuilder<Int>(totalCount: 6)
+        b.add(1, covering: 0..<3)
+        b.add(1, covering: 3..<6)
+        var s = b.build()
+
+        XCTAssertEqual(6, s.upperBound)
+        XCTAssertEqual(1, s.count)
+
+        var iter = s.makeIterator()
+        XCTAssertEqual(Span(range: 0..<6, data: 1), iter.next())
+        XCTAssertNil(iter.next())
+
+        b = SpansBuilder<Int>(totalCount: 6)
+        b.add(1, covering: 0..<3)
+        b.add(2, covering: 3..<6)
+        s = b.build()
+
+        XCTAssertEqual(6, s.upperBound)
+        XCTAssertEqual(2, s.count)
+
+        iter = s.makeIterator()
+        XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 3..<6, data: 2), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testMergingEquatableSpansWithGapsDoesntMerge() {
+        var b = SpansBuilder<Int>(totalCount: 6)
+        b.add(1, covering: 0..<3)
+        b.add(2, covering: 4..<6)
+        let s = b.build()
+
+        XCTAssertEqual(6, s.upperBound)
+        XCTAssertEqual(2, s.count)
+
+        var iter = s.makeIterator()
+        XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 4..<6, data: 2), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testNonEquatableSpanDataDoesntMerge() {
+        struct NonEquatable {}
+
+        var b = SpansBuilder<NonEquatable>(totalCount: 6)
+        b.add(NonEquatable(), covering: 0..<3)
+        b.add(NonEquatable(), covering: 3..<6)
+        let s = b.build()
+
+        XCTAssertEqual(6, s.upperBound)
+        XCTAssertEqual(2, s.count)
+
+        var iter = s.makeIterator()
+        XCTAssertEqual(0..<3, iter.next()!.range)
+        XCTAssertEqual(3..<6, iter.next()!.range)
+        XCTAssertNil(iter.next())
+    }
+
+    func testMergingEquatableSpansThatWouldNormallyTakeUpMultipleLeaves() {
+        var b = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            b.add(1, covering: i..<i+2)
+        }
+        var s = b.build()
+
+        XCTAssertEqual(256, s.upperBound)
+        XCTAssertEqual(1, s.count)
+        XCTAssertEqual(0, s.t.root.height)
+
+        var iter = s.makeIterator()
+        XCTAssertEqual(Span(range: 0..<256, data: 1), iter.next())
+        XCTAssertNil(iter.next())
+
+        b = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            b.add(i, covering: i..<i+2)
+        }
+        s = b.build()
+
+        XCTAssertEqual(256, s.upperBound)
+        XCTAssertEqual(128, s.count)
+        XCTAssertEqual(1, s.t.root.height)
+        XCTAssertEqual(2, s.t.root.children.count)
+
+        iter = s.makeIterator()
+        for i in stride(from: 0, through: 255, by: 2) {
+            XCTAssertEqual(Span(range: i..<i+2, data: i), iter.next())
+        }
+    }
+
     // MARK: - Regressions
 
     func testOverlappingMerge() {

@@ -272,6 +272,13 @@ extension Spans: Sequence {
     }
 }
 
+fileprivate func isEqual<E: Equatable, T>(_ a: E, _ b: T) -> Bool {
+    if let b = b as? E {
+        return a == b
+    } else {
+        return false
+    }
+}
 
 struct SpansBuilder<T> {
     var b: BTree<SpansSummary<T>>.Builder
@@ -289,6 +296,15 @@ struct SpansBuilder<T> {
     mutating func add(_ data: T, covering range: Range<Int>) {
         precondition(range.lowerBound >= count + (leaf.spans.last?.range.upperBound ?? 0))
 
+        // merge with previous span if T is equatable and the previous span is equal and adajacent.
+        if let last = leaf.spans.last, last.range.upperBound == range.lowerBound - count {
+            if let lastData = last.data as? any Equatable, isEqual(lastData, data) {
+                leaf.spans[leaf.spans.count - 1].range = last.range.lowerBound..<(last.range.upperBound + range.count)
+                totalCount = max(totalCount, range.upperBound)
+                return
+            }
+        }
+
         if leaf.spans.count == SpansLeaf<T>.maxSize {
             leaf.count = range.lowerBound - count
             self.count = range.lowerBound
@@ -297,7 +313,7 @@ struct SpansBuilder<T> {
         }
 
         leaf.spans.append(Span(range: range.offset(by: -count), data: data))
-        totalCount = Swift.max(totalCount, range.upperBound)
+        totalCount = max(totalCount, range.upperBound)
     }
 
     consuming func build() -> Spans<T> {
