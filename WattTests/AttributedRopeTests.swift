@@ -120,7 +120,7 @@ final class AttributedRopeTests: XCTestCase {
         r.underlineStyle = .single
         r.underlineColor = .green
 
-        r[r.startIndex..<r.index(at: 5)].font = NSFont.systemFont(ofSize: 14)
+        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 14)
         r[r.startIndex..<r.index(at: 5)].foregroundColor = .yellow
 
         XCTAssertEqual(r.runs.count, 2)
@@ -131,48 +131,49 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(r.underlineStyle, .single)
         XCTAssertEqual(r.underlineColor, .green)
 
-//        let r0 = r.runs[0]
-//        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
-//        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
-//        XCTAssertEqual(r0.foregroundColor, .yellow)
-//        XCTAssertEqual(r0.backgroundColor, .blue)
-//        XCTAssertEqual(r0.underlineStyle, .single)
-//        XCTAssertEqual(r0.underlineColor, .green)
-//
-//        let r1 = r.runs[1]
-//        XCTAssertEqual(r1.range, r.index(at: 5)..<r.endIndex)
-//        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
-//        XCTAssertEqual(r1.foregroundColor, .red)
-//        XCTAssertEqual(r1.backgroundColor, .blue)
-//        XCTAssertEqual(r1.underlineStyle, .single)
-//        XCTAssertEqual(r1.underlineColor, .green)
-//
-//        let s = NSAttributedString(r)
-//        XCTAssertEqual(s.string, "Hello, world!")
-//        XCTAssertEqual(s.length, 13)
-//        assertRunCountEquals(s, 2)
-//
-//        var range = NSRange(location: 0, length: 0)
-//        var attrs = s.attributes(at: 0, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-//        XCTAssertEqual(range.location, 0)
-//        XCTAssertEqual(range.length, 5)
-//        XCTAssertEqual(attrs.count, 5)
-//        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 14))
-//        XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .yellow)
-//        XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
-//        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
-//        XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
-//
-//        range = NSRange(location: 0, length: 0)
-//        attrs = s.attributes(at: 5, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-//        XCTAssertEqual(range.location, 5)
-//        XCTAssertEqual(range.length, 8)
-//        XCTAssertEqual(attrs.count, 5)
-//        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
-//        XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .red)
-//        XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
-//        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
-//        XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+        XCTAssertEqual(r0.foregroundColor, .yellow)
+        XCTAssertEqual(r0.backgroundColor, .blue)
+        XCTAssertEqual(r0.underlineStyle, .single)
+        XCTAssertEqual(r0.underlineColor, .green)
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 5)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
+        XCTAssertEqual(r1.foregroundColor, .red)
+        XCTAssertEqual(r1.backgroundColor, .blue)
+        XCTAssertEqual(r1.underlineStyle, .single)
+        XCTAssertEqual(r1.underlineColor, .green)
+
+        let s = NSAttributedString(r)
+        XCTAssertEqual(s.string, "Hello, world!")
+        XCTAssertEqual(s.length, 13)
+        assertRunCountEquals(s, 2)
+
+        var range = NSRange(location: 0, length: 0)
+        var attrs = s.attributes(at: 0, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
+        XCTAssertEqual(range.location, 0)
+        XCTAssertEqual(range.length, 5)
+        XCTAssertEqual(attrs.count, 5)
+        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 14))
+        XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .yellow)
+        XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
+        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
+        XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
+
+        range = NSRange(location: 0, length: 0)
+        attrs = s.attributes(at: 5, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
+        XCTAssertEqual(range.location, 5)
+        XCTAssertEqual(range.length, 8)
+        XCTAssertEqual(attrs.count, 5)
+        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
+        XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .red)
+        XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
+        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
+        XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
 //
 //        // merging ranges
 //        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)

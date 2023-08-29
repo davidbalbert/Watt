@@ -163,7 +163,9 @@ struct AttributedSubrope {
 
         spans = spans.merging(b.build()) { a, b in
             var a = a ?? Style()
-            a[keyPath: key] = b?[keyPath: key]
+            if let b {
+                a[keyPath: key] = b[keyPath: key]
+            }
             return a
         }
     }
@@ -281,16 +283,69 @@ extension AttributedRope {
 // MARK: - Runs
 
 extension AttributedRope {
+    var runs: Runs {
+        Runs(base: self)
+    }
+
     struct Runs {
         var base: AttributedRope
+
+        struct Run {
+            var base: AttributedRope
+            var span: Span<Style>
+
+            var range: Range<AttributedRope.Index> {
+                Range(span.range, in: base.text)
+            }
+
+            var font: NSFont? {
+                base[range].font
+            }
+
+            var foregroundColor: NSColor? {
+                base[range].foregroundColor
+            }
+
+            var backgroundColor: NSColor? {
+                base[range].backgroundColor
+            }
+
+            var underlineStyle: NSUnderlineStyle? {
+                base[range].underlineStyle
+            }
+
+            var underlineColor: NSColor? {
+                base[range].underlineColor
+            }
+        }
 
         var count: Int {
             base.spans.spanCount
         }
     }
+}
 
-    var runs: Runs {
-        Runs(base: self)
+extension AttributedRope.Runs: Sequence {
+    struct Iterator: IteratorProtocol {
+        var i: Spans<Style>.Iterator
+        var base: AttributedRope
+
+        init(_ runs: AttributedRope.Runs) {
+            self.i = runs.base.spans.makeIterator()
+            self.base = runs.base
+        }
+
+        mutating func next() -> Run? {
+            guard let span = i.next() else {
+                return nil
+            }
+
+            return Run(base: base, span: span)
+        }
+    }
+
+    func makeIterator() -> Iterator {
+        Iterator(self)
     }
 }
 
