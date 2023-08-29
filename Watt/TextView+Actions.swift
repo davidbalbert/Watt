@@ -19,8 +19,7 @@ extension TextView {
         }
 
         // TODO: we probably have to take selection.markedRange into account here.
-        // TODO: get rid of NSAttributedString creation
-        buffer.replaceSubrange(selection.range, with: NSAttributedString(string: "\n", attributes: typingAttributes))
+        buffer.replaceSubrange(selection.range, with: AttributedRope("\n"))
 
         print("insertNewline - ", terminator: "")
         unmarkText()

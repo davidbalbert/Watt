@@ -145,12 +145,11 @@ class Buffer {
     // I'm really not sure, but that doesn't seem great.
     //
     // This will also be important for Undo/Redo.
-    func replaceSubrange(_ subrange: Range<Index>, with attrString: NSAttributedString) {
-        let rope = Rope(attrString.string)
-        let range = subrange.lowerBound.position..<subrange.upperBound.position
+    func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
+        let range = Range(subrange)
 
         var b = Rope.DeltaBuilder(contents.utf8.count)
-        b.replace(range, with: rope)
+        b.replace(range, with: attrRope.text)
         let delta = b.build()
 
         let old = contents

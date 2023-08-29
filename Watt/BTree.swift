@@ -1210,7 +1210,8 @@ extension BTree {
             case let (.copy(a, b), .copy(c, d)):
                 return a == c && b == d
             case let (.insert(a), .insert(b)):
-                // Kind of a hack. The equatable conformance is just for testing.
+                // Reference equality. Kind of a hack, but the
+                // Equatable conformance is just for testing.
                 return a === b
             default:
                 return false

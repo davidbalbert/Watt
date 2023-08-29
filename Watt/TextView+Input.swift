@@ -9,13 +9,13 @@ import Cocoa
 
 extension TextView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
-        let string = attributedString(anyString: string)
+        let attrRope = attributedRope(anyString: string)
 
         guard let range = getReplacementRange(for: replacementRange) else {
             return
         }
 
-        buffer.replaceSubrange(range, with: string)
+        buffer.replaceSubrange(range, with: attrRope)
 
         print("insertText - ", terminator: "")
         unmarkText()
@@ -29,13 +29,13 @@ extension TextView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
-        let string = attributedString(anyString: string, attributes: markedTextAttributes)
+        let attrRope = attributedRope(anyString: string, attributes: markedTextAttributes)
 
         guard let range = getReplacementRange(for: replacementRange) else {
             return
         }
 
-        buffer.replaceSubrange(range, with: string)
+        buffer.replaceSubrange(range, with: attrRope)
 
         let start = buffer.index(fromOldIndex: range.lowerBound)
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
@@ -43,11 +43,11 @@ extension TextView: NSTextInputClient {
 
         var selection = Selection(head: head, anchor: anchor)
 
-        if string.length == 0 {
+        if attrRope.count == 0 {
             print("setMarkedText - ", terminator: "")
             unmarkText()
         } else {
-            let end = buffer.utf16.index(start, offsetBy: string.length)
+            let end = buffer.index(start, offsetBy: attrRope.count)
             selection.markedRange = start..<end
         }
 
@@ -150,16 +150,17 @@ extension TextView: NSTextInputClient {
 }
 
 extension TextView {
-    var typingAttributes: [NSAttributedString.Key: Any] {
-        [.font: font]
+    var markedTextAttributes: AttributedRope.Attributes {
+        AttributedRope.Attributes([
+            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
+        ])
     }
 
-    private func attributedString(anyString: Any, attributes: [NSAttributedString.Key: Any] = [:]) -> NSAttributedString {
+    private func attributedRope(anyString: Any, attributes: AttributedRope.Attributes = AttributedRope.Attributes()) -> AttributedRope {
         if let string = anyString as? String {
-            let merged = attributes.merging(typingAttributes) { k1, _ in k1 }
-            return NSAttributedString(string: string, attributes: merged)
+            return AttributedRope(string, attributes: attributes)
         } else {
-            return anyString as! NSAttributedString
+            return AttributedRope(anyString as! NSAttributedString)
         }
     }
 
@@ -169,11 +170,5 @@ extension TextView {
         }
 
         return layoutManager.selection?.markedRange ?? layoutManager.selection?.range
-    }
-
-    var markedTextAttributes: [NSAttributedString.Key : Any] {
-        [
-            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
-        ]
     }
 }

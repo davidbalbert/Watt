@@ -13,8 +13,8 @@ final class AttributedRopeTests: XCTestCase {
 
     func testBasicAttributeLookup() {
         var r = AttributedRope("Hello, world!")
-        r[AttributedRope.Attributes.FontAttribute.self] = .systemFont(ofSize: 12)
-        XCTAssertEqual(r[AttributedRope.Attributes.FontAttribute.self], .systemFont(ofSize: 12))
+        r[AttributedRope.AttributeKeys.FontAttribute.self] = .systemFont(ofSize: 12)
+        XCTAssertEqual(r[AttributedRope.AttributeKeys.FontAttribute.self], .systemFont(ofSize: 12))
     }
 
     func testEmptyAttributedRope() {
