@@ -272,10 +272,27 @@ extension Spans: Sequence {
     }
 }
 
-fileprivate func isEqual<E: Equatable, T>(_ a: E, _ b: T) -> Bool {
-    if let b = b as? E {
-        return a == b
-    } else {
+fileprivate func isEqual(_ a: Any?, _ b: Any?) -> Bool {
+    switch (a, b) {
+    case (.none, .none):
+        return true
+    case (.none, .some(_)):
+        return false
+    case (.some(_), .none):
+        return false
+    case let (.some(a), .some(b)):
+        func helper<E: Equatable>(_ a: E) -> Bool {
+            if let b = b as? E {
+                return a == b
+            } else {
+                return false
+            }
+        }
+
+        if let a = a as? any Equatable {
+            return helper(a)
+        }
+
         return false
     }
 }
@@ -298,7 +315,7 @@ struct SpansBuilder<T> {
 
         // merge with previous span if T is equatable and the previous span is equal and adajacent.
         if let last = leaf.spans.last, last.range.upperBound == range.lowerBound - count {
-            if let lastData = last.data as? any Equatable, isEqual(lastData, data) {
+            if isEqual(last.data, data) {
                 leaf.spans[leaf.spans.count - 1].range = last.range.lowerBound..<(last.range.upperBound + range.count)
                 totalCount = max(totalCount, range.upperBound)
                 return

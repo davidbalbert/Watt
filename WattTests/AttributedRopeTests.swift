@@ -11,6 +11,12 @@ import XCTest
 final class AttributedRopeTests: XCTestCase {
     // MARK: - NSAttributedString conversion
 
+    func testBasicAttributeLookup() {
+        var r = AttributedRope("Hello, world!")
+        r[AttributedRope.Attributes.FontAttribute.self] = .systemFont(ofSize: 12)
+        XCTAssertEqual(r[AttributedRope.Attributes.FontAttribute.self], .systemFont(ofSize: 12))
+    }
+
     func testEmptyAttributedRope() {
         var r = AttributedRope("")
         XCTAssertEqual(r.runs.count, 0)
