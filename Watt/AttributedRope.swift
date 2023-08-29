@@ -320,7 +320,7 @@ extension AttributedRope {
         }
 
         var count: Int {
-            base.spans.spanCount
+            base.spans.count
         }
     }
 }

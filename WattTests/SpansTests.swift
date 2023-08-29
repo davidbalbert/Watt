@@ -19,16 +19,16 @@ final class SpansTests: XCTestCase {
         b2.add(2, covering: 2..<3)
 
         let s1 = b1.build()
-        XCTAssertEqual(3, s1.count)
-        XCTAssertEqual(1, s1.spanCount)
+        XCTAssertEqual(3, s1.upperBound)
+        XCTAssertEqual(1, s1.count)
 
         var iter = s1.makeIterator()
         XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
         XCTAssertNil(iter.next())
 
         let s2 = b2.build()
-        XCTAssertEqual(3, s2.count)
-        XCTAssertEqual(1, s2.spanCount)
+        XCTAssertEqual(3, s2.upperBound)
+        XCTAssertEqual(1, s2.count)
 
         iter = s2.makeIterator()
         XCTAssertEqual(Span(range: 2..<3, data: 2), iter.next())
@@ -42,8 +42,8 @@ final class SpansTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(3, merged.count)
-        XCTAssertEqual(2, merged.spanCount)
+        XCTAssertEqual(3, merged.upperBound)
+        XCTAssertEqual(2, merged.count)
 
         iter = merged.makeIterator()
         XCTAssertEqual(Span(range: 0..<2, data: 3), iter.next())

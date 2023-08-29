@@ -20,11 +20,11 @@ struct IntervalCache<T> {
     }
 
     var upperBound: Int {
-        spans.count
+        spans.upperBound
     }
 
     var count: Int {
-        spans.spanCount
+        spans.count
     }
 
     var isEmpty: Bool {
@@ -32,7 +32,7 @@ struct IntervalCache<T> {
     }
 
     subscript(position: Int) -> T? {
-        precondition(position >= 0 && position <= spans.count)
+        precondition(position >= 0 && position <= spans.upperBound)
 
         let i = BTree.Index(offsetBy: position, in: spans.t)
         guard let (leaf, offset) = i.read() else {
@@ -43,7 +43,7 @@ struct IntervalCache<T> {
     }
 
     func range(forSpanContaining position: Int) -> Range<Int>? {
-        precondition(position >= 0 && position <= spans.count)
+        precondition(position >= 0 && position <= spans.upperBound)
 
         let i = BTree.Index(offsetBy: position, in: spans.t)
         guard let (leaf, offset) = i.read() else {
@@ -62,7 +62,7 @@ struct IntervalCache<T> {
     // Returns a cache of the same size, but only with the spans that
     // overlap bounds.
     subscript(bounds: Range<Int>) -> IntervalCache {
-        precondition(bounds.lowerBound >= 0 && bounds.upperBound <= spans.count)
+        precondition(bounds.lowerBound >= 0 && bounds.upperBound <= spans.upperBound)
 
         let i = BTree.Index(offsetBy: bounds.lowerBound, in: spans.t)
         let j = BTree.Index(offsetBy: bounds.upperBound, in: spans.t)
@@ -91,14 +91,14 @@ struct IntervalCache<T> {
         var t = spans.t
         b.push(&t.root, slicedBy: start..<end)
 
-        var suffix = SpansBuilder<T>(totalCount: spans.count - end).build().t
+        var suffix = SpansBuilder<T>(totalCount: spans.upperBound - end).build().t
         b.push(&suffix.root)
 
         return IntervalCache(Spans(BTree(b.build())))
     }
 
     mutating func set(_ value: T, forRange range: Range<Int>) {
-        var sb = SpansBuilder<T>(totalCount: spans.count)
+        var sb = SpansBuilder<T>(totalCount: spans.upperBound)
         sb.add(value, covering: range)
         let new = sb.build()
 
@@ -205,7 +205,7 @@ struct IntervalCache<T> {
             return
         }
 
-        let b = SpansBuilder<T>(totalCount: spans.count)
+        let b = SpansBuilder<T>(totalCount: spans.upperBound)
         spans = b.build()
     }
 }

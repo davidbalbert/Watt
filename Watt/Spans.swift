@@ -113,13 +113,13 @@ struct SpansSummary<T>: BTreeSummary {
 struct Spans<T> {
     var t: BTree<SpansSummary<T>>
 
-    var count: Int {
+    var upperBound: Int {
         // TODO: once we make Rope, etc. wrap BTree, then
         // we can define BTree/count directly.
         t.root.count
     }
 
-    var spanCount: Int {
+    var count: Int {
         t.root.summary.spans
     }
 
@@ -128,9 +128,9 @@ struct Spans<T> {
     }
 
     func merging<O>(_ other: Spans<T>, transform: (T?, T?) -> O?) -> Spans<O> {
-        precondition(count == other.count)
+        precondition(upperBound == other.upperBound)
 
-        var sb = SpansBuilder<O>(totalCount: count)
+        var sb = SpansBuilder<O>(totalCount: upperBound)
 
         var left = self.makeIterator()
         var right = other.makeIterator()
