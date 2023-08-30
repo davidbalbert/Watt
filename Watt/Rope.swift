@@ -732,7 +732,7 @@ extension Rope: Collection {
     typealias Index = BTreeNode<RopeSummary>.Index
 
     var count: Int {
-        root.measure(using: .characters)
+        measure(using: .characters)
     }
 
     var startIndex: Index {
@@ -1111,7 +1111,7 @@ extension Rope.UTF8View: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .utf8)
+        base.measure(using: .utf8)
     }
 }
 
@@ -1132,7 +1132,7 @@ extension Rope {
         var base: Rope
         
         var count: Int {
-            base.root.measure(using: .utf16)
+            base.measure(using: .utf16)
         }
 
         func index(_ i: Index, offsetBy distance: Int) -> Index {
@@ -1230,7 +1230,7 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .unicodeScalars)
+        base.measure(using: .unicodeScalars)
     }
 }
 
@@ -1377,7 +1377,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.root.measure(using: .newlines) + 1
+        base.measure(using: .newlines) + 1
     }
 }
 
