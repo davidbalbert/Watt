@@ -101,6 +101,43 @@ final class SpansTests: XCTestCase {
         }
     }
 
+    func testSubscriptRange() {
+        var b = SpansBuilder<Int>(totalCount: 6)
+        b.add(1, covering: 0..<3)
+        b.add(2, covering: 3..<6)
+        let s = b.build()
+
+        XCTAssertEqual(6, s.upperBound)
+        XCTAssertEqual(2, s.count)
+
+        var iter = s[0..<6].makeIterator()
+        XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
+        XCTAssertEqual(Span(range: 3..<6, data: 2), iter.next())
+        XCTAssertNil(iter.next())
+
+        iter = s[0..<3].makeIterator()
+        XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
+        XCTAssertNil(iter.next())
+
+        iter = s[3..<6].makeIterator()
+        XCTAssertEqual(Span(range: 0..<3, data: 2), iter.next())
+        XCTAssertNil(iter.next())
+
+        iter = s[0..<0].makeIterator()
+        XCTAssertNil(iter.next())
+
+        iter = s[0..<1].makeIterator()
+        XCTAssertEqual(Span(range: 0..<1, data: 1), iter.next())
+        XCTAssertNil(iter.next())
+
+        iter = s[5..<6].makeIterator()
+        XCTAssertEqual(Span(range: 0..<1, data: 2), iter.next())
+        XCTAssertNil(iter.next())
+
+        iter = s[6..<6].makeIterator()
+        XCTAssertNil(iter.next())
+    }
+
     // MARK: - Regressions
 
     func testOverlappingMerge() {

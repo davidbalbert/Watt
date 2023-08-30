@@ -127,6 +127,14 @@ struct Spans<T> {
         self.t = tree
     }
 
+    subscript(_ bounds: Range<Int>) -> Spans<T> {
+        var r = t.root
+
+        var b = BTree<SpansSummary<T>>.Builder()
+        b.push(&r, slicedBy: bounds)
+        return Spans(BTree(b.build()))
+    }
+
     func merging<O>(_ other: Spans<T>, transform: (T?, T?) -> O?) -> Spans<O> {
         precondition(upperBound == other.upperBound)
 
@@ -238,10 +246,12 @@ struct Spans<T> {
 
 extension Spans: Sequence {
     struct Iterator: IteratorProtocol {
+        var base: Spans<T>
         var i: BTree<SpansSummary<T>>.Index
         var ii: Int
 
         init(_ spans: Spans<T>) {
+            self.base = spans
             self.i = spans.t.startIndex
             self.ii = 0
         }
