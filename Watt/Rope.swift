@@ -516,7 +516,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 
 // MARK: - Builder additions
 
-extension BTreeBuilder where Summary == RopeSummary {
+extension BTreeBuilder where Tree == Rope {
     mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
         var string = String(string)
         string.makeContiguousUTF8()
