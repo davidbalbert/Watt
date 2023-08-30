@@ -409,12 +409,6 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 }
 
-extension BTree {
-    func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
-        root.measure(using: metric)
-    }
-}
-
 extension BTreeNode where Summary: BTreeDefaultMetric {
     func count<M>(_ metric: M, upThrough offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
         convert(offset, from: Summary.defaultMetric, to: metric)
@@ -424,17 +418,6 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         convert(measured, from: metric, to: Summary.defaultMetric)
     }
 }
-
-extension BTree where Summary: BTreeDefaultMetric {
-    func count<M>(_ metric: M, upThrough offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
-        root.count(metric, upThrough: offset)
-    }
-
-    func countBaseUnits<M>(upThrough measured: M.Unit, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
-        root.countBaseUnits(upThrough: measured, measuredIn: metric)
-    }
-}
-
 
 // MARK: - Builder
 

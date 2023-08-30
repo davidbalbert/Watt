@@ -732,7 +732,7 @@ extension Rope: Collection {
     typealias Index = BTreeNode<RopeSummary>.Index
 
     var count: Int {
-        measure(using: .characters)
+        root.measure(using: .characters)
     }
 
     var startIndex: Index {
@@ -1022,23 +1022,23 @@ extension Rope {
 
 extension Rope {
     var utf8: UTF8View {
-        UTF8View(base: self)
+        UTF8View(root: root)
     }
 
     struct UTF8View {
-        var base: Rope
+        var root: BTreeNode<RopeSummary>
 
         func index(at offset: Int) -> Index {
-            base.root.index(at: offset, using: .utf8)
+            root.index(at: offset, using: .utf8)
         }
 
         func index(roundingDown i: Index) -> Index {
-            i.validate(for: base.root)
+            i.validate(for: root)
             return i
         }
 
         subscript(offset: Int) -> UTF8.CodeUnit {
-            self[base.root.index(at: offset, using: .utf8)]
+            self[root.index(at: offset, using: .utf8)]
         }
     }
 }
@@ -1058,44 +1058,44 @@ extension Rope.UTF8View: BidirectionalCollection {
     }
 
     func makeIterator() -> Iterator {
-        Iterator(index: base.startIndex)
+        Iterator(index: root.startIndex)
     }
 
     var startIndex: Rope.Index {
-        base.startIndex
+        root.startIndex
     }
 
     var endIndex: Rope.Index {
-        base.endIndex
+        root.endIndex
     }
 
     subscript(position: Rope.Index) -> UTF8.CodeUnit {
-        position.validate(for: base.root)
+        position.validate(for: root)
         return position.readUTF8()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
-        base.root.index(before: i, using: .utf8)
+        root.index(before: i, using: .utf8)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        base.root.index(after: i, using: .utf8)
+        root.index(after: i, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        base.root.index(i, offsetBy: distance, using: .utf8)
+        root.index(i, offsetBy: distance, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        base.root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
+        root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        base.root.distance(from: start, to: end, using: .utf8)
+        root.distance(from: start, to: end, using: .utf8)
     }
 
     var count: Int {
-        base.measure(using: .utf8)
+        root.measure(using: .utf8)
     }
 }
 
@@ -1109,44 +1109,44 @@ extension Rope.UTF8View: BidirectionalCollection {
 // do this, our ability to click on a line fragment after an emoji will fail.
 extension Rope {
     var utf16: UTF16View {
-        UTF16View(base: self)
+        UTF16View(root: root)
     }
 
     struct UTF16View {
-        var base: Rope
-        
+        var root: BTreeNode<RopeSummary>
+
         var count: Int {
-            base.measure(using: .utf16)
+            root.measure(using: .utf16)
         }
 
         func index(_ i: Index, offsetBy distance: Int) -> Index {
-            base.root.index(i, offsetBy: distance, using: .utf16)
+            root.index(i, offsetBy: distance, using: .utf16)
         }
 
         func distance(from start: Index, to end: Index) -> Int {
-            base.root.distance(from: start, to: end, using: .utf16)
+            root.distance(from: start, to: end, using: .utf16)
         }
     }
 }
 
 extension Rope {
     var unicodeScalars: UnicodeScalarView {
-        UnicodeScalarView(base: self)
+        UnicodeScalarView(root: root)
     }
 
     struct UnicodeScalarView {
-        var base: Rope
+        var root: BTreeNode<RopeSummary>
 
         func index(at offset: Int) -> Index {
-            base.root.index(at: offset, using: .unicodeScalars)
+            root.index(at: offset, using: .unicodeScalars)
         }
 
         func index(roundingDown i: Index) -> Index {
-            base.root.index(roundingDown: i, using: .unicodeScalars)
+            root.index(roundingDown: i, using: .unicodeScalars)
         }
 
         subscript(offset: Int) -> UnicodeScalar {
-            self[base.root.index(at: offset, using: .unicodeScalars)]
+            self[root.index(at: offset, using: .unicodeScalars)]
         }
     }
 }
@@ -1166,53 +1166,53 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
     }
 
     func makeIterator() -> Iterator {
-        Iterator(index: base.startIndex)
+        Iterator(index: root.startIndex)
     }
 
     var startIndex: Rope.Index {
-        base.startIndex
+        root.startIndex
     }
 
     var endIndex: Rope.Index {
-        base.endIndex
+        root.endIndex
     }
 
     subscript(position: Rope.Index) -> Unicode.Scalar {
-        base.root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
+        root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
-        base.root.index(before: i, using: .unicodeScalars)
+        root.index(before: i, using: .unicodeScalars)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        base.root.index(after: i, using: .unicodeScalars)
+        root.index(after: i, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        base.root.index(i, offsetBy: distance, using: .unicodeScalars)
+        root.index(i, offsetBy: distance, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        base.root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
+        root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        base.root.distance(from: start, to: end, using: .unicodeScalars)
+        root.distance(from: start, to: end, using: .unicodeScalars)
     }
 
     var count: Int {
-        base.measure(using: .unicodeScalars)
+        root.measure(using: .unicodeScalars)
     }
 }
 
 extension Rope {
     var lines: LinesView {
-        LinesView(base: self)
+        LinesView(root: root)
     }
 
     struct LinesView {
-        var base: Rope
+        var root: BTreeNode<RopeSummary>
 
         func index(at offset: Int) -> Index {
             // The LinesView has one more line than the newlines
@@ -1222,18 +1222,18 @@ extension Rope {
             // This means we need to special case all of our index
             // functions to deal with endIndex.
             if offset == count {
-                return base.endIndex
+                return root.endIndex
             }
 
-            return base.root.index(at: offset, using: .newlines)
+            return root.index(at: offset, using: .newlines)
         }
 
         func index(roundingDown i: Index) -> Index {
-            base.root.index(roundingDown: i, using: .newlines)
+            root.index(roundingDown: i, using: .newlines)
         }
 
         func index(roundingUp i: Index) -> Index {
-            i.validate(for: base.root)
+            i.validate(for: root)
 
             if i.isBoundary(in: .newlines) || i == endIndex {
                 return i
@@ -1243,7 +1243,7 @@ extension Rope {
         }
 
         subscript(offset: Int) -> Substring {
-            self[base.root.index(at: offset, using: .newlines)]
+            self[root.index(at: offset, using: .newlines)]
         }
     }
 }
@@ -1263,58 +1263,66 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     func makeIterator() -> Iterator {
-        Iterator(index: base.startIndex)
+        Iterator(index: root.startIndex)
     }
+//    struct Index: Comparable {
+//        static func < (lhs: Rope.LinesView.Index, rhs: Rope.LinesView.Index) -> Bool {
+//            lhs < rhs || (lhs == rhs && lhs.afterEmptyLastLine == false && rhs.afterEmptyLastLine == true)
+//        }
+//        
+//        var i: Rope.Index
+//        var afterEmptyLastLine: Bool
+//    }
 
     var startIndex: Rope.Index {
-        base.startIndex
+        root.startIndex
     }
 
     var endIndex: Rope.Index {
-        base.endIndex
+        root.endIndex
     }
 
     subscript(position: Rope.Index) -> Substring {
-        position.validate(for: base.root)
-        return base.root.index(roundingDown: position, using: .newlines).readLine()!
+        position.validate(for: root)
+        return root.index(roundingDown: position, using: .newlines).readLine()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(before: i, using: .newlines)
+        i.validate(for: root)
+        return root.index(before: i, using: .newlines)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
+        i.validate(for: root)
 
         // Does this slow things down? Is there a nicer way to do this?
         if i >= index(before: endIndex) && i < endIndex {
             return endIndex
         }
 
-        return base.root.index(after: i, using: .newlines)
+        return root.index(after: i, using: .newlines)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        i.validate(for: base.root)
+        i.validate(for: root)
 
         var i = i
-        let m = base.count(.newlines, upThrough: i.position)
+        let m = root.count(.newlines, upThrough: i.position)
         precondition(m+distance >= 0 && m+distance <= count, "Index out of bounds")
         if m + distance == count {
             return endIndex
         }
-        let pos = base.countBaseUnits(upThrough: m + distance, measuredIn: .newlines)
+        let pos = root.countBaseUnits(upThrough: m + distance, measuredIn: .newlines)
         i.set(pos)
 
         return i
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        i.validate(for: base.root)
-        limit.validate(for: base.root)
+        i.validate(for: root)
+        limit.validate(for: root)
 
-        var l = base.root.distance(from: i, to: limit, using: .newlines)
+        var l = root.distance(from: i, to: limit, using: .newlines)
 
         // there's always one more line than # of "\n" characters
         if limit.position == endIndex.position {
@@ -1336,10 +1344,10 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        start.validate(for: base.root)
-        end.validate(for: base.root)
+        start.validate(for: root)
+        end.validate(for: root)
 
-        var d = base.root.distance(from: start, to: end, using: .newlines)
+        var d = root.distance(from: start, to: end, using: .newlines)
         if end == endIndex {
             d += 1
         }
@@ -1348,7 +1356,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.measure(using: .newlines) + 1
+        root.measure(using: .newlines) + 1
     }
 }
 
@@ -1396,20 +1404,20 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        var i = rope.countBaseUnits(upThrough: range.lowerBound, measuredIn: .utf16)
-        var j = rope.countBaseUnits(upThrough: range.upperBound, measuredIn: .utf16)
+        var i = rope.root.countBaseUnits(upThrough: range.lowerBound, measuredIn: .utf16)
+        var j = rope.root.countBaseUnits(upThrough: range.upperBound, measuredIn: .utf16)
 
         // NSTextInputClient seems to sometimes receive ranges that start
         // or end on a trailing surrogate. Round them to the nearest
         // unicode scalar.
-        if rope.count(.utf16, upThrough: i) != range.lowerBound {
-            assert(rope.count(.utf16, upThrough: i) == range.lowerBound - 1)
+        if rope.root.count(.utf16, upThrough: i) != range.lowerBound {
+            assert(rope.root.count(.utf16, upThrough: i) == range.lowerBound - 1)
             print("!!! got NSRange starting on a trailing surrogate: \(range). I think this is expected, but try to reproduce and figure out if it's ok")
             i -= 1
         }
 
-        if rope.count(.utf16, upThrough: j) != range.upperBound {
-            assert(rope.count(.utf16, upThrough: j) == range.upperBound - 1)
+        if rope.root.count(.utf16, upThrough: j) != range.upperBound {
+            assert(rope.root.count(.utf16, upThrough: j) == range.upperBound - 1)
             j += 1
         }
 
@@ -1438,8 +1446,8 @@ extension NSRange {
         assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
 
         // TODO: is there a reason the majority of this initializer isn't just distance(from:to:)?
-        let i = rope.count(.utf16, upThrough: range.lowerBound.position)
-        let j = rope.count(.utf16, upThrough: range.upperBound.position)
+        let i = rope.root.count(.utf16, upThrough: range.lowerBound.position)
+        let j = rope.root.count(.utf16, upThrough: range.upperBound.position)
 
         self.init(location: i, length: j-i)
     }

@@ -280,7 +280,7 @@ extension Heights {
     }
 
     var contentHeight: CGFloat {
-        measure(using: .yOffset)
+        root.measure(using: .yOffset)
     }
 
     subscript(position: Int) -> CGFloat {
@@ -296,7 +296,7 @@ extension Heights {
     subscript(i: Index) -> CGFloat {
         get {
             i.validate(for: root)
-            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
@@ -317,7 +317,7 @@ extension Heights {
         // the leaf as well.
         set {
             i.validate(for: root)
-            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
@@ -443,14 +443,14 @@ extension Heights {
             let (leaf, _) = i.read()!
             let height = leaf.lineHeight(atIndex: leaf.heights.count - 1)
 
-            return measure(using: .yOffset) - height
+            return root.measure(using: .yOffset) - height
         }
 
-        return count(.yOffset, upThrough: offset)
+        return root.count(.yOffset, upThrough: offset)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {
-        if yOffset >= measure(using: .yOffset) {
+        if yOffset >= root.measure(using: .yOffset) {
             let i = endIndex
             let (leaf, _) = i.read()!
             let lineLength = leaf.lineLength(atIndex: leaf.positions.count - 1)
@@ -458,7 +458,7 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return countBaseUnits(upThrough: yOffset, measuredIn: .yOffset)
+        return root.countBaseUnits(upThrough: yOffset, measuredIn: .yOffset)
     }
 
     // Returns an index at a base offset
