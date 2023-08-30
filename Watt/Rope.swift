@@ -1333,7 +1333,7 @@ extension Rope.LinesView: BidirectionalCollection {
         if m + distance == count {
             return endIndex
         }
-        let pos = base.countBaseUnits(of: m + distance, measuredIn: .newlines)
+        let pos = base.countBaseUnits(upThrough: m + distance, measuredIn: .newlines)
         i.set(pos)
 
         return i
@@ -1425,8 +1425,8 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        var i = rope.countBaseUnits(of: range.lowerBound, measuredIn: .utf16)
-        var j = rope.countBaseUnits(of: range.upperBound, measuredIn: .utf16)
+        var i = rope.countBaseUnits(upThrough: range.lowerBound, measuredIn: .utf16)
+        var j = rope.countBaseUnits(upThrough: range.upperBound, measuredIn: .utf16)
 
         // NSTextInputClient seems to sometimes receive ranges that start
         // or end on a trailing surrogate. Round them to the nearest

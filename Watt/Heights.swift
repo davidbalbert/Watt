@@ -458,7 +458,7 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return countBaseUnits(of: yOffset, measuredIn: .yOffset)
+        return countBaseUnits(upThrough: yOffset, measuredIn: .yOffset)
     }
 
     // Returns an index at a base offset
