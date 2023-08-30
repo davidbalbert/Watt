@@ -17,6 +17,10 @@ struct AttributedRope {
     var text: Rope
     var spans: Spans<Attributes>
 
+    init() {
+        self.init("")
+    }
+
     init(_ string: String, attributes: Attributes = Attributes()) {
         self.init(Rope(string), attributes: attributes)
     }
@@ -321,6 +325,88 @@ extension AttributedSubrope {
 //            // replaceSubrange(bounds, with: newValue)
 //        }
 //    }
+}
+
+// MARK: - Characters
+
+extension AttributedRope {
+    struct CharacterView {
+        var text: Rope
+        var spans: Spans<Attributes>
+    }
+
+    var characters: CharacterView {
+        _read {
+            yield CharacterView(text: text, spans: spans)
+        }
+        _modify {
+            var c = CharacterView(text: text, spans: spans)
+            text = Rope()
+            spans = SpansBuilder<Attributes>(totalCount: 0).build()
+
+            yield &c
+
+            text = c.text
+            spans = c.spans
+        }
+    }
+}
+
+extension AttributedRope.CharacterView: BidirectionalCollection {
+    typealias Index = AttributedRope.Index
+
+    var startIndex: Index {
+        text.startIndex
+    }
+
+    var endIndex: Index {
+        text.endIndex
+    }
+
+    func index(after i: Index) -> Index {
+        text.index(after: i)
+    }
+
+    func index(before i: Index) -> Index {
+        text.index(before: i)
+    }
+
+    subscript(position: Index) -> Character {
+        text[position]
+    }
+
+    // Delegate to Rope's more efficient implementations of these methods.
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        text.index(i, offsetBy: distance)
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        text.index(i, offsetBy: distance, limitedBy: limit)
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        text.distance(from: start, to: end)
+    }
+}
+
+extension AttributedRope.CharacterView: RangeReplaceableCollection {
+    init() {
+        self.init(text: Rope(), spans: SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build())
+    }
+    
+    mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
+        // var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
+        // b.add(contentsOf: spans, covering: 0..<subrange.lowerBound.utf8Offset(in: text))
+        // b.add(Attributes(), covering: subrange.lowerBound..<subrange.upperBound)
+        // b.add(contentsOf: spans, covering: subrange.upperBound..<text.utf8.count)
+        // spans = b.build()
+
+        // text.replaceSubrange(subrange, with: newElements)
+    }
+
+    // The default implementation calls append(_:) in a loop.
+    mutating func append<S>(contentsOf newElements: S) where S: Sequence, Self.Element == S.Element {
+    }
 }
 
 // MARK: - Conversion

@@ -802,7 +802,7 @@ extension Rope: RangeReplaceableCollection {
     }
 
     // The deafult implementation calls append(_:) in a loop. This should be faster.
-    mutating func append<S>(contentsOf newElements: S) where S : Sequence, S.Element == Element {
+    mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
         var b = Builder()
         var br = GraphemeBreaker(for: self, upTo: endIndex)
 
