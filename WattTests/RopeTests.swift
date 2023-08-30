@@ -1204,5 +1204,21 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(0, j.position)
     }
+
+    // TODO: this is broken. Rope.LinesView really needs its own Index type.
+    // In the case where the rope is empty, or the rope ends in a newline,
+    // LinesView needs to have an index after rope.endIndex. If we fix this
+    // issue, we can get rid of Lines.Iterator and switch to IndexingIterator
+    // which is the default.
+    func testMoveToLastLineIndexInEmptyRope() {
+//        let r = Rope()
+//        XCTAssertEqual(r.lines.count, 1)
+//
+//        let i = r.startIndex
+//        XCTAssertEqual(r.lines[i], "")
+//
+//        let j = r.lines.index(after: i)
+//        XCTAssertEqual(j, r.endIndex)
+    }
 }
 
