@@ -749,13 +749,10 @@ extension Rope: Collection {
     }
 
     subscript(bounds: Range<Index>) -> Rope {
-        bounds.lowerBound.validate(for: root)
-        bounds.upperBound.validate(for: root)
+        let start = index(roundingDown: bounds.lowerBound)
+        let end = index(roundingDown: bounds.upperBound)
 
-        let start = root.index(roundingDown: bounds.lowerBound, using: .characters)
-        let end = root.index(roundingDown: bounds.upperBound, using: .characters)
-
-        var sliced = Rope(root, slicedBy: Range(start..<end))
+        var sliced = Rope(root, slicedBy: Range(fromBTreeRange: start..<end))
 
         var old = GraphemeBreaker(for: self, upTo: start)
         var new = GraphemeBreaker()
@@ -797,34 +794,31 @@ extension Rope: BidirectionalCollection {
 extension Rope: RangeReplaceableCollection {
     // TODO: this should smartly handle the situation where newElements is a Rope. In that situation, instead of calling push(string:breaker:), we should just push newElements and resync breaks afterwards.
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
-        subrange.lowerBound.validate(for: root)
-        subrange.upperBound.validate(for: root)
-
-        let rangeStart = root.index(roundingDown: subrange.lowerBound, using: .characters)
-        let rangeEnd = root.index(roundingDown: subrange.upperBound, using: .characters)
+        let rangeStart = index(roundingDown: subrange.lowerBound)
+        let rangeEnd = index(roundingDown: subrange.upperBound)
 
         var old = GraphemeBreaker(for: self, upTo: rangeEnd, withKnownNextScalar: rangeEnd.position == root.count ? nil : unicodeScalars[rangeEnd])
         var new = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
-        var b = BTreeBuilder<RopeSummary>()
-        b.push(&root, slicedBy: Range(startIndex..<rangeStart))
+        var b = BTreeBuilder<Rope>()
+        b.push(&root, slicedBy: Range(fromBTreeRange: startIndex..<rangeStart))
         b.push(string: newElements, breaker: &new)
 
-        var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
+        var rest = Rope(root, slicedBy: Range(fromBTreeRange: rangeEnd..<endIndex))
         rest.resyncBreaks(old: &old, new: &new)
         b.push(&rest.root)
 
-        self.root = b.build()
+        self = b.build()
     }
 
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
-        var b = BTreeBuilder<RopeSummary>()
+        var b = BTreeBuilder<Rope>()
         var br = GraphemeBreaker(for: self, upTo: endIndex)
 
         b.push(&root)
         b.push(string: newElements, breaker: &br)
-        self.root = b.build()
+        self = b.build()
     }
 }
 
@@ -837,7 +831,7 @@ extension Rope {
         var l = left
         var r = right
 
-        var b = BTreeBuilder<RopeSummary>()
+        var b = BTreeBuilder<Rope>()
         var old = GraphemeBreaker()
         var new = GraphemeBreaker(for: l, upTo: l.endIndex)
 
@@ -845,7 +839,7 @@ extension Rope {
 
         b.push(&l.root)
         b.push(&r.root)
-        return Rope(b.build())
+        return b.build()
     }
 
     mutating func append(_ string: String) {
@@ -874,7 +868,7 @@ extension Rope {
 
 extension Rope {
     mutating func resyncBreaks(old: inout GraphemeBreaker, new: inout GraphemeBreaker) {
-        var b = BTreeBuilder<RopeSummary>()
+        var b = BTreeBuilder<Rope>()
 
         var i = startIndex
         while var (chunk, _) = i.read() {
@@ -888,7 +882,7 @@ extension Rope {
         }
 
         b.push(&root, slicedBy: i.position..<root.count)
-        root = b.build()
+        self = b.build()
     }
 }
 
@@ -1043,8 +1037,8 @@ extension Rope {
     struct UTF8View {
         var base: Rope
 
-        func index(at: Int) -> Index {
-            return base.root.index(at: at, using: .utf8)
+        func index(at offset: Int) -> Index {
+            return base.root.index(at: offset, using: .utf8)
         }
 
         func index(roundingDown i: Index) -> Index {
@@ -1162,8 +1156,8 @@ extension Rope {
     struct UnicodeScalarView {
         var base: Rope
 
-        func index(at: Int) -> Index {
-            base.root.index(at: at, using: .unicodeScalars)
+        func index(at offset: Int) -> Index {
+            base.root.index(at: offset, using: .unicodeScalars)
         }
 
         func index(roundingDown i: Index) -> Index {

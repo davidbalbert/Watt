@@ -146,7 +146,7 @@ class Buffer {
     //
     // This will also be important for Undo/Redo.
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
-        let range = Range(subrange)
+        let range = Range(fromBTreeRange: subrange)
 
         var b = Rope.DeltaBuilder(contents.utf8.count)
         b.replace(range, with: attrRope.text)

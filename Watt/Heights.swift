@@ -270,13 +270,13 @@ extension Heights {
             b.addLine(withBaseCount: l.utf8.count, height: 14)
         }
 
-        self.init(b.build())
+        self = b.build()
     }
 
     init() {
         var b = HeightsBuilder()
         b.addLine(withBaseCount: 0, height: 14)
-        self.init(b.build())
+        self = b.build()
     }
 
     var contentHeight: CGFloat {
@@ -376,14 +376,14 @@ extension Heights {
                 newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
             }
 
-            var b = BTreeBuilder<HeightsSummary>()
+            var b = BTreeBuilder<Heights>()
 
             b.push(&root, slicedBy: 0..<prefixEnd)
             b.push(leaf: newLeaf)
             b.push(&root, slicedBy: suffixStart..<root.count)
 
             let oldCount = root.count
-            self.root = b.build()
+            self = b.build()
             assert(root.count == oldCount)
         }
     }
@@ -427,14 +427,14 @@ extension Heights {
             hb.addLine(withBaseCount: 0, height: 14)
         }
 
-        var b = BTreeBuilder<HeightsSummary>()
+        var b = BTreeBuilder<Heights>()
         var r = root
         b.push(&r, slicedBy: 0..<start)
         var new = hb.build()
-        b.push(&new)
+        b.push(&new.root)
         b.push(&r, slicedBy: end..<r.count)
 
-        root = b.build()
+        self = b.build()
     }
 
     func yOffset(upThroughPosition offset: Int) -> CGFloat {
@@ -672,11 +672,11 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
 }
 
 struct HeightsBuilder {
-    var b: BTreeBuilder<HeightsSummary>
+    var b: BTreeBuilder<Heights>
     var leaf: HeightsLeaf
 
     init() {
-        b = BTreeBuilder<HeightsSummary>()
+        b = BTreeBuilder<Heights>()
         leaf = HeightsLeaf()
     }
 
@@ -690,14 +690,14 @@ struct HeightsBuilder {
         leaf.heights.append((leaf.heights.last ?? 0) + height)
     }
 
-    consuming func build() -> BTreeNode<HeightsSummary> {
+    consuming func build() -> Heights {
         if leaf.positions.count > 0 {
             b.push(leaf: leaf)
         }
 
-        let node = b.build()
-        assert(node.height > 0 || node.leaf.positions.count > 0)
-        return node
+        let heights = b.build()
+        assert(heights.root.height > 0 || heights.root.leaf.positions.count > 0)
+        return heights
     }
 }
 

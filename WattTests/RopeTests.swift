@@ -1174,14 +1174,14 @@ final class RopeTests: XCTestCase {
         // Very contrived. I don't know how to create this situation naturally
         // because of how boundaryForBulkInsert tries to put the "\n" on the right
         // side of the rope boundary, but it has appeared in the wild.
-        var b = BTreeBuilder<RopeSummary>()
+        var b = BTreeBuilder<Rope>()
         var breaker = Rope.GraphemeBreaker()
 
         let firstString = String(repeating: "a", count: 511) + "\n" + String(repeating: "b", count: 510) + "\n"
         b.push(leaf: Chunk(firstString[...], breaker: &breaker))
 
         b.push(leaf: Chunk(String(repeating: "c", count: 1023)[...], breaker: &breaker))
-        let r = Rope(b.build())
+        let r = b.build()
 
         XCTAssertEqual(1, r.root.height)
         XCTAssertEqual(2, r.root.children.count)

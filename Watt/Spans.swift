@@ -241,7 +241,7 @@ struct Spans<T>: BTree {
 extension Spans: Sequence {
     struct Iterator: IteratorProtocol {
         var base: Spans<T>
-        var i: BTreeNode<SpansSummary<T>>.Index
+        var i: Index
         var ii: Int
 
         init(_ spans: Spans<T>) {
@@ -276,14 +276,23 @@ extension Spans: Sequence {
     }
 }
 
+// Collection
+extension Spans {
+    typealias Index = BTreeNode<SpansSummary<T>>.Index
+
+    func index(at offset: Int) -> Index {
+        Index(offsetBy: offset, in: root)
+    }
+}
+
 struct SpansBuilder<T> {
-    var b: BTreeBuilder<SpansSummary<T>>
+    var b: BTreeBuilder<Spans<T>>
     var leaf: SpansLeaf<T>
     var count: Int
     var totalCount: Int
 
     init(totalCount: Int) {
-        self.b = BTreeBuilder<SpansSummary>()
+        self.b = BTreeBuilder<Spans>()
         self.leaf = SpansLeaf()
         self.count = 0
         self.totalCount = totalCount
@@ -316,7 +325,7 @@ struct SpansBuilder<T> {
         leaf.count = totalCount - count
         b.push(leaf: leaf)
 
-        return Spans(b.build())
+        return b.build()
     }
 }
 

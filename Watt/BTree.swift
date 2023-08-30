@@ -76,7 +76,7 @@ extension BTreeMetric {
     }
 }
 
-protocol BTree<Summary> {
+protocol BTree {
     associatedtype Summary: BTreeSummary
 
     var root: BTreeNode<Summary> { get set }
@@ -86,14 +86,13 @@ protocol BTree<Summary> {
 
 extension BTree {
     init(_ root: BTreeNode<Summary>, slicedBy range: Range<Int>) {
-        assert(range.lowerBound >= 0 && range.lowerBound <= root.count)
-        assert(range.upperBound >= 0 && range.upperBound <= root.count)
+        assert(range.lowerBound >= 0 && range.upperBound <= root.count)
 
         var r = root
 
-        var b = BTreeBuilder<Summary>()
+        var b = BTreeBuilder<Self>()
         b.push(&r, slicedBy: range)
-        self.init(b.build())
+        self = b.build()
     }
 }
 
@@ -434,8 +433,9 @@ extension BTree where Summary: BTreeDefaultMetric {
 
 // MARK: - Builder
 
-struct BTreeBuilder<Summary> where Summary: BTreeSummary {
-    typealias Node = BTreeNode<Summary>
+struct BTreeBuilder<Tree> where Tree: BTree {
+    typealias Node = BTreeNode<Tree.Summary>
+    typealias Summary = Tree.Summary
     typealias Leaf = Summary.Leaf
 
     typealias PartialTree = (node: Node, isUnique: Bool)
@@ -563,9 +563,9 @@ struct BTreeBuilder<Summary> where Summary: BTreeSummary {
         }
     }
 
-    consuming func build() -> Node {
+    consuming func build() -> Tree {
         if stack.isEmpty {
-            return Node()
+            return Tree(Node())
         } else {
             var (n, _) = pop()
             while !stack.isEmpty {
@@ -577,7 +577,7 @@ struct BTreeBuilder<Summary> where Summary: BTreeSummary {
                 n = popped.concatenate(n)
             }
 
-            return n
+            return Tree(n)
         }
     }
 }
@@ -1164,10 +1164,10 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
 
 // An ordered list of changes to to a tree. Deletes of a given range
 // are represented by the absence of a copy over that range.
-struct BTreeDelta<Summary> where Summary: BTreeSummary {
+struct BTreeDelta<Tree> where Tree: BTree {
     enum DeltaElement: Equatable {
         case copy(Int, Int)
-        case insert(BTreeNode<Summary>)
+        case insert(BTreeNode<Tree.Summary>)
 
         static func == (lhs: DeltaElement, rhs: DeltaElement) -> Bool {
             switch (lhs, rhs) {
@@ -1248,7 +1248,7 @@ struct BTreeDelta<Summary> where Summary: BTreeSummary {
             lastOffset = range.upperBound
         }
 
-        mutating func replace(_ range: Range<Int>, with tree: some BTree<Summary>) {
+        mutating func replace(_ range: Range<Int>, with tree: Tree) {
             delete(range)
             if !tree.root.isEmpty {
                 delta.elements.append(.insert(tree.root))
@@ -1266,12 +1266,12 @@ struct BTreeDelta<Summary> where Summary: BTreeSummary {
 }
 
 extension BTree {
-    typealias Delta = BTreeDelta<Summary>
-    typealias DeltaBuilder = BTreeDelta<Summary>.Builder
+    typealias Delta = BTreeDelta<Self>
+    typealias DeltaBuilder = BTreeDelta<Self>.Builder
 
     func applying(delta: Delta) -> Self {
         var r = root
-        var b = BTreeBuilder<Summary>()
+        var b = BTreeBuilder<Self>()
         for el in delta.elements {
             switch el {
             case let .copy(start, end):
@@ -1281,7 +1281,7 @@ extension BTree {
                 b.push(&n)
             }
         }
-        return Self(b.build())
+        return b.build()
     }
 }
 
@@ -1289,7 +1289,7 @@ extension BTree {
 
 
 extension Range<Int> {
-    init<Summary>(_ range: Range<BTreeNode<Summary>.Index>) {
+    init<Summary>(fromBTreeRange range: Range<BTreeNode<Summary>.Index>) {
         self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
     }
 }

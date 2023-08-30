@@ -34,9 +34,7 @@ struct IntervalCache<T> {
     subscript(position: Int) -> T? {
         precondition(position >= 0 && position <= spans.upperBound)
 
-        // TODO: better index. Don't reference SpansSummary, which is part of
-        // the internals of Spans.
-        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: position, in: spans.root)
+        let i = spans.index(at: position)
         guard let (leaf, offset) = i.read() else {
             return nil
         }
@@ -47,9 +45,7 @@ struct IntervalCache<T> {
     func range(forSpanContaining position: Int) -> Range<Int>? {
         precondition(position >= 0 && position <= spans.upperBound)
 
-        // TODO: better index. Don't reference SpansSummary, which is part of
-        // the internals of Spans.
-        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: position, in: spans.root)
+        let i = spans.index(at: position)
         guard let (leaf, offset) = i.read() else {
             return nil
         }
@@ -68,10 +64,8 @@ struct IntervalCache<T> {
     subscript(bounds: Range<Int>) -> IntervalCache {
         precondition(bounds.lowerBound >= 0 && bounds.upperBound <= spans.upperBound)
 
-        // TODO: better index. Don't reference SpansSummary, which is part of
-        // the internals of Spans.
-        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: bounds.lowerBound, in: spans.root)
-        let j = BTreeNode<SpansSummary<T>>.Index(offsetBy: bounds.upperBound, in: spans.root)
+        let i = spans.index(at: bounds.lowerBound)
+        let j = spans.index(at: bounds.upperBound)
 
         let (startLeaf, startOffset) = i.read()!
         let (endLeaf, endOffset) = j.read()!
@@ -90,8 +84,7 @@ struct IntervalCache<T> {
             end = bounds.upperBound
         }
 
-        // TODO: is there a way to not dig into the implementation of Spans here?
-        var b = BTreeBuilder<SpansSummary<T>>()
+        var b = BTreeBuilder<Spans<T>>()
         var prefix = SpansBuilder<T>(totalCount: start).build()
         b.push(&prefix.root)
 
@@ -101,7 +94,7 @@ struct IntervalCache<T> {
         var suffix = SpansBuilder<T>(totalCount: spans.upperBound - end).build()
         b.push(&suffix.root)
 
-        return IntervalCache(Spans(b.build()))
+        return IntervalCache(b.build())
     }
 
     mutating func set(_ value: T, forRange range: Range<Int>) {
@@ -112,11 +105,10 @@ struct IntervalCache<T> {
         self.spans = spans.merging(new) { $0 ?? $1 }
     }
 
-    mutating func invalidate<Summary>(delta: BTreeDelta<Summary>) where Summary: BTreeSummary {
-        // TODO: how to not reach into Spans summary?
-        var b = BTreeBuilder<SpansSummary<T>>()
+    mutating func invalidate<Tree>(delta: BTreeDelta<Tree>) where Tree: BTree {
+        var b = BTreeBuilder<Spans<T>>()
 
-        var prev: BTreeDelta<Summary>.DeltaElement? = nil
+        var prev: BTreeDelta<Tree>.DeltaElement? = nil
 
         // precondition: invalidatedThrough will always be 0 or
         // the upperBound of a span.
@@ -205,7 +197,7 @@ struct IntervalCache<T> {
             prev = el
         }
 
-        spans = Spans(b.build())
+        spans = b.build()
     }
 
     mutating func removeAll() {
