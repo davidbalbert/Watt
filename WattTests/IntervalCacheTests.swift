@@ -46,7 +46,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(10..<12)
         let delta = b.build()
 
@@ -75,7 +75,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(15..<17)
         let delta = b.build()
 
@@ -104,7 +104,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(18..<20)
         let delta = b.build()
 
@@ -133,7 +133,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteAcrossSpans() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(18..<32)
         let delta = b.build()
 
@@ -160,7 +160,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteBeginningAndEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(0..<8)
         b.delete(92..<100)
         let delta = b.build()
@@ -198,7 +198,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(321..<339)
         let delta = b.build()
 
@@ -255,7 +255,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(0..<8)
         b.delete(652..<660)
         let delta = b.build()
@@ -301,7 +301,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertBeginningOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(0..<0, with: abc)
         let delta = b.build()
@@ -331,7 +331,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(10..<10, with: abc)
         let delta = b.build()
@@ -361,7 +361,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(15..<15, with: abc)
         let delta = b.build()
@@ -392,7 +392,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(19..<19, with: abc)
         let delta = b.build()
@@ -422,7 +422,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertBeginningAndEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(10..<10, with: abc)
         b.replace(20..<20, with: abc)
@@ -453,7 +453,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(100..<100, with: abc)
         let delta = b.build()
@@ -485,7 +485,7 @@ final class IntervalCacheTests: XCTestCase {
 
         XCTAssertEqual(11, cache.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(100..<100, with: abc)
         let delta = b.build()
@@ -518,7 +518,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateInsertMultipleTimesInASpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(10..<10, with: a)
         b.replace(14..<14, with: a)
@@ -558,7 +558,7 @@ final class IntervalCacheTests: XCTestCase {
         cache.set(0, forRange: 0..<10)
         cache.set(1, forRange: 10..<20)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(4..<11)
         b.delete(15..<20)
         let delta = b.build()
@@ -588,7 +588,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(329..<329, with: abc)
         let delta = b.build()
@@ -647,7 +647,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(0..<0, with: abc)
         b.replace(660..<660, with: abc)
@@ -696,7 +696,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateDeleteMultipleRanges() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         b.delete(0..<8)
         b.delete(23..<35)
         b.delete(62..<78)
@@ -724,7 +724,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkBeginningOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(0..<2, with: a)
         let delta = b.build()
@@ -754,7 +754,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthBeginningOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(0..<2, with: ab)
         let delta = b.build()
@@ -784,7 +784,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowBeginningOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(0..<2, with: abc)
         let delta = b.build()
@@ -814,7 +814,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(10..<12, with: a)
         let delta = b.build()
@@ -844,7 +844,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(10..<12, with: ab)
         let delta = b.build()
@@ -874,7 +874,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowBeginningOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(10..<12, with: abc)
         let delta = b.build()
@@ -904,7 +904,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(15..<17, with: a)
         let delta = b.build()
@@ -935,7 +935,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(15..<17, with: ab)
         let delta = b.build()
@@ -966,7 +966,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowMiddleOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(15..<17, with: abc)
         let delta = b.build()
@@ -997,7 +997,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(18..<20, with: a)
         let delta = b.build()
@@ -1027,7 +1027,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(18..<20, with: ab)
         let delta = b.build()
@@ -1057,7 +1057,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(18..<20, with: abc)
         let delta = b.build()
@@ -1087,7 +1087,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthBeginningAndEndOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(10..<13, with: abc)
         b.replace(20..<23, with: abc)
@@ -1118,7 +1118,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthOverAlmostAllOfSpan() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abcdefgh = Rope("abcdefgh")
         b.replace(11..<19, with: abcdefgh)
         let delta = b.build()
@@ -1150,7 +1150,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkAcrossSpans() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope(String(repeating: "a", count: 13))
         b.replace(18..<32, with: a)
         let delta = b.build()
@@ -1179,7 +1179,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthAcrossSpans() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope(String(repeating: "a", count: 14))
         b.replace(18..<32, with: a)
         let delta = b.build()
@@ -1208,7 +1208,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowAcrossSpans() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope(String(repeating: "a", count: 15))
         b.replace(18..<32, with: a)
         let delta = b.build()
@@ -1237,7 +1237,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(98..<100, with: a)
         let delta = b.build()
@@ -1267,7 +1267,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10, includeEmptyLine: true)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(98..<100, with: ab)
         let delta = b.build()
@@ -1297,7 +1297,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(98..<100, with: abc)
         let delta = b.build()
@@ -1327,7 +1327,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceShrinkBeginningAndEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(0..<2, with: a)
         b.replace(98..<100, with: a)
@@ -1358,7 +1358,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceSameLengthBeginningAndEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(0..<2, with: ab)
         b.replace(98..<100, with: ab)
@@ -1389,7 +1389,7 @@ final class IntervalCacheTests: XCTestCase {
     func testInvalidateReplaceGrowBeginningAndEndOfTree() {
         var cache = makeContiguousCache(upperBound: 100, stride: 10)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(0..<2, with: abc)
         b.replace(98..<100, with: abc)
@@ -1430,7 +1430,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(329..<331, with: a)
         let delta = b.build()
@@ -1489,7 +1489,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(329..<331, with: ab)
         let delta = b.build()
@@ -1548,7 +1548,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(329..<331, with: abc)
         let delta = b.build()
@@ -1607,7 +1607,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let a = Rope("a")
         b.replace(0..<2, with: a)
         b.replace(658..<660, with: a)
@@ -1666,7 +1666,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let ab = Rope("ab")
         b.replace(0..<2, with: ab)
         b.replace(658..<660, with: ab)
@@ -1724,7 +1724,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(330, cache.spans.root.children[1].leaf.count)
         XCTAssertEqual(33, cache.spans.root.children[1].leaf.spans.count)
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let abc = Rope("abc")
         b.replace(0..<2, with: abc)
         b.replace(658..<660, with: abc)
@@ -1786,7 +1786,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(Span(range: 2..<3, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
-        var b = Rope.DeltaBuilder(cache.upperBound)
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
         let z = Rope("z")
         b.replace(1..<2, with: z)
         let delta = b.build()

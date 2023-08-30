@@ -148,7 +148,7 @@ class Buffer {
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
         let range = Range(fromBTreeRange: subrange)
 
-        var b = Rope.DeltaBuilder(contents.utf8.count)
+        var b = BTreeDeltaBuilder<Rope>(contents.utf8.count)
         b.replace(range, with: attrRope.text)
         let delta = b.build()
 

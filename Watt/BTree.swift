@@ -1230,46 +1230,43 @@ struct BTreeDelta<Tree> where Tree: BTree {
 
         return (start..<end, count)
     }
+}
 
-    struct Builder {
-        var delta: BTreeDelta
-        var lastOffset: Int
+struct BTreeDeltaBuilder<Tree> where Tree: BTree {
+    var delta: BTreeDelta<Tree>
+    var lastOffset: Int
 
-        init(_ baseCount: Int) {
-            self.delta = BTreeDelta(elements: [], baseCount: baseCount)
-            self.lastOffset = 0
+    init(_ baseCount: Int) {
+        self.delta = BTreeDelta<Tree>(elements: [], baseCount: baseCount)
+        self.lastOffset = 0
+    }
+
+    mutating func delete(_ range: Range<Int>) {
+        precondition(range.lowerBound >= lastOffset, "ranges must be sorted")
+        if lastOffset < range.lowerBound {
+            delta.elements.append(.copy(lastOffset, range.lowerBound))
+        }
+        lastOffset = range.upperBound
+    }
+
+    mutating func replace(_ range: Range<Int>, with tree: Tree) {
+        delete(range)
+        if !tree.root.isEmpty {
+            delta.elements.append(.insert(tree.root))
+        }
+    }
+
+    consuming func build() -> BTreeDelta<Tree> {
+        if lastOffset < delta.baseCount {
+            delta.elements.append(.copy(lastOffset, delta.baseCount))
         }
 
-        mutating func delete(_ range: Range<Int>) {
-            precondition(range.lowerBound >= lastOffset, "ranges must be sorted")
-            if lastOffset < range.lowerBound {
-                delta.elements.append(.copy(lastOffset, range.lowerBound))
-            }
-            lastOffset = range.upperBound
-        }
-
-        mutating func replace(_ range: Range<Int>, with tree: Tree) {
-            delete(range)
-            if !tree.root.isEmpty {
-                delta.elements.append(.insert(tree.root))
-            }
-        }
-
-        consuming func build() -> BTreeDelta {
-            if lastOffset < delta.baseCount {
-                delta.elements.append(.copy(lastOffset, delta.baseCount))
-            }
-            
-            return delta
-        }
+        return delta
     }
 }
 
 extension BTree {
-    typealias Delta = BTreeDelta<Self>
-    typealias DeltaBuilder = BTreeDelta<Self>.Builder
-
-    func applying(delta: Delta) -> Self {
+    func applying(delta: BTreeDelta<Self>) -> Self {
         var r = root
         var b = BTreeBuilder<Self>()
         for el in delta.elements {
