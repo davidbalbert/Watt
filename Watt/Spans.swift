@@ -272,31 +272,6 @@ extension Spans: Sequence {
     }
 }
 
-fileprivate func isEqual(_ a: Any?, _ b: Any?) -> Bool {
-    switch (a, b) {
-    case (.none, .none):
-        return true
-    case (.none, .some(_)):
-        return false
-    case (.some(_), .none):
-        return false
-    case let (.some(a), .some(b)):
-        func helper<E: Equatable>(_ a: E) -> Bool {
-            if let b = b as? E {
-                return a == b
-            } else {
-                return false
-            }
-        }
-
-        if let a = a as? any Equatable {
-            return helper(a)
-        }
-
-        return false
-    }
-}
-
 struct SpansBuilder<T> {
     var b: BTree<SpansSummary<T>>.Builder
     var leaf: SpansLeaf<T>
