@@ -1,5 +1,5 @@
 //
-//  BigAttributedString.swift
+//  AttributedRope.swift
 //  Watt
 //
 //  Created by David Albert on 8/27/23.
