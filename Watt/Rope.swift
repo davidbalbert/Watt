@@ -13,7 +13,17 @@ import Foundation
 // internal nodes are order 8: 4...8 children (see BTree.swift)
 // leaf nodes are order 1024: 511..<1024 elements (characters), unless it's root, then 0..<1024 (see Chunk.swift)
 
-typealias Rope = BTree<RopeSummary>
+struct Rope: BTree {
+    var root: BTreeNode<RopeSummary>
+
+    init() {
+        self.root = BTreeNode<RopeSummary>()
+    }
+
+    init(_ root: BTreeNode<RopeSummary>) {
+        self.root = root
+    }
+}
 
 struct RopeSummary: BTreeSummary {
     var utf16: Int
@@ -174,7 +184,7 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
 //
 // Ditto for using `some BTreeMetric<Summary>` instead of introducing
 // a generic type and constrainting it to BTreeMetric<Summary>.
-extension BTree {
+extension Rope {
     // The base metric, which measures UTF-8 code units.
     struct UTF8Metric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
@@ -224,7 +234,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF8Metric {
 // boundary. "Skip" is in quotes because there are not actually any leading
 // or trailing surrogates in Rope's storage. It's just Unicode scalars that
 // are encoded as UTF-8.
-extension BTree {
+extension Rope {
     struct UTF16Metric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.utf16
@@ -286,7 +296,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF16Metric {
     static var utf16: Rope.UTF16Metric { Rope.UTF16Metric() }
 }
 
-extension BTree {
+extension Rope {
     struct UnicodeScalarMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.scalars
@@ -348,7 +358,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
     static var unicodeScalars: Rope.UnicodeScalarMetric { Rope.UnicodeScalarMetric() }
 }
 
-extension BTree {
+extension Rope {
     struct CharacterMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.chars
@@ -434,7 +444,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.CharacterMetric {
     static var characters: Rope.CharacterMetric { Rope.CharacterMetric() }
 }
 
-extension BTree {
+extension Rope {
     struct NewlinesMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.newlines
@@ -506,7 +516,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 
 // MARK: - Builder additions
 
-extension Rope.Builder {
+extension BTreeBuilder where Summary == RopeSummary {
     mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
         var string = String(string)
         string.makeContiguousUTF8()
@@ -694,52 +704,58 @@ extension Rope.Index: CustomDebugStringConvertible {
 
 // MARK: - Collection conformances
 
-// If I don't specify these conformances separately, I get errors like this:
+//extension Rope: Sequence {
+//    // TODO: I'm using custom iterators instead of IndexingIterator to avoid
+//    // the index validation that happens inside subscript. I'm not sure if
+//    // there's actually a performance hit for that, so I should remove the custom
+//    // iterators and measure to see if there's a difference.
+//    struct Iterator: IteratorProtocol {
+//        var index: Index
 //
-//     Conditional conformance of type 'BTree<Summary>' to protocol 'Collection'
-//     does not imply conformance to inherited protocol 'Sequence'
-extension Rope: Sequence {
-    // TODO: I'm using custom iterators instead of IndexingIterator to avoid
-    // the index validation that happens inside subscript. I'm not sure if
-    // there's actually a performance hit for that, so I should remove the custom
-    // iterators and measure to see if there's a difference.
-    struct Iterator: IteratorProtocol {
-        var index: Index
-
-        mutating func next() -> Character? {
-            guard let c = index.readChar() else {
-                return nil
-            }
-
-            index.next(using: .characters)
-            return c
-        }
-    }
-
-    func makeIterator() -> Iterator {
-        Iterator(index: Index(startOf: root))
-    }
-}
+//        mutating func next() -> Character? {
+//            guard let c = index.readChar() else {
+//                return nil
+//            }
+//
+//            index.next(using: .characters)
+//            return c
+//        }
+//    }
+//
+//    func makeIterator() -> Iterator {
+//        Iterator(index: Index(startOf: root))
+//    }
+//}
 
 // TODO: audit default methods from Collection, BidirectionalCollection and RangeReplaceableCollection for default implementations that perform poorly.
 extension Rope: Collection {
+    typealias Index = BTreeNode<RopeSummary>.Index
+
     var count: Int {
-        measure(using: .characters)
+        root.measure(using: .characters)
+    }
+
+    var startIndex: Index {
+        root.startIndex
+    }
+
+    var endIndex: Index {
+        root.endIndex
     }
 
     subscript(position: Index) -> Character {
         position.validate(for: root)
-        return index(roundingDown: position, using: .characters).readChar()!
+        return root.index(roundingDown: position, using: .characters).readChar()!
     }
 
     subscript(bounds: Range<Index>) -> Rope {
         bounds.lowerBound.validate(for: root)
         bounds.upperBound.validate(for: root)
 
-        let start = index(roundingDown: bounds.lowerBound, using: .characters)
-        let end = index(roundingDown: bounds.upperBound, using: .characters)
+        let start = root.index(roundingDown: bounds.lowerBound, using: .characters)
+        let end = root.index(roundingDown: bounds.upperBound, using: .characters)
 
-        var sliced = Rope(self, slicedBy: Range(start..<end))
+        var sliced = Rope(root, slicedBy: Range(start..<end))
 
         var old = GraphemeBreaker(for: self, upTo: start)
         var new = GraphemeBreaker()
@@ -750,31 +766,31 @@ extension Rope: Collection {
 
     func index(after i: Index) -> Index {
         i.validate(for: root)
-        return index(after: i, using: .characters)
+        return root.index(after: i, using: .characters)
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         i.validate(for: root)
-        return index(i, offsetBy: distance, using: .characters)
+        return root.index(i, offsetBy: distance, using: .characters)
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         i.validate(for: root)
         limit.validate(for: root)
-        return index(i, offsetBy: distance, limitedBy: limit, using: .characters)
+        return root.index(i, offsetBy: distance, limitedBy: limit, using: .characters)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
         start.validate(for: root)
         end.validate(for: root)
-        return distance(from: start, to: end, using: .characters)
+        return root.distance(from: start, to: end, using: .characters)
     }
 }
 
 extension Rope: BidirectionalCollection {
     func index(before i: Index) -> Index {
         i.validate(for: root)
-        return index(before: i, using: .characters)
+        return root.index(before: i, using: .characters)
     }
 }
 
@@ -784,17 +800,17 @@ extension Rope: RangeReplaceableCollection {
         subrange.lowerBound.validate(for: root)
         subrange.upperBound.validate(for: root)
 
-        let rangeStart = index(roundingDown: subrange.lowerBound, using: .characters)
-        let rangeEnd = index(roundingDown: subrange.upperBound, using: .characters)
+        let rangeStart = root.index(roundingDown: subrange.lowerBound, using: .characters)
+        let rangeEnd = root.index(roundingDown: subrange.upperBound, using: .characters)
 
         var old = GraphemeBreaker(for: self, upTo: rangeEnd, withKnownNextScalar: rangeEnd.position == root.count ? nil : unicodeScalars[rangeEnd])
         var new = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
-        var b = Builder()
+        var b = BTreeBuilder<RopeSummary>()
         b.push(&root, slicedBy: Range(startIndex..<rangeStart))
         b.push(string: newElements, breaker: &new)
 
-        var rest = Rope(self, slicedBy: Range(rangeEnd..<endIndex))
+        var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
         rest.resyncBreaks(old: &old, new: &new)
         b.push(&rest.root)
 
@@ -803,7 +819,7 @@ extension Rope: RangeReplaceableCollection {
 
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
-        var b = Builder()
+        var b = BTreeBuilder<RopeSummary>()
         var br = GraphemeBreaker(for: self, upTo: endIndex)
 
         b.push(&root)
@@ -821,7 +837,7 @@ extension Rope {
         var l = left
         var r = right
 
-        var b = Builder()
+        var b = BTreeBuilder<RopeSummary>()
         var old = GraphemeBreaker()
         var new = GraphemeBreaker(for: l, upTo: l.endIndex)
 
@@ -838,7 +854,7 @@ extension Rope {
 
     func index(roundingDown i: Index) -> Index {
         i.validate(for: root)
-        return index(roundingDown: i, using: .characters)
+        return root.index(roundingDown: i, using: .characters)
     }
 }
 
@@ -846,11 +862,11 @@ extension Rope {
 // a total pain to work with.
 extension Rope {
     func index(at offset: Int) -> Index {
-        index(at: offset, using: .characters)
+        root.index(at: offset, using: .characters)
     }
 
     subscript(offset: Int) -> Character {
-        self[index(at: offset, using: .characters)]
+        self[root.index(at: offset, using: .characters)]
     }
 }
 
@@ -858,7 +874,7 @@ extension Rope {
 
 extension Rope {
     mutating func resyncBreaks(old: inout GraphemeBreaker, new: inout GraphemeBreaker) {
-        var b = Builder()
+        var b = BTreeBuilder<RopeSummary>()
 
         var i = startIndex
         while var (chunk, _) = i.read() {
@@ -942,17 +958,10 @@ extension Chunk {
     }
 }
 
-// This should really be in an extension of Rope, not BTree, but if I do
-// that, lldb gives the following error when printing GraphemeBreaker or
-// other types that embed it:
-//
-//   (lldb) expr Rope.GraphemeBreaker()
-//   error: Couldn't materialize: can't get size of type "Rope.BTree<Rope.RopeSummary>< where τ_0_0 == Rope.RopeSummary>.GraphemeBreaker"
-//   error: errored out in DoExecute, couldn't PrepareToExecuteJITExpression
-extension BTree {
+extension Rope {
     struct GraphemeBreaker: Equatable {
         #if swift(<5.9)
-        static func == (lhs: BTree<Summary>.GraphemeBreaker, rhs: BTree<Summary>.GraphemeBreaker) -> Bool {
+        static func == (lhs: GraphemeBreaker, rhs: GraphemeBreaker) -> Bool {
             false
         }
         #endif
@@ -1024,11 +1033,8 @@ extension BTree {
 }
 
 
-
 // MARK: - Views
 
-// N.b. These will be accessable as BTree.*View, BTree<RopeSummary>.*View,
-// and Rope.*View, but not BTree<SomeOtherSummary>.*View.
 extension Rope {
     var utf8: UTF8View {
         UTF8View(base: self)
@@ -1038,7 +1044,7 @@ extension Rope {
         var base: Rope
 
         func index(at: Int) -> Index {
-            return base.index(at: at, using: .utf8)
+            return base.root.index(at: at, using: .utf8)
         }
 
         func index(roundingDown i: Index) -> Index {
@@ -1047,7 +1053,7 @@ extension Rope {
         }
 
         subscript(offset: Int) -> UTF8.CodeUnit {
-            self[base.index(at: offset, using: .utf8)]
+            self[base.root.index(at: offset, using: .utf8)]
         }
     }
 }
@@ -1085,33 +1091,33 @@ extension Rope.UTF8View: BidirectionalCollection {
 
     func index(before i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(before: i, using: .utf8)
+        return base.root.index(before: i, using: .utf8)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(after: i, using: .utf8)
+        return base.root.index(after: i, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(i, offsetBy: distance, using: .utf8)
+        return base.root.index(i, offsetBy: distance, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
         i.validate(for: base.root)
         limit.validate(for: base.root)
-        return base.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
+        return base.root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
         start.validate(for: base.root)
         end.validate(for: base.root)
-        return base.distance(from: start, to: end, using: .utf8)
+        return base.root.distance(from: start, to: end, using: .utf8)
     }
 
     var count: Int {
-        base.measure(using: .utf8)
+        base.root.measure(using: .utf8)
     }
 }
 
@@ -1132,18 +1138,18 @@ extension Rope {
         var base: Rope
         
         var count: Int {
-            base.measure(using: .utf16)
+            base.root.measure(using: .utf16)
         }
 
         func index(_ i: Index, offsetBy distance: Int) -> Index {
             i.validate(for: base.root)
-            return base.index(i, offsetBy: distance, using: .utf16)
+            return base.root.index(i, offsetBy: distance, using: .utf16)
         }
 
         func distance(from start: Index, to end: Index) -> Int {
             start.validate(for: base.root)
             end.validate(for: base.root)
-            return base.distance(from: start, to: end, using: .utf16)
+            return base.root.distance(from: start, to: end, using: .utf16)
         }
     }
 }
@@ -1157,16 +1163,16 @@ extension Rope {
         var base: Rope
 
         func index(at: Int) -> Index {
-            base.index(at: at, using: .unicodeScalars)
+            base.root.index(at: at, using: .unicodeScalars)
         }
 
         func index(roundingDown i: Index) -> Index {
             i.validate(for: base.root)
-            return base.index(roundingDown: i, using: .unicodeScalars)
+            return base.root.index(roundingDown: i, using: .unicodeScalars)
         }
 
         subscript(offset: Int) -> UnicodeScalar {
-            self[base.index(at: offset, using: .unicodeScalars)]
+            self[base.root.index(at: offset, using: .unicodeScalars)]
         }
     }
 }
@@ -1199,38 +1205,38 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
 
     subscript(position: Rope.Index) -> Unicode.Scalar {
         position.validate(for: base.root)
-        return base.index(roundingDown: position, using: .unicodeScalars).readScalar()!
+        return base.root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(before: i, using: .unicodeScalars)
+        return base.root.index(before: i, using: .unicodeScalars)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(after: i, using: .unicodeScalars)
+        return base.root.index(after: i, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(i, offsetBy: distance, using: .unicodeScalars)
+        return base.root.index(i, offsetBy: distance, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
         i.validate(for: base.root)
         limit.validate(for: base.root)
-        return base.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
+        return base.root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
         start.validate(for: base.root)
         end.validate(for: base.root)
-        return base.distance(from: start, to: end, using: .unicodeScalars)
+        return base.root.distance(from: start, to: end, using: .unicodeScalars)
     }
 
     var count: Int {
-        base.measure(using: .unicodeScalars)
+        base.root.measure(using: .unicodeScalars)
     }
 }
 
@@ -1253,12 +1259,12 @@ extension Rope {
                 return base.endIndex
             }
 
-            return base.index(at: offset, using: .newlines)
+            return base.root.index(at: offset, using: .newlines)
         }
 
         func index(roundingDown i: Index) -> Index {
             i.validate(for: base.root)
-            return base.index(roundingDown: i, using: .newlines)
+            return base.root.index(roundingDown: i, using: .newlines)
         }
 
         func index(roundingUp i: Index) -> Index {
@@ -1272,7 +1278,7 @@ extension Rope {
         }
 
         subscript(offset: Int) -> Substring {
-            self[base.index(at: offset, using: .newlines)]
+            self[base.root.index(at: offset, using: .newlines)]
         }
     }
 }
@@ -1305,12 +1311,12 @@ extension Rope.LinesView: BidirectionalCollection {
 
     subscript(position: Rope.Index) -> Substring {
         position.validate(for: base.root)
-        return base.index(roundingDown: position, using: .newlines).readLine()!
+        return base.root.index(roundingDown: position, using: .newlines).readLine()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
         i.validate(for: base.root)
-        return base.index(before: i, using: .newlines)
+        return base.root.index(before: i, using: .newlines)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
@@ -1321,7 +1327,7 @@ extension Rope.LinesView: BidirectionalCollection {
             return endIndex
         }
 
-        return base.index(after: i, using: .newlines)
+        return base.root.index(after: i, using: .newlines)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
@@ -1343,7 +1349,7 @@ extension Rope.LinesView: BidirectionalCollection {
         i.validate(for: base.root)
         limit.validate(for: base.root)
 
-        var l = base.distance(from: i, to: limit, using: .newlines)
+        var l = base.root.distance(from: i, to: limit, using: .newlines)
 
         // there's always one more line than # of "\n" characters
         if limit.position == endIndex.position {
@@ -1368,7 +1374,7 @@ extension Rope.LinesView: BidirectionalCollection {
         start.validate(for: base.root)
         end.validate(for: base.root)
 
-        var d = base.distance(from: start, to: end, using: .newlines)
+        var d = base.root.distance(from: start, to: end, using: .newlines)
         if end == endIndex {
             d += 1
         }
@@ -1377,7 +1383,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     var count: Int {
-        base.measure(using: .newlines) + 1
+        base.root.measure(using: .newlines) + 1
     }
 }
 
@@ -1388,7 +1394,7 @@ extension String {
     init(_ rope: Rope) {
         self.init()
         self.reserveCapacity(rope.utf8.count)
-        for chunk in rope.leaves {
+        for chunk in rope.root.leaves {
             append(chunk.string)
         }
     }
@@ -1403,7 +1409,7 @@ extension NSString {
 extension Data {
     init(_ rope: Rope) {
         self.init(capacity: rope.utf8.count)
-        for chunk in rope.leaves {
+        for chunk in rope.root.leaves {
             chunk.string.withExistingUTF8 { p in
                 append(p.baseAddress!, count: p.count)
             }

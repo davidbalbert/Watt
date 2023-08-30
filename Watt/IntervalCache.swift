@@ -34,7 +34,9 @@ struct IntervalCache<T> {
     subscript(position: Int) -> T? {
         precondition(position >= 0 && position <= spans.upperBound)
 
-        let i = BTree.Index(offsetBy: position, in: spans.t)
+        // TODO: better index. Don't reference SpansSummary, which is part of
+        // the internals of Spans.
+        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: position, in: spans.root)
         guard let (leaf, offset) = i.read() else {
             return nil
         }
@@ -45,7 +47,9 @@ struct IntervalCache<T> {
     func range(forSpanContaining position: Int) -> Range<Int>? {
         precondition(position >= 0 && position <= spans.upperBound)
 
-        let i = BTree.Index(offsetBy: position, in: spans.t)
+        // TODO: better index. Don't reference SpansSummary, which is part of
+        // the internals of Spans.
+        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: position, in: spans.root)
         guard let (leaf, offset) = i.read() else {
             return nil
         }
@@ -64,8 +68,10 @@ struct IntervalCache<T> {
     subscript(bounds: Range<Int>) -> IntervalCache {
         precondition(bounds.lowerBound >= 0 && bounds.upperBound <= spans.upperBound)
 
-        let i = BTree.Index(offsetBy: bounds.lowerBound, in: spans.t)
-        let j = BTree.Index(offsetBy: bounds.upperBound, in: spans.t)
+        // TODO: better index. Don't reference SpansSummary, which is part of
+        // the internals of Spans.
+        let i = BTreeNode<SpansSummary<T>>.Index(offsetBy: bounds.lowerBound, in: spans.root)
+        let j = BTreeNode<SpansSummary<T>>.Index(offsetBy: bounds.upperBound, in: spans.root)
 
         let (startLeaf, startOffset) = i.read()!
         let (endLeaf, endOffset) = j.read()!
@@ -84,17 +90,18 @@ struct IntervalCache<T> {
             end = bounds.upperBound
         }
 
-        var b = BTree<SpansSummary<T>>.Builder()
-        var prefix = SpansBuilder<T>(totalCount: start).build().t
+        // TODO: is there a way to not dig into the implementation of Spans here?
+        var b = BTreeBuilder<SpansSummary<T>>()
+        var prefix = SpansBuilder<T>(totalCount: start).build()
         b.push(&prefix.root)
 
-        var t = spans.t
-        b.push(&t.root, slicedBy: start..<end)
+        var s = spans
+        b.push(&s.root, slicedBy: start..<end)
 
-        var suffix = SpansBuilder<T>(totalCount: spans.upperBound - end).build().t
+        var suffix = SpansBuilder<T>(totalCount: spans.upperBound - end).build()
         b.push(&suffix.root)
 
-        return IntervalCache(Spans(BTree(b.build())))
+        return IntervalCache(Spans(b.build()))
     }
 
     mutating func set(_ value: T, forRange range: Range<Int>) {
@@ -105,10 +112,11 @@ struct IntervalCache<T> {
         self.spans = spans.merging(new) { $0 ?? $1 }
     }
 
-    mutating func invalidate<Summary>(delta: BTree<Summary>.Delta) where Summary: BTreeSummary {
-        var b = BTree<SpansSummary<T>>.Builder()
+    mutating func invalidate<Summary>(delta: BTreeDelta<Summary>) where Summary: BTreeSummary {
+        // TODO: how to not reach into Spans summary?
+        var b = BTreeBuilder<SpansSummary<T>>()
 
-        var prev: BTree<Summary>.DeltaElement? = nil
+        var prev: BTreeDelta<Summary>.DeltaElement? = nil
 
         // precondition: invalidatedThrough will always be 0 or
         // the upperBound of a span.
@@ -177,27 +185,27 @@ struct IntervalCache<T> {
 
                 if prefix > 0 {
                     var blank = SpansBuilder<T>(totalCount: prefix).build()
-                    b.push(&blank.t.root)
+                    b.push(&blank.root)
                 }
 
                 if copyStart < copyEnd {
-                    var r = spans.t.root
+                    var r = spans.root
                     b.push(&r, slicedBy: copyStart..<copyEnd)
                 }
 
                 if suffix > 0 {
                     var blank = SpansBuilder<T>(totalCount: suffix).build()
-                    b.push(&blank.t.root)
+                    b.push(&blank.root)
                 }
             case let .insert(node):
                 var s = SpansBuilder<T>(totalCount: node.count).build()
-                b.push(&s.t.root)
+                b.push(&s.root)
             }
 
             prev = el
         }
 
-        spans = Spans(BTree(b.build()))
+        spans = Spans(b.build())
     }
 
     mutating func removeAll() {
