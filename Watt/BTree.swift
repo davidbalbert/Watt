@@ -339,10 +339,9 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
 
 // MARK: - Basic operations
 
-// These methods must be called on already validated indices.
 extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        i.assertValid(for: self)
+        i.validate(for: self)
 
         var i = i
         let offset = i.prev(using: metric)
@@ -353,7 +352,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     func index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        i.assertValid(for: self)
+        i.validate(for: self)
 
         var i = i
         let offset = i.next(using: metric)
@@ -364,7 +363,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     func index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        i.assertValid(for: self)
+        i.validate(for: self)
 
         var i = i
         let m = count(metric, upThrough: i.position)
@@ -376,8 +375,8 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
-        i.assertValid(for: self)
-        limit.assertValid(for: self)
+        i.validate(for: self)
+        limit.validate(for: self)
 
         let l = self.distance(from: i, to: limit, using: metric)
         if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
@@ -388,14 +387,14 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     func distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
-        start.assertValid(for: self)
-        end.assertValid(for: self)
+        start.validate(for: self)
+        end.validate(for: self)
 
         return count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
     }
 
     func index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        i.assertValid(for: self)
+        i.validate(for: self)
 
         if i.isBoundary(in: metric) {
             return i
@@ -1054,12 +1053,6 @@ extension BTreeNode {
             precondition(self.root === root)
             precondition(self.mutationCount == root.mutationCount)
             precondition(self.leaf != nil)
-        }
-
-        func assertValid(for root: BTreeNode) {
-            assert(self.root === root)
-            assert(self.mutationCount == root.mutationCount)
-            assert(self.leaf != nil)
         }
 
         func validate(_ other: Index) {

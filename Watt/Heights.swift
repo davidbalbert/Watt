@@ -467,18 +467,15 @@ extension Heights {
     }
 
     func index(before i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(before: i, using: .heightsBaseMetric)
+        root.index(before: i, using: .heightsBaseMetric)
     }
 
     func index(after i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(after: i, using: .heightsBaseMetric)
+        root.index(after: i, using: .heightsBaseMetric)
     }
 
     func index(roundingDown i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(roundingDown: i, using: .heightsBaseMetric)
+        root.index(roundingDown: i, using: .heightsBaseMetric)
     }
 
     var startIndex: Index {

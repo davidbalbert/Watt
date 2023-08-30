@@ -744,8 +744,7 @@ extension Rope: Collection {
     }
 
     subscript(position: Index) -> Character {
-        position.validate(for: root)
-        return root.index(roundingDown: position, using: .characters).readChar()!
+        root.index(roundingDown: position, using: .characters).readChar()!
     }
 
     subscript(bounds: Range<Index>) -> Rope {
@@ -762,32 +761,25 @@ extension Rope: Collection {
     }
 
     func index(after i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(after: i, using: .characters)
+        root.index(after: i, using: .characters)
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        i.validate(for: root)
-        return root.index(i, offsetBy: distance, using: .characters)
+        root.index(i, offsetBy: distance, using: .characters)
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        i.validate(for: root)
-        limit.validate(for: root)
-        return root.index(i, offsetBy: distance, limitedBy: limit, using: .characters)
+        root.index(i, offsetBy: distance, limitedBy: limit, using: .characters)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        start.validate(for: root)
-        end.validate(for: root)
-        return root.distance(from: start, to: end, using: .characters)
+        root.distance(from: start, to: end, using: .characters)
     }
 }
 
 extension Rope: BidirectionalCollection {
     func index(before i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(before: i, using: .characters)
+        root.index(before: i, using: .characters)
     }
 }
 
@@ -847,8 +839,7 @@ extension Rope {
     }
 
     func index(roundingDown i: Index) -> Index {
-        i.validate(for: root)
-        return root.index(roundingDown: i, using: .characters)
+        root.index(roundingDown: i, using: .characters)
     }
 }
 
@@ -1038,7 +1029,7 @@ extension Rope {
         var base: Rope
 
         func index(at offset: Int) -> Index {
-            return base.root.index(at: offset, using: .utf8)
+            base.root.index(at: offset, using: .utf8)
         }
 
         func index(roundingDown i: Index) -> Index {
@@ -1084,30 +1075,23 @@ extension Rope.UTF8View: BidirectionalCollection {
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(before: i, using: .utf8)
+        base.root.index(before: i, using: .utf8)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(after: i, using: .utf8)
+        base.root.index(after: i, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(i, offsetBy: distance, using: .utf8)
+        base.root.index(i, offsetBy: distance, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        i.validate(for: base.root)
-        limit.validate(for: base.root)
-        return base.root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
+        base.root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        start.validate(for: base.root)
-        end.validate(for: base.root)
-        return base.root.distance(from: start, to: end, using: .utf8)
+        base.root.distance(from: start, to: end, using: .utf8)
     }
 
     var count: Int {
@@ -1136,14 +1120,11 @@ extension Rope {
         }
 
         func index(_ i: Index, offsetBy distance: Int) -> Index {
-            i.validate(for: base.root)
-            return base.root.index(i, offsetBy: distance, using: .utf16)
+            base.root.index(i, offsetBy: distance, using: .utf16)
         }
 
         func distance(from start: Index, to end: Index) -> Int {
-            start.validate(for: base.root)
-            end.validate(for: base.root)
-            return base.root.distance(from: start, to: end, using: .utf16)
+            base.root.distance(from: start, to: end, using: .utf16)
         }
     }
 }
@@ -1161,8 +1142,7 @@ extension Rope {
         }
 
         func index(roundingDown i: Index) -> Index {
-            i.validate(for: base.root)
-            return base.root.index(roundingDown: i, using: .unicodeScalars)
+            base.root.index(roundingDown: i, using: .unicodeScalars)
         }
 
         subscript(offset: Int) -> UnicodeScalar {
@@ -1198,35 +1178,27 @@ extension Rope.UnicodeScalarView: BidirectionalCollection {
     }
 
     subscript(position: Rope.Index) -> Unicode.Scalar {
-        position.validate(for: base.root)
-        return base.root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
+        base.root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
     }
 
     func index(before i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(before: i, using: .unicodeScalars)
+        base.root.index(before: i, using: .unicodeScalars)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(after: i, using: .unicodeScalars)
+        base.root.index(after: i, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        i.validate(for: base.root)
-        return base.root.index(i, offsetBy: distance, using: .unicodeScalars)
+        base.root.index(i, offsetBy: distance, using: .unicodeScalars)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        i.validate(for: base.root)
-        limit.validate(for: base.root)
-        return base.root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
+        base.root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        start.validate(for: base.root)
-        end.validate(for: base.root)
-        return base.root.distance(from: start, to: end, using: .unicodeScalars)
+        base.root.distance(from: start, to: end, using: .unicodeScalars)
     }
 
     var count: Int {
@@ -1257,8 +1229,7 @@ extension Rope {
         }
 
         func index(roundingDown i: Index) -> Index {
-            i.validate(for: base.root)
-            return base.root.index(roundingDown: i, using: .newlines)
+            base.root.index(roundingDown: i, using: .newlines)
         }
 
         func index(roundingUp i: Index) -> Index {
@@ -1466,6 +1437,7 @@ extension NSRange {
         assert(range.lowerBound.position >= 0 && range.lowerBound.position <= rope.root.count)
         assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
 
+        // TODO: is there a reason the majority of this initializer isn't just distance(from:to:)?
         let i = rope.count(.utf16, upThrough: range.lowerBound.position)
         let j = rope.count(.utf16, upThrough: range.upperBound.position)
 
