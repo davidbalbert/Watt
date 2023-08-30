@@ -704,29 +704,6 @@ extension Rope.Index: CustomDebugStringConvertible {
 
 // MARK: - Collection conformances
 
-//extension Rope: Sequence {
-//    // TODO: I'm using custom iterators instead of IndexingIterator to avoid
-//    // the index validation that happens inside subscript. I'm not sure if
-//    // there's actually a performance hit for that, so I should remove the custom
-//    // iterators and measure to see if there's a difference.
-//    struct Iterator: IteratorProtocol {
-//        var index: Index
-//
-//        mutating func next() -> Character? {
-//            guard let c = index.readChar() else {
-//                return nil
-//            }
-//
-//            index.next(using: .characters)
-//            return c
-//        }
-//    }
-//
-//    func makeIterator() -> Iterator {
-//        Iterator(index: Index(startOf: root))
-//    }
-//}
-
 // TODO: audit default methods from Collection, BidirectionalCollection and RangeReplaceableCollection for default implementations that perform poorly.
 extension Rope: Collection {
     typealias Index = BTreeNode<RopeSummary>.Index
@@ -1044,23 +1021,6 @@ extension Rope {
 }
 
 extension Rope.UTF8View: BidirectionalCollection {
-    struct Iterator: IteratorProtocol {
-        var index: Rope.Index
-
-        mutating func next() -> UTF8.CodeUnit? {
-            guard let b = index.readUTF8() else {
-                return nil
-            }
-
-            index.next(using: .utf8)
-            return b
-        }
-    }
-
-    func makeIterator() -> Iterator {
-        Iterator(index: root.startIndex)
-    }
-
     var startIndex: Rope.Index {
         root.startIndex
     }
@@ -1152,23 +1112,6 @@ extension Rope {
 }
 
 extension Rope.UnicodeScalarView: BidirectionalCollection {
-    struct Iterator: IteratorProtocol {
-        var index: Rope.Index
-
-        mutating func next() -> Unicode.Scalar? {
-            guard let scalar = index.readScalar() else {
-                return nil
-            }
-
-            index.next(using: .unicodeScalars)
-            return scalar
-        }
-    }
-
-    func makeIterator() -> Iterator {
-        Iterator(index: root.startIndex)
-    }
-
     var startIndex: Rope.Index {
         root.startIndex
     }
@@ -1249,6 +1192,8 @@ extension Rope {
 }
 
 extension Rope.LinesView: BidirectionalCollection {
+    // TODO: I'd like to remove this and just use IndexingIterator,
+    // but I can't until I fix RopeTests.testMoveToLastLineIndexInEmptyRope
     struct Iterator: IteratorProtocol {
         var index: Rope.Index
 
@@ -1265,14 +1210,6 @@ extension Rope.LinesView: BidirectionalCollection {
     func makeIterator() -> Iterator {
         Iterator(index: root.startIndex)
     }
-//    struct Index: Comparable {
-//        static func < (lhs: Rope.LinesView.Index, rhs: Rope.LinesView.Index) -> Bool {
-//            lhs < rhs || (lhs == rhs && lhs.afterEmptyLastLine == false && rhs.afterEmptyLastLine == true)
-//        }
-//        
-//        var i: Rope.Index
-//        var afterEmptyLastLine: Bool
-//    }
 
     var startIndex: Rope.Index {
         root.startIndex
