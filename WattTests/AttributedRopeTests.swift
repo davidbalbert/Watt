@@ -200,59 +200,43 @@ final class AttributedRopeTests: XCTestCase {
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
 
-        r.characters.insert(contentsOf: "! ", at: r.startIndex)
-        XCTAssertEqual(r.runs.count, 2)
+        r.characters.insert(contentsOf: "!", at: r.startIndex)
+        XCTAssertEqual(String(r.text), "!Hello, world!")
 
-        XCTAssertEqual(String(r.text), "! Hello, world!")
+        XCTAssertEqual(r.runs.count, 2)
 
         var iter = r.runs.makeIterator()
         let r0 = iter.next()!
-        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 7))
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 6))
         XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
 
         let r1 = iter.next()!
-        XCTAssertEqual(r1.range, r.index(at: 7)..<r.endIndex)
+        XCTAssertEqual(r1.range, r.index(at: 6)..<r.endIndex)
         XCTAssertNil(r1.font)
 
         XCTAssertNil(iter.next())
+    }
 
-        
-        // Reference behavior
+    func testInsertingIntoTheMiddleOfASpanInsertsIntoThatSpan() {
+        var r = AttributedRope("Hello, world!")
+        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 2)
 
-        let s = NSMutableAttributedString("Hello, world!")
-        s.addAttribute(.font, value: NSFont.systemFont(ofSize: 12), range: NSRange(location: 0, length: 5))
-        assertRunCountEquals(s, 2)
+        r.characters.insert(contentsOf: "!", at: r.index(at: 3))
+        XCTAssertEqual(String(r.text), "Hel!lo, world!")
 
-        var range = NSRange(location: 0, length: 0)
-        var attrs = s.attributes(at: 0, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-        XCTAssertEqual(range.location, 0)
-        XCTAssertEqual(range.length, 5)
-        XCTAssertEqual(attrs.count, 1)
-        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
+        XCTAssertEqual(r.runs.count, 2)
 
-        range = NSRange(location: 0, length: 0)
-        attrs = s.attributes(at: 5, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-        XCTAssertEqual(range.location, 5)
-        XCTAssertEqual(range.length, 8)
-        XCTAssertEqual(attrs.count, 0)
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 6))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
 
-        s.replaceCharacters(in: NSMakeRange(0, 0), with: "! ")
-        assertRunCountEquals(s, 2)
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 6)..<r.endIndex)
+        XCTAssertNil(r1.font)
 
-        XCTAssertEqual(s.string, "! Hello, world!")
-
-        range = NSRange(location: 0, length: 0)
-        attrs = s.attributes(at: 0, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-        XCTAssertEqual(range.location, 0)
-        XCTAssertEqual(range.length, 7)
-        XCTAssertEqual(attrs.count, 1)
-        XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
-
-        range = NSRange(location: 0, length: 0)
-        attrs = s.attributes(at: 7, longestEffectiveRange: &range, in: NSRange(location: 0, length: s.length))
-        XCTAssertEqual(range.location, 7)
-        XCTAssertEqual(range.length, 8)
-        XCTAssertEqual(attrs.count, 0)
+        XCTAssertNil(iter.next())
     }
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {

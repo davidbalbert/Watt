@@ -257,6 +257,7 @@ extension AttributedSubrope {
 
 // MARK: - Collection
 
+// AttributedRope is not actually a collection, but it acts like one.
 extension AttributedRope {
     typealias Index = Rope.Index
 
@@ -278,6 +279,18 @@ extension AttributedRope {
 
     func index(at offset: Int) -> Index {
         text.index(at: offset)
+    }
+
+    func index(beforeCharacter i: Index) -> Index {
+        text.index(before: i)
+    }
+
+    func index(afterCharacter i: Index) -> Index {
+        text.index(after: i)
+    }
+
+    func index(_ i: Index, offsetByCharacters distance: Int) -> Index {
+        text.index(i, offsetBy: distance)
     }
 
     subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
@@ -408,9 +421,9 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
 
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
         var r = spans.root
-        b.push(&r, slicedBy: 0..<subrange.lowerBound.position)
+        b.push(&r, slicedBy: 0..<span.range.lowerBound)
         b.push(&new.root)
-        b.push(&r, slicedBy: (subrange.upperBound.position + span.range.count)..<spans.upperBound)
+        b.push(&r, slicedBy: span.range.upperBound..<spans.upperBound)
 
         self.spans = b.build()
     }
