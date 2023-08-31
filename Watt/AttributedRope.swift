@@ -417,18 +417,18 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
         let newElements = Rope(newElements)
+
+        if isEmpty {
+            precondition(subrange.lowerBound == startIndex && subrange.upperBound == startIndex, "index out of bounds")
+            let new = AttributedRope(newElements)
+            text = new.text
+            spans = new.spans
+            return
+        }
+
         text.replaceSubrange(subrange, with: newElements)
 
         let replacementRange = Range(intRangeFor: subrange)
-
-        // Deal with a previously empty AttributedRope, which had no spans.
-        if spans.upperBound == 0 {
-            assert(spans.count == 0)
-            var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newElements.utf8.count)
-            sb.add(AttributedRope.Attributes(), covering: 0..<newElements.utf8.count)
-            spans = sb.build()
-            return
-        }
 
         var firstSpan = spans.span(at: replacementRange.lowerBound)!
         if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
