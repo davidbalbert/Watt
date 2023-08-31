@@ -195,6 +195,7 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Mutation
     // MARK: - Mutating CharacterView
+    // MARK: - Inserting into CharacterView
 
     func testInsertIntOEmptyRope() {
         var r = AttributedRope("")
@@ -278,6 +279,8 @@ final class AttributedRopeTests: XCTestCase {
 
         XCTAssertNil(iter.next())
     }
+
+    // MARK: - Replacing in CharacterView
 
     func testReplacingInsideARunAtTheBeginning() {
         var r = AttributedRope("Hello, world!")
@@ -436,6 +439,8 @@ final class AttributedRopeTests: XCTestCase {
 
         XCTAssertNil(iter.next())
     }
+
+    // MARK: - Deleting from CharacterView
 
     func testDeletingEmptyRangeIsANoop() {
         var r = AttributedRope("foo bar baz")
