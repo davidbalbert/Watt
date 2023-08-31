@@ -404,14 +404,13 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
         sb.add(span.data, covering: 0..<newCount)
+        var new = sb.build()
 
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
-        b.push(&spans.root, slicedBy: 0..<subrange.lowerBound.position)
-        
-        var new = sb.build()
+        var r = spans.root
+        b.push(&r, slicedBy: 0..<subrange.lowerBound.position)
         b.push(&new.root)
-        
-        b.push(&spans.root, slicedBy: (subrange.upperBound.position + span.range.count)..<spans.upperBound)
+        b.push(&r, slicedBy: (subrange.upperBound.position + span.range.count)..<spans.upperBound)
 
         self.spans = b.build()
     }
