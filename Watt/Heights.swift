@@ -7,7 +7,13 @@
 
 import Foundation
 
-typealias Heights = BTree<HeightsSummary>
+struct Heights: BTree {
+    var root: BTreeNode<HeightsSummary>
+
+    init(_ root: BTreeNode<HeightsSummary>) {
+        self.root = root
+    }
+}
 
 struct HeightsSummary: BTreeSummary {
     var height: CGFloat
@@ -254,6 +260,8 @@ extension Heights.Index {
 }
 
 extension Heights {
+    typealias Index = BTreeNode<HeightsSummary>.Index
+
     init(rope: Rope) {
         var b = HeightsBuilder()
 
@@ -262,17 +270,17 @@ extension Heights {
             b.addLine(withBaseCount: l.utf8.count, height: 14)
         }
 
-        self.init(b.build())
+        self = b.build()
     }
 
     init() {
         var b = HeightsBuilder()
         b.addLine(withBaseCount: 0, height: 14)
-        self.init(b.build())
+        self = b.build()
     }
 
     var contentHeight: CGFloat {
-        measure(using: .yOffset)
+        root.measure(using: .yOffset)
     }
 
     subscript(position: Int) -> CGFloat {
@@ -288,7 +296,7 @@ extension Heights {
     subscript(i: Index) -> CGFloat {
         get {
             i.validate(for: root)
-            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
@@ -309,7 +317,7 @@ extension Heights {
         // the leaf as well.
         set {
             i.validate(for: root)
-            precondition(i.position <= measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
             let (leaf, li) = i.readLeafIndex()!
@@ -368,27 +376,27 @@ extension Heights {
                 newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
             }
 
-            var b = Builder()
+            var b = BTreeBuilder<Heights>()
 
             b.push(&root, slicedBy: 0..<prefixEnd)
             b.push(leaf: newLeaf)
             b.push(&root, slicedBy: suffixStart..<root.count)
 
             let oldCount = root.count
-            self.root = b.build()
+            self = b.build()
             assert(root.count == oldCount)
         }
     }
 
     mutating func replaceSubrange(_ oldRange: Range<Int>, with rope: Rope) {
-        let start = index(roundingDown: index(at: oldRange.lowerBound), using: .heightsBaseMetric).position
-        let lastBoundary = index(roundingDown: endIndex, using: .heightsBaseMetric).position
+        let start = index(roundingDown: index(at: oldRange.lowerBound)).position
+        let lastBoundary = index(roundingDown: endIndex).position
 
         let end: Int
         if oldRange.upperBound >= lastBoundary {
             end = root.count
         } else {
-            end = index(after: index(at: oldRange.upperBound), using: .heightsBaseMetric).position
+            end = index(after: index(at: oldRange.upperBound)).position
         }
 
         let prefixCount = oldRange.lowerBound - start
@@ -419,14 +427,14 @@ extension Heights {
             hb.addLine(withBaseCount: 0, height: 14)
         }
 
-        var b = Heights.Builder()
+        var b = BTreeBuilder<Heights>()
         var r = root
         b.push(&r, slicedBy: 0..<start)
         var new = hb.build()
-        b.push(&new)
+        b.push(&new.root)
         b.push(&r, slicedBy: end..<r.count)
 
-        root = b.build()
+        self = b.build()
     }
 
     func yOffset(upThroughPosition offset: Int) -> CGFloat {
@@ -438,7 +446,7 @@ extension Heights {
             return root.measure(using: .yOffset) - height
         }
 
-        return count(.yOffset, upThrough: offset)
+        return root.count(.yOffset, upThrough: offset)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {
@@ -450,16 +458,36 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return countBaseUnits(of: yOffset, measuredIn: .yOffset)
+        return root.countBaseUnits(upThrough: yOffset, measuredIn: .yOffset)
     }
 
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
-        index(at: offset, using: .heightsBaseMetric)
+        root.index(at: offset, using: .heightsBaseMetric)
+    }
+
+    func index(before i: Index) -> Index {
+        root.index(before: i, using: .heightsBaseMetric)
+    }
+
+    func index(after i: Index) -> Index {
+        root.index(after: i, using: .heightsBaseMetric)
+    }
+
+    func index(roundingDown i: Index) -> Index {
+        root.index(roundingDown: i, using: .heightsBaseMetric)
+    }
+
+    var startIndex: Index {
+        root.startIndex
+    }
+
+    var endIndex: Index {
+        root.endIndex
     }
 }
 
-extension BTree {
+extension Heights {
     struct HeightsBaseMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> Int {
             count
@@ -584,7 +612,7 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
     static var heightsBaseMetric: Heights.HeightsBaseMetric { Heights.HeightsBaseMetric() }
 }
 
-extension BTree {
+extension Heights {
     struct YOffsetMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> CGFloat {
             summary.height
@@ -641,11 +669,11 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
 }
 
 struct HeightsBuilder {
-    var b: BTree<HeightsSummary>.Builder
+    var b: BTreeBuilder<Heights>
     var leaf: HeightsLeaf
 
     init() {
-        b = BTree<HeightsSummary>.Builder()
+        b = BTreeBuilder<Heights>()
         leaf = HeightsLeaf()
     }
 
@@ -659,14 +687,14 @@ struct HeightsBuilder {
         leaf.heights.append((leaf.heights.last ?? 0) + height)
     }
 
-    consuming func build() -> BTree<HeightsSummary>.Node {
+    consuming func build() -> Heights {
         if leaf.positions.count > 0 {
             b.push(leaf: leaf)
         }
 
-        let node = b.build()
-        assert(node.height > 0 || node.leaf.positions.count > 0)
-        return node
+        let heights = b.build()
+        assert(heights.root.height > 0 || heights.root.leaf.positions.count > 0)
+        return heights
     }
 }
 

@@ -203,7 +203,7 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(bounds)
+            let r = Range(fromBTreeRange: bounds)
             var first = true
             var v: K.Value?
 
@@ -236,7 +236,7 @@ extension AttributedSubrope {
             var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
             var s = AttributedRope.Attributes()
             s[K.self] = newValue
-            b.add(s, covering: Range(bounds))
+            b.add(s, covering: Range(fromBTreeRange: bounds))
 
             spans = spans.merging(b.build()) { a, b in
                 var a = a ?? AttributedRope.Attributes()
@@ -276,8 +276,8 @@ extension AttributedRope {
         text.isEmpty
     }
 
-    func index(at: Int) -> Index {
-        text.index(at: at)
+    func index(at offset: Int) -> Index {
+        text.index(at: offset)
     }
 
     subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
@@ -429,7 +429,7 @@ extension AttributedRope {
 
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         attrString.enumerateAttributes(in: NSRange(location: 0, length: attrString.length), options: []) { attrs, range, _ in
-            b.add(Attributes(attrs), covering: Range(Range(range, in: text)!))
+            b.add(Attributes(attrs), covering: Range(fromBTreeRange: Range(range, in: text)!))
         }
 
         self.text = text

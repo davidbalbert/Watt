@@ -966,22 +966,22 @@ final class HeightsTest: XCTestCase {
 
     func testIndexBefore() {
         var h = Heights(rope: Rope("foo"))
-        var i = h.index(before: h.endIndex, using: .heightsBaseMetric)
+        var i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
         h = Heights(rope: Rope("foo\n"))
-        i = h.index(before: h.endIndex, using: .heightsBaseMetric)
+        i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
         h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        i = h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        i = h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(8, i.position)
 
@@ -995,12 +995,12 @@ final class HeightsTest: XCTestCase {
         XCTAssertNil(i.next(using: .heightsBaseMetric))
 
         h = Heights(rope: Rope("foo\n"))
-        i = h.index(after: h.startIndex, using: .heightsBaseMetric)
+        i = h.index(after: h.startIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
         h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(after: h.startIndex, using: .heightsBaseMetric)
+        i = h.index(after: h.startIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
@@ -1009,29 +1009,29 @@ final class HeightsTest: XCTestCase {
         XCTAssertNil(i.next(using: .heightsBaseMetric))
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(after: h.index(at: 4), using: .heightsBaseMetric)
+        i = h.index(after: h.index(at: 4))
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(8, i.position)
     }
 
     func testRoundingDown() {
         var h = Heights(rope: Rope("foo"))
-        var i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        var i = h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
         h = Heights(rope: Rope("foo\n"))
-        i =  h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        i =  h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
         h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        i = h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(roundingDown: h.endIndex, using: .heightsBaseMetric)
+        i = h.index(roundingDown: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(8, i.position)
     }

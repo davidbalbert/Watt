@@ -653,7 +653,7 @@ class LayoutManager {
     }
 
     // MARK: - Editing
-    func bufferContentsDidChange(from old: Rope, to new: Rope, delta: Rope.Delta) {
+    func bufferContentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
         // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
         let (oldRange, count) = delta.summary()
 

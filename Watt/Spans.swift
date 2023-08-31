@@ -110,29 +110,23 @@ struct SpansSummary<T>: BTreeSummary {
     }
 }
 
-struct Spans<T> {
-    var t: BTree<SpansSummary<T>>
+struct Spans<T>: BTree {
+    var root: BTreeNode<SpansSummary<T>>
 
     var upperBound: Int {
-        // TODO: once we make Rope, etc. wrap BTree, then
-        // we can define BTree/count directly.
-        t.root.count
+        root.count
     }
 
     var count: Int {
-        t.root.summary.spans
+        root.summary.spans
     }
 
-    init(_ tree: BTree<SpansSummary<T>>) {
-        self.t = tree
+    init(_ root: BTreeNode<SpansSummary<T>>) {
+        self.root = root
     }
 
     subscript(_ bounds: Range<Int>) -> Spans<T> {
-        var r = t.root
-
-        var b = BTree<SpansSummary<T>>.Builder()
-        b.push(&r, slicedBy: bounds)
-        return Spans(BTree(b.build()))
+        Spans(root, slicedBy: bounds)
     }
 
     func merging<O>(_ other: Spans<T>, transform: (T?, T?) -> O?) -> Spans<O> {
@@ -247,12 +241,12 @@ struct Spans<T> {
 extension Spans: Sequence {
     struct Iterator: IteratorProtocol {
         var base: Spans<T>
-        var i: BTree<SpansSummary<T>>.Index
+        var i: Index
         var ii: Int
 
         init(_ spans: Spans<T>) {
             self.base = spans
-            self.i = spans.t.startIndex
+            self.i = spans.root.startIndex
             self.ii = 0
         }
 
@@ -282,14 +276,23 @@ extension Spans: Sequence {
     }
 }
 
+// Collection
+extension Spans {
+    typealias Index = BTreeNode<SpansSummary<T>>.Index
+
+    func index(at offset: Int) -> Index {
+        Index(offsetBy: offset, in: root)
+    }
+}
+
 struct SpansBuilder<T> {
-    var b: BTree<SpansSummary<T>>.Builder
+    var b: BTreeBuilder<Spans<T>>
     var leaf: SpansLeaf<T>
     var count: Int
     var totalCount: Int
 
     init(totalCount: Int) {
-        self.b = BTree<SpansSummary>.Builder()
+        self.b = BTreeBuilder<Spans>()
         self.leaf = SpansLeaf()
         self.count = 0
         self.totalCount = totalCount
@@ -322,7 +325,7 @@ struct SpansBuilder<T> {
         leaf.count = totalCount - count
         b.push(leaf: leaf)
 
-        return Spans(BTree(b.build()))
+        return b.build()
     }
 }
 

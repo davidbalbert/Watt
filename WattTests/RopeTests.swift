@@ -1174,14 +1174,14 @@ final class RopeTests: XCTestCase {
         // Very contrived. I don't know how to create this situation naturally
         // because of how boundaryForBulkInsert tries to put the "\n" on the right
         // side of the rope boundary, but it has appeared in the wild.
-        var b = Rope.Builder()
+        var b = BTreeBuilder<Rope>()
         var breaker = Rope.GraphemeBreaker()
 
         let firstString = String(repeating: "a", count: 511) + "\n" + String(repeating: "b", count: 510) + "\n"
         b.push(leaf: Chunk(firstString[...], breaker: &breaker))
 
         b.push(leaf: Chunk(String(repeating: "c", count: 1023)[...], breaker: &breaker))
-        let r = Rope(b.build())
+        let r = b.build()
 
         XCTAssertEqual(1, r.root.height)
         XCTAssertEqual(2, r.root.children.count)
@@ -1203,6 +1203,22 @@ final class RopeTests: XCTestCase {
         let j = r.lines.index(roundingDown: i)
 
         XCTAssertEqual(0, j.position)
+    }
+
+    // TODO: this is broken. Rope.LinesView really needs its own Index type.
+    // In the case where the rope is empty, or the rope ends in a newline,
+    // LinesView needs to have an index after rope.endIndex. If we fix this
+    // issue, we can get rid of Lines.Iterator and switch to IndexingIterator
+    // which is the default.
+    func testMoveToLastLineIndexInEmptyRope() {
+//        let r = Rope()
+//        XCTAssertEqual(r.lines.count, 1)
+//
+//        let i = r.startIndex
+//        XCTAssertEqual(r.lines[i], "")
+//
+//        let j = r.lines.index(after: i)
+//        XCTAssertEqual(j, r.endIndex)
     }
 }
 

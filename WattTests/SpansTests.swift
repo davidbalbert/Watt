@@ -78,7 +78,7 @@ final class SpansTests: XCTestCase {
 
         XCTAssertEqual(256, s.upperBound)
         XCTAssertEqual(1, s.count)
-        XCTAssertEqual(0, s.t.root.height)
+        XCTAssertEqual(0, s.root.height)
 
         var iter = s.makeIterator()
         XCTAssertEqual(Span(range: 0..<256, data: 1), iter.next())
@@ -92,8 +92,8 @@ final class SpansTests: XCTestCase {
 
         XCTAssertEqual(256, s.upperBound)
         XCTAssertEqual(128, s.count)
-        XCTAssertEqual(1, s.t.root.height)
-        XCTAssertEqual(2, s.t.root.children.count)
+        XCTAssertEqual(1, s.root.height)
+        XCTAssertEqual(2, s.root.children.count)
 
         iter = s.makeIterator()
         for i in stride(from: 0, through: 255, by: 2) {
