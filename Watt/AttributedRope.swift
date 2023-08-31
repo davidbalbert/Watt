@@ -395,13 +395,25 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     }
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
-        // var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
-        // b.add(contentsOf: spans, covering: 0..<subrange.lowerBound.utf8Offset(in: text))
-        // b.add(Attributes(), covering: subrange.lowerBound..<subrange.upperBound)
-        // b.add(contentsOf: spans, covering: subrange.upperBound..<text.utf8.count)
-        // spans = b.build()
+        // TODO: don't convert this to a string if we have a Rope
+        let s = String(newElements)
+        text.replaceSubrange(subrange, with: s)
 
-        // text.replaceSubrange(subrange, with: newElements)
+        let span = spans.span(at: subrange.lowerBound.position)!
+        let newCount = span.range.count + s.utf8.count
+
+        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
+        sb.add(span.data, covering: 0..<newCount)
+
+        var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
+        b.push(&spans.root, slicedBy: 0..<subrange.lowerBound.position)
+        
+        var new = sb.build()
+        b.push(&new.root)
+        
+        b.push(&spans.root, slicedBy: (subrange.upperBound.position + span.range.count)..<spans.upperBound)
+
+        self.spans = b.build()
     }
 
     // The default implementation calls append(_:) in a loop.

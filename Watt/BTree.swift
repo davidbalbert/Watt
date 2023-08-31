@@ -1066,6 +1066,10 @@ extension BTreeNode {
     var endIndex: Index {
         Index(endOf: self)
     }
+
+    func index(at offset: Int) -> Index {
+        Index(offsetBy: offset, in: self)
+    }
 }
 
 extension BTreeNode.Index: Comparable {
