@@ -195,6 +195,8 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Mutation
 
+    // TODO: testInsertIntoEmptyRope
+
     func testInsertAtBeginningInsertsIntoFirstRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
@@ -323,6 +325,56 @@ final class AttributedRopeTests: XCTestCase {
         let r1 = iter.next()!
         XCTAssertEqual(r1.range, r.index(at: 5)..<r.endIndex)
         XCTAssertNil(r1.font)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplacingMultipleRunsFromStartOfARun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.replaceSubrange(r.startIndex..<r.index(at: 10), with: "!")
+        XCTAssertEqual(String(r.text), "!z")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 1))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 1)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplacingMultipleRunsFromMiddleOfRun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.replaceSubrange(r.index(at: 1)..<r.index(at: 10), with: "!")
+        XCTAssertEqual(String(r.text), "f!z")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 2))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 2)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 16))
 
         XCTAssertNil(iter.next())
     }

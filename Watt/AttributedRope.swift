@@ -414,22 +414,26 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
 
         let replacementRange = Range(intRangeFor: subrange)
 
-        var span = spans.span(at: replacementRange.lowerBound)!
-        if replacementRange.isEmpty && replacementRange.lowerBound == span.range.lowerBound && span.range.lowerBound != 0 {
-            span = spans.span(at: replacementRange.lowerBound - 1)!
+        var firstSpan = spans.span(at: replacementRange.lowerBound)!
+        if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
+            firstSpan = spans.span(at: replacementRange.lowerBound - 1)!
         }
 
-        let newCount = span.range.count + s.utf8.count - replacementRange.count
+        let upperBoundInFirstSpan = Swift.min(replacementRange.upperBound, firstSpan.range.upperBound)
+        let firstRangePrefix = firstSpan.range.lowerBound..<replacementRange.lowerBound
+        let firstRangeSuffix = upperBoundInFirstSpan..<firstSpan.range.upperBound
+
+        let newCount = firstRangePrefix.count + s.utf8.count + firstRangeSuffix.count
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
-        sb.add(span.data, covering: 0..<newCount)
+        sb.add(firstSpan.data, covering: 0..<newCount)
         var new = sb.build()
 
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
         var r = spans.root
-        b.push(&r, slicedBy: 0..<span.range.lowerBound)
+        b.push(&r, slicedBy: 0..<firstSpan.range.lowerBound)
         b.push(&new.root)
-        b.push(&r, slicedBy: span.range.upperBound..<spans.upperBound)
+        b.push(&r, slicedBy: Swift.max(firstSpan.range.upperBound, replacementRange.upperBound)..<spans.upperBound)
 
         self.spans = b.build()
     }
