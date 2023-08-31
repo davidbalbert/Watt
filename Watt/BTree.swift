@@ -404,6 +404,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     func index<M>(at offset: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        precondition(offset >= 0 && offset <= measure(using: metric), "index out of bounds")
         let count = countBaseUnits(upThrough: offset, measuredIn: metric)
         return Index(offsetBy: count, in: self)
     }

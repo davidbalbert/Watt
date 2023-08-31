@@ -564,9 +564,6 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(r.runs.count, 0)
     }
 
-    // TODO: test out of bounds ranges
-
-
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0
         s.enumerateAttributes(in: NSRange(location: 0, length: s.length)) { _, _, _ in
