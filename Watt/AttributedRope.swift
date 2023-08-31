@@ -412,14 +412,14 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
         let s = String(newElements)
         text.replaceSubrange(subrange, with: s)
 
-        let intRange = Range(intRangeFor: subrange)
+        let replacementRange = Range(intRangeFor: subrange)
 
-        var span = spans.span(at: intRange.lowerBound)!
-        if intRange.lowerBound == span.range.lowerBound && span.range.lowerBound != 0 {
-            span = spans.span(at: intRange.lowerBound - 1)!
+        var span = spans.span(at: replacementRange.lowerBound)!
+        if replacementRange.isEmpty && replacementRange.lowerBound == span.range.lowerBound && span.range.lowerBound != 0 {
+            span = spans.span(at: replacementRange.lowerBound - 1)!
         }
 
-        let newCount = span.range.count + s.utf8.count
+        let newCount = span.range.count + s.utf8.count - replacementRange.count
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
         sb.add(span.data, covering: 0..<newCount)
