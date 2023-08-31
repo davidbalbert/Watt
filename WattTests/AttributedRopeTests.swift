@@ -9,6 +9,37 @@ import XCTest
 @testable import Watt
 
 final class AttributedRopeTests: XCTestCase {
+    // MARK: - AttributedSubrope conversion
+    
+    func testCreateFromAttributedSubrope() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        let subrope = r[r.index(at: 1)..<r.index(at: 10)]
+
+        let new = AttributedRope(subrope)
+        XCTAssertEqual(new.runs.count, 3)
+
+        var iter = new.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, new.startIndex..<new.index(at: 3))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, new.index(at: 3)..<new.index(at: 7))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, new.index(at: 7)..<new.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
     // MARK: - NSAttributedString conversion
 
     func testBasicAttributeLookup() {
@@ -193,11 +224,11 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(r.underlineColor, .green)
     }
 
-    // MARK: - Mutation
-    // MARK: - Mutating CharacterView
+    // MARK: - Inserting into AttributedRope
+
     // MARK: - Inserting into CharacterView
 
-    func testInsertIntOEmptyRope() {
+    func testCharacterViewInsertIntoEmptyRope() {
         var r = AttributedRope("")
         XCTAssertEqual(r.runs.count, 0)
 
@@ -214,7 +245,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInsertAtBeginningInsertsIntoFirstRun() {
+    func testCharacterViewInsertAtBeginningInsertsIntoFirstRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -236,7 +267,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInsertingIntoTheMiddleOfARunInsertsIntoThatRun() {
+    func testCharacterViewInsertingIntoTheMiddleOfARunInsertsIntoThatRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -258,7 +289,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInsertingIntoTheBeginningOfANonFirstRunInsertsIntoThePreviousRun() {
+    func testCharacterViewInsertingIntoTheBeginningOfANonFirstRunInsertsIntoThePreviousRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -282,7 +313,7 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Replacing in CharacterView
 
-    func testReplacingInsideARunAtTheBeginning() {
+    func testCharacterViewReplacingInsideARunAtTheBeginning() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -304,7 +335,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingInsideRunInTheMiddle() {
+    func testCharacterViewReplacingInsideRunInTheMiddle() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -326,7 +357,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingInsideRunAtTheEnd() {
+    func testCharacterViewReplacingInsideRunAtTheEnd() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -348,7 +379,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingMultipleRunsFromStartOfARun() {
+    func testCharacterViewReplacingMultipleRunsFromStartOfARun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -373,7 +404,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingMultipleRunsFromMiddleOfRun() {
+    func testCharacterViewReplacingMultipleRunsFromMiddleOfRun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -398,7 +429,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingMultipleRunsThroughEndOfRun() {
+    func testCharacterViewReplacingMultipleRunsThroughEndOfRun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -419,7 +450,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testReplacingEntireString() {
+    func testCharacterViewReplacingEntireString() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -442,7 +473,7 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Deleting from CharacterView
 
-    func testDeletingEmptyRangeIsANoop() {
+    func testCharacterViewDeletingEmptyRangeIsANoop() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -471,7 +502,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testDeletingFromBeginningOfRun() {
+    func testCharacterViewDeletingFromBeginningOfRun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -500,7 +531,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testDeletingFromMiddleOfRun() {
+    func testCharacterViewDeletingFromMiddleOfRun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -525,7 +556,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testDeletingASingleRun() {
+    func testCharacterViewDeletingASingleRun() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
@@ -550,7 +581,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testDeletingEntireString() {
+    func testCharacterViewDeletingEntireString() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
         r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)

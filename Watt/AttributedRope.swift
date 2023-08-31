@@ -34,6 +34,11 @@ struct AttributedRope {
         }
         self.spans = b.build()
     }
+
+    init(_ subrope: AttributedSubrope) {
+        self.text = subrope.text[subrope.bounds]
+        self.spans = subrope.spans[Range(intRangeFor: subrope.bounds)]
+    }
 }
 
 @dynamicMemberLookup
