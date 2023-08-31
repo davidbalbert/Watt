@@ -62,6 +62,10 @@ extension AttributedRope {
 
         var contents: [String: Any]
 
+        var count: Int {
+            contents.count
+        }
+
         init() {
             contents = [:]
         }
@@ -96,6 +100,10 @@ extension AttributedRope.Runs {
 
         var range: Range<AttributedRope.Index> {
             Range(span.range, in: base.text)
+        }
+
+        var attributes: AttributedRope.Attributes {
+            span.data
         }
     }
 }
@@ -408,11 +416,19 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     }
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
-        // TODO: don't convert this to a string if we have a Rope
-        let s = String(newElements)
-        text.replaceSubrange(subrange, with: s)
+        let newElements = Rope(newElements)
+        text.replaceSubrange(subrange, with: newElements)
 
         let replacementRange = Range(intRangeFor: subrange)
+
+        // Deal with a previously empty AttributedRope, which had no spans.
+        if spans.upperBound == 0 {
+            assert(spans.count == 0)
+            var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newElements.utf8.count)
+            sb.add(AttributedRope.Attributes(), covering: 0..<newElements.utf8.count)
+            spans = sb.build()
+            return
+        }
 
         var firstSpan = spans.span(at: replacementRange.lowerBound)!
         if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
@@ -423,7 +439,7 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
         let firstRangePrefix = firstSpan.range.lowerBound..<replacementRange.lowerBound
         let firstRangeSuffix = upperBoundInFirstSpan..<firstSpan.range.upperBound
 
-        let newCount = firstRangePrefix.count + s.utf8.count + firstRangeSuffix.count
+        let newCount = firstRangePrefix.count + newElements.utf8.count + firstRangeSuffix.count
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
         sb.add(firstSpan.data, covering: 0..<newCount)

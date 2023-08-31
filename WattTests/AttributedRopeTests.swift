@@ -195,7 +195,22 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Mutation
 
-    // TODO: testInsertIntoEmptyRope
+    func testInsertIntOEmptyRope() {
+        var r = AttributedRope("")
+        XCTAssertEqual(r.runs.count, 0)
+
+        r.characters.insert(contentsOf: "Hello, world!", at: r.startIndex)
+        XCTAssertEqual(String(r.text), "Hello, world!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.attributes.count, 0)
+
+        XCTAssertNil(iter.next())
+    }
 
     func testInsertAtBeginningInsertsIntoFirstRun() {
         var r = AttributedRope("Hello, world!")
@@ -378,6 +393,10 @@ final class AttributedRopeTests: XCTestCase {
 
         XCTAssertNil(iter.next())
     }
+
+    // TODO: testReplacingMultipleRunsThroughEndOfRun
+
+    // TODO: testReplacingEntireString
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0
