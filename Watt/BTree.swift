@@ -1084,6 +1084,9 @@ extension BTreeNode.Index: Comparable {
     }
 }
 
+extension BTreeNode.Index: IntRangeConvertible {
+}
+
 
 // MARK: - LeavesView
 
@@ -1270,9 +1273,12 @@ extension BTree {
 
 // MARK: - Helpers
 
+protocol IntRangeConvertible {
+    var position: Int { get }
+}
 
 extension Range<Int> {
-    init<Summary>(fromBTreeRange range: Range<BTreeNode<Summary>.Index>) {
+    init<B>(intRangeFor range: Range<B>) where B: IntRangeConvertible {
         self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
     }
 }

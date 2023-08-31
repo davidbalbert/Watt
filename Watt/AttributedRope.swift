@@ -203,7 +203,7 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(fromBTreeRange: bounds)
+            let r = Range(intRangeFor: bounds)
             var first = true
             var v: K.Value?
 
@@ -236,7 +236,7 @@ extension AttributedSubrope {
             var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
             var s = AttributedRope.Attributes()
             s[K.self] = newValue
-            b.add(s, covering: Range(fromBTreeRange: bounds))
+            b.add(s, covering: Range(intRangeFor: bounds))
 
             spans = spans.merging(b.build()) { a, b in
                 var a = a ?? AttributedRope.Attributes()
@@ -412,7 +412,13 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
         let s = String(newElements)
         text.replaceSubrange(subrange, with: s)
 
-        let span = spans.span(at: subrange.lowerBound.position)!
+        let intRange = Range(intRangeFor: subrange)
+
+        var span = spans.span(at: intRange.lowerBound)!
+        if intRange.lowerBound == span.range.lowerBound && span.range.lowerBound != 0 {
+            span = spans.span(at: intRange.lowerBound - 1)!
+        }
+
         let newCount = span.range.count + s.utf8.count
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
@@ -453,7 +459,7 @@ extension AttributedRope {
 
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         attrString.enumerateAttributes(in: NSRange(location: 0, length: attrString.length), options: []) { attrs, range, _ in
-            b.add(Attributes(attrs), covering: Range(fromBTreeRange: Range(range, in: text)!))
+            b.add(Attributes(attrs), covering: Range(intRangeFor: Range(range, in: text)!))
         }
 
         self.text = text

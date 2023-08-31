@@ -195,7 +195,7 @@ final class AttributedRopeTests: XCTestCase {
 
     // MARK: - Mutation
 
-    func testInsertAtBeginningInsertsIntoFirstRange() {
+    func testInsertAtBeginningInsertsIntoFirstRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
@@ -217,13 +217,35 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInsertingIntoTheMiddleOfASpanInsertsIntoThatSpan() {
+    func testInsertingIntoTheMiddleOfARunInsertsIntoThatRun() {
         var r = AttributedRope("Hello, world!")
         r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
         XCTAssertEqual(r.runs.count, 2)
 
         r.characters.insert(contentsOf: "!", at: r.index(at: 3))
         XCTAssertEqual(String(r.text), "Hel!lo, world!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 6))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 6)..<r.endIndex)
+        XCTAssertNil(r1.font)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testInsertingIntoTheBeginningOfTheNonFirstRunInsertsIntoThePreviousRun() {
+        var r = AttributedRope("Hello, world!")
+        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 2)
+
+        r.characters.insert(contentsOf: "!", at: r.index(at: 5))
+        XCTAssertEqual(String(r.text), "Hello!, world!")
 
         XCTAssertEqual(r.runs.count, 2)
 

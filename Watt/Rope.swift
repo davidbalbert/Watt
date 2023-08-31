@@ -728,7 +728,7 @@ extension Rope: Collection {
         let start = index(roundingDown: bounds.lowerBound)
         let end = index(roundingDown: bounds.upperBound)
 
-        var sliced = Rope(root, slicedBy: Range(fromBTreeRange: start..<end))
+        var sliced = Rope(root, slicedBy: Range(intRangeFor: start..<end))
 
         var old = GraphemeBreaker(for: self, upTo: start)
         var new = GraphemeBreaker()
@@ -770,10 +770,10 @@ extension Rope: RangeReplaceableCollection {
         var new = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
         var b = BTreeBuilder<Rope>()
-        b.push(&root, slicedBy: Range(fromBTreeRange: startIndex..<rangeStart))
+        b.push(&root, slicedBy: Range(intRangeFor: startIndex..<rangeStart))
         b.push(string: newElements, breaker: &new)
 
-        var rest = Rope(root, slicedBy: Range(fromBTreeRange: rangeEnd..<endIndex))
+        var rest = Rope(root, slicedBy: Range(intRangeFor: rangeEnd..<endIndex))
         rest.resyncBreaks(old: &old, new: &new)
         b.push(&rest.root)
 
