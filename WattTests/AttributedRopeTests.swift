@@ -194,6 +194,7 @@ final class AttributedRopeTests: XCTestCase {
     }
 
     // MARK: - Mutation
+    // MARK: - Mutating CharacterView
 
     func testInsertIntOEmptyRope() {
         var r = AttributedRope("")
@@ -394,9 +395,49 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    // TODO: testReplacingMultipleRunsThroughEndOfRun
+    func testReplacingMultipleRunsThroughEndOfRun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
 
-    // TODO: testReplacingEntireString
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.replaceSubrange(r.index(at: 2)..<r.endIndex, with: "!")
+        XCTAssertEqual(String(r.text), "fo!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplacingEntireString() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.replaceSubrange(r.startIndex..<r.endIndex, with: "!")
+        XCTAssertEqual(String(r.text), "!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    // TODO: test deleting
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0
