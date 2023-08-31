@@ -437,7 +437,130 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    // TODO: test deleting
+    func testDeletingEmptyRangeIsANoop() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.removeSubrange(r.startIndex..<r.startIndex)
+        XCTAssertEqual(String(r.text), "foo bar baz")
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 4))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 4)..<r.index(at: 8))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, r.index(at: 8)..<r.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeletingFromBeginningOfRun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.removeSubrange(r.startIndex..<r.index(at: 2))
+        XCTAssertEqual(String(r.text), "o bar baz")
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.index(at: 0)..<r.index(at: 2))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 2)..<r.index(at: 6))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, r.index(at: 6)..<r.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeletingFromMiddleOfRun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.removeSubrange(r.index(at: 2)..<r.index(at: 10))
+        XCTAssertEqual(String(r.text), "foz")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.index(at: 0)..<r.index(at: 2))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 2)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeletingASingleRun() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.removeSubrange(r.index(at: 4)..<r.index(at: 8))
+        XCTAssertEqual(String(r.text), "foo baz")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.index(at: 0)..<r.index(at: 4))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 4)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 16))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeletingEntireString() {
+        var r = AttributedRope("foo bar baz")
+        r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
+        r[r.index(at: 4)..<r.index(at: 8)].font = .systemFont(ofSize: 14)
+        r[r.index(at: 8)..<r.endIndex].font = .systemFont(ofSize: 16)
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        r.characters.removeSubrange(r.startIndex..<r.endIndex)
+        XCTAssertEqual(String(r.text), "")
+
+        XCTAssertEqual(r.runs.count, 0)
+    }
+
+    // TODO: test out of bounds ranges
+
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0

@@ -418,6 +418,12 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
         let newElements = Rope(newElements)
 
+        if subrange == startIndex..<endIndex && newElements.isEmpty {
+            text = newElements // ""
+            spans = SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build()
+            return
+        }
+
         if isEmpty {
             precondition(subrange.lowerBound == startIndex && subrange.upperBound == startIndex, "index out of bounds")
             let new = AttributedRope(newElements)
@@ -441,14 +447,17 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
 
         let newCount = firstRangePrefix.count + newElements.utf8.count + firstRangeSuffix.count
 
-        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
-        sb.add(firstSpan.data, covering: 0..<newCount)
-        var new = sb.build()
-
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
         var r = spans.root
         b.push(&r, slicedBy: 0..<firstSpan.range.lowerBound)
-        b.push(&new.root)
+
+        if newCount > 0 {
+            var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
+            sb.add(firstSpan.data, covering: 0..<newCount)
+            var new = sb.build()
+            b.push(&new.root)
+        }
+
         b.push(&r, slicedBy: Swift.max(firstSpan.range.upperBound, replacementRange.upperBound)..<spans.upperBound)
 
         self.spans = b.build()
