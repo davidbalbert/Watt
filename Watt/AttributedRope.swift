@@ -501,6 +501,10 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
         }
 
         var tmp = AttributedRope(text: text, spans: spans)
+
+        text = Rope()
+        spans = SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build()
+
         tmp.replaceSubrange(subrange, with: s)
 
         text = tmp.text
