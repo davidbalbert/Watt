@@ -492,7 +492,8 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
         } else {
             let replacementRange = Range(intRangeFor: subrange)
 
-            var firstSpan = spans.span(at: replacementRange.lowerBound)!
+            let location = subrange.lowerBound == endIndex ? replacementRange.lowerBound - 1 : replacementRange.lowerBound
+            var firstSpan = spans.span(at: location)!
             if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
                 firstSpan = spans.span(at: replacementRange.lowerBound - 1)!
             }
@@ -513,7 +514,7 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
 
     // The default implementation calls append(_:) in a loop.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, Self.Element == S.Element {
-        // TODO!!!
+        replaceSubrange(endIndex..<endIndex, with: Rope(newElements))
     }
 }
 

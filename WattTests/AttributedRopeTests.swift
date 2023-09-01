@@ -899,7 +899,46 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(r.runs.count, 0)
     }
 
-    // TODO: Appending to a CharacterView
+    // MARK: - Appending to a CharacterView
+
+    func testCharacterViewAppendingToEmptyRope() {
+        var r = AttributedRope("")
+        XCTAssertEqual(r.runs.count, 0)
+
+        r.characters.append(contentsOf: "Hello, world!")
+        XCTAssertEqual(String(r.text), "Hello, world!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.attributes.count, 0)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testCharacterViewAppendingToNonEmptyRope() {
+        var r = AttributedRope("Hello, world!")
+        r[r.startIndex..<r.index(at: 5)].font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 2)
+
+        r.characters.append(contentsOf: "!")
+        XCTAssertEqual(String(r.text), "Hello, world!!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 5)..<r.endIndex)
+        XCTAssertNil(r1.font)
+
+        XCTAssertNil(iter.next())
+    }
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0
