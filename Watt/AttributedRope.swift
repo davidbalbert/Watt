@@ -39,6 +39,13 @@ struct AttributedRope {
         self.text = subrope.text[subrope.bounds]
         self.spans = subrope.spans[Range(intRangeFor: subrope.bounds)]
     }
+
+    // internal
+    init(text: Rope, spans: Spans<Attributes>) {
+        assert(text.utf8.count == spans.upperBound)
+        self.text = text
+        self.spans = spans
+    }
 }
 
 @dynamicMemberLookup
@@ -306,6 +313,60 @@ extension AttributedRope {
         text.index(i, offsetBy: distance)
     }
 
+    mutating func replaceSubrange<R>(_ range: R, with s: AttributedSubrope) where R: RangeExpression<Index> {
+        replaceSubrange(range.relative(to: text), with: AttributedRope(s))
+    }
+
+    mutating func replaceSubrange<R>(_ range: R, with s: AttributedRope) where R: RangeExpression<Index> {
+        replaceSubrange(range.relative(to: text), with: s)
+    }
+
+    mutating func replaceSubrange(_ range: Range<Index>, with s: AttributedRope) {
+        if range == startIndex..<endIndex && s.isEmpty {
+            text = s.text // ""
+            spans = SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build()
+            return
+        }
+
+        if isEmpty {
+            precondition(range.lowerBound == startIndex && range.upperBound == startIndex, "index out of bounds")
+            text = s.text
+            spans = s.spans
+            return
+        }
+
+        text.replaceSubrange(range, with: s.text)
+
+        let replacementRange = Range(intRangeFor: range)
+
+        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
+        sb.push(spans, slicedBy: 0..<replacementRange.lowerBound)
+        sb.push(s.spans)
+        sb.push(spans, slicedBy: replacementRange.upperBound..<spans.upperBound)
+
+        self.spans = sb.build()
+    }
+
+    mutating func insert(_ s: AttributedRope, at i: Index) {
+        replaceSubrange(i..<i, with: s)
+    }
+
+    mutating func insert(_ s: AttributedSubrope, at i: Index) {
+        replaceSubrange(i..<i, with: AttributedRope(s))
+    }
+
+    mutating func removeSubrange<R>(_ bounds: R) where R: RangeExpression<Index> {
+        replaceSubrange(bounds.relative(to: text), with: AttributedRope())
+    }
+
+    mutating func append(_ s: AttributedRope) {
+        replaceSubrange(endIndex..<endIndex, with: s)
+    }
+
+    mutating func append(_ s: AttributedSubrope) {
+        replaceSubrange(endIndex..<endIndex, with: AttributedRope(s))
+    }
+
     subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
         _read {
             yield AttributedSubrope(text: text, spans: spans, bounds: bounds)
@@ -421,55 +482,34 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     }
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
+        precondition(subrange.lowerBound >= startIndex && subrange.upperBound <= endIndex, "index out of bounds")
+
         let newElements = Rope(newElements)
 
-        if subrange == startIndex..<endIndex && newElements.isEmpty {
-            text = newElements // ""
-            spans = SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build()
-            return
-        }
-
+        let s: AttributedRope
         if isEmpty {
-            precondition(subrange.lowerBound == startIndex && subrange.upperBound == startIndex, "index out of bounds")
-            let new = AttributedRope(newElements)
-            text = new.text
-            spans = new.spans
-            return
+            s = AttributedRope(newElements)
+        } else {
+            let replacementRange = Range(intRangeFor: subrange)
+
+            var firstSpan = spans.span(at: replacementRange.lowerBound)!
+            if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
+                firstSpan = spans.span(at: replacementRange.lowerBound - 1)!
+            }
+
+            s = AttributedRope(newElements, attributes: firstSpan.data)
         }
 
-        text.replaceSubrange(subrange, with: newElements)
+        var tmp = AttributedRope(text: text, spans: spans)
+        tmp.replaceSubrange(subrange, with: s)
 
-        let replacementRange = Range(intRangeFor: subrange)
-
-        var firstSpan = spans.span(at: replacementRange.lowerBound)!
-        if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
-            firstSpan = spans.span(at: replacementRange.lowerBound - 1)!
-        }
-
-        let upperBoundInFirstSpan = Swift.min(replacementRange.upperBound, firstSpan.range.upperBound)
-        let firstRangePrefix = firstSpan.range.lowerBound..<replacementRange.lowerBound
-        let firstRangeSuffix = upperBoundInFirstSpan..<firstSpan.range.upperBound
-
-        let newCount = firstRangePrefix.count + newElements.utf8.count + firstRangeSuffix.count
-
-        var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
-        var r = spans.root
-        b.push(&r, slicedBy: 0..<firstSpan.range.lowerBound)
-
-        if newCount > 0 {
-            var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newCount)
-            sb.add(firstSpan.data, covering: 0..<newCount)
-            var new = sb.build()
-            b.push(&new.root)
-        }
-
-        b.push(&r, slicedBy: Swift.max(firstSpan.range.upperBound, replacementRange.upperBound)..<spans.upperBound)
-
-        self.spans = b.build()
+        text = tmp.text
+        spans = tmp.spans
     }
 
     // The default implementation calls append(_:) in a loop.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, Self.Element == S.Element {
+        // TODO!!!
     }
 }
 

@@ -10,7 +10,7 @@ import XCTest
 
 final class AttributedRopeTests: XCTestCase {
     // MARK: - AttributedSubrope conversion
-    
+
     func testCreateFromAttributedSubrope() {
         var r = AttributedRope("foo bar baz")
         r[r.startIndex..<r.index(at: 4)].font = .systemFont(ofSize: 12)
@@ -225,6 +225,30 @@ final class AttributedRopeTests: XCTestCase {
     }
 
     // MARK: - Inserting into AttributedRope
+
+    func testInsertIntoEmptyRope() {
+        var r = AttributedRope("")
+        XCTAssertEqual(r.runs.count, 0)
+
+        var rr = AttributedRope("Hello, world!")
+        rr.font = .systemFont(ofSize: 12)
+
+        r.insert(rr, at: r.startIndex)
+        XCTAssertEqual(String(r.text), "Hello, world!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    // MARK: - Replacing in AttributedRope
+
+    // MARK: - Deleting from AttributedRope
 
     // MARK: - Inserting into CharacterView
 
@@ -594,6 +618,8 @@ final class AttributedRopeTests: XCTestCase {
 
         XCTAssertEqual(r.runs.count, 0)
     }
+
+    // TODO: Appending to a CharacterView
 
     func assertRunCountEquals(_ s: NSAttributedString, _ runCount: Int) {
         var c = 0
