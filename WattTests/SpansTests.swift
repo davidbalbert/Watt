@@ -189,6 +189,7 @@ final class SpansTests: XCTestCase {
         let s2 = b2.build()
 
         XCTAssertEqual(257, s2.upperBound)
+        XCTAssertEqual(129, s2.count)
 
         var iter = s2.makeIterator()
         let first = iter.next()!
@@ -208,6 +209,166 @@ final class SpansTests: XCTestCase {
         let last = iter.next()!
         XCTAssertEqual(256..<257, last.range)
         XCTAssertEqual(254, last.data)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testSpansBuilderPushSlicedByCombineSpans() {
+        var b1 = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            b1.add(i, covering: i..<i+2)
+        }
+        let s1 = b1.build()
+
+        XCTAssertEqual(256, s1.upperBound)
+        XCTAssertEqual(128, s1.count)
+
+        var b2 = SpansBuilder<Int>(totalCount: 257)
+        b2.add(0, covering: 0..<3)
+        b2.push(s1, slicedBy: 1..<255)
+        let s2 = b2.build()
+
+        XCTAssertEqual(257, s2.upperBound)
+        XCTAssertEqual(128, s2.count)
+
+        var iter = s2.makeIterator()
+        let first = iter.next()!
+        XCTAssertEqual(0..<4, first.range)
+        XCTAssertEqual(0, first.data)
+
+        for i in stride(from: 4, through: 254, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i-2, span.data)
+        }
+
+        let last = iter.next()!
+        XCTAssertEqual(256..<257, last.range)
+        XCTAssertEqual(254, last.data)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testSpansBuilderPushSlicedWithFullLeaf() {
+        XCTAssertEqual(64, SpansLeaf<Int>.maxSize)
+
+        var b1 = SpansBuilder<Int>(totalCount: 128)
+        for i in stride(from: 0, through: 127, by: 2) {
+            b1.add(i, covering: i..<i+2)
+        }
+        let s1 = b1.build()
+
+        XCTAssertEqual(128, s1.upperBound)
+        XCTAssertEqual(64, s1.count)
+        XCTAssertEqual(0, s1.root.height)
+        XCTAssertEqual(64, s1.root.leaf.spans.count)
+
+        var b2 = SpansBuilder<Int>(totalCount: 64)
+        for i in stride(from: 0, through: 63, by: 2) {
+            b2.add(i, covering: i..<i+2)
+        }
+        let s2 = b2.build()
+
+        XCTAssertEqual(64, s2.upperBound)
+        XCTAssertEqual(32, s2.count)
+        XCTAssertEqual(0, s2.root.height)
+        XCTAssertEqual(32, s2.root.leaf.spans.count)
+
+        var b3 = SpansBuilder<Int>(totalCount: 0) // set totalCount low to make sure it gets bumped up correctly.
+        b3.push(s1, slicedBy: 0..<128)
+
+        XCTAssertEqual(128, b3.totalCount)
+        XCTAssertEqual(0, b3.offsetOfLeaf)
+        XCTAssertEqual(64, b3.leaf.spans.count)
+
+        b3.push(s2, slicedBy: 1..<63)
+        let s3 = b3.build()
+
+        XCTAssertEqual(190, s3.upperBound)
+        XCTAssertEqual(96, s3.count)
+
+        var iter = s3.makeIterator()
+        for i in stride(from: 0, through: 127, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+        }
+
+        let next = iter.next()!
+        XCTAssertEqual(128..<129, next.range)
+        XCTAssertEqual(0, next.data)
+
+        for i in stride(from: 1, through: 60, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(128+i..<128+i+2, span.range)
+            XCTAssertEqual(i+1, span.data)
+        }
+
+        let last = iter.next()!
+        XCTAssertEqual(189..<190, last.range)
+        XCTAssertEqual(62, last.data)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testSpansBuilderPushSlicedWithFullLeafCombineSpans() {
+        XCTAssertEqual(64, SpansLeaf<Int>.maxSize)
+
+        var b1 = SpansBuilder<Int>(totalCount: 128)
+        for i in stride(from: 0, through: 127, by: 2) {
+            b1.add(i, covering: i..<i+2)
+        }
+        let s1 = b1.build()
+
+        XCTAssertEqual(128, s1.upperBound)
+        XCTAssertEqual(64, s1.count)
+        XCTAssertEqual(0, s1.root.height)
+        XCTAssertEqual(64, s1.root.leaf.spans.count)
+
+        var b2 = SpansBuilder<Int>(totalCount: 64)
+        for i in stride(from: 0, through: 63, by: 2) {
+            b2.add(126+i, covering: i..<i+2)
+        }
+        let s2 = b2.build()
+
+        XCTAssertEqual(64, s2.upperBound)
+        XCTAssertEqual(32, s2.count)
+        XCTAssertEqual(0, s2.root.height)
+        XCTAssertEqual(32, s2.root.leaf.spans.count)
+
+        var b3 = SpansBuilder<Int>(totalCount: 0) // set totalCount low to make sure it gets bumped up correctly.
+        b3.push(s1, slicedBy: 0..<128)
+
+        XCTAssertEqual(128, b3.totalCount)
+        XCTAssertEqual(0, b3.offsetOfLeaf)
+        XCTAssertEqual(64, b3.leaf.spans.count)
+
+        b3.push(s2, slicedBy: 1..<63)
+        let s3 = b3.build()
+
+        XCTAssertEqual(190, s3.upperBound)
+        XCTAssertEqual(95, s3.count)
+
+        var iter = s3.makeIterator()
+        for i in stride(from: 0, through: 125, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+        }
+
+        let combined = iter.next()!
+        XCTAssertEqual(126..<129, combined.range)
+        XCTAssertEqual(126, combined.data)
+
+        for i in stride(from: 1, through: 60, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(128+i..<128+i+2, span.range)
+            XCTAssertEqual(126+i+1, span.data)
+        }
+
+        let last = iter.next()!
+        XCTAssertEqual(189..<190, last.range)
+        XCTAssertEqual(188, last.data)
 
         XCTAssertNil(iter.next())
     }
