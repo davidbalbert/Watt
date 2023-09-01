@@ -246,9 +246,242 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
+    func testInsertIntoBeginningOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.insert(rr, at: r.startIndex)
+        XCTAssertEqual(String(r.text), "!Hello, world!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 1))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 1)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testInsertIntoMiddleOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.insert(rr, at: r.index(at: 5))
+        XCTAssertEqual(String(r.text), "Hello!, world!")
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 5)..<r.index(at: 6))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, r.index(at: 6)..<r.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testInsertIntoAndOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.insert(rr, at: r.endIndex)
+        XCTAssertEqual(String(r.text), "Hello, world!!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 13))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 13)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
     // MARK: - Replacing in AttributedRope
 
+    func testReplaceAtBeginningOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.replaceSubrange(r.startIndex..<r.index(at: 2), with: rr)
+        XCTAssertEqual(String(r.text), "!llo, world!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 1))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 1)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplaceInMiddleOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.replaceSubrange(r.index(at: 5)..<r.index(at: 7), with: rr)
+        XCTAssertEqual(String(r.text), "Hello!world!")
+
+        XCTAssertEqual(r.runs.count, 3)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 5)..<r.index(at: 6))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, r.index(at: 6)..<r.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplaceAtEndOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.replaceSubrange(r.index(at: 11)..<r.endIndex, with: rr)
+        XCTAssertEqual(String(r.text), "Hello, worl!")
+
+        XCTAssertEqual(r.runs.count, 2)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.index(at: 11))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, r.index(at: 11)..<r.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testReplaceEntireRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        var rr = AttributedRope("!")
+        rr.font = .systemFont(ofSize: 14)
+
+        r.replaceSubrange(r.startIndex..<r.endIndex, with: rr)
+        XCTAssertEqual(String(r.text), "!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
     // MARK: - Deleting from AttributedRope
+
+    func testDeleteAtBeginingOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        r.removeSubrange(r.startIndex..<r.index(at: 2))
+        XCTAssertEqual(String(r.text), "llo, world!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeleteInMiddleOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        r.removeSubrange(r.index(at: 5)..<r.index(at: 7))
+        XCTAssertEqual(String(r.text), "Helloworld!")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeleteAtEndOfRope() {
+        var r = AttributedRope("Hello, world!")
+        r.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(r.runs.count, 1)
+
+        r.removeSubrange(r.index(at: 11)..<r.endIndex)
+        XCTAssertEqual(String(r.text), "Hello, worl")
+
+        XCTAssertEqual(r.runs.count, 1)
+
+        var iter = r.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, r.startIndex..<r.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
 
     // MARK: - Inserting into CharacterView
 
