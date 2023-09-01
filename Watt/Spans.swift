@@ -394,7 +394,7 @@ struct SpansBuilder<T> {
 
             let adjustedRange = span.range.offset(by: prefixLength)
             leaf.count = adjustedRange.lowerBound - offsetOfLeaf
-            self.offsetOfLeaf = adjustedRange.lowerBound
+            offsetOfLeaf = adjustedRange.lowerBound
             b.push(leaf: leaf)
         }
 
@@ -402,6 +402,7 @@ struct SpansBuilder<T> {
         let end = sliced.root.endIndex
 
         let upperBoundToPush = max(end.offsetOfLeaf, lowerBoundToPush)
+        offsetOfLeaf = prefixLength + upperBoundToPush
         var r = sliced.root
         b.push(&r, slicedBy: lowerBoundToPush..<upperBoundToPush)
 

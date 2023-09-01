@@ -138,6 +138,40 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
+    func testSpanBuilderPushSlicedByEmptyBuilder() {
+        var b1 = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            b1.add(i, covering: i..<i+2)
+        }
+        let s1 = b1.build()
+
+        XCTAssertEqual(256, s1.upperBound)
+        XCTAssertEqual(128, s1.count)
+
+        var b2 = SpansBuilder<Int>(totalCount: 254)
+        b2.push(s1, slicedBy: 1..<255)
+        let s2 = b2.build()
+
+        XCTAssertEqual(254, s2.upperBound)
+        XCTAssertEqual(128, s2.count)
+
+        var iter = s2.makeIterator()
+        let first = iter.next()!
+        XCTAssertEqual(0..<1, first.range)
+        XCTAssertEqual(0, first.data)
+
+        for i in stride(from: 1, through: 251, by: 2) {
+            let span = iter.next()!
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i+1, span.data)
+        }
+
+        let last = iter.next()!
+        XCTAssertEqual(253..<254, last.range)
+
+        XCTAssertNil(iter.next())
+    }
+
     // MARK: - Regressions
 
     func testOverlappingMerge() {
