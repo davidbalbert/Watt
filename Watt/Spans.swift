@@ -414,6 +414,7 @@ struct SpansBuilder<T> {
         let rest = Spans(sliced.root, slicedBy: upperBoundToPush..<end.position)
         assert(rest.root.height == 0)
         leaf = rest.root.leaf
+        totalCount = max(totalCount, offsetOfLeaf + leaf.count)
     }
 
     consuming func build() -> Spans<T> {
