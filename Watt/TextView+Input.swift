@@ -15,6 +15,11 @@ extension TextView: NSTextInputClient {
 
         if let attrStr = string as? NSAttributedString {
             buffer.replaceSubrange(range, with: AttributedRope(attrStr))
+        } else if range == selection?.markedRange {
+            // we're replacing marked text and need to reformat it
+            assert(!buffer.isEmpty)
+            let attrs = buffer.getAttributes(at: range.upperBound)
+            buffer.replaceSubrange(range, with: AttributedRope(string as! String, attributes: attrs))
         } else {
             buffer.replaceSubrange(range, with: string as! String)
         }
@@ -51,9 +56,10 @@ extension TextView: NSTextInputClient {
         var selection = Selection(head: head, anchor: anchor)
 
         if attrRope.count == 0 {
-            print("setMarkedText - ", terminator: "")
+            print("setMarkedText -  ", terminator: "")
             unmarkText()
         } else {
+            print("setMarkedText")
             let end = buffer.index(start, offsetBy: attrRope.count)
             selection.markedRange = start..<end
         }

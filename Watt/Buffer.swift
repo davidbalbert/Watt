@@ -198,6 +198,10 @@ class Buffer {
             layoutManager.attributesDidChange()
         }
     }
+
+    func getAttributes(at i: Index) -> AttributedRope.Attributes {
+        contents.getAttributes(at: i)
+    }
 }
 
 extension Range where Bound == Buffer.Index {

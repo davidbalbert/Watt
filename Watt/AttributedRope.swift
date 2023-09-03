@@ -218,6 +218,11 @@ extension AttributedRope {
         b.add(attributes, covering: 0..<text.utf8.count)
         spans = b.build()
     }
+
+    func getAttributes(at i: Index) -> Attributes {
+        precondition(i >= startIndex && i < endIndex)
+        return spans.data(at: i.position)!
+    }
 }
 
 extension AttributedRope.Runs.Run {
