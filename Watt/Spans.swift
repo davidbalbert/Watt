@@ -264,7 +264,7 @@ struct Spans<T>: BTree {
     // Override the default BTree.applying(delta:) implementation to use
     // SpansBuilder so that spans with equal data get combined correctly.
     func applying(delta: BTreeDelta<Spans<T>>) -> Spans<T> {
-        var totalCount = delta.elements.map { el in
+        let totalCount = delta.elements.map { el in
             switch el {
             case let .copy(start, end):
                 end - start
