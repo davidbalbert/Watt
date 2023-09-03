@@ -42,12 +42,24 @@ class Buffer {
         contents.text.lines
     }
 
+    var runs: AttributedRope.Runs {
+        contents.runs
+    }
+
     var documentRange: Range<Index> {
         contents.startIndex..<contents.endIndex
     }
 
     var text: Rope {
         contents.text
+    }
+
+    var count: Int {
+        contents.count
+    }
+
+    var isEmpty: Bool {
+        count == 0
     }
 
     var startIndex: Index {
@@ -58,8 +70,8 @@ class Buffer {
         contents.endIndex
     }
 
-    subscript(i: Index) -> Character {
-        contents.characters[i]
+    subscript(bounds: Range<Index>) -> AttributedSubrope {
+        contents[bounds]
     }
 
     func index(before i: Index) -> Index {
@@ -178,6 +190,14 @@ class Buffer {
 
         for layoutManager in layoutManagers {
             layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+        }
+    }
+
+    func setAttributes(_ attributes: AttributedRope.Attributes) {
+        contents.setAttributes(attributes)
+
+        for layoutManager in layoutManagers {
+            layoutManager.attributesDidChange()
         }
     }
 }

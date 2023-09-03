@@ -85,6 +85,14 @@ extension AttributedRope {
         init(_ contents: [String: Any]) {
             self.contents = contents
         }
+
+        func merging(_ other: Attributes) -> Attributes {
+            Attributes(contents.merging(other.contents, uniquingKeysWith: { $1 }))
+        }
+
+        func merging(_ dictionary: [NSAttributedString.Key: Any]) -> Attributes {
+            merging(Attributes(dictionary))
+        }
     }
 }
 
@@ -203,6 +211,12 @@ extension AttributedRope {
     subscript<K>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> K.Value? where K: AttributedRopeKey {
         get { self[K.self] }
         set { self[K.self] = newValue }
+    }
+
+    mutating func setAttributes(_ attributes: Attributes) {
+        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: 0..<text.utf8.count)
+        spans = b.build()
     }
 }
 

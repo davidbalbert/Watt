@@ -9,13 +9,15 @@ import Cocoa
 
 extension TextView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
-        let attrRope = attributedRope(anyString: string)
-
         guard let range = getReplacementRange(for: replacementRange) else {
             return
         }
 
-        buffer.replaceSubrange(range, with: attrRope)
+        if let attrStr = string as? NSAttributedString {
+            buffer.replaceSubrange(range, with: AttributedRope(attrStr))
+        } else {
+            buffer.replaceSubrange(range, with: string as! String)
+        }
 
         print("insertText - ", terminator: "")
         unmarkText()
@@ -29,10 +31,15 @@ extension TextView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
-        let attrRope = attributedRope(anyString: string, attributes: markedTextAttributes)
-
         guard let range = getReplacementRange(for: replacementRange) else {
             return
+        }
+
+        let attrRope: AttributedRope
+        if let attrStr = string as? NSAttributedString {
+            attrRope = AttributedRope(attrStr)
+        } else {
+            attrRope = AttributedRope(string as! String, attributes: markedTextAttributes)
         }
 
         buffer.replaceSubrange(range, with: attrRope)
@@ -150,18 +157,14 @@ extension TextView: NSTextInputClient {
 }
 
 extension TextView {
-    var markedTextAttributes: AttributedRope.Attributes {
-        AttributedRope.Attributes([
-            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
-        ])
+    var defaultAttributes: AttributedRope.Attributes {
+        AttributedRope.Attributes([.font: font])
     }
 
-    private func attributedRope(anyString: Any, attributes: AttributedRope.Attributes = AttributedRope.Attributes()) -> AttributedRope {
-        if let string = anyString as? String {
-            return AttributedRope(string, attributes: attributes)
-        } else {
-            return AttributedRope(anyString as! NSAttributedString)
-        }
+    var markedTextAttributes: AttributedRope.Attributes {
+        defaultAttributes.merging([
+            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
+        ])
     }
 
     private func getReplacementRange(for proposed: NSRange) -> Range<Buffer.Index>? {

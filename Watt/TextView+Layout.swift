@@ -174,6 +174,9 @@ extension TextView: LayoutManagerDelegate {
         inputContext?.invalidateCharacterCoordinates()
     }
 
+    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
+        defaultAttributes
+    }
     // MARK: - Text layout
 
     // TODO: once we're caching breaks and/or lines in the layout manager, switch from

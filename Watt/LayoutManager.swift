@@ -12,6 +12,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
+    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -333,7 +334,7 @@ class LayoutManager {
                 let shouldExtendSegment: Bool
                 if type == .selection && !rangeOfFrag.isEmpty {
                     let last = buffer.index(before: rangeOfFrag.upperBound)
-                    let c = buffer[last]
+                    let c = buffer.characters[last]
                     shouldExtendSegment = (range.upperBound == rangeOfFrag.upperBound && c == "\n") || range.upperBound > rangeOfFrag.upperBound
                 } else {
                     shouldExtendSegment = false
@@ -480,7 +481,7 @@ class LayoutManager {
         // TODO: what if lineFragment is empty?
         let next = buffer.utf16.index(fragStart, offsetBy: lineFragment.utf16Count)
         let last = buffer.index(before: next)
-        let c = buffer[last]
+        let c = buffer.characters[last]
 
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
@@ -543,15 +544,29 @@ class LayoutManager {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
+        let attrStr: NSAttributedString
         let isEmptyLastLine = range.lowerBound == buffer.endIndex
 
-        // TODO: get rid of the hack to set the font. It should be stored in the buffer's Spans.
-        let attrStr: NSAttributedString
         if isEmptyLastLine {
-            // TODO: try making this an empty string, or add a comment explaining why it has to be a newline.
-            attrStr = NSAttributedString(string: "\n", attributes: [.font: (delegate as! TextView).font])
+            let attrs: AttributedRope.Attributes
+            if buffer.isEmpty, let delegate {
+                attrs = delegate.defaultAttributes(for: self)
+            } else if buffer.isEmpty {
+                attrs = AttributedRope.Attributes()
+            } else {
+                // TODO: it would be nice if Runs was a collection and we could do buffer.runs.last!.attributes.
+                let start = buffer.index(before: buffer.endIndex)
+                let s = AttributedRope(buffer[start..<buffer.endIndex])
+                var iter = s.runs.makeIterator()
+                attrs = iter.next()!.attributes
+            }
+
+            // I believe this has to be a newline because an empty NSAttributedString
+            // has no runs, and thus no styles. Confirm this by attempting to create
+            // an empty NSAttributedString and see what happens.
+            attrStr = NSAttributedString(string: "\n", attributes: .init(attrs))
         } else {
-            attrStr = NSAttributedString(string: String(buffer.lines[range.lowerBound]), attributes: [.font: (delegate as! TextView).font])
+            attrStr = buffer.attributedSubstring(for: range)
         }
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
@@ -616,6 +631,7 @@ class LayoutManager {
 
     func invalidateLayout() {
         lineCache.removeAll()
+        delegate?.didInvalidateLayout(for: self)
     }
 
     // offsetInLine is the offset in the Line, not the LineFragment.
@@ -674,6 +690,10 @@ class LayoutManager {
         if old.lines.count != new.lines.count {
             lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
         }
+    }
+
+    func attributesDidChange() {
+        invalidateLayout()
     }
 
     // MARK: - Converting coordinates

@@ -31,6 +31,7 @@ class TextView: NSView, ClipViewDelegate {
 
     var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
+            buffer.contents.font = font
             lineNumberView.font = font
 
             layoutManager.invalidateLayout()
@@ -45,6 +46,8 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)
+
+            buffer.setAttributes(defaultAttributes)
             lineNumberView.buffer = buffer
 
             selectionLayer.setNeedsLayout()
