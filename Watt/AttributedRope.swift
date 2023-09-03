@@ -484,23 +484,7 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
         precondition(subrange.lowerBound >= startIndex && subrange.upperBound <= endIndex, "index out of bounds")
 
-        let newElements = Rope(newElements)
-
-        let s: AttributedRope
-        if isEmpty {
-            s = AttributedRope(newElements)
-        } else {
-            let replacementRange = Range(intRangeFor: subrange)
-
-            let location = subrange.lowerBound == endIndex ? replacementRange.lowerBound - 1 : replacementRange.lowerBound
-            var firstSpan = spans.span(at: location)!
-            if replacementRange.isEmpty && replacementRange.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
-                firstSpan = spans.span(at: replacementRange.lowerBound - 1)!
-            }
-
-            s = AttributedRope(newElements, attributes: firstSpan.data)
-        }
-
+        let s = AttributedRope(Rope(newElements), attributes: attributes(forReplacementRange: Range(intRangeFor: subrange), in: spans))
         var tmp = AttributedRope(text: text, spans: spans)
 
         text = Rope()
@@ -515,6 +499,72 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     // The default implementation calls append(_:) in a loop.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, Self.Element == S.Element {
         replaceSubrange(endIndex..<endIndex, with: Rope(newElements))
+    }
+}
+
+fileprivate func attributes(forReplacementRange range: Range<Int>, in spans: Spans<AttributedRope.Attributes>) -> AttributedRope.Attributes {
+    if spans.isEmpty {
+        return AttributedRope.Attributes()
+    }
+
+    let location = range.lowerBound == spans.upperBound ? range.lowerBound - 1 : range.lowerBound
+    var firstSpan = spans.span(at: location)!
+    if range.isEmpty && range.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
+        firstSpan = spans.span(at: range.lowerBound - 1)!
+    }
+
+    return firstSpan.data
+}
+
+// MARK: - Deltas
+
+extension AttributedRope {
+    struct Delta {
+        var ropeDelta: BTreeDelta<Rope>
+        var spansDelta: BTreeDelta<Spans<Attributes>>
+    }
+
+    struct DeltaBuilder {
+        var attrRope: AttributedRope
+        var rb: BTreeDeltaBuilder<Rope>
+        var sb: BTreeDeltaBuilder<Spans<Attributes>>
+
+        init(_ r: AttributedRope) {
+            attrRope = r
+            rb = BTreeDeltaBuilder<Rope>(attrRope.text.utf8.count)
+            sb = BTreeDeltaBuilder<Spans<Attributes>>(attrRope.text.utf8.count)
+        }
+
+        mutating func delete(_ range: Range<Int>) {
+            rb.delete(range)
+            sb.delete(range)
+        }
+
+        mutating func replace(_ range: Range<Int>, with s: AttributedRope) {
+            rb.replace(range, with: s.text)
+            sb.replace(range, with: s.spans)
+        }
+
+        mutating func replace(_ range: Range<Int>, with s: String) {
+            let attrs = attributes(forReplacementRange: range, in: attrRope.spans)
+            var b = SpansBuilder<Attributes>(totalCount: s.utf8.count)
+            b.add(attrs, covering: 0..<s.utf8.count)
+            let spans = b.build()
+
+            rb.replace(range, with: Rope(s))
+            sb.replace(range, with: spans)
+        }
+
+        consuming func build() -> Delta {
+            Delta(ropeDelta: rb.build(), spansDelta: sb.build())
+        }
+    }
+
+    func applying(delta: Delta) -> AttributedRope {
+        let newText = text.applying(delta: delta.ropeDelta)
+        let newSpans = spans.applying(delta: delta.spansDelta)
+
+        return AttributedRope(text: newText, spans: newSpans)
     }
 }
 

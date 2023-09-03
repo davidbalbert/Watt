@@ -121,6 +121,10 @@ struct Spans<T>: BTree {
         root.summary.spans
     }
 
+    var isEmpty: Bool {
+        count == 0
+    }
+
     init(_ root: BTreeNode<SpansSummary<T>>) {
         self.root = root
     }
@@ -254,6 +258,21 @@ struct Spans<T>: BTree {
             }
         }
 
+        return sb.build()
+    }
+
+    // Override the default BTree.applying(delta:) implementation to use
+    // SpansBuilder so that spans with equal data get combined correctly.
+    func applying(delta: BTreeDelta<Spans<T>>) -> Spans<T> {
+        var sb = SpansBuilder<T>(totalCount: upperBound)
+        for el in delta.elements {
+            switch el {
+            case let .copy(start, end):
+                sb.push(self, slicedBy: start..<end)
+            case let .insert(node):
+                sb.push(Spans(node))
+            }
+        }
         return sb.build()
     }
 }
