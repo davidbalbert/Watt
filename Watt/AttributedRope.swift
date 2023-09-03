@@ -535,9 +535,11 @@ extension AttributedRope {
             sb = BTreeDeltaBuilder<Spans<Attributes>>(attrRope.text.utf8.count)
         }
 
-        mutating func delete(_ range: Range<Int>) {
-            rb.delete(range)
-            sb.delete(range)
+        mutating func delete(_ range: Range<Index>) {
+            let r = Range(intRangeFor: range)
+
+            rb.delete(r)
+            sb.delete(r)
         }
 
         mutating func replace(_ range: Range<Index>, with s: AttributedRope) {
