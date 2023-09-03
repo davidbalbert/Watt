@@ -988,7 +988,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.startIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -1051,7 +1051,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.startIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1088,7 +1088,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.startIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1152,7 +1152,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 5)..<s1.index(at: 5), with: new)
+        b.replaceSubrange(s1.index(at: 5)..<s1.index(at: 5), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1224,7 +1224,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.endIndex..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.endIndex..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1261,7 +1261,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.endIndex..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.endIndex..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1326,7 +1326,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 2), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1363,7 +1363,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 2), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1427,7 +1427,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: new)
+        b.replaceSubrange(s1.index(at: 5)..<s1.index(at: 7), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1470,7 +1470,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: new)
+        b.replaceSubrange(s1.index(at: 5)..<s1.index(at: 7), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1537,7 +1537,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.index(at: 11)..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1574,7 +1574,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.index(at: 11)..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1637,7 +1637,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -1707,7 +1707,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 10), with: new)
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 10), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1747,7 +1747,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 10), with: new)
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 10), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1821,7 +1821,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 1)..<s1.index(at: 10), with: new)
+        b.replaceSubrange(s1.index(at: 1)..<s1.index(at: 10), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1867,7 +1867,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 1)..<s1.index(at: 10), with: new)
+        b.replaceSubrange(s1.index(at: 1)..<s1.index(at: 10), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1941,7 +1941,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 2)..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.index(at: 2)..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1981,7 +1981,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 2)..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.index(at: 2)..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -2013,7 +2013,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.startIndex..<s1.startIndex)
+        b.removeSubrange(s1.startIndex..<s1.startIndex)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -2051,7 +2051,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.startIndex..<s1.index(at: 2))
+        b.removeSubrange(s1.startIndex..<s1.index(at: 2))
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -2089,7 +2089,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.index(at: 2)..<s1.index(at: 10))
+        b.removeSubrange(s1.index(at: 2)..<s1.index(at: 10))
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -2125,7 +2125,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.index(at: 2)..<s1.index(at: 10))
+        b.removeSubrange(s1.index(at: 2)..<s1.index(at: 10))
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -2157,7 +2157,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.index(at: 4)..<s1.index(at: 8))
+        b.removeSubrange(s1.index(at: 4)..<s1.index(at: 8))
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -2193,7 +2193,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.index(at: 4)..<s1.index(at: 8))
+        b.removeSubrange(s1.index(at: 4)..<s1.index(at: 8))
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -2225,7 +2225,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.delete(s1.startIndex..<s1.endIndex)
+        b.removeSubrange(s1.startIndex..<s1.endIndex)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 0)

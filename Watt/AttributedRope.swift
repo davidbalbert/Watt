@@ -535,18 +535,18 @@ extension AttributedRope {
             sb = BTreeDeltaBuilder<Spans<Attributes>>(attrRope.text.utf8.count)
         }
 
-        mutating func delete(_ range: Range<Index>) {
-            let r = Range(intRangeFor: range)
+        mutating func removeSubrange(_ bounds: Range<Index>) {
+            let r = Range(intRangeFor: bounds)
 
-            rb.delete(r)
-            sb.delete(r)
+            rb.removeSubrange(r)
+            sb.removeSubrange(r)
         }
 
-        mutating func replace(_ range: Range<Index>, with s: AttributedRope) {
-            let r = Range(intRangeFor: range)
+        mutating func replaceSubrange(_ subrange: Range<Index>, with s: AttributedRope) {
+            let r = Range(intRangeFor: subrange)
 
-            rb.replace(r, with: s.text)
-            sb.replace(r, with: s.spans)
+            rb.replaceSubrange(r, with: s.text)
+            sb.replaceSubrange(r, with: s.spans)
         }
 
         mutating func replace(_ range: Range<Index>, with s: String) {
@@ -557,8 +557,8 @@ extension AttributedRope {
             b.add(attrs, covering: 0..<s.utf8.count)
             let spans = b.build()
 
-            rb.replace(r, with: Rope(s))
-            sb.replace(r, with: spans)
+            rb.replaceSubrange(r, with: Rope(s))
+            sb.replaceSubrange(r, with: spans)
         }
 
         consuming func build() -> Delta {

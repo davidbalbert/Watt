@@ -1231,16 +1231,16 @@ struct BTreeDeltaBuilder<Tree> where Tree: BTree {
         self.lastOffset = 0
     }
 
-    mutating func delete(_ range: Range<Int>) {
-        precondition(range.lowerBound >= lastOffset, "ranges must be sorted")
-        if lastOffset < range.lowerBound {
-            delta.elements.append(.copy(lastOffset, range.lowerBound))
+    mutating func removeSubrange(_ bounds: Range<Int>) {
+        precondition(bounds.lowerBound >= lastOffset, "ranges must be sorted")
+        if lastOffset < bounds.lowerBound {
+            delta.elements.append(.copy(lastOffset, bounds.lowerBound))
         }
-        lastOffset = range.upperBound
+        lastOffset = bounds.upperBound
     }
 
-    mutating func replace(_ range: Range<Int>, with tree: Tree) {
-        delete(range)
+    mutating func replaceSubrange(_ subrange: Range<Int>, with tree: Tree) {
+        removeSubrange(subrange)
         if !tree.root.isEmpty {
             delta.elements.append(.insert(tree.root))
         }
