@@ -549,7 +549,7 @@ extension AttributedRope {
             sb.replaceSubrange(r, with: s.spans)
         }
 
-        mutating func replace(_ range: Range<Index>, with s: String) {
+        mutating func replaceSubrange(_ range: Range<Index>, with s: String) {
             let r = Range(intRangeFor: range)
 
             let attrs = attributes(forReplacementRange: r, in: attrRope.spans)
@@ -621,5 +621,9 @@ extension NSAttributedString {
             s.addAttributes(attrs, range: NSRange(range, in: attributedRope.text))
         }
         self.init(attributedString: s)
+    }
+
+    convenience init(_ attributedSubrope: AttributedSubrope) {
+        self.init(AttributedRope(attributedSubrope))
     }
 }

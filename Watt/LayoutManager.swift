@@ -30,7 +30,7 @@ class LayoutManager {
         didSet {
             if let buffer {
                 selection = Selection(head: buffer.startIndex)
-                heights = Heights(rope: buffer.contents)
+                heights = Heights(rope: buffer.text)
                 lineCache = IntervalCache(upperBound: buffer.utf8.count)
             } else {
                 selection = nil
@@ -408,7 +408,7 @@ class LayoutManager {
             i = next
         }
 
-        if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.contents.last == "\n") {
+        if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.characters.last == "\n") {
             let (line, oldBounds) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
 
             _ = block(i..<i, line, oldBounds)
@@ -479,7 +479,7 @@ class LayoutManager {
 
         // TODO: what if lineFragment is empty?
         let next = buffer.utf16.index(fragStart, offsetBy: lineFragment.utf16Count)
-        let last = buffer.contents.index(before: next)
+        let last = buffer.index(before: next)
         let c = buffer[last]
 
         // Rules:
@@ -639,8 +639,8 @@ class LayoutManager {
         let baseStart = heights.position(upThroughYOffset: rect.minY)
         let baseEnd = heights.position(upThroughYOffset: rect.maxY)
 
-        let start = buffer.contents.utf8.index(at: baseStart)
-        var end = buffer.contents.utf8.index(at: baseEnd)
+        let start = buffer.utf8.index(at: baseStart)
+        var end = buffer.utf8.index(at: baseEnd)
 
         if baseEnd < buffer.utf8.count {
             end = buffer.lines.index(after: end)

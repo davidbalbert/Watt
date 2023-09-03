@@ -8,9 +8,9 @@
 import Foundation
 
 class Buffer {
-    typealias Index = Rope.Index
+    typealias Index = AttributedRope.Index
 
-    var contents: Rope
+    var contents: AttributedRope
     var layoutManagers: [LayoutManager]
 
     convenience init() {
@@ -18,28 +18,36 @@ class Buffer {
     }
 
     init(_ string: String) {
-        self.contents = Rope(string)
+        self.contents = AttributedRope(string)
         self.layoutManagers = []
     }
 
     var data: Data {
-        Data(contents)
+        Data(contents.text)
     }
 
     var utf8: Rope.UTF8View {
-        contents.utf8
+        contents.text.utf8
     }
 
     var utf16: Rope.UTF16View {
-        contents.utf16
+        contents.text.utf16
+    }
+
+    var characters: AttributedRope.CharacterView {
+        contents.characters
     }
 
     var lines: Rope.LinesView {
-        contents.lines
+        contents.text.lines
     }
 
     var documentRange: Range<Index> {
         contents.startIndex..<contents.endIndex
+    }
+
+    var text: Rope {
+        contents.text
     }
 
     var startIndex: Index {
@@ -51,31 +59,31 @@ class Buffer {
     }
 
     subscript(i: Index) -> Character {
-        contents[i]
+        contents.characters[i]
     }
 
     func index(before i: Index) -> Index {
-        contents.index(before: i)
+        contents.index(beforeCharacter: i)
     }
 
     func index(after i: Index) -> Index {
-        contents.index(after: i)
+        contents.index(afterCharacter: i)
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        contents.index(i, offsetBy: distance)
+        contents.index(i, offsetByCharacters: distance)
     }
 
     func index(at offset: Int) -> Index {
-        contents.index(startIndex, offsetBy: offset)
+        contents.index(startIndex, offsetByCharacters: offset)
     }
 
     func index(fromOldIndex oldIndex: Index) -> Index {
-        contents.utf8.index(at: oldIndex.position)
+        utf8.index(at: oldIndex.position)
     }
 
     func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
-        NSAttributedString(string: String(contents[range]))
+        NSAttributedString(contents[range])
     }
 
     func addLayoutManager(_ layoutManager: LayoutManager) {
@@ -148,27 +156,40 @@ class Buffer {
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
         let range = Range(intRangeFor: subrange)
 
-        var b = BTreeDeltaBuilder<Rope>(contents.utf8.count)
-        b.replaceSubrange(range, with: attrRope.text)
+        var b = AttributedRope.DeltaBuilder(contents)
+        b.replaceSubrange(subrange, with: attrRope)
         let delta = b.build()
 
         let old = contents
         contents = contents.applying(delta: delta)
 
         for layoutManager in layoutManagers {
-            layoutManager.bufferContentsDidChange(from: old, to: contents, delta: delta)
+            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+        }
+    }
+
+    func replaceSubrange(_ subrange: Range<Index>, with s: String) {
+        var b = AttributedRope.DeltaBuilder(contents)
+        b.replaceSubrange(subrange, with: s)
+        let delta = b.build()
+
+        let old = contents
+        contents = contents.applying(delta: delta)
+
+        for layoutManager in layoutManagers {
+            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
         }
     }
 }
 
 extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {
-        self.init(range, in: buffer.contents)
+        self.init(range, in: buffer.text)
     }
 }
 
 extension NSRange {
     init<R>(_ region: R, in buffer: Buffer) where R : RangeExpression, R.Bound == Buffer.Index {
-        self.init(region, in: buffer.contents)
+        self.init(region, in: buffer.text)
     }
 }
