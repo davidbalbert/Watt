@@ -958,7 +958,7 @@ final class AttributedRopeTests: XCTestCase {
         let new = String("Hello, world!")
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.startIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -1018,7 +1018,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.startIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1117,7 +1117,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 5)..<s1.index(at: 5), with: "!")
+        b.replaceSubrange(s1.index(at: 5)..<s1.index(at: 5), with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1191,7 +1191,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.endIndex..<s1.endIndex, with: "!")
+        b.replaceSubrange(s1.endIndex..<s1.endIndex, with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1293,7 +1293,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 2), with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1392,7 +1392,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: "!")
+        b.replaceSubrange(s1.index(at: 5)..<s1.index(at: 7), with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1504,7 +1504,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.index(at: 11)..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1606,7 +1606,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(new.count, 1)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.endIndex, with: new)
+        b.replaceSubrange(s1.startIndex..<s1.endIndex, with: new)
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 1)
@@ -1667,7 +1667,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.startIndex..<s1.index(at: 10), with: "!")
+        b.replaceSubrange(s1.startIndex..<s1.index(at: 10), with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
@@ -1779,7 +1779,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 1)..<s1.index(at: 10), with: "!")
+        b.replaceSubrange(s1.index(at: 1)..<s1.index(at: 10), with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 3)
@@ -1905,7 +1905,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(s1.runs.count, 3)
 
         var b = AttributedRope.DeltaBuilder(s1)
-        b.replace(s1.index(at: 2)..<s1.endIndex, with: "!")
+        b.replaceSubrange(s1.index(at: 2)..<s1.endIndex, with: "!")
         let d = b.build()
 
         XCTAssertEqual(d.ropeDelta.elements.count, 2)
