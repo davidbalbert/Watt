@@ -300,7 +300,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testInsertIntoAndOfRope() {
+    func testInsertIntoEndOfRope() {
         var s = AttributedRope("Hello, world!")
         s.font = .systemFont(ofSize: 12)
         XCTAssertEqual(s.runs.count, 1)
@@ -947,5 +947,714 @@ final class AttributedRopeTests: XCTestCase {
         }
 
         XCTAssertEqual(c, runCount)
+    }
+
+    // MARK: - Deltas
+
+    func testDeltaInsertStringIntoEmptyRope() {
+        let s1 = AttributedRope("")
+        XCTAssertEqual(s1.runs.count, 0)
+
+        let new = String("Hello, world!")
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 1)
+        XCTAssertTrue(d.ropeDelta.elements[0].isInsert)
+
+        XCTAssertEqual(d.spansDelta.elements.count, 1)
+        XCTAssertTrue(d.spansDelta.elements[0].isInsert)
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.attributes.count, 0)
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeIntoEmptyRope() {
+        let s1 = AttributedRope("")
+        XCTAssertEqual(s1.runs.count, 0)
+
+        var new = AttributedRope("Hello, world!")
+        new.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 1)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 1)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertStringIntoBeginningOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        let new = String("!")
+        XCTAssertEqual(new.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertTrue(d.ropeDelta.elements[0].isInsert)
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(0, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertTrue(d.spansDelta.elements[0].isInsert)
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(0, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!Hello, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeIntoBeginningOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(0, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(0, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!Hello, world!")
+        XCTAssertEqual(s2.runs.count, 2)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 1))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 1)..<s2.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeIntoBeginningOfRopeMergingAttributes() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.startIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(0, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(0, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!Hello, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertStringIntoMiddleOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 5)..<s1.index(at: 5), with: "!")
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 3)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 5))
+        XCTAssertTrue(d.ropeDelta.elements[1].isInsert)
+        XCTAssertEqual(d.ropeDelta.elements[2], .copy(5, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 3)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 5))
+        XCTAssertTrue(d.spansDelta.elements[1].isInsert)
+        XCTAssertEqual(d.spansDelta.elements[2], .copy(5, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello!, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeIntoMiddleOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 5)..<s1.index(at: 5), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 3)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[2], .copy(5, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 3)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[2], .copy(5, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello!, world!")
+        XCTAssertEqual(s2.runs.count, 3)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 5)..<s2.index(at: 6))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, s2.index(at: 6)..<s2.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 12))
+        
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertStringAtEndOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.endIndex..<s1.endIndex, with: "!")
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 13))
+        XCTAssertTrue(d.ropeDelta.elements[1].isInsert)
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 13))
+        XCTAssertTrue(d.spansDelta.elements[1].isInsert)
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, world!!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeAtEndOfRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.endIndex..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 13))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 13))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, world!!")
+        XCTAssertEqual(s2.runs.count, 2)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 13))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 13)..<s2.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaInsertAttributedRopeAtEndOfRopeMergingAttributes() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.endIndex..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 13))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 13))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, world!!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceBeginningOfRopeWithString() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        let new = String("!")
+        XCTAssertEqual(new.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertTrue(d.ropeDelta.elements[0].isInsert)
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(2, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertTrue(d.spansDelta.elements[0].isInsert)
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(2, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!llo, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceBeginningOfRopeWithAttributedRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(2, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(2, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!llo, world!")
+        XCTAssertEqual(s2.runs.count, 2)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 1))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 1)..<s2.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceBeginningOfRopeWithAttributedRopeMergingAttributes() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.index(at: 2), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[1], .copy(2, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[1], .copy(2, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!llo, world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceMiddleOfRopeWithString() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: "!")
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 3)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 5))
+        XCTAssertTrue(d.ropeDelta.elements[1].isInsert)
+        XCTAssertEqual(d.ropeDelta.elements[2], .copy(7, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 3)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 5))
+        XCTAssertTrue(d.spansDelta.elements[1].isInsert)
+        XCTAssertEqual(d.spansDelta.elements[2], .copy(7, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello!world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceMiddleOfRopeWithAttributedRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 3)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[2], .copy(7, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 3)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[2], .copy(7, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello!world!")
+        XCTAssertEqual(s2.runs.count, 3)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 5))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 5)..<s2.index(at: 6))
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, s2.index(at: 6)..<s2.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceMiddleOfRopeWithAttributedRopeMergingAttributes() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 5)..<s1.index(at: 7), with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 3)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+        XCTAssertEqual(d.ropeDelta.elements[2], .copy(7, 13))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 3)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 5))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+        XCTAssertEqual(d.spansDelta.elements[2], .copy(7, 13))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello!world!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceAtEndOfRopeWithString() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        let new = String("!")
+        XCTAssertEqual(new.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 11))
+        XCTAssertTrue(d.ropeDelta.elements[1].isInsert)
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 11))
+        XCTAssertTrue(d.spansDelta.elements[1].isInsert)
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, worl!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceAtEndOfRopeWithAttributedRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 11))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 11))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, worl!")
+        XCTAssertEqual(s2.runs.count, 2)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 11))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 11)..<s2.endIndex)
+        XCTAssertEqual(r1.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceAtEndOfRopeWithAttributedRopeMergingAttributes() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.index(at: 11)..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 2)
+        XCTAssertEqual(d.ropeDelta.elements[0], .copy(0, 11))
+        XCTAssertEqual(d.ropeDelta.elements[1], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 2)
+        XCTAssertEqual(d.spansDelta.elements[0], .copy(0, 11))
+        XCTAssertEqual(d.spansDelta.elements[1], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "Hello, worl!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceEntireRopeWithString() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        let new = String("!")
+        XCTAssertEqual(new.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 1)
+        XCTAssertTrue(d.ropeDelta.elements[0].isInsert)
+
+        XCTAssertEqual(d.spansDelta.elements.count, 1)
+        XCTAssertTrue(d.spansDelta.elements[0].isInsert)
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 14))
+
+        XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceEntireRopeWithAttributedRope() {
+        var s1 = AttributedRope("Hello, world!")
+        s1.font = .systemFont(ofSize: 14)
+        XCTAssertEqual(s1.runs.count, 1)
+
+        var new = AttributedRope("!")
+        new.font = .systemFont(ofSize: 12)
+        XCTAssertEqual(new.runs.count, 1)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replace(s1.startIndex..<s1.endIndex, with: new)
+        let d = b.build()
+
+        XCTAssertEqual(d.ropeDelta.elements.count, 1)
+        XCTAssertEqual(d.ropeDelta.elements[0], .insert(new.text.root))
+
+        XCTAssertEqual(d.spansDelta.elements.count, 1)
+        XCTAssertEqual(d.spansDelta.elements[0], .insert(new.spans.root))
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(String(s2.text), "!")
+        XCTAssertEqual(s2.runs.count, 1)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.endIndex)
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+
+        XCTAssertNil(iter.next())
     }
 }

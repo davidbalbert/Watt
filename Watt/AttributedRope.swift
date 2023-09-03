@@ -540,19 +540,23 @@ extension AttributedRope {
             sb.delete(range)
         }
 
-        mutating func replace(_ range: Range<Int>, with s: AttributedRope) {
-            rb.replace(range, with: s.text)
-            sb.replace(range, with: s.spans)
+        mutating func replace(_ range: Range<Index>, with s: AttributedRope) {
+            let r = Range(intRangeFor: range)
+
+            rb.replace(r, with: s.text)
+            sb.replace(r, with: s.spans)
         }
 
-        mutating func replace(_ range: Range<Int>, with s: String) {
-            let attrs = attributes(forReplacementRange: range, in: attrRope.spans)
+        mutating func replace(_ range: Range<Index>, with s: String) {
+            let r = Range(intRangeFor: range)
+
+            let attrs = attributes(forReplacementRange: r, in: attrRope.spans)
             var b = SpansBuilder<Attributes>(totalCount: s.utf8.count)
             b.add(attrs, covering: 0..<s.utf8.count)
             let spans = b.build()
 
-            rb.replace(range, with: Rope(s))
-            sb.replace(range, with: spans)
+            rb.replace(r, with: Rope(s))
+            sb.replace(r, with: spans)
         }
 
         consuming func build() -> Delta {
