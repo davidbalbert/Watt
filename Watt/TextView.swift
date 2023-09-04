@@ -33,13 +33,20 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             buffer.contents.font = font
             lineNumberView.font = font
+            typingAttributes.font = font
 
             layoutManager.invalidateLayout()
-
-            selectionLayer.setNeedsLayout()
-            textLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
         }
+    }
+
+    lazy var typingAttributes: AttributedRope.Attributes = AttributedRope.Attributes([
+            .font: font
+    ])
+
+    var markedTextAttributes: AttributedRope.Attributes {
+        AttributedRope.Attributes([
+            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
+        ])
     }
 
     var buffer: Buffer {
@@ -47,25 +54,14 @@ class TextView: NSView, ClipViewDelegate {
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)
 
-            buffer.setAttributes(defaultAttributes)
+            buffer.setAttributes(typingAttributes)
             lineNumberView.buffer = buffer
 
-            selectionLayer.setNeedsLayout()
-            textLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
+            layoutManager.invalidateLayout()
         }
     }
 
     let layoutManager: LayoutManager
-
-    var selection: Selection? {
-        get {
-            layoutManager.selection
-        }
-        set {
-            layoutManager.selection = newValue
-        }
-    }
 
     var lineNumberView: LineNumberView
 

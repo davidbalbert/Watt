@@ -13,16 +13,14 @@ extension TextView: NSTextInputClient {
             return
         }
 
+        let attrRope: AttributedRope
         if let attrStr = string as? NSAttributedString {
-            buffer.replaceSubrange(range, with: AttributedRope(attrStr))
-        } else if range == selection?.markedRange {
-            // we're replacing marked text and need to reformat it
-            assert(!buffer.isEmpty)
-            let attrs = buffer.getAttributes(at: range.upperBound)
-            buffer.replaceSubrange(range, with: AttributedRope(string as! String, attributes: attrs))
+            attrRope = AttributedRope(attrStr, merging: typingAttributes)
         } else {
-            buffer.replaceSubrange(range, with: string as! String)
+            attrRope = AttributedRope(string as! String, attributes: typingAttributes)
         }
+
+        buffer.replaceSubrange(range, with: attrRope)
 
         print("insertText - ", terminator: "")
         unmarkText()
@@ -42,9 +40,9 @@ extension TextView: NSTextInputClient {
 
         let attrRope: AttributedRope
         if let attrStr = string as? NSAttributedString {
-            attrRope = AttributedRope(attrStr)
+            attrRope = AttributedRope(attrStr, merging: typingAttributes)
         } else {
-            attrRope = AttributedRope(string as! String, attributes: markedTextAttributes)
+            attrRope = AttributedRope(string as! String, attributes: typingAttributes.merging(markedTextAttributes))
         }
 
         buffer.replaceSubrange(range, with: attrRope)
@@ -95,7 +93,7 @@ extension TextView: NSTextInputClient {
     }
 
     func hasMarkedText() -> Bool {
-        guard let selection else {
+        guard let selection = layoutManager.selection else {
             return false
         }
 
@@ -163,16 +161,6 @@ extension TextView: NSTextInputClient {
 }
 
 extension TextView {
-    var defaultAttributes: AttributedRope.Attributes {
-        AttributedRope.Attributes([.font: font])
-    }
-
-    var markedTextAttributes: AttributedRope.Attributes {
-        defaultAttributes.merging([
-            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
-        ])
-    }
-
     private func getReplacementRange(for proposed: NSRange) -> Range<Buffer.Index>? {
         if proposed != .notFound {
             return Range(proposed, in: buffer)

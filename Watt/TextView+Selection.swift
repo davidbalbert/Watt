@@ -13,7 +13,9 @@ extension TextView {
             return
         }
 
-        layoutManager.selection = Selection(head: location, affinity: affinity)
+        let selection = Selection(head: location, affinity: affinity)
+        layoutManager.selection = selection
+        typingAttributes = buffer.getAttributes(at: selection.lowerBound)
     }
 
     func extendSelection(to point: CGPoint) {
@@ -22,6 +24,10 @@ extension TextView {
         }
 
         layoutManager.selection?.head = location
+
+        if let selection = layoutManager.selection {
+            typingAttributes = buffer.getAttributes(at: selection.lowerBound)
+        }
     }
 
     private var insertionPointOnInterval: TimeInterval {
@@ -53,7 +59,7 @@ extension TextView {
     func updateInsertionPointTimer() {
         insertionPointTimer?.invalidate()
 
-        guard let selection else {
+        guard let selection = layoutManager.selection else {
             return
         }
 

@@ -608,12 +608,12 @@ extension AttributedRope.Attributes {
 }
 
 extension AttributedRope {
-    init(_ attrString: NSAttributedString) {
+    init(_ attrString: NSAttributedString, merging attributes: AttributedRope.Attributes = .init()) {
         let text = Rope(attrString.string)
 
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         attrString.enumerateAttributes(in: NSRange(location: 0, length: attrString.length), options: []) { attrs, range, _ in
-            b.add(Attributes(attrs), covering: Range(intRangeFor: Range(range, in: text)!))
+            b.add(Attributes(attrs).merging(attributes), covering: Range(intRangeFor: Range(range, in: text)!))
         }
 
         self.text = text

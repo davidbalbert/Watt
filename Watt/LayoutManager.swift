@@ -12,7 +12,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
-    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
+    func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -549,10 +549,8 @@ class LayoutManager {
 
         if isEmptyLastLine {
             let attrs: AttributedRope.Attributes
-            if buffer.isEmpty, let delegate {
-                attrs = delegate.defaultAttributes(for: self)
-            } else if buffer.isEmpty {
-                attrs = AttributedRope.Attributes()
+            if buffer.isEmpty {
+                attrs = delegate?.typingAttributes(for: self) ?? AttributedRope.Attributes()
             } else {
                 // TODO: it would be nice if Runs was a collection and we could do buffer.runs.last!.attributes.
                 let start = buffer.index(before: buffer.endIndex)

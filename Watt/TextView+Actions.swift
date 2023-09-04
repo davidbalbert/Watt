@@ -14,12 +14,12 @@ extension TextView {
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
 
     override func insertNewline(_ sender: Any?) {
-        guard let selection else {
+        guard let selection = layoutManager.selection else {
             return
         }
 
         // TODO: we probably have to take selection.markedRange into account here.
-        buffer.replaceSubrange(selection.range, with: AttributedRope("\n"))
+        buffer.replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
 
         print("insertNewline - ", terminator: "")
         unmarkText()

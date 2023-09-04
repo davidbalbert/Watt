@@ -174,8 +174,8 @@ extension TextView: LayoutManagerDelegate {
         inputContext?.invalidateCharacterCoordinates()
     }
 
-    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
-        defaultAttributes
+    func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
+        typingAttributes
     }
     // MARK: - Text layout
 
