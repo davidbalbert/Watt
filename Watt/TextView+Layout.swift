@@ -187,7 +187,12 @@ extension TextView: LayoutManagerDelegate {
 
         layoutManager.layoutText { line, previousBounds in
             let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
-            l.bounds = line.typographicBounds
+
+            // Without making the layer's bounds aligned to the nearest point
+            // I run into an issue where the glyphs seem to shift back and forth
+            // by a fraction of a point. I'm not sure why that is given that
+            // CALayer.masksToBounds is false.
+            l.bounds = line.typographicBounds.integerAligned
             l.position = convertFromTextContainer(line.origin)
             textLayerCache[line.id] = l
 
