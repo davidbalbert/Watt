@@ -13,9 +13,8 @@ extension TextView {
             return
         }
 
-        let selection = Selection(head: location, affinity: affinity)
-        layoutManager.selection = selection
-        typingAttributes = buffer.getAttributes(at: selection.lowerBound)
+        layoutManager.selection = Selection(head: location, affinity: affinity)
+        setTypingAttributes()
     }
 
     func extendSelection(to point: CGPoint) {
@@ -24,8 +23,19 @@ extension TextView {
         }
 
         layoutManager.selection?.head = location
+        setTypingAttributes()
+    }
 
-        if let selection = layoutManager.selection {
+    func setTypingAttributes() {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if buffer.isEmpty {
+            typingAttributes = defaultAttributes
+        } else if selection.lowerBound == buffer.endIndex {
+            typingAttributes = buffer.getAttributes(at: buffer.index(before: selection.lowerBound))
+        } else {
             typingAttributes = buffer.getAttributes(at: selection.lowerBound)
         }
     }

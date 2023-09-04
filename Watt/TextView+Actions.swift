@@ -28,6 +28,8 @@ extension TextView {
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
+        discardMarkedText()
+
         layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream)
 
         selectionLayer.setNeedsLayout()

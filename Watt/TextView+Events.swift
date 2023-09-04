@@ -55,7 +55,7 @@ extension TextView {
         }
 
         // Don't know if handleEvent ever returns false here. Just want to know about it.
-        assert(false, "keyDown: inputContext didn't handle this event: \(event)")
+        fatalError("keyDown: inputContext didn't handle this event: \(event)")
     }
 
     // MARK: - Mouse events
@@ -64,9 +64,12 @@ extension TextView {
             return
         }
 
+        discardMarkedText()
+
         let locationInView = convert(event.locationInWindow, from: nil)
         let point = convertToTextContainer(locationInView)
         startSelection(at: point)
+
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
@@ -80,6 +83,7 @@ extension TextView {
         let locationInView = convert(event.locationInWindow, from: nil)
         let point = convertToTextContainer(locationInView)
         extendSelection(to: point)
+
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()

@@ -336,13 +336,25 @@ extension AttributedSubrope {
                 }
                 return a
             }
-
         }
     }
 
     subscript<K>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> K.Value? where K: AttributedRopeKey {
         get { self[K.self] }
         set { self[K.self] = newValue }
+    }
+
+    mutating func setAttributes(_ attributes: AttributedRope.Attributes) {
+        if bounds.isEmpty {
+            return
+        }
+
+        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: Range(intRangeFor: bounds))
+
+        spans = spans.merging(b.build()) { a, b in
+            b ?? a
+        }
     }
 }
 
@@ -673,6 +685,12 @@ extension AttributedRope {
 
         self.text = text
         self.spans = b.build()
+    }
+}
+
+extension String {
+    init(_ attributedSubrope: AttributedSubrope) {
+        self = String(attributedSubrope.text[attributedSubrope.startIndex..<attributedSubrope.endIndex])
     }
 }
 

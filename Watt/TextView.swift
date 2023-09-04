@@ -39,9 +39,13 @@ class TextView: NSView, ClipViewDelegate {
         }
     }
 
-    lazy var typingAttributes: AttributedRope.Attributes = AttributedRope.Attributes([
-            .font: font
-    ])
+    var defaultAttributes: AttributedRope.Attributes {
+        AttributedRope.Attributes([
+               .font: font
+       ])
+    }
+
+    lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 
     var markedTextAttributes: AttributedRope.Attributes {
         AttributedRope.Attributes([
@@ -51,10 +55,11 @@ class TextView: NSView, ClipViewDelegate {
 
     var buffer: Buffer {
         didSet {
+            buffer.setAttributes(defaultAttributes)
+
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)
 
-            buffer.setAttributes(typingAttributes)
             lineNumberView.buffer = buffer
 
             layoutManager.invalidateLayout()

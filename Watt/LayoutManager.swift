@@ -627,11 +627,6 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
-    func invalidateLayout() {
-        lineCache.removeAll()
-        delegate?.didInvalidateLayout(for: self)
-    }
-
     // offsetInLine is the offset in the Line, not the LineFragment.
     func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
         CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
@@ -690,8 +685,14 @@ class LayoutManager {
         }
     }
 
-    func attributesDidChange() {
-        invalidateLayout()
+    func attributesDidChange(in range: Range<Buffer.Index>) {
+        lineCache.invalidate(range: Range(intRangeFor: range))
+        delegate?.didInvalidateLayout(for: self)
+    }
+
+    func invalidateLayout() {
+        lineCache.removeAll()
+        delegate?.didInvalidateLayout(for: self)
     }
 
     // MARK: - Converting coordinates

@@ -64,8 +64,52 @@ struct IntervalCache<T> {
     subscript(bounds: Range<Int>) -> IntervalCache {
         precondition(bounds.lowerBound >= 0 && bounds.upperBound <= spans.upperBound)
 
-        let i = spans.index(at: bounds.lowerBound)
-        let j = spans.index(at: bounds.upperBound)
+        let expanded = expand(range: bounds)
+
+        var b = BTreeBuilder<Spans<T>>()
+
+        if expanded.lowerBound > 0 {
+            var prefix = SpansBuilder<T>(totalCount: expanded.lowerBound).build()
+            b.push(&prefix.root)
+        }
+
+        var s = spans
+        b.push(&s.root, slicedBy: expanded)
+
+        if expanded.upperBound < spans.upperBound {
+            var suffix = SpansBuilder<T>(totalCount: spans.upperBound - expanded.upperBound).build()
+            b.push(&suffix.root)
+        }
+
+        return IntervalCache(b.build())
+    }
+
+    mutating func invalidate(range: Range<Int>) {
+        precondition(range.lowerBound >= 0 && range.upperBound <= spans.upperBound)
+
+        let expanded = expand(range: range)
+
+        var b = BTreeBuilder<Spans<T>>()
+
+        if expanded.lowerBound > 0 {
+            var prefix = self[0..<expanded.lowerBound]
+            b.push(&prefix.spans.root)
+        }
+
+        var invalidated = SpansBuilder<T>(totalCount: expanded.count).build()
+        b.push(&invalidated.root)
+
+        if expanded.upperBound < spans.upperBound {
+            var suffix = self[expanded.upperBound..<spans.upperBound]
+            b.push(&suffix.spans.root)
+        }
+
+        spans = b.build()
+    }
+
+    func expand(range: Range<Int>) -> Range<Int> {
+        let i = spans.index(at: range.lowerBound)
+        let j = spans.index(at: range.upperBound)
 
         let (startLeaf, startOffset) = i.read()!
         let (endLeaf, endOffset) = j.read()!
@@ -74,27 +118,17 @@ struct IntervalCache<T> {
         if let span = startLeaf.spans.first(where: { $0.range.contains(startOffset) }) {
             start = i.offsetOfLeaf + span.range.lowerBound
         } else {
-            start = bounds.lowerBound
+            start = range.lowerBound
         }
 
         let end: Int
         if let span = endLeaf.spans.first(where: { $0.range.contains(endOffset) }) {
             end = j.offsetOfLeaf + span.range.upperBound
         } else {
-            end = bounds.upperBound
+            end = range.upperBound
         }
 
-        var b = BTreeBuilder<Spans<T>>()
-        var prefix = SpansBuilder<T>(totalCount: start).build()
-        b.push(&prefix.root)
-
-        var s = spans
-        b.push(&s.root, slicedBy: start..<end)
-
-        var suffix = SpansBuilder<T>(totalCount: spans.upperBound - end).build()
-        b.push(&suffix.root)
-
-        return IntervalCache(b.build())
+        return start..<end
     }
 
     mutating func set(_ value: T, forRange range: Range<Int>) {

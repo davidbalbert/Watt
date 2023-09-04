@@ -191,11 +191,13 @@ class Buffer {
         }
     }
 
-    func setAttributes(_ attributes: AttributedRope.Attributes) {
-        contents.setAttributes(attributes)
+    func setAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
+        let range = range ?? documentRange
+
+        contents[range].setAttributes(attributes)
 
         for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange()
+            layoutManager.attributesDidChange(in: documentRange)
         }
     }
 

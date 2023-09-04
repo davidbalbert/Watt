@@ -168,4 +168,19 @@ extension TextView {
 
         return layoutManager.selection?.markedRange ?? layoutManager.selection?.range
     }
+
+    func discardMarkedText() {
+        inputContext?.discardMarkedText()
+
+        // Most of the time when an unexpected event comes in when there's marked text,
+        // AppKit will call insert(_:replacementRange:) to replace the marked text with
+        // normal text.
+        //
+        // For mouse events, however, that doesn't seem to happen happen. Ditto for
+        // things the text system doesn't know about, like selectAll(_:), etc. So
+        // here we manually clear the marked text styles.
+        if let markedRange = layoutManager.selection?.markedRange {
+            buffer.setAttributes(typingAttributes, in: markedRange)
+        }
+    }
 }
