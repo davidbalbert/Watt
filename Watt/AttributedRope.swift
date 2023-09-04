@@ -157,6 +157,22 @@ extension AttributedRope.Runs: Sequence {
 
 extension AttributedRope {
     struct AttributeKeys {
+        // TODO: Make a macro for defining attributes that:
+        // 1. Creates the enum
+        // 2. Creates the property
+        // 3. Adds the name to knownAttributes
+        static var knownAttributes: Set = [
+            NSAttributedString.Key.font.rawValue,
+            NSAttributedString.Key.foregroundColor.rawValue,
+            NSAttributedString.Key.backgroundColor.rawValue,
+            NSAttributedString.Key.underlineStyle.rawValue,
+            NSAttributedString.Key.underlineColor.rawValue,
+            NSAttributedString.Key.markedClauseSegment.rawValue,
+            NSAttributedString.Key.glyphInfo.rawValue,
+            NSAttributedString.Key.textAlternatives.rawValue,
+            NSAttributedString.Key.attachment.rawValue,
+        ]
+
         var font: FontAttribute
         var foregroundColor: ForegroundColorAttribute
         var backgroundColor: BackgroundColorAttribute
@@ -636,6 +652,9 @@ extension AttributedRope.Attributes {
         var contents: [String: Any] = [:]
 
         for (key, value) in dictionary {
+            if !AttributedRope.AttributeKeys.knownAttributes.contains(key.rawValue) {
+                print("Unknown attribute key: \(key)")
+            }
             contents[key.rawValue] = value
         }
 
