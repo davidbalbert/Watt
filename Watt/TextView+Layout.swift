@@ -177,18 +177,9 @@ extension TextView: LayoutManagerDelegate {
     func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
         typingAttributes
     }
+
     // MARK: - Text layout
 
-    // TODO: once we're caching breaks and/or lines in the layout manager, switch from
-    // delegate methods (willLayout, configureRenderingSurface, didLayout) to a single
-    // callback passed into layout text that takes a Line, creates a layer, and inserts
-    // the layer as appropriate.
-    //
-    // The reason to do it with a callback is we'd like to do things like calculate the
-    // scroll offset adjustments in TextView rather than LayoutManager, and if we wanted
-    // to do that with the current delegate-based approach, we'd need to introduce a
-    // property. If we did it with a closure, we could just use a local variable and
-    // everything could stay put.
     func layoutTextLayer() {
         textLayer.sublayers = nil
 
