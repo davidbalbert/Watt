@@ -8,7 +8,7 @@
 import Cocoa
 
 extension TextView {
-    // MARK: - Text input
+    // MARK: - Text insertion
 
     // List of all key commands for completeness testing: https://support.apple.com/en-us/HT201236
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
@@ -18,11 +18,91 @@ extension TextView {
             return
         }
 
-        // TODO: we probably have to take selection.markedRange into account here.
         buffer.replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
 
         print("insertNewline - ", terminator: "")
         unmarkText()
+    }
+
+    override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        buffer.replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
+
+        print("insertNewlineIgnoringFieldEditor - ", terminator: "")
+        unmarkText()
+    }
+
+    // MARK: - Text deletion
+
+    override func deleteBackward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty {
+            buffer.replaceSubrange(selection.range, with: "")
+        } else if selection.lowerBound > buffer.startIndex {
+            let start = buffer.index(before: selection.lowerBound)
+            buffer.replaceSubrange(start..<selection.lowerBound, with: "")
+        }
+        unmarkText()
+    }
+
+    override func deleteForward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty {
+            buffer.replaceSubrange(selection.range, with: "")
+        } else if selection.lowerBound < buffer.endIndex {
+            let end = buffer.index(after: selection.lowerBound)
+            buffer.replaceSubrange(selection.lowerBound..<end, with: "")
+        }
+        unmarkText()
+    }
+
+    // MARK: Character navigation
+
+    override func moveLeft(_ sender: Any?) {
+        moveBackward(sender)
+    }
+
+    override func moveBackward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty || selection.lowerBound == buffer.startIndex {
+            layoutManager.selection = Selection(head: selection.lowerBound)
+        } else if selection.lowerBound > buffer.startIndex {
+            layoutManager.selection = Selection(head: buffer.index(before: selection.lowerBound))
+        }
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveRight(_ sender: Any?) {
+        moveForward(sender)
+    }
+
+    override func moveForward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty || selection.upperBound == buffer.endIndex {
+            layoutManager.selection = Selection(head: selection.upperBound)
+        } else if selection.lowerBound < buffer.endIndex {
+            layoutManager.selection = Selection(head: buffer.index(after: selection.lowerBound))
+        }
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
     }
 
     // MARK: - Selection
