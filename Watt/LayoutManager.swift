@@ -548,16 +548,7 @@ class LayoutManager {
         let isEmptyLastLine = range.lowerBound == buffer.endIndex
 
         if isEmptyLastLine {
-            let attrs: AttributedRope.Attributes
-            if buffer.isEmpty {
-                attrs = delegate?.typingAttributes(for: self) ?? AttributedRope.Attributes()
-            } else {
-                // TODO: it would be nice if Runs was a collection and we could do buffer.runs.last!.attributes.
-                let start = buffer.index(before: buffer.endIndex)
-                let s = AttributedRope(buffer[start..<buffer.endIndex])
-                var iter = s.runs.makeIterator()
-                attrs = iter.next()!.attributes
-            }
+            let attrs = delegate?.typingAttributes(for: self) ?? AttributedRope.Attributes()
 
             // I believe this has to be a newline because an empty NSAttributedString
             // has no runs, and thus no styles. Confirm this by attempting to create
