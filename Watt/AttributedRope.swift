@@ -192,7 +192,15 @@ extension AttributedRope {
 
 extension AttributedRope.Attributes {
     subscript<K>(_ attribute: K.Type) -> K.Value? where K: AttributedRopeKey {
-        get { contents[K.name] as? K.Value }
+        get {
+            if let value = contents[K.name] {
+                // force cast so we panic if two different attribute keys
+                // have the same name but different types.
+                return (value as! K.Value)
+            } else {
+                return nil
+            }
+        }
         set { contents[K.name] = newValue }
     }
 
