@@ -162,6 +162,10 @@ extension AttributedRope {
         var backgroundColor: BackgroundColorAttribute
         var underlineStyle: UnderlineStyleAttribute
         var underlineColor: UnderlineColorAttribute
+        var markedClauseSegment: MarkedClauseSegmentAttribute
+        var glyphInfo: GlyphInfoAttribute
+        var textAlternatives: TextAlternativesAttribute
+        var attachment: AttachmentKey
 
         enum FontAttribute: AttributedRopeKey {
             typealias Value = NSFont
@@ -186,6 +190,30 @@ extension AttributedRope {
         enum UnderlineColorAttribute: AttributedRopeKey {
             typealias Value = NSColor
             static let name = NSAttributedString.Key.underlineColor.rawValue
+        }
+        
+        enum MarkedClauseSegmentAttribute: AttributedRopeKey {
+            typealias Value = NSNumber
+            static let name = NSAttributedString.Key.markedClauseSegment.rawValue
+        }
+
+        // We don't use these directly, but they're part of NSTextView's validAttributesForMarkedText
+        // which we're reproducing, so we want to have them supported.
+        //
+        // LanguageIdentifier is missing because I don't know its type.
+        enum GlyphInfoAttribute: AttributedRopeKey {
+            typealias Value = NSGlyphInfo
+            static let name = NSAttributedString.Key.glyphInfo.rawValue
+        }
+
+        enum TextAlternativesAttribute: AttributedRopeKey {
+            typealias Value = NSTextAlternatives
+            static let name = NSAttributedString.Key.textAlternatives.rawValue
+        }
+
+        enum AttachmentKey: AttributedRopeKey {
+            typealias Value = NSTextAttachment
+            static let name = NSAttributedString.Key.attachment.rawValue
         }
     }
 }
