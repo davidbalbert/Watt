@@ -123,7 +123,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     }
 
     func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int) {
-        if log10(Double(old)) != log10(Double(new)) {
+        if floor(log10(Double(old))) != floor(log10(Double(new))) {
             invalidateIntrinsicContentSize()
         }
     }
