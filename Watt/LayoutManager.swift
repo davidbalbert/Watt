@@ -588,7 +588,7 @@ class LayoutManager {
             lineFragments.append(lineFragment)
 
             i = next
-            width = max(width, typographicBounds.width)
+            width = min(max(width, typographicBounds.width), textContainer.width)
             height += typographicBounds.height
         }
 
@@ -608,11 +608,11 @@ class LayoutManager {
         assert(ctTypographicBounds.minX == 0)
 
         // defined to have the origin in the upper left corner
-        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: floor(ctTypographicBounds.height))
+        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width + paddingWidth, height: round(ctTypographicBounds.height))
 
         let glyphOrigin = CGPoint(
             x: ctTypographicBounds.minX + textContainer.lineFragmentPadding,
-            y: floor(ctTypographicBounds.height + ctTypographicBounds.minY)
+            y: round(ctTypographicBounds.height + ctTypographicBounds.minY)
         )
 
         return (glyphOrigin, typographicBounds)

@@ -45,7 +45,7 @@ class LineNumberLayer: CALayer {
         // glyph origin in flipped coordinate space
         let glyphOrigin = CGPoint(
             x: bounds.width - lineNumberView.trailingPadding - typographicBounds.width,
-            y: floor(typographicBounds.height + typographicBounds.minY)
+            y: round(typographicBounds.height + typographicBounds.minY)
         )
 
         ctx.saveGState()
