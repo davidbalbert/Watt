@@ -1281,15 +1281,7 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        start.validate(for: root)
-        end.validate(for: root)
-
-        var d = root.distance(from: start, to: end, using: .newlines)
-        if end == endIndex {
-            d += 1
-        }
-
-        return d
+        root.distance(from: start, to: end, using: .newlines)
     }
 
     var count: Int {
