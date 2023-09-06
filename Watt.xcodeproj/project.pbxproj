@@ -109,6 +109,7 @@
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
 		63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Collection+Extensions.swift"; sourceTree = "<group>"; };
+		6396DEFD2AA9074D00B1D03B /* TreeSitterLanguages */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TreeSitterLanguages; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618712A0EAF2000E70B0E /* WeakDictionary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeakDictionary.swift; sourceTree = "<group>"; };
 		63A618732A0EC37700E70B0E /* LineNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberView.swift; sourceTree = "<group>"; };
@@ -160,17 +161,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		63359A392AA9081B00082762 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
 				637288BB29FD9069005B95E5 /* .gitignore */,
 				63F25BDA2A68409700DEACCF /* LLDBInitFile */,
+				6396DEFD2AA9074D00B1D03B /* TreeSitterLanguages */,
 				637288BC29FD9084005B95E5 /* Developer.xcconfig */,
 				637288BA29FD9002005B95E5 /* Watt.xcconfig */,
 				6372888929FD8E19005B95E5 /* Products */,
 				6372888A29FD8E19005B95E5 /* Watt */,
 				637288A029FD8E1A005B95E5 /* WattTests */,
 				637288AA29FD8E1A005B95E5 /* WattUITests */,
+				63359A392AA9081B00082762 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
