@@ -128,13 +128,11 @@ extension TextView: NSTextInputClient {
             return .zero
         }
 
-        var rect: CGRect = .zero
-        layoutManager.enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
-            rect = frame
-            actualRange?.pointee = NSRange(segmentRange, in: buffer)
-
-            return false
+        guard let (rect, rectRange) = layoutManager.firstRect(forRange: range) else {
+            return .zero
         }
+
+        actualRange?.pointee = NSRange(rectRange, in: buffer)
 
         let viewRect = convertFromTextContainer(rect)
         let windowRect = convert(viewRect, to: nil)
@@ -186,25 +184,28 @@ extension TextView {
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: AttributedRope) {
         buffer.replaceSubrange(subrange, with: s)
-
-        // TODO: Once we have multiple selections, we have to make sure to put each
-        // selection in the correct location.
-        let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: s.count)
-        layoutManager.selection = Selection(head: head)
-        if head == buffer.endIndex {
-            layoutManager.selection!.affinity = .upstream
-        }
+        updateStateAfterReplacingSubrange(subrange, withStringOfCount: s.count)
     }
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: String) {
         buffer.replaceSubrange(subrange, with: s)
+        updateStateAfterReplacingSubrange(subrange, withStringOfCount: s.count)
+    }
 
+    func updateStateAfterReplacingSubrange(_ subrange: Range<Buffer.Index>, withStringOfCount count: Int) {
         // TODO: Once we have multiple selections, we have to make sure to put each
         // selection in the correct location.
-        let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: s.count)
+        let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         layoutManager.selection = Selection(head: head)
         if head == buffer.endIndex {
             layoutManager.selection!.affinity = .upstream
         }
+
+        guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection!.range) else {
+            return
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        scrollToVisible(viewRect)
     }
 }

@@ -299,6 +299,17 @@ class LayoutManager {
         block(rect)
     }
 
+    func firstRect(forRange range: Range<Buffer.Index>) -> (CGRect, Range<Buffer.Index>)? {
+        var res: (CGRect, Range<Buffer.Index>)?
+
+        enumerateTextSegments(in: range, type: .standard) { segmentRange, frame in
+            res = (frame, segmentRange)
+            return false
+        }
+
+        return res
+    }
+
     enum SegmentType {
         case standard
         case selection

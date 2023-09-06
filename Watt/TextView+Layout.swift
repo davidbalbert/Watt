@@ -172,6 +172,7 @@ extension TextView: LayoutManagerDelegate {
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
+        updateFrameHeightIfNeeded()
     }
 
     func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
