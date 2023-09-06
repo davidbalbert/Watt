@@ -20,7 +20,7 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes)
         }
 
-        buffer.replaceSubrange(range, with: attrRope)
+        replaceSubrange(range, with: attrRope)
 
         print("insertText - ", terminator: "")
         unmarkText()
@@ -45,7 +45,7 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes.merging(markedTextAttributes))
         }
 
-        buffer.replaceSubrange(range, with: attrRope)
+        replaceSubrange(range, with: attrRope)
 
         let start = buffer.index(fromOldIndex: range.lowerBound)
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
@@ -181,6 +181,30 @@ extension TextView {
         // here we manually clear the marked text styles.
         if let markedRange = layoutManager.selection?.markedRange {
             buffer.setAttributes(typingAttributes, in: markedRange)
+        }
+    }
+
+    func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: AttributedRope) {
+        buffer.replaceSubrange(subrange, with: s)
+
+        // TODO: Once we have multiple selections, we have to make sure to put each
+        // selection in the correct location.
+        let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: s.count)
+        layoutManager.selection = Selection(head: head)
+        if head == buffer.endIndex {
+            layoutManager.selection!.affinity = .upstream
+        }
+    }
+
+    func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: String) {
+        buffer.replaceSubrange(subrange, with: s)
+
+        // TODO: Once we have multiple selections, we have to make sure to put each
+        // selection in the correct location.
+        let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: s.count)
+        layoutManager.selection = Selection(head: head)
+        if head == buffer.endIndex {
+            layoutManager.selection!.affinity = .upstream
         }
     }
 }

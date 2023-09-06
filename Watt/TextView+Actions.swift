@@ -18,7 +18,7 @@ extension TextView {
             return
         }
 
-        buffer.replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
+        replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
 
         print("insertNewline - ", terminator: "")
         unmarkText()
@@ -29,7 +29,7 @@ extension TextView {
             return
         }
 
-        buffer.replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
+        replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
 
         print("insertNewlineIgnoringFieldEditor - ", terminator: "")
         unmarkText()
@@ -43,10 +43,10 @@ extension TextView {
         }
 
         if !selection.isEmpty {
-            buffer.replaceSubrange(selection.range, with: "")
+            replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
             let start = buffer.index(before: selection.lowerBound)
-            buffer.replaceSubrange(start..<selection.lowerBound, with: "")
+            replaceSubrange(start..<selection.lowerBound, with: "")
         }
         unmarkText()
     }
@@ -57,10 +57,10 @@ extension TextView {
         }
 
         if !selection.isEmpty {
-            buffer.replaceSubrange(selection.range, with: "")
+            replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
             let end = buffer.index(after: selection.lowerBound)
-            buffer.replaceSubrange(selection.lowerBound..<end, with: "")
+            replaceSubrange(selection.lowerBound..<end, with: "")
         }
         unmarkText()
     }
