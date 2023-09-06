@@ -8,6 +8,15 @@
         "revision" : "f88ae4ebe351d8aa99c31a17111607017d805118",
         "version" : "0.20.9-beta-1"
       }
+    },
+    {
+      "identity" : "tree-sitter-c",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tree-sitter/tree-sitter-c",
+      "state" : {
+        "revision" : "a2b7bac3b313efbaa683d9a276ff63cdc544d960",
+        "version" : "0.20.6"
+      }
     }
   ],
   "version" : 2

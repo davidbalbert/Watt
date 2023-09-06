@@ -12,6 +12,7 @@
 		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
+		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
 		6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888B29FD8E19005B95E5 /* AppDelegate.swift */; };
 		6372888E29FD8E19005B95E5 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888D29FD8E19005B95E5 /* Document.swift */; };
@@ -141,6 +142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
+				63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,6 +292,7 @@
 			name = Watt;
 			packageProductDependencies = (
 				63F30E662AA90012009929F7 /* TreeSitter */,
+				63359A3D2AA9115100082762 /* TreeSitterC */,
 			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
@@ -365,6 +368,7 @@
 			mainGroup = 6372887F29FD8E19005B95E5;
 			packageReferences = (
 				63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */,
+				63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -789,6 +793,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tree-sitter/tree-sitter-c";
+			requirement = {
+				kind = exactVersion;
+				version = 0.20.6;
+			};
+		};
 		63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/simonbs/tree-sitter";
@@ -800,6 +812,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		63359A3D2AA9115100082762 /* TreeSitterC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */;
+			productName = TreeSitterC;
+		};
 		63F30E662AA90012009929F7 /* TreeSitter */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */;
