@@ -55,6 +55,7 @@
 		63F25BE12A689D2400DEACCF /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE02A689D2400DEACCF /* Line.swift */; };
 		63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE22A689EA700DEACCF /* LineLayer.swift */; };
 		63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE42A68A27600DEACCF /* LineFragment.swift */; };
+		63F30E672AA90012009929F7 /* TreeSitter in Frameworks */ = {isa = PBXBuildFile; productRef = 63F30E662AA90012009929F7 /* TreeSitter */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -138,6 +139,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,6 +278,9 @@
 			dependencies = (
 			);
 			name = Watt;
+			packageProductDependencies = (
+				63F30E662AA90012009929F7 /* TreeSitter */,
+			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
 			productType = "com.apple.product-type.application";
@@ -348,6 +353,9 @@
 				Base,
 			);
 			mainGroup = 6372887F29FD8E19005B95E5;
+			packageReferences = (
+				63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */,
+			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -769,6 +777,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simonbs/tree-sitter";
+			requirement = {
+				kind = exactVersion;
+				version = "0.20.9-beta-1";
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		63F30E662AA90012009929F7 /* TreeSitter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */;
+			productName = TreeSitter;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6372888029FD8E19005B95E5 /* Project object */;
 }
