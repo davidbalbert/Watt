@@ -11,15 +11,27 @@ class Buffer {
     typealias Index = AttributedRope.Index
 
     var contents: AttributedRope
+
+    var language: Language {
+        didSet {
+            highlighter = Highlighter(for: self)
+        }
+    }
+    var highlighter: Highlighter?
+
     var layoutManagers: [LayoutManager]
 
     convenience init() {
-        self.init("")
+        self.init("", language: .plainText)
     }
 
-    init(_ string: String) {
+    init(_ string: String, language: Language) {
         self.contents = AttributedRope(string)
+        self.language = language
         self.layoutManagers = []
+
+        self.highlighter = Highlighter(for: self)
+        highlighter?.highlight()
     }
 
     var data: Data {
@@ -168,21 +180,16 @@ class Buffer {
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: attrRope)
-        let delta = b.build()
-
-        let old = contents
-        contents = contents.applying(delta: delta)
-
-        for layoutManager in layoutManagers {
-            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
-        }
+        applying(delta: b.build())
     }
 
     func replaceSubrange(_ subrange: Range<Index>, with s: String) {
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: s)
-        let delta = b.build()
+        applying(delta: b.build())
+    }
 
+    func applying(delta: AttributedRope.Delta) {
         let old = contents
         contents = contents.applying(delta: delta)
 

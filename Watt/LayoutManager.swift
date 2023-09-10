@@ -673,7 +673,6 @@ class LayoutManager {
         heights.replaceSubrange(oldRange, with: new[newRange])
 
         lineCache.invalidate(delta: delta)
-
         delegate?.didInvalidateLayout(for: self)
 
         if old.lines.count != new.lines.count {

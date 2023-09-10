@@ -6,12 +6,13 @@
 //
 
 import Cocoa
+import UniformTypeIdentifiers
 
 class Document: NSDocument {
     var buffer: Buffer = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
-        return Buffer(text)
+        return Buffer(text, language: .plainText)
     }()
 
     override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {
@@ -39,7 +40,7 @@ class Document: NSDocument {
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        buffer = Buffer(String(decoding: data, as: UTF8.self))
+        buffer = Buffer(String(decoding: data, as: UTF8.self), language: UTType(typeName)?.language ?? .plainText)
     }
 }
 
