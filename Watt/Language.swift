@@ -72,11 +72,8 @@ extension Languages {
 
         var treeSitterClient: TreeSitterClient? {
             let treeSitterLanguage = TreeSitterLanguage(tsLanguage: tree_sitter_c())
-
-            let url = bundle(forResource: "TreeSitterC_TreeSitterC")!
-                .url(forResource: "queries/highlights", withExtension: "scm")!
-
-            let highlightQuery = try! treeSitterLanguage.query(contentsOf: url)
+            let url = url(forResource: "queries/highlights", withExtension: "scm", in: "TreeSitterC_TreeSitterC")
+            let highlightQuery = treeSitterLanguage.query(conentsOf: url)
 
             return TreeSitterClient(language: treeSitterLanguage, highlightQuery: highlightQuery)
         }
