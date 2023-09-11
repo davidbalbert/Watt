@@ -15,6 +15,10 @@ protocol LayoutManagerDelegate: AnyObject {
     func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 }
 
+protocol LayoutManagerAppearanceDelegate: AnyObject {
+    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: String) -> AttributedRope.Attributes
+}
+
 protocol LayoutManagerLineNumberDelegate: AnyObject {
     func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool
     func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
@@ -25,6 +29,7 @@ protocol LayoutManagerLineNumberDelegate: AnyObject {
 
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
+    weak var appearanceDelegate: LayoutManagerAppearanceDelegate?
     weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
     weak var buffer: Buffer? {
@@ -553,8 +558,8 @@ class LayoutManager {
     }
 
     func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
-        let substring = buffer[range]
-        return NSAttributedString(substring)
+        var s = AttributedRope(buffer[range])
+        return NSAttributedString(s)
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this

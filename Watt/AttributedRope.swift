@@ -160,8 +160,8 @@ extension AttributedRope {
         // TODO: Make a macro for defining attributes that:
         // 1. Creates the enum
         // 2. Creates the property
-        // 3. Adds the name to knownAttributes
-        static var knownAttributes: Set = [
+        // 3. If it maps to an NSAttributedString.Key, add the name to knownNSAttributedStringKeys
+        static var knownNSAttributedStringKeys: Set = [
             NSAttributedString.Key.font.rawValue,
             NSAttributedString.Key.foregroundColor.rawValue,
             NSAttributedString.Key.backgroundColor.rawValue,
@@ -230,6 +230,16 @@ extension AttributedRope {
         enum AttachmentKey: AttributedRopeKey {
             typealias Value = NSTextAttachment
             static let name = NSAttributedString.Key.attachment.rawValue
+        }
+
+
+        // Watt-specific attributes
+
+        var tokenType: TokenTypeAttribute
+
+        enum TokenTypeAttribute: AttributedRopeKey {
+            typealias Value = String
+            static let name = "is.dave.Watt.TokenType"
         }
     }
 }
@@ -356,6 +366,38 @@ extension AttributedSubrope {
             b ?? a
         }
     }
+}
+
+// MARK: - Attribute transformation
+
+extension AttributedRope {
+    struct AttributeTransformer<T> where T: AttributedRopeKey {
+        var text: Rope
+        var spans: Spans<Attributes>
+
+        let range: Range<Index>
+        var keyPath: KeyPath<AttributeKeys, T>
+
+        var value: T.Value? {
+            get {
+                nil
+            }
+            set {
+
+            }
+        }
+
+        mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
+        }
+
+        mutating func replace<U>(with keyPath: KeyPath<AttributeKeys, U>, value: U.Value) where U: AttributedRopeKey {
+            replace(with: U.self, value: value)
+        }
+    }
+}
+
+extension AttributedSubrope {
+
 }
 
 // MARK: - Collection
@@ -664,7 +706,7 @@ extension AttributedRope.Attributes {
         var contents: [String: Any] = [:]
 
         for (key, value) in dictionary {
-            if !AttributedRope.AttributeKeys.knownAttributes.contains(key.rawValue) {
+            if !AttributedRope.AttributeKeys.knownNSAttributedStringKeys.contains(key.rawValue) {
                 print("Unknown attribute key: \(key)")
             }
             contents[key.rawValue] = value
