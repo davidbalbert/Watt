@@ -547,6 +547,16 @@ class LayoutManager {
         }
     }
 
+    func nsAttributedSubstring(for range: Range<Buffer.Index>) -> NSAttributedString? {
+        guard let buffer else { return nil}
+        return nsAttributedSubstring(for: range, in: buffer)
+    }
+
+    func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
+        let substring = buffer[range]
+        return NSAttributedString(substring)
+    }
+
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
     // method could return a LineFragment. That way, we won't have to worry about
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
@@ -566,7 +576,7 @@ class LayoutManager {
             // an empty NSAttributedString and see what happens.
             attrStr = NSAttributedString(string: "\n", attributes: .init(attrs))
         } else {
-            attrStr = buffer.attributedSubstring(for: range)
+            attrStr = nsAttributedSubstring(for: range, in: buffer)
         }
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?

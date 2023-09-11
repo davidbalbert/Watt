@@ -109,10 +109,6 @@ class Buffer {
         utf8.index(at: oldIndex.position)
     }
 
-    func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
-        NSAttributedString(contents[range])
-    }
-
     func addLayoutManager(_ layoutManager: LayoutManager) {
         if layoutManagers.contains(where: { $0 === layoutManager }) {
             return
