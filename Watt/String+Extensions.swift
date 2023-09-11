@@ -33,3 +33,16 @@ extension StringProtocol {
     }
 }
 
+extension String {
+    init?(bytes: UnsafePointer<CChar>, count: Int, encoding: String.Encoding) {
+        let s = bytes.withMemoryRebound(to: UInt8.self, capacity: count) { p in
+            String(bytes: UnsafeBufferPointer(start: p, count: count), encoding: .utf8)
+        }
+
+        guard let s else {
+            return nil
+        }
+
+        self = s
+    }
+}

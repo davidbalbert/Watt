@@ -400,12 +400,14 @@ struct TreeSitterQueryCapture {
 
     var name: String {
         var length: UInt32 = 0
-        let p = ts_query_capture_name_for_id(query.tsQuery, match.tsQueryMatch.id, &length)!
+        let p = ts_query_capture_name_for_id(query.tsQuery, tsQueryCapture.pointee.index, &length)!
+        return String(bytes: p, count: Int(length), encoding: .utf8)!
+    }
 
-        let count = Int(length)
+    var range: Range<Int> {
+        let start = ts_node_start_byte(tsQueryCapture.pointee.node)
+        let end = ts_node_end_byte(tsQueryCapture.pointee.node)
 
-        return p.withMemoryRebound(to: UInt8.self, capacity: count) { p in
-            String(bytes: UnsafeBufferPointer(start: p, count: count), encoding: .utf8)!
-        }
+        return Int(start)..<Int(end)
     }
 }

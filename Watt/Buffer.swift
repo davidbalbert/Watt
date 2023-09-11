@@ -219,10 +219,11 @@ class Buffer {
 }
 
 extension Buffer: HighlighterDelegate {
-    func highlighter(_ highlighter: Highlighter, applyStyleToToken token: Token) {
+    func applyStyle(to token: Token) {
         print(token)
     }
 }
+
 
 extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {

@@ -38,10 +38,12 @@ struct TreeSitterClient {
 }
 
 struct Token {
+    let name: String
+    let range: Range<Int>
 }
 
 protocol HighlighterDelegate: AnyObject {
-    func highlighter(_ highlighter: Highlighter, applyStyleToToken token: Token)
+    func applyStyle(to token: Token)
 }
 
 struct Highlighter {
@@ -62,9 +64,9 @@ struct Highlighter {
     }
 
     func highlight() {
-//        guard let delegate else {
-//            return
-//        }
+       guard let delegate else {
+           return
+       }
 
         guard let cursor = client.executeHighlightsQuery() else {
             return
@@ -72,7 +74,7 @@ struct Highlighter {
 
         for match in cursor {
             for capture in match.captures {
-                print(capture.name)
+                delegate.applyStyle(to: Token(name: capture.name, range: capture.range))
             }
         }
     }
