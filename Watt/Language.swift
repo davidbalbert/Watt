@@ -12,9 +12,21 @@ import TreeSitterC
 
 protocol Language {
     var type: UTType { get }
-    var parser: TreeSitterParser? { get }
-    
-    func query(forContentsOf: URL) -> TreeSitterQuery?
+    var treeSitterClient: TreeSitterClient? { get }
+}
+
+extension Language {
+    func bundle(forResource name: String) -> Bundle? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "bundle") else {
+            return nil
+        }
+
+        return Bundle(url: url)
+    }
+
+    func url(forResource resourceName: String, withExtension ext: String?, in bundleName: String) -> URL? {
+        bundle(forResource: bundleName)?.url(forResource: resourceName, withExtension: ext)
+    }
 }
 
 extension UTType {
@@ -39,12 +51,8 @@ extension Languages {
         var type: UTType {
             .plainText
         }
-        
-        var parser: TreeSitterParser? {
-            nil
-        }
-        
-        func query(forContentsOf url: URL) -> TreeSitterQuery? {
+
+        var treeSitterClient: TreeSitterClient? {
             nil
         }
     }
@@ -61,13 +69,16 @@ extension Languages {
         var type: UTType {
             .cSource
         }
-        
-        var parser: TreeSitterParser? {
-            TreeSitterParser()
-        }
-        
-        func query(forContentsOf url: URL) -> TreeSitterQuery? {
-            nil
+
+        var treeSitterClient: TreeSitterClient? {
+            let treeSitterLanguage = TreeSitterLanguage(tsLanguage: tree_sitter_c())
+
+            let url = bundle(forResource: "TreeSitterC_TreeSitterC")!
+                .url(forResource: "queries/highlights", withExtension: "scm")!
+
+            let highlightQuery = try! treeSitterLanguage.query(contentsOf: url)
+
+            return TreeSitterClient(language: treeSitterLanguage, highlightQuery: highlightQuery)
         }
     }
 
@@ -75,13 +86,9 @@ extension Languages {
         var type: UTType {
             .cHeader
         }
-        
-        var parser: TreeSitterParser? {
-            TreeSitterParser()
-        }
-        
-        func query(forContentsOf url: URL) -> TreeSitterQuery? {
-            nil
+
+        var treeSitterClient: TreeSitterClient? {
+            CSource().treeSitterClient
         }
     }
 }

@@ -10,6 +10,11 @@ import TreeSitter
 
 struct TreeSitterLanguage {
     public var tsLanguage: UnsafePointer<TSLanguage>
+
+    func query(contentsOf url: URL) throws -> TreeSitterQuery {
+        let data = try Data(contentsOf: url)
+        return try TreeSitterQuery(language: self, data: data)
+    }
 }
 
 class TreeSitterParser {
@@ -175,10 +180,133 @@ extension TreeSitterNode: CustomDebugStringConvertible {
     }
 }
 
-struct TreeSitterQuery {
-    var tsQuery: OpaquePointer // TSQuery *
+final class TreeSitterQuery: Sendable {
+    public enum QueryError: Error {
+        case none
+        case syntax(UInt32)
+        case nodeType(UInt32)
+        case field(UInt32)
+        case capture(UInt32)
+        case structure(UInt32)
+        case unknown(UInt32)
 
-    init(tsQuery: OpaquePointer) {
-        self.tsQuery = tsQuery
+        init(offset: UInt32, internalError: TSQueryError) {
+            switch internalError {
+            case TSQueryErrorNone:
+                self = .none
+            case TSQueryErrorSyntax:
+                self = .syntax(offset)
+            case TSQueryErrorNodeType:
+                self = .nodeType(offset)
+            case TSQueryErrorField:
+                self = .field(offset)
+            case TSQueryErrorCapture:
+                self = .capture(offset)
+            case TSQueryErrorStructure:
+                self = .structure(offset)
+            default:
+                self = .unknown(offset)
+            }
+        }
     }
+
+    let tsQuery: OpaquePointer
+//    let predicateList: [[Predicate]]
+
+    /// Construct a query object from scm data
+    ///
+    /// This operation has do to a lot of work, especially if any
+    /// patterns contain predicates. You should expect it will
+    /// be expensive.
+    init(language: TreeSitterLanguage, data: Data) throws {
+        let dataLength = data.count
+        var errorOffset: UInt32 = 0
+        var queryError: TSQueryError = TSQueryErrorNone
+
+        let tsQuery = data.withUnsafeBytes { (p: UnsafeRawBufferPointer) -> OpaquePointer? in
+            p.withMemoryRebound(to: CChar.self) { p in
+                guard let addr = p.baseAddress else {
+                    return nil
+                }
+
+                return ts_query_new(language.tsLanguage,
+                                    addr,
+                                    UInt32(dataLength),
+                                    &errorOffset,
+                                    &queryError)
+            }
+        }
+
+        guard let tsQuery else {
+            throw QueryError(offset: errorOffset, internalError: queryError)
+        }
+
+        self.tsQuery = tsQuery
+        // self.predicateList = try PredicateParser().predicates(in: queryPtr)
+    }
+
+    deinit {
+        ts_query_delete(tsQuery)
+    }
+
+    var patternCount: Int {
+        return Int(ts_query_pattern_count(tsQuery))
+    }
+
+    var captureCount: Int {
+        return Int(ts_query_capture_count(tsQuery))
+    }
+
+    var stringCount: Int {
+        return Int(ts_query_string_count(tsQuery))
+    }
+
+	/// Run a query
+	///
+	/// Note that both the node **and** the tree is is part of
+	/// must remain valid as long as the query is being used.
+	///
+	/// - Parameter node: the root node for the query
+	/// - Parameter tree: keep an optional reference to the tree
+    // public func execute(node: Node, in tree: Tree? = nil) -> QueryCursor {
+    //     let cursor = QueryCursor()
+
+    //     cursor.execute(query: self, node: node, in: tree)
+
+    //     return cursor
+    // }
+
+    // public func captureName(for id: Int) -> String? {
+    //     var length: UInt32 = 0
+
+    //     guard let cStr = ts_query_capture_name_for_id(internalQuery, UInt32(id), &length) else {
+    //         return nil
+    //     }
+
+    //     return String(cString: cStr)
+    // }
+
+    // public func stringName(for id: Int) -> String? {
+    //     var length: UInt32 = 0
+
+    //     guard let cStr = ts_query_string_value_for_id(internalQuery, UInt32(id), &length) else {
+    //         return nil
+    //     }
+
+    //     return String(cString: cStr)
+    // }
+
+    // public func predicates(for patternIndex: Int) -> [Predicate] {
+    //     return predicateList[patternIndex]
+    // }
+
+    // public var hasPredicates: Bool {
+    //     for i in 0..<patternCount {
+    //         if predicates(for: i).isEmpty == false {
+    //             return true
+    //         }
+    //     }
+
+    //     return false
+    // }
 }

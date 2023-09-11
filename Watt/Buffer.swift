@@ -14,7 +14,10 @@ class Buffer {
 
     var language: Language {
         didSet {
-            highlighter = Highlighter(for: self)
+            // TODO: make sure this doesn't get called in the constructor
+            // so we're not doing the same work twice.
+            highlighter = Highlighter(language: language, delegate: self)
+            highlighter?.contentsDidChange(to: contents.text)
         }
     }
     var highlighter: Highlighter?
@@ -30,8 +33,8 @@ class Buffer {
         self.language = language
         self.layoutManagers = []
 
-        self.highlighter = Highlighter(for: self)
-        highlighter?.highlight()
+        self.highlighter = Highlighter(language: language, delegate: self)
+        highlighter?.contentsDidChange(to: contents.text)
     }
 
     var data: Data {
@@ -193,8 +196,10 @@ class Buffer {
         let old = contents
         contents = contents.applying(delta: delta)
 
+        highlighter?.contentsDidChange(to: contents.text, delta: delta.ropeDelta)
+
         for layoutManager in layoutManagers {
-            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+            layoutManager.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
         }
     }
 
@@ -210,6 +215,12 @@ class Buffer {
 
     func getAttributes(at i: Index) -> AttributedRope.Attributes {
         contents.getAttributes(at: i)
+    }
+}
+
+extension Buffer: HighlighterDelegate {
+    func highlighter(_ highlighter: Highlighter, applyStyleToToken token: Token) {
+        print(token)
     }
 }
 

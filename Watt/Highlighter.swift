@@ -8,45 +8,57 @@
 import Foundation
 import UniformTypeIdentifiers
 
-import TreeSitterC
-
-class Highlighter {
-    weak var buffer: Buffer?
-
+struct TreeSitterClient {
     var parser: TreeSitterParser
+    var highlightQuery: TreeSitterQuery
     var tree: TreeSitterTree?
 
-    init?(for buffer: Buffer) {
-        self.buffer = buffer
-
-        guard let l = TreeSitterLanguage(forType: buffer.language.type) else {
-            return nil
-        }
-
-        let parser = TreeSitterParser()
-        guard (try? parser.setLanguage(l)) != nil else {
+    init?(language: TreeSitterLanguage, highlightQuery: TreeSitterQuery) {
+        guard let parser = TreeSitterParser(language: language) else {
             return nil
         }
 
         self.parser = parser
+        self.highlightQuery = highlightQuery
     }
 
-    func highlight() {
-        guard let buffer else {
-            return
-        }
-        
-        self.tree = parser.parse(buffer.text, oldTree: tree)
+    mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
+        tree = parser.parse(rope, oldTree: tree)
     }
 }
 
-extension TreeSitterLanguage {
-    init?(forType type: UTType) {
-        switch type {
-        case .cHeader, .cSource:
-            self.init(tsLanguage: tree_sitter_c())
-        default:
+struct Token {
+}
+
+protocol HighlighterDelegate: AnyObject {
+    func highlighter(_ highlighter: Highlighter, applyStyleToToken token: Token)
+}
+
+struct Highlighter {
+    var language: Language
+    weak var delegate: HighlighterDelegate?
+
+    var client: TreeSitterClient
+
+    init?(language: Language, delegate: HighlighterDelegate) {
+        self.language = language
+        self.delegate = delegate
+
+        guard let client = language.treeSitterClient else {
             return nil
         }
+
+        self.client = client
+    }
+
+    func highlight() {
+        guard let delegate else {
+            return
+        }
+    }
+
+    mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
+        client.contentsDidChange(to: rope, delta: delta)
+        highlight()
     }
 }
