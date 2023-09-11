@@ -310,3 +310,102 @@ final class TreeSitterQuery: Sendable {
     //     return false
     // }
 }
+
+class TreeSitterQueryCursor {
+    let tsQueryCursor: OpaquePointer
+    let tree: TreeSitterTree // need to keep the tree alive as long as the cursor exists
+    var activeQuery: TreeSitterQuery?
+
+    init(tree: TreeSitterTree) {
+        self.tsQueryCursor = ts_query_cursor_new()
+        self.tree = tree
+    }
+
+    func execute(query: TreeSitterQuery) {
+        activeQuery = query
+        ts_query_cursor_exec(tsQueryCursor, query.tsQuery, tree.root.tsNode)
+    }
+
+    deinit {
+        ts_query_cursor_delete(tsQueryCursor)
+    }
+}
+
+extension TreeSitterQueryCursor: Sequence, IteratorProtocol {
+    func next() -> TreeSitterQueryMatch? {
+        var match = TSQueryMatch(id: 0, pattern_index: 0, capture_count: 0, captures: nil)
+
+        guard ts_query_cursor_next_match(tsQueryCursor, &match) else {
+            return nil
+        }
+
+        return TreeSitterQueryMatch(queryCursor: self, tsQueryMatch: match, query: activeQuery!)
+    }
+}
+
+class TreeSitterQueryMatch {
+    let tsQueryMatch: TSQueryMatch
+
+    // The query cursor keeps the tree alive, which we need
+    // because each TSQueryCapture contains a TSNode pointer.
+    //
+    // I believe the memory used by TSQueryMatch.captures is
+    // also kept alive by the query cursor.
+    let queryCursor: TreeSitterQueryCursor
+    let query: TreeSitterQuery
+
+    init(queryCursor: TreeSitterQueryCursor, tsQueryMatch: TSQueryMatch, query: TreeSitterQuery) {
+        self.queryCursor = queryCursor
+        self.query = query
+        self.tsQueryMatch = tsQueryMatch
+    }
+
+    struct CaptureView: RandomAccessCollection {
+        let match: TreeSitterQueryMatch
+
+        var startIndex: Int {
+            0
+        }
+
+        var endIndex: Int {
+            count
+        }
+
+        var count: Int {
+            Int(match.tsQueryMatch.capture_count)
+        }
+
+        subscript(index: Int) -> TreeSitterQueryCapture {
+            precondition(index >= 0 && index < count)
+            let p = match.tsQueryMatch.captures.advanced(by: index)
+            return TreeSitterQueryCapture(tsQueryCapture: p, query: match.query, match: match)
+        }
+    }
+
+    var captures: CaptureView {
+        CaptureView(match: self)
+    }
+}
+
+struct TreeSitterQueryCapture {
+    let tsQueryCapture: UnsafePointer<TSQueryCapture>
+    let query: TreeSitterQuery
+
+    // Keep the tsQueryCapture alive, as well as the tree
+    let match: TreeSitterQueryMatch
+
+    var node: TreeSitterNode {
+        TreeSitterNode(tree: match.queryCursor.tree, tsNode: tsQueryCapture.pointee.node)
+    }
+
+    var name: String {
+        var length: UInt32 = 0
+        let p = ts_query_capture_name_for_id(query.tsQuery, match.tsQueryMatch.id, &length)!
+
+        let count = Int(length)
+
+        return p.withMemoryRebound(to: UInt8.self, capacity: count) { p in
+            String(bytes: UnsafeBufferPointer(start: p, count: count), encoding: .utf8)!
+        }
+    }
+}

@@ -10,20 +10,30 @@ import UniformTypeIdentifiers
 
 struct TreeSitterClient {
     var parser: TreeSitterParser
-    var highlightQuery: TreeSitterQuery
+    var highlightsQuery: TreeSitterQuery
     var tree: TreeSitterTree?
 
-    init?(language: TreeSitterLanguage, highlightQuery: TreeSitterQuery) {
+    init?(language: TreeSitterLanguage, highlightsQuery: TreeSitterQuery) {
         guard let parser = TreeSitterParser(language: language) else {
             return nil
         }
 
         self.parser = parser
-        self.highlightQuery = highlightQuery
+        self.highlightsQuery = highlightsQuery
     }
 
     mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
         tree = parser.parse(rope, oldTree: tree)
+    }
+
+    func executeHighlightsQuery() -> TreeSitterQueryCursor? {
+        guard let tree else {
+            return nil
+        }
+
+        let cursor = TreeSitterQueryCursor(tree: tree)
+        cursor.execute(query: highlightsQuery)
+        return cursor
     }
 }
 
@@ -52,8 +62,18 @@ struct Highlighter {
     }
 
     func highlight() {
-        guard let delegate else {
+//        guard let delegate else {
+//            return
+//        }
+
+        guard let cursor = client.executeHighlightsQuery() else {
             return
+        }
+
+        for match in cursor {
+            for capture in match.captures {
+                print(capture.name)
+            }
         }
     }
 
