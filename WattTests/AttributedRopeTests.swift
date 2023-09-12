@@ -2397,4 +2397,43 @@ final class AttributedRopeTests: XCTestCase {
 
         XCTAssertNil(iter.next())
     }
+
+    func testTransformReplaceWithMultipleAttributes() {
+        var s1 = AttributedRope("foo bar baz")
+        s1[s1.startIndex..<s1.index(at: 4)].font = .systemFont(ofSize: 12)
+        s1[s1.index(at: 4)..<s1.index(at: 8)].font = .systemFont(ofSize: 14)
+        s1[s1.index(at: 8)..<s1.endIndex].font = .systemFont(ofSize: 16)
+
+        let s2 = s1.transformingAttributes(\.font) { attr in
+            if attr.value == .systemFont(ofSize: 14) {
+                var newAttrs = AttributedRope.Attributes()
+                newAttrs.foregroundColor = .red
+                newAttrs.backgroundColor = .blue
+                attr.replace(with: newAttrs)
+            }
+        }
+
+        XCTAssertEqual(s2.runs.count, 3)
+
+        var iter = s2.runs.makeIterator()
+        let r0 = iter.next()!
+        XCTAssertEqual(r0.range, s2.startIndex..<s2.index(at: 4))
+        XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
+        XCTAssertNil(r0.foregroundColor)
+        XCTAssertNil(r0.backgroundColor)
+
+        let r1 = iter.next()!
+        XCTAssertEqual(r1.range, s2.index(at: 4)..<s2.index(at: 8))
+        XCTAssertNil(r1.font)
+        XCTAssertEqual(r1.foregroundColor, .red)
+        XCTAssertEqual(r1.backgroundColor, .blue)
+
+        let r2 = iter.next()!
+        XCTAssertEqual(r2.range, s2.index(at: 8)..<s2.endIndex)
+        XCTAssertEqual(r2.font, .systemFont(ofSize: 16))
+        XCTAssertNil(r2.foregroundColor)
+        XCTAssertNil(r2.backgroundColor)
+
+        XCTAssertNil(iter.next())
+    }
 }
