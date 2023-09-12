@@ -423,8 +423,12 @@ extension AttributedRope {
         }
 
         let newSpans = spans.merging(b.build()) { a, b in
+            guard let b else {
+                return a
+            }
+
             var a = a ?? Attributes()
-            let b = b ?? Attributes()
+            a[K.self] = nil
             a.merge(b)
             return a
         }
