@@ -86,6 +86,10 @@ extension AttributedRope {
             self.contents = contents
         }
 
+        mutating func merge(_ other: Attributes) {
+            contents.merge(other.contents, uniquingKeysWith: { $1 })
+        }
+
         func merging(_ other: Attributes) -> Attributes {
             Attributes(contents.merging(other.contents, uniquingKeysWith: { $1 }))
         }
@@ -372,32 +376,63 @@ extension AttributedSubrope {
 
 extension AttributedRope {
     struct AttributeTransformer<T> where T: AttributedRopeKey {
-        var text: Rope
-        var spans: Spans<Attributes>
-
+        let text: Rope
+        let spans: Spans<Attributes>
         let range: Range<Index>
-        var keyPath: KeyPath<AttributeKeys, T>
+        var builder: SpansBuilder<Attributes>
 
         var value: T.Value? {
             get {
-                nil
+                AttributedSubrope(text: text, spans: spans, bounds: range)[T.self]
             }
             set {
-
+                if let newValue {
+                    replace(with: T.self, value: newValue)
+                } else {
+                    replace(with: Attributes())
+                }
             }
         }
 
+        mutating func replace(with attributes: Attributes) {
+            builder.add(attributes, covering: Range(intRangeFor: range))
+        }
+
         mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
+            var attrs = Attributes()
+            attrs[key] = value
+            replace(with: attrs)
         }
 
         mutating func replace<U>(with keyPath: KeyPath<AttributeKeys, U>, value: U.Value) where U: AttributedRopeKey {
             replace(with: U.self, value: value)
         }
     }
-}
 
-extension AttributedSubrope {
+    func transformingAttributes<K>(_ k: K.Type, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
 
+        for run in runs {
+            if run.attributes[K.self] != nil {
+                var t = AttributeTransformer<K>(text: text, spans: spans, range: run.range, builder: b)
+                block(&t)
+                b = t.builder
+            }
+        }
+
+        let newSpans = spans.merging(b.build()) { a, b in
+            var a = a ?? Attributes()
+            let b = b ?? Attributes()
+            a.merge(b)
+            return a
+        }
+
+        return AttributedRope(text: text, spans: newSpans)
+    }
+
+    func transformingAttributes<K>(_ k: KeyPath<AttributeKeys, K>, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        transformingAttributes(K.self, block)
+    }
 }
 
 // MARK: - Collection
