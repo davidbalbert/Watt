@@ -98,6 +98,16 @@ extension AttributedRope {
             merging(Attributes(dictionary))
         }
     }
+
+    struct AttributeBuilder<T: AttributedRopeKey> {
+        var attributes: Attributes
+
+        func callAsFunction(_ value: T.Value) -> Attributes {
+            var new = attributes
+            new[T.self] = value
+            return new
+        }
+    }
 }
 
 // MARK: - Runs
@@ -240,10 +250,16 @@ extension AttributedRope {
         // Watt-specific attributes
 
         var tokenType: TokenTypeAttribute
+        var symbolicTraits: SymbolicTraitsAttribute
 
         enum TokenTypeAttribute: AttributedRopeKey {
             typealias Value = String
             static let name = "is.dave.Watt.TokenType"
+        }
+
+        enum SymbolicTraitsAttribute: AttributedRopeKey {
+            typealias Value = NSFontDescriptor.SymbolicTraits
+            static let name = "is.dave.Watt.SymbolicTraits"
         }
     }
 }
@@ -265,6 +281,20 @@ extension AttributedRope.Attributes {
     subscript<K>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> K.Value? where K: AttributedRopeKey {
         get { self[K.self] }
         set { self[K.self] = newValue }
+    }
+}
+
+extension AttributedRope.Attributes {
+    static subscript<K: AttributedRopeKey>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: AttributedRope.Attributes())
+    }
+
+    subscript<K: AttributedRopeKey>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: self)
+    }
+
+    func b<K: AttributedRopeKey>() -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: AttributedRope.Attributes())
     }
 }
 

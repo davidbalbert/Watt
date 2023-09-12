@@ -7,20 +7,20 @@
 
 import Cocoa
 
-struct Theme {
-    func resolved(with font: NSFont) -> ResolvedTheme {
-        ResolvedTheme()
-    }
-}
+typealias Theme = [Token.TokenType: AttributedRope.Attributes]
 
-struct ResolvedTheme {
-    var attributes: [String: AttributedRope.Attributes]
+extension Theme {
+    // Hack until https://github.com/apple/swift/issues/60574 is fixed
+    typealias A = AttributedRope.Attributes
 
-    init() {
-        self.attributes = [:]
-    }
-
-    func attributes(forTokenType type: String) -> AttributedRope.Attributes {
-        attributes[type] ?? AttributedRope.Attributes()
-    }
+    static let defaultTheme: Theme = [
+        .keyword: A.foregroundColor(.systemBlue),
+        .string: A.foregroundColor(.systemGreen),
+        .type: A.foregroundColor(.systemOrange),
+        .function: A.foregroundColor(.systemPurple),
+        .constant: A.foregroundColor(.systemRed),
+        .variable: A.foregroundColor(.systemPink),
+        .delimiter: A.foregroundColor(.systemGray),
+        .number: A.foregroundColor(.systemBrown),
+    ]
 }

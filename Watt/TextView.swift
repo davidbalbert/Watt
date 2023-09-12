@@ -34,7 +34,6 @@ class TextView: NSView, ClipViewDelegate {
             buffer.contents.font = font
             lineNumberView.font = font
             typingAttributes.font = font
-            resolvedTheme = theme.resolved(with: font)
 
             layoutManager.invalidateLayout()
         }
@@ -42,15 +41,9 @@ class TextView: NSView, ClipViewDelegate {
 
     var theme: Theme = Theme() {
         didSet {
-            resolvedTheme = theme.resolved(with: font)
-
             layoutManager.invalidateLayout()
         }
     }
-
-    lazy var resolvedTheme: ResolvedTheme = {
-        theme.resolved(with: font)
-    }()
 
     var defaultAttributes: AttributedRope.Attributes {
         AttributedRope.Attributes([

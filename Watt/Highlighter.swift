@@ -38,7 +38,18 @@ struct TreeSitterClient {
 }
 
 struct Token {
-    let name: String
+    enum TokenType: String {
+        case keyword
+        case string
+        case type
+        case function
+        case constant
+        case variable
+        case delimiter
+        case number
+    }
+
+    let type: TokenType
     let range: Range<Int>
 }
 
@@ -74,7 +85,8 @@ struct Highlighter {
 
         for match in cursor {
             for capture in match.captures {
-                delegate.applyStyle(to: Token(name: capture.name, range: capture.range))
+                print(capture.name)
+                // delegate.applyStyle(to: Token(name: capture.name, range: capture.range))
             }
         }
     }
