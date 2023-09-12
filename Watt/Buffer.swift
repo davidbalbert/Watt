@@ -205,7 +205,7 @@ class Buffer {
         contents[range].setAttributes(attributes)
 
         for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange(in: documentRange)
+            layoutManager.attributesDidChange(in: range)
         }
     }
 
