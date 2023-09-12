@@ -383,7 +383,9 @@ extension AttributedRope {
 
         var value: T.Value? {
             get {
-                AttributedSubrope(text: text, spans: spans, bounds: range)[T.self]
+                let span = spans.span(at: range.lowerBound.position)!
+                assert(span.range == Range(intRangeFor: range))
+                return span.data[T.self]
             }
             set {
                 if let newValue {
