@@ -39,7 +39,7 @@ class TextView: NSView, ClipViewDelegate {
         }
     }
 
-    var theme: Theme = Theme() {
+    var theme: Theme = .defaultTheme {
         didSet {
             layoutManager.invalidateLayout()
         }
