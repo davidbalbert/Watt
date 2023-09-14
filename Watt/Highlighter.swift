@@ -54,7 +54,7 @@ struct Token {
 }
 
 protocol HighlighterDelegate: AnyObject {
-    func applyStyle(to token: Token)
+    func applyTokens(_ tokens: [Token])
 }
 
 struct Highlighter {
@@ -83,12 +83,15 @@ struct Highlighter {
             return
         }
 
-        for match in cursor {
-            for capture in match.captures {
-                print(capture.name)
-                // delegate.applyStyle(to: Token(name: capture.name, range: capture.range))
+        let captures = cursor.flatMap(\.captures)
+        let tokens = captures.compactMap { c in
+            if let type = Token.TokenType(rawValue: c.name) {
+                return Token(type: type, range: c.range)
+            } else {
+                return nil
             }
         }
+        delegate.applyTokens(tokens)
     }
 
     mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {

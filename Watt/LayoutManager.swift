@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Cocoa
 import CoreText
 
 protocol LayoutManagerDelegate: AnyObject {
@@ -16,7 +17,8 @@ protocol LayoutManagerDelegate: AnyObject {
 }
 
 protocol LayoutManagerAppearanceDelegate: AnyObject {
-    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: String) -> AttributedRope.Attributes
+    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: Token.TokenType) -> AttributedRope.Attributes?
+    func defaultFont(for layoutManager: LayoutManager) -> NSFont
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -552,14 +554,30 @@ class LayoutManager {
         }
     }
 
-    func nsAttributedSubstring(for range: Range<Buffer.Index>) -> NSAttributedString? {
+    func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString? {
         guard let buffer else { return nil}
         return nsAttributedSubstring(for: range, in: buffer)
     }
 
     func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
-        var s = AttributedRope(buffer[range])
-        return NSAttributedString(s)
+        let s = AttributedRope(buffer[range])
+
+        guard let appearanceDelegate else {
+            return NSAttributedString(s)
+        }
+
+//        let font = appearanceDelegate.defaultFont(for: self)
+
+        print(s)
+        let highlighted = s.transformingAttributes(\.tokenType) { attr in
+            let attributes = appearanceDelegate.layoutManager(self, attributesForTokenType: attr.value!) ?? AttributedRope.Attributes()
+            print(attributes)
+            return attr.replace(with: attributes)
+        }
+
+//        print(highlighted)
+
+        return NSAttributedString(highlighted)
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
@@ -696,7 +714,13 @@ class LayoutManager {
     }
 
     func attributesDidChange(in range: Range<Buffer.Index>) {
-        lineCache.invalidate(range: Range(intRangeFor: range))
+        attributesDidChange(in: [range])
+    }
+
+    func attributesDidChange(in ranges: [Range<Buffer.Index>]) {
+        for r in ranges {
+            lineCache.invalidate(range: Range(intRangeFor: r))
+        }
         delegate?.didInvalidateLayout(for: self)
     }
 

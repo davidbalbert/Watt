@@ -293,7 +293,7 @@ extension AttributedRope {
         var symbolicTraits: SymbolicTraitsAttribute
 
         enum TokenTypeAttribute: AttributedRopeKey {
-            typealias Value = String
+            typealias Value = Token.TokenType
             static let name = "is.dave.Watt.TokenType"
         }
 
@@ -911,5 +911,11 @@ extension NSAttributedString {
 
     convenience init(_ attributedSubrope: AttributedSubrope) {
         self.init(AttributedRope(attributedSubrope))
+    }
+}
+
+extension Range where Bound == AttributedRope.Index {
+    init(_ range: Range<Int>, in attributedRope: AttributedRope) {
+        self.init(range, in: attributedRope.text)
     }
 }

@@ -5,10 +5,14 @@
 //  Created by David Albert on 9/11/23.
 //
 
-import Foundation
+import Cocoa
 
 extension TextView: LayoutManagerAppearanceDelegate {
-    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: String) -> AttributedRope.Attributes {
-        resolvedTheme.attributes(forTokenType: type)
+    func defaultFont(for layoutManager: LayoutManager) -> NSFont {
+        font
+    }
+    
+    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: Token.TokenType) -> AttributedRope.Attributes? {
+        theme[type]
     }
 }
