@@ -297,7 +297,7 @@ extension AttributedRope {
         // unique range, which will prevent merging.
         enum TokenAttribute: AttributedRopeKey {
             typealias Value = Token
-            static let name = "is.dave.Watt.TokenType"
+            static let name = "is.dave.Watt.Token"
         }
 
         enum SymbolicTraitsAttribute: AttributedRopeKey {

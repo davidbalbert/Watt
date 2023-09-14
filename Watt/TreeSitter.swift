@@ -353,61 +353,29 @@ class TreeSitterQueryMatch {
     // also kept alive by the query cursor.
     let queryCursor: TreeSitterQueryCursor
     let query: TreeSitterQuery
+    let captures: [TreeSitterQueryCapture]
 
     init(queryCursor: TreeSitterQueryCursor, tsQueryMatch: TSQueryMatch, query: TreeSitterQuery) {
         self.queryCursor = queryCursor
         self.query = query
         self.tsQueryMatch = tsQueryMatch
-    }
 
-    struct CaptureView: RandomAccessCollection {
-        let match: TreeSitterQueryMatch
-
-        var startIndex: Int {
-            0
-        }
-
-        var endIndex: Int {
-            count
-        }
-
-        var count: Int {
-            Int(match.tsQueryMatch.capture_count)
-        }
-
-        subscript(index: Int) -> TreeSitterQueryCapture {
-            precondition(index >= 0 && index < count)
-            let p = match.tsQueryMatch.captures.advanced(by: index)
-            return TreeSitterQueryCapture(tsQueryCapture: p, query: match.query, match: match)
-        }
-    }
-
-    var captures: CaptureView {
-        CaptureView(match: self)
+        let buf = UnsafeBufferPointer<TSQueryCapture>(start: tsQueryMatch.captures, count: Int(tsQueryMatch.capture_count))
+        self.captures = buf.map { TreeSitterQueryCapture(tsQueryCapture: $0, query: query)}
     }
 }
 
 struct TreeSitterQueryCapture {
-    let tsQueryCapture: UnsafePointer<TSQueryCapture>
-    let query: TreeSitterQuery
+    let name: String
+    let range: Range<Int>
 
-    // Keep the tsQueryCapture alive, as well as the tree
-    let match: TreeSitterQueryMatch
-
-    var node: TreeSitterNode {
-        TreeSitterNode(tree: match.queryCursor.tree, tsNode: tsQueryCapture.pointee.node)
-    }
-
-    var name: String {
+    init(tsQueryCapture: TSQueryCapture, query: TreeSitterQuery) {
         var length: UInt32 = 0
-        let p = ts_query_capture_name_for_id(query.tsQuery, tsQueryCapture.pointee.index, &length)!
-        return String(bytes: p, count: Int(length), encoding: .utf8)!
-    }
+        let p = ts_query_capture_name_for_id(query.tsQuery, tsQueryCapture.index, &length)!
+        self.name = String(bytes: p, count: Int(length), encoding: .utf8)!
 
-    var range: Range<Int> {
-        let start = ts_node_start_byte(tsQueryCapture.pointee.node)
-        let end = ts_node_end_byte(tsQueryCapture.pointee.node)
-
-        return Int(start)..<Int(end)
+        let start = ts_node_start_byte(tsQueryCapture.node)
+        let end = ts_node_end_byte(tsQueryCapture.node)
+        self.range = Int(start)..<Int(end)
     }
 }

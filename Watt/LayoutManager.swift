@@ -568,14 +568,10 @@ class LayoutManager {
 
 //        let font = appearanceDelegate.defaultFont(for: self)
 
-        print(s)
         let highlighted = s.transformingAttributes(\.token) { attr in
             let attributes = appearanceDelegate.layoutManager(self, attributesForTokenType: attr.value!.type) ?? AttributedRope.Attributes()
-            print(attributes)
             return attr.replace(with: attributes)
         }
-
-//        print(highlighted)
 
         return NSAttributedString(highlighted)
     }

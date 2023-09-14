@@ -23,7 +23,8 @@ struct TreeSitterClient {
     }
 
     mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
-        tree = parser.parse(rope, oldTree: tree)
+        // TODO: pass in oldTree to make editing work
+        tree = parser.parse(rope, oldTree: nil)
     }
 
     func executeHighlightsQuery() -> TreeSitterQueryCursor? {
@@ -75,9 +76,9 @@ struct Highlighter {
     }
 
     func highlight() {
-       guard let delegate else {
-           return
-       }
+        guard let delegate else {
+            return
+        }
 
         guard let cursor = client.executeHighlightsQuery() else {
             return
