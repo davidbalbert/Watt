@@ -215,11 +215,24 @@ class Buffer {
 }
 
 extension Buffer: HighlighterDelegate {
-    func applyStyle(to token: Token) {
-        print(token)
+    func applyTokens(_ tokens: [Token]) {
+        var ranges: [Range<Index>] = []
+
+//        print(contents)
+        for t in tokens {
+//            print(tokens)
+            let r = Range(t.range, in: contents)
+            ranges.append(r)
+            contents[r].tokenType = t.type
+//            print("============")
+//            print(contents)
+        }
+
+        for layoutManager in layoutManagers {
+            layoutManager.attributesDidChange(in: ranges)
+        }
     }
 }
-
 
 extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {
