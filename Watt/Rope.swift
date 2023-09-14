@@ -175,10 +175,6 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
     return string.utf8.distance(from: string.startIndex, to: r.lowerBound)
 }
 
-extension Chunk: Equatable {
-}
-
-
 // MARK: - Metrics
 
 // It would be better if these metrics were nested inside Rope instead
@@ -1310,7 +1306,7 @@ extension Rope: Equatable {
         }
 
         for (l, r) in zip(lhs.root.leaves, rhs.root.leaves) {
-            if l != r {
+            if l.string != r.string {
                 return false
             }
         }
