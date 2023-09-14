@@ -1102,49 +1102,47 @@ extension BTreeNode {
     }
 }
 
+// TODO: Bubble up leaf counts in Node. Count should be
+// O(1) and distance(from:to:) should be O(log(n))
 extension BTreeNode.LeavesView: BidirectionalCollection {
-    struct Iterator: IteratorProtocol {
-        var index: BTreeNode.Index
+    struct Index: Comparable {
+        var ni: BTreeNode.Index
 
-        mutating func next() -> Summary.Leaf? {
-            guard let (leaf, _) = index.read() else {
-                return nil
-            }
+        static func < (lhs: Index, rhs: Index) -> Bool {
+            lhs.ni.validate(rhs.ni)
+            return lhs.ni.offsetOfLeaf < rhs.ni.offsetOfLeaf
+        }
 
-            index.nextLeaf()
-            return leaf
+        static func == (lhs: Index, rhs: Index) -> Bool {
+            lhs.ni.validate(rhs.ni)
+            return lhs.ni.offsetOfLeaf == rhs.ni.offsetOfLeaf
         }
     }
-
-    func makeIterator() -> Iterator {
-        Iterator(index: root.startIndex)
+    var startIndex: Index {
+        Index(ni: root.startIndex)
     }
 
-    var startIndex: BTreeNode.Index {
-        root.startIndex
+    var endIndex: Index {
+        Index(ni: root.endIndex)
     }
 
-    var endIndex: BTreeNode.Index {
-        root.endIndex
-    }
-
-    subscript(position: BTreeNode.Index) -> Summary.Leaf {
-        position.validate(for: root)
-        let (leaf, _) = position.read()!
+    subscript(position: Index) -> Summary.Leaf {
+        position.ni.validate(for: root)
+        let (leaf, _) = position.ni.read()!
         return leaf
     }
 
-    func index(before i: BTreeNode.Index) -> BTreeNode.Index {
-        i.validate(for: root)
+    func index(before i: Index) -> Index {
+        i.ni.validate(for: root)
         var i = i
-        _ = i.prevLeaf()!
+        _ = i.ni.prevLeaf()!
         return i
     }
 
-    func index(after i: BTreeNode.Index) -> BTreeNode.Index {
-        i.validate(for: root)
+    func index(after i: Index) -> Index {
+        i.ni.validate(for: root)
         var i = i
-        _ = i.nextLeaf()!
+        _ = i.ni.nextLeaf()!
         return i
     }
 }

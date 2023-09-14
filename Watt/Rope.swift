@@ -175,6 +175,9 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
     return string.utf8.distance(from: string.startIndex, to: r.lowerBound)
 }
 
+extension Chunk: Equatable {
+}
+
 
 // MARK: - Metrics
 
@@ -791,7 +794,6 @@ extension Rope: RangeReplaceableCollection {
     }
 }
 
-
 // MARK: - Conveniences
 
 // A few niceties that make Rope more like String.
@@ -829,6 +831,10 @@ extension Rope {
 
     subscript(offset: Int) -> Character {
         self[root.index(at: offset, using: .characters)]
+    }
+
+    subscript(bounds: Range<Int>) -> Rope {
+        self[index(at: bounds.lowerBound)..<index(at: bounds.upperBound)]
     }
 }
 
@@ -1289,8 +1295,38 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 }
 
+extension Rope: Equatable {
+    static func == (lhs: Rope, rhs: Rope) -> Bool {
+        if lhs.root === rhs.root {
+            return true
+        }
+
+        if lhs.utf8.count != rhs.utf8.count {
+            return false
+        }
+
+        if lhs.root.leaves.count != rhs.root.leaves.count {
+            return false
+        }
+
+        for (l, r) in zip(lhs.root.leaves, rhs.root.leaves) {
+            if l != r {
+                return false
+            }
+        }
+
+        return true
+    }
+}
+
 
 // MARK: - Standard library integration
+
+extension Rope: ExpressibleByStringLiteral {
+    init(stringLiteral value: String) {
+        self.init(value)
+    }
+}
 
 extension String {
     init(_ rope: Rope) {
