@@ -166,6 +166,46 @@ extension AttributedRope.Runs: Sequence {
     }
 }
 
+extension AttributedRope {
+    struct AttributesSlice<T> where T: AttributedRopeKey {
+        var runs: AttributedRope.Runs
+
+        var count: Int {
+            var c = 0
+            for run in runs {
+                if run.attributes[T.self] != nil {
+                    c += 1
+                }
+            }
+
+            return c
+        }
+    }
+}
+
+extension AttributedRope.AttributesSlice: Sequence {
+    func makeIterator() -> Iterator {
+        Iterator(self)
+    }
+    
+    struct Iterator: IteratorProtocol {
+        var runsIter: AttributedRope.Runs.Iterator
+
+        init(_ slice: AttributedRope.AttributesSlice<T>) {
+            self.runsIter = slice.runs.makeIterator()
+        }
+
+        mutating func next() -> AttributedRope.Runs.Run? {
+            while let run = runsIter.next() {
+                if run.attributes[T.self] != nil {
+                    return run
+                }
+            }
+
+            return nil
+        }
+    }
+}
 
 // MARK: - Attributes
 
@@ -318,6 +358,16 @@ extension AttributedRope {
     func getAttributes(at i: Index) -> Attributes {
         precondition(i >= startIndex && i < endIndex)
         return spans.data(at: i.position)!
+    }
+}
+
+extension AttributedRope.Runs {
+    subscript<K>(attribute: K.Type) -> AttributedRope.AttributesSlice<K> where K: AttributedRopeKey {
+        AttributedRope.AttributesSlice(runs: self)
+    }
+
+    subscript<K>(keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributesSlice<K> where K: AttributedRopeKey {
+        self[K.self]
     }
 }
 
