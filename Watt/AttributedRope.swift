@@ -770,6 +770,37 @@ extension AttributedRope {
     }
 }
 
+// MARK: - Debugging
+
+extension AttributedRope: CustomStringConvertible {
+    var description: String {
+        var s = ""
+        for run in runs {
+            s += "\(String(text[run.range]))"
+            s += "\(run.attributes)"
+            s += "\n"
+        }
+        return s
+    }
+}
+
+extension AttributedSubrope: CustomStringConvertible {
+    var description: String {
+        AttributedRope(self).description
+    }
+}
+
+extension AttributedRope.Attributes: CustomStringConvertible {
+    var description: String {
+        var s = "{\n"
+        for (key, value) in contents {
+            s += "\t\(key) = \(value);\n"
+        }
+        s += "}"
+        return s
+    }
+}
+
 // MARK: - Conversion
 
 extension AttributedRope.Attributes {
