@@ -605,6 +605,10 @@ extension BTreeNode {
             position - offsetOfLeaf
         }
 
+        var atEnd: Bool {
+            position == root!.count
+        }
+
         init(offsetBy offset: Int, in root: BTreeNode) {
             precondition((0...root.count).contains(offset), "Index out of bounds")
 
@@ -1115,7 +1119,12 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
 
         static func == (lhs: Index, rhs: Index) -> Bool {
             lhs.ni.validate(rhs.ni)
-            return lhs.ni.offsetOfLeaf == rhs.ni.offsetOfLeaf
+            return lhs.ni.offsetOfLeaf == rhs.ni.offsetOfLeaf && lhs.ni.atEnd == rhs.ni.atEnd
+        }
+
+        // the index before endIndex
+        var lastLeaf: Bool {
+            ni.root!.count == ni.offsetOfLeaf + ni.leaf!.count && ni.position < ni.root!.count
         }
     }
     var startIndex: Index {
@@ -1141,8 +1150,15 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
 
     func index(after i: Index) -> Index {
         i.ni.validate(for: root)
+        if i.lastLeaf {
+            return endIndex
+        }
+
         var i = i
-        _ = i.ni.nextLeaf()!
+        guard let _ = i.ni.nextLeaf() else {
+            fatalError("Index out of bounds")
+        }
+
         return i
     }
 }
