@@ -289,11 +289,14 @@ extension AttributedRope {
 
         // Watt-specific attributes
 
-        var tokenType: TokenTypeAttribute
+        var token: TokenAttribute
         var symbolicTraits: SymbolicTraitsAttribute
 
-        enum TokenTypeAttribute: AttributedRopeKey {
-            typealias Value = Token.TokenType
+        // Store the whole token instead of just its type, because we want to
+        // make sure that two tokens aren't merged together. Each token has a
+        // unique range, which will prevent merging.
+        enum TokenAttribute: AttributedRopeKey {
+            typealias Value = Token
             static let name = "is.dave.Watt.TokenType"
         }
 

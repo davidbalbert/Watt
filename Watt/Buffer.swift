@@ -223,7 +223,7 @@ extension Buffer: HighlighterDelegate {
 //            print(tokens)
             let r = Range(t.range, in: contents)
             ranges.append(r)
-            contents[r].tokenType = t.type
+            contents[r].token = t
 //            print("============")
 //            print(contents)
         }

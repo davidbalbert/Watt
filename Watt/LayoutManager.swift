@@ -569,8 +569,8 @@ class LayoutManager {
 //        let font = appearanceDelegate.defaultFont(for: self)
 
         print(s)
-        let highlighted = s.transformingAttributes(\.tokenType) { attr in
-            let attributes = appearanceDelegate.layoutManager(self, attributesForTokenType: attr.value!) ?? AttributedRope.Attributes()
+        let highlighted = s.transformingAttributes(\.token) { attr in
+            let attributes = appearanceDelegate.layoutManager(self, attributesForTokenType: attr.value!.type) ?? AttributedRope.Attributes()
             print(attributes)
             return attr.replace(with: attributes)
         }

@@ -37,7 +37,7 @@ struct TreeSitterClient {
     }
 }
 
-struct Token {
+struct Token: Equatable {
     enum TokenType: String {
         case keyword
         case string
