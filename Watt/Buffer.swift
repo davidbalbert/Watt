@@ -209,6 +209,16 @@ class Buffer {
         }
     }
 
+    func mergeAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
+        let range = range ?? documentRange
+
+        contents[range].mergeAttributes(attributes)
+
+        for layoutManager in layoutManagers {
+            layoutManager.attributesDidChange(in: range)
+        }
+    }
+
     func getAttributes(at i: Index) -> AttributedRope.Attributes {
         contents.getAttributes(at: i)
     }

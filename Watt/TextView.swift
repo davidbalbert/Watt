@@ -61,7 +61,10 @@ class TextView: NSView, ClipViewDelegate {
 
     var buffer: Buffer {
         didSet {
-            buffer.setAttributes(defaultAttributes)
+            // mergeAttributes instead of setAttributes because highlighting
+            // already happened at Buffer creation. I want to find a more
+            // principled way to trigger highlighting.
+            buffer.mergeAttributes(defaultAttributes)
 
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)

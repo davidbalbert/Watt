@@ -358,6 +358,18 @@ extension AttributedRope {
         spans = b.build()
     }
 
+    mutating func mergeAttributes(_ attributes: Attributes) {
+        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: 0..<text.utf8.count)
+        spans = spans.merging(b.build()) { a, b in
+            if let a, let b {
+                return a.merging(b)
+            } else {
+                return a ?? b
+            }
+        }
+    }
+
     func getAttributes(at i: Index) -> Attributes {
         precondition(i >= startIndex && i < endIndex)
         return spans.data(at: i.position)!
@@ -451,6 +463,23 @@ extension AttributedSubrope {
 
         spans = spans.merging(b.build()) { a, b in
             b ?? a
+        }
+    }
+
+    mutating func mergeAttributes(_ attributes: AttributedRope.Attributes) {
+        if bounds.isEmpty {
+            return
+        }
+
+        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: Range(intRangeFor: bounds))
+
+        spans = spans.merging(b.build()) { a, b in
+            if let a, let b {
+                return a.merging(b)
+            } else {
+                return b ?? a
+            }
         }
     }
 }
