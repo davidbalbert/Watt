@@ -17,7 +17,8 @@ protocol LayoutManagerDelegate: AnyObject {
 }
 
 protocol LayoutManagerAppearanceDelegate: AnyObject {
-    func layoutManager(_ layoutManager: LayoutManager, applyStylesTo attrRope: AttributedRope) -> AttributedRope
+    // An opportunity for the delegate to return a custom AttributedRope.
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -565,7 +566,7 @@ class LayoutManager {
             return NSAttributedString(attributedRope)
         }
 
-        return NSAttributedString(appearanceDelegate.layoutManager(self, applyStylesTo: attributedRope))
+        return NSAttributedString(appearanceDelegate.layoutManager(self, attributedRopeFor: attributedRope))
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
