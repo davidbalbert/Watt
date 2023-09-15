@@ -14,9 +14,9 @@ extension Theme {
     typealias A = AttributedRope.Attributes
 
     static let defaultTheme: Theme = [
-        .keyword: A.foregroundColor(.systemBlue),
+        .keyword: A.foregroundColor(.systemBlue).symbolicTraits(.italic),
         .string: A.foregroundColor(.systemGreen),
-        .type: A.foregroundColor(.systemOrange),
+        .type: A.foregroundColor(.systemOrange).symbolicTraits(.bold),
         .function: A.foregroundColor(.systemPurple),
         .constant: A.foregroundColor(.systemRed),
         .variable: A.foregroundColor(.systemPink),

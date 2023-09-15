@@ -10,7 +10,16 @@ import Cocoa
 extension TextView: LayoutManagerAppearanceDelegate {
     func layoutManager(_ layoutManager: LayoutManager, applyStylesTo attrRope: AttributedRope) -> AttributedRope {
         return attrRope.transformingAttributes(\.token) { attr in
-            let attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
+            var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
+
+            if attributes.font != nil {
+                attributes.symbolicTraits = nil
+            } else if let symbolicTraits = attributes.symbolicTraits {
+                let d = font.fontDescriptor.withSymbolicTraits(symbolicTraits)
+                attributes.font = NSFont(descriptor: d, size: font.pointSize) ?? font
+                attributes.symbolicTraits = nil
+            }
+
             return attr.replace(with: attributes)
         }
     }
