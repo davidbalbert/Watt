@@ -8,11 +8,10 @@
 import Cocoa
 
 extension TextView: LayoutManagerAppearanceDelegate {
-    func defaultFont(for layoutManager: LayoutManager) -> NSFont {
-        font
-    }
-    
-    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: Token.TokenType) -> AttributedRope.Attributes? {
-        theme[type]
+    func layoutManager(_ layoutManager: LayoutManager, applyStylesTo attrRope: AttributedRope) -> AttributedRope {
+        return attrRope.transformingAttributes(\.token) { attr in
+            let attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
+            return attr.replace(with: attributes)
+        }
     }
 }

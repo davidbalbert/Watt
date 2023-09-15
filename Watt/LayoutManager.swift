@@ -17,8 +17,7 @@ protocol LayoutManagerDelegate: AnyObject {
 }
 
 protocol LayoutManagerAppearanceDelegate: AnyObject {
-    func layoutManager(_ layoutManager: LayoutManager, attributesForTokenType type: Token.TokenType) -> AttributedRope.Attributes?
-    func defaultFont(for layoutManager: LayoutManager) -> NSFont
+    func layoutManager(_ layoutManager: LayoutManager, applyStylesTo attrRope: AttributedRope) -> AttributedRope
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -560,20 +559,13 @@ class LayoutManager {
     }
 
     func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
-        let s = AttributedRope(buffer[range])
+        let attributedRope = AttributedRope(buffer[range])
 
         guard let appearanceDelegate else {
-            return NSAttributedString(s)
+            return NSAttributedString(attributedRope)
         }
 
-//        let font = appearanceDelegate.defaultFont(for: self)
-
-        let highlighted = s.transformingAttributes(\.token) { attr in
-            let attributes = appearanceDelegate.layoutManager(self, attributesForTokenType: attr.value!.type) ?? AttributedRope.Attributes()
-            return attr.replace(with: attributes)
-        }
-
-        return NSAttributedString(highlighted)
+        return NSAttributedString(appearanceDelegate.layoutManager(self, applyStylesTo: attributedRope))
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
