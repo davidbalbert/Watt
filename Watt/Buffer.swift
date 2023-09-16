@@ -192,11 +192,18 @@ class Buffer {
         let old = contents
         contents = contents.applying(delta: delta)
 
-        highlighter?.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
-
         for layoutManager in layoutManagers {
             layoutManager.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
         }
+
+        // For now, this must be done after the layout managers are notified of
+        // the changed content, because highlighting triggers applyTokens, which
+        // calls LayoutManager.attributesDidChange(in:), potentially referring
+        // to locations in the text that the layout manager doesn't yet know
+        // about. When I understand these interactions better, it might be
+        // possible for the content and attribute changes to be updated in
+        // one go.
+        highlighter?.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
     }
 
     func setAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
