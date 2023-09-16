@@ -1199,7 +1199,7 @@ struct BTreeDelta<Tree> where Tree: BTree {
 
     // Returns a range covering the entire changed portion of the
     // original tree and the length of the newly inserted tree.
-    func summary() -> (Range<Int>, Int) {
+    func summary() -> (replacementRange: Range<Int>, newCount: Int) {
         var els = elements
 
         // The only way the replaced range can have a lowerBound

@@ -22,9 +22,46 @@ struct TreeSitterClient {
         self.highlightsQuery = highlightsQuery
     }
 
-    mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
-        // TODO: pass in oldTree to make editing work
+    mutating func contentsInitialized(to rope: Rope) {
         tree = parser.parse(rope, oldTree: nil)
+    }
+
+    mutating func contentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
+        let tree = tree!
+
+        let inputEdit = inputEdit(from: old, to: new, delta: delta)
+        tree.edit(inputEdit)
+
+        self.tree = parser.parse(new, oldTree: tree)
+    }
+
+    func inputEdit(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) -> TreeSitterInputEdit {
+        // TODO: with multiple cursors, we should find a way to do a more efficient summary.
+        let (replacementRange, newCount) = delta.summary()
+
+        let startByte = replacementRange.lowerBound
+        let oldEndByte = replacementRange.upperBound
+        let newEndByte = startByte + newCount
+
+        let startPoint = pointFor(index: old.utf8.index(at: startByte), in: old)
+        let oldEndPoint = pointFor(index: old.utf8.index(at: oldEndByte), in: old)
+        let newEndPoint = pointFor(index: new.utf8.index(at: newEndByte), in: new)
+
+        return TreeSitterInputEdit(
+            startByte: startByte,
+            oldEndByte: oldEndByte,
+            newEndByte: newEndByte,
+            startPoint: startPoint,
+            oldEndPoint: oldEndPoint,
+            newEndPoint: newEndPoint
+        )
+    }
+
+    func pointFor(index: Rope.Index, in rope: Rope) -> TreeSitterPoint {
+        let lineIdx = rope.lines.index(roundingDown: index)
+        let row = rope.lines.distance(from: rope.startIndex, to: lineIdx)
+        let col = rope.distance(from: lineIdx, to: index)
+        return TreeSitterPoint(row: row, column: col)
     }
 
     func executeHighlightsQuery() -> TreeSitterQueryCursor? {
@@ -95,8 +132,13 @@ struct Highlighter {
         delegate.applyTokens(tokens)
     }
 
-    mutating func contentsDidChange(to rope: Rope, delta: BTreeDelta<Rope>? = nil) {
-        client.contentsDidChange(to: rope, delta: delta)
+    mutating func contentsInitialized(to rope: Rope) {
+        client.contentsInitialized(to: rope)
+        highlight()
+    }
+
+    mutating func contentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
+        client.contentsDidChange(from: old, to: new, delta: delta)
         highlight()
     }
 }

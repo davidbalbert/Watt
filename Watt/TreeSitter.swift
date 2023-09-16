@@ -160,6 +160,12 @@ class TreeSitterTree {
     var root: TreeSitterNode {
         TreeSitterNode(tree: self, tsNode: ts_tree_root_node(tsTree))
     }
+
+    func edit(_ inputEdit: TreeSitterInputEdit) {
+        withUnsafePointer(to: inputEdit.tsInputEdit) { ptr -> Void in
+            ts_tree_edit(tsTree, ptr)
+        }
+    }
 }
 
 struct TreeSitterNode {
@@ -377,5 +383,51 @@ struct TreeSitterQueryCapture {
         let start = ts_node_start_byte(tsQueryCapture.node)
         let end = ts_node_end_byte(tsQueryCapture.node)
         self.range = Int(start)..<Int(end)
+    }
+}
+
+struct TreeSitterPoint {
+    let row: Int
+    let column: Int
+
+    init(row: Int, column: Int) {
+        self.row = row
+        self.column = column
+    }
+
+    init(_ point: TSPoint) {
+        self.row = Int(point.row)
+        self.column = Int(point.column)
+    }
+
+    var tsPoint: TSPoint {
+        TSPoint(row: UInt32(row), column: UInt32(column))
+    }
+}
+
+struct TreeSitterInputEdit {
+    let startByte: Int
+    let oldEndByte: Int
+    let newEndByte: Int
+    let startPoint: TreeSitterPoint
+    let oldEndPoint: TreeSitterPoint
+    let newEndPoint: TreeSitterPoint
+
+    init(startByte: Int, oldEndByte: Int, newEndByte: Int, startPoint: TreeSitterPoint, oldEndPoint: TreeSitterPoint, newEndPoint: TreeSitterPoint) {
+        self.startByte = startByte
+        self.oldEndByte = oldEndByte
+        self.newEndByte = newEndByte
+        self.startPoint = startPoint
+        self.oldEndPoint = oldEndPoint
+        self.newEndPoint = newEndPoint
+    }
+
+    var tsInputEdit: TSInputEdit {
+        TSInputEdit(start_byte: UInt32(startByte),
+                    old_end_byte: UInt32(oldEndByte),
+                    new_end_byte: UInt32(newEndByte),
+                    start_point: startPoint.tsPoint,
+                    old_end_point: oldEndPoint.tsPoint,
+                    new_end_point: newEndPoint.tsPoint)
     }
 }
