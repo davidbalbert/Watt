@@ -16,11 +16,15 @@ class Buffer {
         didSet {
             // TODO: make sure this doesn't get called in the constructor
             // so we're not doing the same work twice.
-            highlighter = Highlighter(language: language, delegate: self)
-            highlighter?.contentsInitialized(to: contents.text)
+            highlighter = language.highlighter
         }
     }
-    var highlighter: Highlighter?
+
+    var highlighter: Highlighter? {
+        didSet {
+            highlighter?.delegate = self
+        }
+    }
 
     var layoutManagers: [LayoutManager]
 
@@ -33,8 +37,8 @@ class Buffer {
         self.language = language
         self.layoutManagers = []
 
-        self.highlighter = Highlighter(language: language, delegate: self)
-        highlighter?.contentsInitialized(to: contents.text)
+        self.highlighter = language.highlighter
+        highlighter?.delegate = self
     }
 
     var data: Data {
@@ -232,7 +236,7 @@ class Buffer {
 }
 
 extension Buffer: HighlighterDelegate {
-    func applyTokens(_ tokens: [Token]) {
+    func highlighter(_ highlighter: Highlighter, applyTokens tokens: [Token]) {
         var ranges: [Range<Index>] = []
 
         for t in tokens {
@@ -244,6 +248,11 @@ extension Buffer: HighlighterDelegate {
         for layoutManager in layoutManagers {
             layoutManager.attributesDidChange(in: ranges)
         }
+    }
+    
+    func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
+        // TODO!
+        nil
     }
 }
 

@@ -11,8 +11,7 @@ import UniformTypeIdentifiers
 import TreeSitterC
 
 protocol Language {
-    var type: UTType { get }
-    var treeSitterClient: TreeSitterClient? { get }
+    var highlighter: Highlighter? { get }
 }
 
 extension Language {
@@ -35,9 +34,9 @@ extension UTType {
         case .plainText:
             return .plainText
         case .cHeader:
-            return .cHeader
+            return .c
         case .cSource:
-            return .cSource
+            return .c
         default:
             return nil
         }
@@ -52,7 +51,7 @@ extension Languages {
             .plainText
         }
 
-        var treeSitterClient: TreeSitterClient? {
+        var highlighter: Highlighter? {
             nil
         }
     }
@@ -65,39 +64,24 @@ extension Language where Self == Languages.PlainText {
 }
 
 extension Languages {
-    struct CSource: Language {
-        var type: UTType {
-            .cSource
-        }
+    struct C: Language {
 
-        var treeSitterClient: TreeSitterClient? {
-            let treeSitterLanguage = TreeSitterLanguage(tsLanguage: tree_sitter_c())
+        var highlighter: Highlighter? {
+            let treeSitterLanguage = TreeSitterLanguage(tree_sitter_c())
+            guard let parser = try? TreeSitterParser(language: treeSitterLanguage, encoding: .utf8) else {
+                return nil
+            }
+
             let url = url(forResource: "queries/highlights", withExtension: "scm", in: "TreeSitterC_TreeSitterC")!
             let highlightsQuery = try! treeSitterLanguage.query(contentsOf: url)
 
-            return TreeSitterClient(language: treeSitterLanguage, highlightsQuery: highlightsQuery)
-        }
-    }
-
-    struct CHeader: Language {
-        var type: UTType {
-            .cHeader
-        }
-
-        var treeSitterClient: TreeSitterClient? {
-            CSource().treeSitterClient
+            return Highlighter(parser: parser, highlightsQuery: highlightsQuery)
         }
     }
 }
 
-extension Language where Self == Languages.CSource {
-    static var cSource: Self {
-        Languages.CSource()
-    }
-}
-
-extension Language where Self == Languages.CHeader {
-    static var cHeader: Self {
-        Languages.CHeader()
+extension Language where Self == Languages.C {
+    static var c: Self {
+        Languages.C()
     }
 }

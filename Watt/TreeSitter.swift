@@ -25,6 +25,20 @@ protocol TreeSitterParserDelegate: AnyObject {
     func parser(_ parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring?
 }
 
+enum TreeSitterInputEncoding {
+    case utf8
+    case utf16
+
+    var tsInputEncoding: TSInputEncoding {
+        switch self {
+        case .utf8:
+            return TSInputEncodingUTF8
+        case .utf16:
+            return TSInputEncodingUTF16
+        }
+    }
+}
+
 final class TreeSitterParser {
      enum ParserError: Error {
          case languageIncompatible
@@ -42,8 +56,8 @@ final class TreeSitterParser {
         TreeSitterLanguage(ts_parser_language(pointer)!)
     }
 
-    init(language: TreeSitterLanguage, encoding: TSInputEncoding) throws {
-        self.encoding = encoding
+    init(language: TreeSitterLanguage, encoding: TreeSitterInputEncoding) throws {
+        self.encoding = encoding.tsInputEncoding
         self.pointer = ts_parser_new()
 
         let success = ts_parser_set_language(self.pointer, language.languagePointer)
@@ -131,7 +145,7 @@ fileprivate func read(payload: UnsafeMutableRawPointer?,
     return UnsafePointer(buf.baseAddress)
 }
 
-final class TreeSitterInputEdit {
+struct TreeSitterInputEdit {
     let startByte: Int
     let oldEndByte: Int
     let newEndByte: Int
@@ -194,17 +208,16 @@ final class TreeSitterTree {
     }
 
     func rangesChanged(comparingTo otherTree: TreeSitterTree) -> [TreeSitterTextRange] {
-        var count = CUnsignedInt(0)
+        var count: UInt32 = 0
         let ptr = ts_tree_get_changed_ranges(pointer, otherTree.pointer, &count)
-
-        // TODO: make sure to free ptr.
+defer { free(ptr) }
 
         return UnsafeBufferPointer(start: ptr, count: Int(count)).map { range in
             let startPoint = TreeSitterTextPoint(range.start_point)
             let endPoint = TreeSitterTextPoint(range.end_point)
-            let startByte = ByteCount(range.start_byte)
-            let endByte = ByteCount(range.end_byte)
-            return TreeSitterTextRange(startPoint: startPoint, endPoint: endPoint, startByte: startByte, endByte: endByte)
+            let startByte = range.start_byte
+            let endByte = range.end_byte
+            return TreeSitterTextRange(startPoint: startPoint, endPoint: endPoint, startByte: Int(startByte), endByte: Int(endByte))
         }
     }
 }
@@ -229,12 +242,19 @@ final class TreeSitterNode {
     var startByte: Int {
         Int(ts_node_start_byte(rawValue))
     }
+
     var endByte: Int {
         Int(ts_node_end_byte(rawValue))
     }
+
+    var range: Range<Int> {
+        startByte..<endByte
+    }
+
     var startPoint: TreeSitterTextPoint {
         TreeSitterTextPoint(ts_node_start_point(rawValue))
     }
+
     var endPoint: TreeSitterTextPoint {
         TreeSitterTextPoint(ts_node_end_point(rawValue))
     }
@@ -401,11 +421,16 @@ final class TreeSitterQuery {
         ts_query_delete(pointer)
     }
 
+    func stringValue(forId id: uint) -> String {
+        var length: UInt32 = 0
+        let p = ts_query_string_value_for_id(pointer, id, &length)!
+        return String(bytes: p, count: Int(length), encoding: .utf8)!
+    }
+
     func captureName(forId id: UInt32) -> String {
-        let lengthPointer = UnsafeMutablePointer<UInt32>.allocate(capacity: 1)
-        let cString = ts_query_capture_name_for_id(pointer, id, lengthPointer)
-        lengthPointer.deallocate()
-        return String(cString: cString!)
+        var length: UInt32 = 0
+        let p = ts_query_capture_name_for_id(pointer, id, &length)!
+        return String(bytes: p, count: Int(length), encoding: .utf8)!
     }
 
     func predicates(forPatternIndex index: UInt32) -> [TreeSitterPredicate] {
@@ -437,68 +462,112 @@ final class TreeSitterQuery {
     }
 }
 
-private extension TreeSitterQuery {
-    private func stringValue(forId id: uint) -> String {
-        var length: UInt32 = 0
-        let p = ts_query_string_value_for_id(pointer, id, &length)!
-        return String(bytes: p, count: Int(length), encoding: .utf8)!
-    }
-}
-
 final class TreeSitterQueryCursor {
-    private let pointer: OpaquePointer
-    private let query: TreeSitterQuery
-    private let node: TreeSitterNode
-    private var haveExecuted = false
+    let pointer: OpaquePointer
+    let query: TreeSitterQuery
+    let tree: TreeSitterTree
+    var didExec = false
 
-    init(query: TreeSitterQuery, node: TreeSitterNode) {
+    init(query: TreeSitterQuery, tree: TreeSitterTree) {
         self.pointer = ts_query_cursor_new()
         self.query = query
-        self.node = node
+        self.tree = tree
+    }
+
+    func execute() {
+        if !didExec {
+            ts_query_cursor_exec(pointer, query.pointer, tree.root.rawValue)
+            didExec = true
+        }
     }
 
     deinit {
         ts_query_cursor_delete(pointer)
     }
 
-    func setQueryRange(_ range: ByteRange) {
-        let start = UInt32(range.location.value)
-        let end = UInt32((range.location + range.length).value)
-        ts_query_cursor_set_byte_range(pointer, start, end)
+    // func validCaptures(in stringView: StringView) -> [TreeSitterCapture] {
+    //     guard haveExecuted else {
+    //         fatalError("Cannot get captures of a query that has not been executed.")
+    //     }
+    //     var match = TSQueryMatch(id: 0, pattern_index: 0, capture_count: 0, captures: nil)
+    //     var result: [TreeSitterCapture] = []
+    //     while ts_query_cursor_next_match(pointer, &match) {
+    //         let captureCount = Int(match.capture_count)
+    //         let captureBuffer = UnsafeBufferPointer<TSQueryCapture>(start: match.captures, count: captureCount)
+    //         let captures: [TreeSitterCapture] = captureBuffer.compactMap { capture in
+    //             let node = TreeSitterNode(node: capture.node)
+    //             let captureName = query.captureName(forId: capture.index)
+    //             let predicates = query.predicates(forPatternIndex: UInt32(match.pattern_index))
+    //             return TreeSitterCapture(node: node, index: capture.index, name: captureName, predicates: predicates)
+    //         }
+    //         let match = TreeSitterQueryMatch(captures: captures)
+    //         let evaluator = TreeSitterTextPredicatesEvaluator(match: match, stringView: stringView)
+    //         result += captures.filter { capture in
+    //             capture.byteRange.length > 0 && evaluator.evaluatePredicates(in: capture)
+    //         }
+    //     }
+    //     return result
+    // }
+}
+
+extension TreeSitterQueryCursor: Sequence {
+    struct Iterator: IteratorProtocol {
+        let cursor: TreeSitterQueryCursor
+        var match: TSQueryMatch
+        var iter: UnsafeBufferPointer<TSQueryCapture>.Iterator?
+
+        init(cursor: TreeSitterQueryCursor) {
+            self.cursor = cursor
+            self.match = TSQueryMatch(id: 0, pattern_index: 0, capture_count: 0, captures: nil)
+        }
+
+        mutating func next() -> TreeSitterCapture? {
+            if !cursor.didExec {
+                cursor.execute()
+            }
+
+            if let capture = iter?.next() {
+                let node = TreeSitterNode(tree: cursor.tree, node: capture.node)
+                let name = cursor.query.captureName(forId: capture.index)
+                return TreeSitterCapture(node: node, name: name)
+            }
+
+            guard ts_query_cursor_next_match(cursor.pointer, &match) else {
+                iter = nil
+                return nil
+            }
+
+            let buf = UnsafeBufferPointer<TSQueryCapture>(start: match.captures, count: Int(match.capture_count))
+            iter = buf.makeIterator()
+
+            return next()
+        }
     }
 
-    func execute() {
-        if !haveExecuted {
-            haveExecuted = true
-            ts_query_cursor_exec(pointer, query.pointer, node.rawValue)
-        }
-    }
-
-    func validCaptures(in stringView: StringView) -> [TreeSitterCapture] {
-        guard haveExecuted else {
-            fatalError("Cannot get captures of a query that has not been executed.")
-        }
-        var match = TSQueryMatch(id: 0, pattern_index: 0, capture_count: 0, captures: nil)
-        var result: [TreeSitterCapture] = []
-        while ts_query_cursor_next_match(pointer, &match) {
-            let captureCount = Int(match.capture_count)
-            let captureBuffer = UnsafeBufferPointer<TSQueryCapture>(start: match.captures, count: captureCount)
-            let captures: [TreeSitterCapture] = captureBuffer.compactMap { capture in
-                let node = TreeSitterNode(node: capture.node)
-                let captureName = query.captureName(forId: capture.index)
-                let predicates = query.predicates(forPatternIndex: UInt32(match.pattern_index))
-                return TreeSitterCapture(node: node, index: capture.index, name: captureName, predicates: predicates)
-            }
-            let match = TreeSitterQueryMatch(captures: captures)
-            let evaluator = TreeSitterTextPredicatesEvaluator(match: match, stringView: stringView)
-            result += captures.filter { capture in
-                capture.byteRange.length > 0 && evaluator.evaluatePredicates(in: capture)
-            }
-        }
-        return result
+    func makeIterator() -> Iterator {
+        Iterator(cursor: self)
     }
 }
 
+struct TreeSitterCapture {
+    let node: TreeSitterNode
+    let name: String
+
+    init(node: TreeSitterNode, name: String) {
+        self.node = node
+        self.name = name
+    }
+
+    var range: Range<Int> {
+        node.range
+    }
+}
+
+extension TreeSitterCapture: CustomDebugStringConvertible {
+    var debugDescription: String {
+        "[TreeSitterCapture range=\(range) name=\(name)]"
+    }
+}
 
 
 
@@ -878,6 +947,7 @@ final class TreeSitterQueryCursor {
 // struct TreeSitterQueryCapture {
 //     let name: String
 //     let range: Range<Int>
+//     TODO: must retain its Node so that the tree will be retained.
 
 //     init(tsQueryCapture: TSQueryCapture, query: TreeSitterQuery) {
 //         var length: UInt32 = 0
