@@ -460,7 +460,7 @@ final class TreeSitterQuery {
         ts_query_delete(pointer)
     }
 
-    func stringValue(forId id: uint) -> String {
+    func stringValue(forId id: UInt32) -> String {
         var length: UInt32 = 0
         let p = ts_query_string_value_for_id(pointer, id, &length)!
         return String(bytes: p, count: Int(length), encoding: .utf8)!
@@ -621,13 +621,13 @@ final class TreeSitterQueryCursor {
 
     func executeIfNecessary() {
         if !didExec {
-            execute()
+            ts_query_cursor_exec(pointer, query.pointer, tree.root.rawValue)
             didExec = true
         }
     }
 
-    func execute() {
-        ts_query_cursor_exec(pointer, query.pointer, tree.root.rawValue)
+    func reset() {
+        didExec = false
     }
 
     deinit {
@@ -660,16 +660,53 @@ final class TreeSitterQueryCursor {
 }
 
 extension TreeSitterQueryCursor {
-    struct Matches {
-        var cursor: TreeSitterQueryCursor
-    }
+    // Returns all captures that match their predicates, returning
+    // exactly one capture per node. If a node matched multiple
+    // patterns, the capture closer to the top of the query
+    // is selected.
+    func validCaptures() -> [TreeSitterCapture] {
+        reset()
 
-    var matches: Matches {
-        Matches(cursor: self)
+        var seen = Set<Range<Int>>()
+        let matches = Array(matches)
+
+        var captures = matches.flatMap { match in            
+            match.captures.map { capture in
+                (patternIndex: match.patternIndex, capture: capture)
+            }
+        }
+
+        captures.sort { a, b in
+            a.patternIndex < b.patternIndex
+        }
+
+        var result: [TreeSitterCapture] = []
+        for (_, capture) in captures {
+            if !seen.contains(capture.range) {
+                result.append(capture)
+                seen.insert(capture.range)
+            }
+        }
+
+        // Not technically necessary, but it's easier if the tokens are returned in order
+        result.sort { $0.range.lowerBound < $1.range.lowerBound }
+
+        return result
     }
 }
 
-extension TreeSitterQueryCursor.Matches: Sequence {
+extension TreeSitterQueryCursor {
+    // All matches, with all captures, including those that don't match their predicates
+    struct RawMatches {
+        var cursor: TreeSitterQueryCursor
+    }
+
+    var rawMatches: RawMatches {
+        RawMatches(cursor: self)
+    }
+}
+
+extension TreeSitterQueryCursor.RawMatches: Sequence {
     struct Iterator: IteratorProtocol {
         let cursor: TreeSitterQueryCursor
         var match: TSQueryMatch
@@ -694,7 +731,7 @@ extension TreeSitterQueryCursor.Matches: Sequence {
                 return TreeSitterCapture(node: node, index: capture.index, name: name, predicates: predicates)
             }
 
-            return TreeSitterQueryMatch(captures: captures)
+            return TreeSitterQueryMatch(patternIndex: Int(match.pattern_index), captures: captures)
         }
     }
 
@@ -703,47 +740,41 @@ extension TreeSitterQueryCursor.Matches: Sequence {
     }
 }
 
-extension TreeSitterQueryCursor: Sequence {
-    // Only returns captures that match their predicates
+extension TreeSitterQueryCursor {
+    // All matches, only including captures that match their predicates
+    struct Matches {
+        var cursor: TreeSitterQueryCursor
+    }
+
+    var matches: Matches {
+        Matches(cursor: self)
+    }
+}
+
+extension TreeSitterQueryCursor.Matches: Sequence {
     struct Iterator: IteratorProtocol {
         let cursor: TreeSitterQueryCursor
-        var matches: TreeSitterQueryCursor.Matches.Iterator
-        var match: TreeSitterQueryMatch?
-        var captures: [TreeSitterCapture].Iterator?
+        var iter: TreeSitterQueryCursor.RawMatches.Iterator
 
-        init(cursor: TreeSitterQueryCursor) {
-            self.cursor = cursor
-            self.matches = cursor.matches.makeIterator()
-        }
-
-        mutating func next() -> TreeSitterCapture? {
-            match = match ?? matches.next()
-            if match == nil {
+        mutating func next() -> TreeSitterQueryMatch? {
+            guard let match = iter.next() else {
                 return nil
             }
 
-            captures = captures ?? match!.captures.makeIterator()
+            let evaluator = TreeSitterPredicatesEvaluator(match: match, readStringUsing: cursor.readString)
+            let captures = match.captures.filter { evaluator.evaluatePredicates(in: $0) }
 
-            let evaluator = TreeSitterPredicatesEvaluator(match: match!, readStringUsing: cursor.readString)
-            while let capture = captures!.next() {
-                if evaluator.evaluatePredicates(in: capture) {
-                    return capture
-                }
-            }
-
-            self.match = nil
-            self.captures = nil
-
-            return next()
+            return TreeSitterQueryMatch(patternIndex: match.patternIndex, captures: captures)
         }
     }
 
     func makeIterator() -> Iterator {
-        Iterator(cursor: self)
+        Iterator(cursor: cursor, iter: cursor.rawMatches.makeIterator())
     }
 }
 
 struct TreeSitterQueryMatch {
+    let patternIndex: Int
     let captures: [TreeSitterCapture]
 
     func capture(forId id: UInt32) -> TreeSitterCapture {

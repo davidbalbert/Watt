@@ -63,9 +63,9 @@ final class Highlighter {
             delegate.highlighter(self, stringForByteRange: range)
         }
 
-        let tokens = cursor.compactMap { c in
-            if !c.range.isEmpty, let type = Token.TokenType(rawValue: c.name) {
-                return Token(type: type, range: c.range)
+        let tokens = cursor.validCaptures().compactMap { capture in
+            if !capture.range.isEmpty, let type = Token.TokenType(rawValue: capture.name) {
+                return Token(type: type, range: capture.range)
             } else {
                 return nil
             }

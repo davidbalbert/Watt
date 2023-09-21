@@ -18,7 +18,7 @@ extension Theme {
         .string: A.foregroundColor(.systemGreen),
         .type: A.foregroundColor(.systemOrange).symbolicTraits(.bold),
         .function: A.foregroundColor(.systemPurple),
-        .constant: A.foregroundColor(.systemRed),
+        .constant: A.foregroundColor(.systemTeal),
         .variable: A.foregroundColor(.systemPink),
         .delimiter: A.foregroundColor(.systemGray),
         .number: A.foregroundColor(.systemBrown),
