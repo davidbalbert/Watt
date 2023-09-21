@@ -248,7 +248,7 @@ extension Buffer: HighlighterDelegate {
             layoutManager.attributesDidChange(in: ranges)
         }
     }
-    
+
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
         let i = text.utf8.index(at: byteIndex)
         guard let (chunk, offset) = i.read() else {

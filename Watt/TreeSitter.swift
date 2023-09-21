@@ -660,10 +660,9 @@ final class TreeSitterQueryCursor {
 }
 
 extension TreeSitterQueryCursor {
-    // Returns all captures that match their predicates, returning
-    // exactly one capture per node. If a node matched multiple
-    // patterns, the capture closer to the top of the query
-    // is selected.
+    // Returns all non-empty captures that match their predicates. If
+    // a range is matched by multiple patterns, the pattern closer to
+    // the top of the query is selected
     func validCaptures() -> [TreeSitterCapture] {
         reset()
 
@@ -671,8 +670,12 @@ extension TreeSitterQueryCursor {
         let matches = Array(matches)
 
         var captures = matches.flatMap { match in            
-            match.captures.map { capture in
-                (patternIndex: match.patternIndex, capture: capture)
+            match.captures.compactMap { capture in
+                if !capture.range.isEmpty {
+                    return (patternIndex: match.patternIndex, capture: capture)
+                } else {
+                    return nil
+                }
             }
         }
 

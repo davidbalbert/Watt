@@ -64,7 +64,7 @@ final class Highlighter {
         }
 
         let tokens = cursor.validCaptures().compactMap { capture in
-            if !capture.range.isEmpty, let type = Token.TokenType(rawValue: capture.name) {
+            if let type = Token.TokenType(rawValue: capture.name) {
                 return Token(type: type, range: capture.range)
             } else {
                 return nil
