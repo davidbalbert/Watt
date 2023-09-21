@@ -14,8 +14,6 @@ class Buffer {
 
     var language: Language {
         didSet {
-            // TODO: make sure this doesn't get called in the constructor
-            // so we're not doing the same work twice.
             highlighter = language.highlighter
         }
     }
@@ -120,6 +118,7 @@ class Buffer {
 
         layoutManagers.append(layoutManager)
         layoutManager.buffer = self
+        highlighter?.highlightIfNecessary()
     }
 
     func removeLayoutManager(_ layoutManager: LayoutManager) {
@@ -200,14 +199,14 @@ class Buffer {
             layoutManager.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
         }
 
-        // For now, this must be done after the layout managers are notified of
-        // the changed content, because highlighting triggers applyTokens, which
-        // calls LayoutManager.attributesDidChange(in:), potentially referring
-        // to locations in the text that the layout manager doesn't yet know
-        // about. When I understand these interactions better, it might be
-        // possible for the content and attribute changes to be updated in
-        // one go.
+        // For now, this must be done after the layout managers are notified of the
+        // changed content, because highlighting triggers highlighter(_:applyTokens:),
+        // which calls LayoutManager.attributesDidChange(in:), potentially referring
+        // to locations in the text that the layout manager doesn't yet know about.
+        // When I understand these interactions better, it might be possible for the
+        // content and attribute changes to be updated in one go.
         highlighter?.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+        highlighter?.highlight()
     }
 
     func setAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
@@ -251,8 +250,12 @@ extension Buffer: HighlighterDelegate {
     }
     
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
-        // TODO!
-        nil
+        let i = text.utf8.index(at: byteIndex)
+        guard let (chunk, offset) = i.read() else {
+            return nil
+        }
+
+        return chunk.string[chunk.string.utf8Index(at: offset)...]
     }
 }
 

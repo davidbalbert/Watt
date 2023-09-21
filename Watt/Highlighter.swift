@@ -43,6 +43,12 @@ final class Highlighter {
         parser.delegate = self
     }
 
+    func highlightIfNecessary() {
+        if tree == nil {
+            highlight()
+        }
+    }
+
     func highlight() {
         guard let delegate else {
             return
