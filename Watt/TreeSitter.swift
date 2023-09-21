@@ -101,6 +101,15 @@ typealias TreeSitterReadCallback = (_ byteIndex: Int, _ position: TreeSitterText
 
 // TODO: can this be made to work with UTF-16 encoded text as well? Would make it easier to
 // contribute changes back to SwiftTreeSitter/Runestone.
+//
+// This seems like it might be unlikely without making two copies until Swift adds
+// BufferViews – we return a Substring from TreeSitterReadCallback so that we only
+// do one copy, which happens inside read(). But AFAIK, there's no way to check if
+// a Substring is a bridged NSString, which AFAIK is the only time we'd get UTF-16
+// bytes. The real win would be to have TreeSitterReadCallback return some sort of
+// non-string thing. Either Data, a BufferView, or an UnsafeBufferPointer. Data would
+// require two copies, and I think UnsafeBufferPointer isn't doable with Swift's
+// current ARC semantics. Fingers crossed for BufferView.
 final class TreeSitterTextInput {
     let callback: TreeSitterReadCallback
 
