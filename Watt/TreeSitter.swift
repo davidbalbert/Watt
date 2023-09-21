@@ -99,6 +99,8 @@ final class TreeSitterParser {
 
 typealias TreeSitterReadCallback = (_ byteIndex: Int, _ position: TreeSitterTextPoint) -> Substring?
 
+// TODO: can this be made to work with UTF-16 encoded text as well? Would make it easier to
+// contribute changes back to SwiftTreeSitter/Runestone
 final class TreeSitterTextInput {
     let callback: TreeSitterReadCallback
 
