@@ -27,6 +27,7 @@ struct Token: Equatable {
 protocol HighlighterDelegate: AnyObject {
     func highlighter(_ highlighter: Highlighter, applyTokens tokens: [Token])
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring?
+    func highlighter(_ highlighter: Highlighter, stringForByteRange range: Range<Int>) -> String
 }
 
 final class Highlighter {
@@ -58,7 +59,9 @@ final class Highlighter {
             return
         }
 
-        let cursor = TreeSitterQueryCursor(query: highlightsQuery, tree: tree)
+        let cursor = TreeSitterQueryCursor(query: highlightsQuery, tree: tree) { range in
+            delegate.highlighter(self, stringForByteRange: range)
+        }
 
         let tokens = cursor.compactMap { c in
             if let type = Token.TokenType(rawValue: c.name) {

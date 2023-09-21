@@ -330,31 +330,64 @@ extension TreeSitterTextRange: CustomDebugStringConvertible {
     }
 }
 
-
 struct TreeSitterPredicate {
     enum Step {
         case capture(UInt32)
         case string(String)
-    }
 
-    let steps: [Step]
-
-    var name: String {
-        guard case .string(let name) = steps.first else {
-            fatalError("first step must be a string")
+        var isCapture: Bool {
+            switch self {
+            case .capture:
+                return true
+            case .string:
+                return false
+            }
         }
 
-        return name
+        var isString: Bool {
+            switch self {
+            case .capture:
+                return false
+            case .string:
+                return true
+            }
+        }
     }
 
+    enum Name: String {
+        case equal = "eq?"
+        case notEqual = "not-eq?"
+        case anyEqual = "any-eq?"
+        case anyNotEqual = "any-not-eq?"
+        case match = "match?"
+        case notMatch = "not-match?"
+        case anyMatch = "any-match?"
+        case anyNotMatch = "any-not-match?"
+        case anyOf = "any-of?"
+        case notAnyOf = "not-any-of?"
+        case `set` = "set!"
+    }
+
+    var name: Name
+    let params: [Step]
+
     init(steps: [Step]) {
-        self.steps = steps
+        guard case .string(let s) = steps.first else {
+            preconditionFailure("first step must be a string")
+        }
+
+        guard let name = Name(rawValue: s) else {
+            preconditionFailure("\(s) is not a valid precondition name")
+        }
+
+        self.name = name
+        self.params = Array(steps[1...])
     }
 }
 
 extension TreeSitterPredicate: CustomDebugStringConvertible {
     var debugDescription: String {
-        "[TreeSitterPredicate name=\(name) steps=\(steps[1...])]"
+        "[TreeSitterPredicate name=\(name) params=\(params)]"
     }
 }
 
@@ -468,23 +501,133 @@ final class TreeSitterQuery {
     }
 }
 
+struct TreeSitterPredicatesEvaluator {
+    let match: TreeSitterQueryMatch
+    // byte range to string
+    let readString: (Range<Int>) -> String
+
+    init(match: TreeSitterQueryMatch, readStringUsing block: @escaping (Range<Int>) -> String) {
+        self.match = match
+        self.readString = block
+    }
+
+    func evaluatePredicates(in capture: TreeSitterCapture) -> Bool {
+        return capture.predicates.allSatisfy { predicate in
+            switch predicate.name {
+            case .equal:
+                precondition(predicate.params.count == 2, "#eq? must have 2 params")
+                let a = predicate.params[0]
+                let b = predicate.params[1]
+
+                return evalParam(a) == evalParam(b)
+            case .notEqual:
+                precondition(predicate.params.count == 2, "#not-eq? must have 2 params")
+                let a = predicate.params[0]
+                let b = predicate.params[1]
+
+                return evalParam(a) != evalParam(b)
+            case .anyEqual:
+                fatalError("any-eq? not implemented")
+            case .anyNotEqual:
+                fatalError("any-not-eq? not implemented")
+            case .match:
+                precondition(predicate.params.count == 2, "#match? must have 2 params")
+                let a = predicate.params[0]
+                let b = predicate.params[1]
+
+                precondition(a.isCapture, "#match? first param must be a capture")
+                precondition(b.isString, "#match? second param must be a string")
+
+                let val = evalParam(a)
+                let pattern = evalParam(b)
+
+                guard let regex = try? Regex(pattern) else {
+                    preconditionFailure("invalid regex: \(pattern)")
+                }
+
+                return (try? regex.firstMatch(in: val)) != nil
+            case .notMatch:
+                precondition(predicate.params.count == 2, "#match? must have 2 params")
+                let a = predicate.params[0]
+                let b = predicate.params[1]
+
+                precondition(a.isCapture, "#match? first param must be a capture")
+                precondition(b.isString, "#match? second param must be a string")
+
+                let val = evalParam(a)
+                let pattern = evalParam(b)
+
+                guard let regex = try? Regex(pattern) else {
+                    preconditionFailure("invalid regex: \(pattern)")
+                }
+
+                return (try? regex.firstMatch(in: val)) == nil
+            case .anyMatch:
+                fatalError("any-match? not implemented")
+            case .anyNotMatch:
+                fatalError("any-not-match? not implemented")
+            case .anyOf:
+                precondition(predicate.params.count >= 2, "#any-of? must have at least 2 params")
+                let a = predicate.params[0]
+                let rest = predicate.params[1...]
+
+                precondition(a.isCapture, "#any-of? first param must be a capture")
+                precondition(rest.allSatisfy { $0.isString }, "#any-of? remaining params must be strings")
+
+                let val = evalParam(a)
+                return rest.contains { evalParam($0) == val }
+            case .notAnyOf:
+                precondition(predicate.params.count >= 2, "#any-of? must have at least 2 params")
+                let a = predicate.params[0]
+                let rest = predicate.params[1...]
+
+                precondition(a.isCapture, "#any-of? first param must be a capture")
+                precondition(rest.allSatisfy { $0.isString }, "#any-of? remaining params must be strings")
+
+                let val = evalParam(a)
+                return !rest.contains { evalParam($0) == val }
+            case .set:
+                fatalError("set! not implemented")
+            }
+        }
+    }
+
+    func evalParam(_ step: TreeSitterPredicate.Step) -> String {
+        switch step {
+        case .capture(let id):
+            return readString(match.capture(forId: id).range)
+        case .string(let string):
+            return string
+        }
+    }
+}
+
 final class TreeSitterQueryCursor {
     let pointer: OpaquePointer
     let query: TreeSitterQuery
     let tree: TreeSitterTree
-    var didExec = false
+    var didExec: Bool
 
-    init(query: TreeSitterQuery, tree: TreeSitterTree) {
+    // byte range to string
+    let readString: (Range<Int>) -> String
+
+    init(query: TreeSitterQuery, tree: TreeSitterTree, readStringUsing block: @escaping (Range<Int>) -> String) {
         self.pointer = ts_query_cursor_new()
         self.query = query
         self.tree = tree
+        self.didExec = false
+        self.readString = block
+    }
+
+    func executeIfNecessary() {
+        if !didExec {
+            execute()
+            didExec = true
+        }
     }
 
     func execute() {
-        if !didExec {
-            ts_query_cursor_exec(pointer, query.pointer, tree.root.rawValue)
-            didExec = true
-        }
+        ts_query_cursor_exec(pointer, query.pointer, tree.root.rawValue)
     }
 
     deinit {
@@ -516,36 +659,80 @@ final class TreeSitterQueryCursor {
     // }
 }
 
-extension TreeSitterQueryCursor: Sequence {
+extension TreeSitterQueryCursor {
+    struct Matches {
+        var cursor: TreeSitterQueryCursor
+    }
+
+    var matches: Matches {
+        Matches(cursor: self)
+    }
+}
+
+extension TreeSitterQueryCursor.Matches: Sequence {
     struct Iterator: IteratorProtocol {
         let cursor: TreeSitterQueryCursor
         var match: TSQueryMatch
-        var iter: UnsafeBufferPointer<TSQueryCapture>.Iterator?
 
         init(cursor: TreeSitterQueryCursor) {
             self.cursor = cursor
             self.match = TSQueryMatch(id: 0, pattern_index: 0, capture_count: 0, captures: nil)
         }
 
-        mutating func next() -> TreeSitterCapture? {
-            if !cursor.didExec {
-                cursor.execute()
-            }
-
-            if let capture = iter?.next() {
-                let node = TreeSitterNode(tree: cursor.tree, node: capture.node)
-                let name = cursor.query.captureName(forId: capture.index)
-                let predicates = cursor.query.predicates(forPatternIndex: UInt32(match.pattern_index))
-                return TreeSitterCapture(node: node, name: name, predicates: predicates)
-            }
+        mutating func next() -> TreeSitterQueryMatch? {
+            cursor.executeIfNecessary()
 
             guard ts_query_cursor_next_match(cursor.pointer, &match) else {
-                iter = nil
                 return nil
             }
 
             let buf = UnsafeBufferPointer<TSQueryCapture>(start: match.captures, count: Int(match.capture_count))
-            iter = buf.makeIterator()
+            let captures = buf.map { capture in
+                let node = TreeSitterNode(tree: cursor.tree, node: capture.node)
+                let name = cursor.query.captureName(forId: capture.index)
+                let predicates = cursor.query.predicates(forPatternIndex: UInt32(match.pattern_index))
+                return TreeSitterCapture(node: node, index: capture.index, name: name, predicates: predicates)
+            }
+
+            return TreeSitterQueryMatch(captures: captures)
+        }
+    }
+
+    func makeIterator() -> Iterator {
+        Iterator(cursor: cursor)
+    }
+}
+
+extension TreeSitterQueryCursor: Sequence {
+    // Only returns captures that match their predicates
+    struct Iterator: IteratorProtocol {
+        let cursor: TreeSitterQueryCursor
+        var matches: TreeSitterQueryCursor.Matches.Iterator
+        var match: TreeSitterQueryMatch?
+        var captures: [TreeSitterCapture].Iterator?
+
+        init(cursor: TreeSitterQueryCursor) {
+            self.cursor = cursor
+            self.matches = cursor.matches.makeIterator()
+        }
+
+        mutating func next() -> TreeSitterCapture? {
+            match = match ?? matches.next()
+            if match == nil {
+                return nil
+            }
+
+            captures = captures ?? match!.captures.makeIterator()
+
+            let evaluator = TreeSitterPredicatesEvaluator(match: match!, readStringUsing: cursor.readString)
+            while let capture = captures!.next() {
+                if evaluator.evaluatePredicates(in: capture) {
+                    return capture
+                }
+            }
+
+            self.match = nil
+            self.captures = nil
 
             return next()
         }
@@ -556,13 +743,23 @@ extension TreeSitterQueryCursor: Sequence {
     }
 }
 
+struct TreeSitterQueryMatch {
+    let captures: [TreeSitterCapture]
+
+    func capture(forId id: UInt32) -> TreeSitterCapture {
+        captures.first { $0.index == id }!
+    }
+}
+
 struct TreeSitterCapture {
     let node: TreeSitterNode
+    let index: UInt32
     let name: String
     let predicates: [TreeSitterPredicate]
 
-    init(node: TreeSitterNode, name: String, predicates: [TreeSitterPredicate]) {
+    init(node: TreeSitterNode, index: UInt32, name: String, predicates: [TreeSitterPredicate]) {
         self.node = node
+        self.index = index
         self.name = name
         self.predicates = predicates
     }

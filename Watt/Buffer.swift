@@ -257,6 +257,11 @@ extension Buffer: HighlighterDelegate {
 
         return chunk.string[chunk.string.utf8Index(at: offset)...]
     }
+
+    func highlighter(_ highlighter: Highlighter, stringForByteRange range: Range<Int>) -> String {
+        let range = Range(range, in: text)
+        return String(text[range])
+    }
 }
 
 extension Range where Bound == Buffer.Index {

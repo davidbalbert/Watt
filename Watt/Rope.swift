@@ -1414,7 +1414,6 @@ extension NSRange {
     }
 }
 
-
 // MARK: - Helpers
 
 fileprivate func countNewlines(in buf: Slice<UnsafeBufferPointer<UInt8>>) -> Int {
