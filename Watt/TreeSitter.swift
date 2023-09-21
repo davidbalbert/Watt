@@ -331,24 +331,30 @@ extension TreeSitterTextRange: CustomDebugStringConvertible {
 }
 
 
-final class TreeSitterPredicate {
+struct TreeSitterPredicate {
     enum Step {
         case capture(UInt32)
         case string(String)
     }
 
-    let name: String
     let steps: [Step]
 
-    init(name: String, steps: [Step]) {
-        self.name = name
+    var name: String {
+        guard case .string(let name) = steps.first else {
+            fatalError("first step must be a string")
+        }
+
+        return name
+    }
+
+    init(steps: [Step]) {
         self.steps = steps
     }
 }
 
 extension TreeSitterPredicate: CustomDebugStringConvertible {
     var debugDescription: String {
-        "[TreeSitterPredicate name=\(name) steps=\(steps)]"
+        "[TreeSitterPredicate name=\(name) steps=\(steps[1...])]"
     }
 }
 
@@ -435,29 +441,29 @@ final class TreeSitterQuery {
 
     func predicates(forPatternIndex index: UInt32) -> [TreeSitterPredicate] {
         var stepCount: UInt32 = 0
-        guard let rawSteps = ts_query_predicates_for_pattern(pointer, index, &stepCount) else {
+        guard let p = ts_query_predicates_for_pattern(pointer, index, &stepCount) else {
             return []
         }
+
+        let buf = UnsafeBufferPointer<TSQueryPredicateStep>(start: p, count: Int(stepCount))
+
         var predicates: [TreeSitterPredicate] = []
-        var l = 0
-        while l < stepCount {
-            var steps: [TreeSitterPredicate.Step] = []
-            let name = stringValue(forId: rawSteps.pointee.value_id)
-            l += 1
-            for i in 1 ..< .max {
-                let step = (rawSteps + UnsafePointer<TSQueryPredicateStep>.Stride(i)).pointee
-                l += 1
-                if step.type == TSQueryPredicateStepTypeCapture {
-                    steps.append(.capture(step.value_id))
-                } else if step.type == TSQueryPredicateStepTypeString {
-                    steps.append(.string(stringValue(forId: step.value_id)))
-                } else if step.type == TSQueryPredicateStepTypeDone {
-                    break
-                }
+        var steps: [TreeSitterPredicate.Step] = []
+
+        for rawStep in buf {
+            if rawStep.type == TSQueryPredicateStepTypeCapture {
+                steps.append(.capture(rawStep.value_id))
+            } else if rawStep.type == TSQueryPredicateStepTypeString {
+                steps.append(.string(stringValue(forId: rawStep.value_id)))
+            } else if rawStep.type == TSQueryPredicateStepTypeDone {
+                let predicate = TreeSitterPredicate(steps: steps)
+                predicates.append(predicate)
+                steps = []
             }
-            let predicate = TreeSitterPredicate(name: name, steps: steps)
-            predicates.append(predicate)
         }
+
+        assert(steps.count == 0)
+
         return predicates
     }
 }
@@ -529,7 +535,8 @@ extension TreeSitterQueryCursor: Sequence {
             if let capture = iter?.next() {
                 let node = TreeSitterNode(tree: cursor.tree, node: capture.node)
                 let name = cursor.query.captureName(forId: capture.index)
-                return TreeSitterCapture(node: node, name: name)
+                let predicates = cursor.query.predicates(forPatternIndex: UInt32(match.pattern_index))
+                return TreeSitterCapture(node: node, name: name, predicates: predicates)
             }
 
             guard ts_query_cursor_next_match(cursor.pointer, &match) else {
@@ -552,10 +559,12 @@ extension TreeSitterQueryCursor: Sequence {
 struct TreeSitterCapture {
     let node: TreeSitterNode
     let name: String
+    let predicates: [TreeSitterPredicate]
 
-    init(node: TreeSitterNode, name: String) {
+    init(node: TreeSitterNode, name: String, predicates: [TreeSitterPredicate]) {
         self.node = node
         self.name = name
+        self.predicates = predicates
     }
 
     var range: Range<Int> {
