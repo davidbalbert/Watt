@@ -7,9 +7,9 @@
 
 import Cocoa
 
-typealias Theme = [Token.TokenType: AttributedRope.Attributes]
+struct Theme {
+    let attributes: [Token.TokenType: AttributedRope.Attributes]
 
-extension Theme {
     // Hack until https://github.com/apple/swift/issues/60574 is fixed
     typealias A = AttributedRope.Attributes
 
@@ -22,5 +22,31 @@ extension Theme {
         .variable: A.foregroundColor(.systemPink),
         .delimiter: A.foregroundColor(.systemGray),
         .number: A.foregroundColor(.systemBrown),
+        .operator: A.symbolicTraits(.italic).underlineColor(.black).underlineStyle(.thick),
     ]
+
+    subscript(key: Token.TokenType) -> AttributedRope.Attributes? {
+        var type: Token.TokenType? = key
+
+        while let t = type {
+            if let attrs = attributes[t] {
+                return attrs
+            }
+
+            if let i = t.rawValue.lastIndex(of: ".") {
+                let parent = t.rawValue[..<i]
+                type = Token.TokenType(rawValue: String(parent))
+            } else {
+                type = nil
+            }
+        }
+
+        return nil
+    }
+}
+
+extension Theme: ExpressibleByDictionaryLiteral {
+    init(dictionaryLiteral elements: (Token.TokenType, AttributedRope.Attributes)...) {
+        self.attributes = Dictionary(uniqueKeysWithValues: elements)
+    }
 }
