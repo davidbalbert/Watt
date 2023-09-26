@@ -14,10 +14,12 @@ struct Token: Equatable {
         case string
         case type
         case function
+        case functionSpecial = "function.special"
         case constant
         case variable
         case delimiter
         case number
+        case `operator`
     }
 
     let type: TokenType
