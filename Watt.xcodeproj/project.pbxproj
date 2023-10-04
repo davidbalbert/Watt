@@ -14,6 +14,7 @@
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
+		635658902ACD9D5400F1DC63 /* Themes in Resources */ = {isa = PBXBuildFile; fileRef = 6356588F2ACD9D5400F1DC63 /* Themes */; };
 		635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */; };
 		635B36AD2AAE4D7F002FAE70 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36AC2AAE4D7F002FAE70 /* Language.swift */; };
 		635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36AE2AAE5424002FAE70 /* Highlighter.swift */; };
@@ -91,6 +92,7 @@
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
+		6356588F2ACD9D5400F1DC63 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Themes; sourceTree = "<group>"; };
 		635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		635B36AC2AAE4D7F002FAE70 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
 		635B36AE2AAE5424002FAE70 /* Highlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Highlighter.swift; sourceTree = "<group>"; };
@@ -217,6 +219,7 @@
 		6372888A29FD8E19005B95E5 /* Watt */ = {
 			isa = PBXGroup;
 			children = (
+				6356588F2ACD9D5400F1DC63 /* Themes */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
@@ -413,6 +416,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				635658902ACD9D5400F1DC63 /* Themes in Resources */,
 				6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */,
 				6372889629FD8E1A005B95E5 /* MainMenu.xib in Resources */,
 				63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */,

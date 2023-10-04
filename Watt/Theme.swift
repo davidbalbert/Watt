@@ -8,9 +8,27 @@
 import Cocoa
 
 struct Theme {
+    enum ThemeError: Error {
+        case notFound
+        case invalid
+    }
+
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
-    static let defaultTheme: Theme = try! Theme(contentsOfXCColorThemeURL: URL(filePath: "/Applications/Xcode.app/Contents/SharedFrameworks/DVTUserInterfaceKit.framework/Versions/A/Resources/FontAndColorThemes/Default (Light).xccolortheme"))
+    static let defaultTheme: Theme = try! Theme(name: "Default (Light)", withExtension: "xccolortheme")
+
+    init(name: String, withExtension ext: String) throws {
+        guard let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Themes") else {
+            throw ThemeError.notFound
+        }
+
+        switch ext {
+            case "xccolortheme":
+                try self.init(contentsOfXCColorThemeURL: url)
+            default:
+                throw ThemeError.invalid
+        }
+    }
 
     subscript(key: Token.TokenType) -> AttributedRope.Attributes? {
         var type: Token.TokenType? = key
