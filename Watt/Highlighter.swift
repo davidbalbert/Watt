@@ -9,7 +9,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 struct Token: Equatable {
-    enum TokenType: String {
+    enum TokenType: String, CaseIterable {
         case keyword
         case string
         case type
@@ -17,9 +17,12 @@ struct Token: Equatable {
         case functionSpecial = "function.special"
         case constant
         case variable
+        case property
         case delimiter
         case number
         case `operator`
+        case label
+        case comment
     }
 
     let type: TokenType

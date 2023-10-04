@@ -80,24 +80,26 @@ struct XCColorTheme: Decodable {
 }
 
 extension Token.TokenType {
-    init?(xcColorThemeKey: String) {
-        switch xcColorThemeKey {
-            case "xcode.syntax.keyword":
-                self = .keyword
-            case "xcode.syntax.string":
-                self = .string
-            case "xcode.syntax.declaration.type":
-                self = .type
-            case "xcode.syntax.identifier.function":
-                self = .function
-            case "xcode.syntax.identifier.function.system":
-                self = .functionSpecial
-            case "xcode.syntax.identifier.constant":
-                self = .constant
-            case "xcode.syntax.identifier.variable":
-                self = .variable
-            case "xcode.syntax.number":
-                self = .number
+    var xcColorThemeKey: String? {
+        switch self {
+            case .keyword:
+                return "xcode.syntax.keyword"
+            case .string:
+                return "xcode.syntax.string"
+            case .type:
+                return "xcode.syntax.declaration.type"
+            case .function:
+                return "xcode.syntax.identifier.function"
+            case .functionSpecial:
+                return "xcode.syntax.identifier.macro"
+            case .constant:
+                return "xcode.syntax.identifier.constant"
+            case .variable, .property:
+                return "xcode.syntax.identifier.variable"
+            case .number:
+                return "xcode.syntax.number"
+            case .comment:
+                return "xcode.syntax.comment"
             default:
                 return nil
         }
@@ -118,11 +120,19 @@ extension Theme {
         let xcColorTheme = try decoder.decode(XCColorTheme.self, from: data)
 
         var attributes: [Token.TokenType: AttributedRope.Attributes] = [:]
-        for (key, color) in xcColorTheme.colors {
-            guard let tokenType = Token.TokenType(xcColorThemeKey: key) else {
+
+        for t in Token.TokenType.allCases {
+            guard let key = t.xcColorThemeKey else {
                 continue
             }
-            attributes[tokenType] = AttributedRope.Attributes.foregroundColor(NSColor(xcColorSchemeColor: color))
+
+            guard let color = xcColorTheme.colors[key] else {
+                continue
+            }
+
+            let foregroundColor = NSColor(xcColorSchemeColor: color)
+            let attrs = AttributedRope.Attributes.foregroundColor(foregroundColor)
+            attributes[t] = attrs
         }
 
         self.attributes = attributes
