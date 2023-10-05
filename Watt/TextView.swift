@@ -137,7 +137,6 @@ class TextView: NSView, ClipViewDelegate {
         layoutManager.buffer = buffer
 
         layoutManager.delegate = self
-        layoutManager.appearanceDelegate = self
         layoutManager.lineNumberDelegate = lineNumberView
         
         lineNumberView.buffer = buffer
