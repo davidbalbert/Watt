@@ -82,8 +82,8 @@ struct XCColorTheme: Decodable {
         let symbolicTraits: NSFontDescriptor.SymbolicTraits
         let size: CGFloat
 
-        // SFMono-Regular - 12.0 -> ("SFMono", .bold, 12.0)
-        // HelveticaNeue - 12.0 -> ("HelveticaNeue", [], 12.0) 
+        // SFMono-Regular - 12.0 -> ("SFMono", .bold, [], 12.0)
+        // HelveticaNeue - 12.0 -> ("HelveticaNeue", .regular, [], 12.0) 
         init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
