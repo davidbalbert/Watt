@@ -179,6 +179,22 @@ extension TextView: LayoutManagerDelegate {
         typingAttributes
     }
 
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
+        return attrRope.transformingAttributes(\.token) { attr in
+            var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
+
+            if attributes.font != nil {
+                attributes.symbolicTraits = nil
+            } else if let symbolicTraits = attributes.symbolicTraits {
+                let d = font.fontDescriptor.withSymbolicTraits(symbolicTraits)
+                attributes.font = NSFont(descriptor: d, size: font.pointSize) ?? font
+                attributes.symbolicTraits = nil
+            }
+
+            return attr.replace(with: attributes)
+        }
+    }
+
     // MARK: - Text layout
 
     func layoutTextLayer() {

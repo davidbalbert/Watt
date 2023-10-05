@@ -14,11 +14,15 @@ protocol LayoutManagerDelegate: AnyObject {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
-}
 
-protocol LayoutManagerAppearanceDelegate: AnyObject {
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
+}
+
+extension LayoutManagerDelegate {
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
+        attrRope
+    }
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -31,7 +35,6 @@ protocol LayoutManagerLineNumberDelegate: AnyObject {
 
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
-    weak var appearanceDelegate: LayoutManagerAppearanceDelegate?
     weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
     weak var buffer: Buffer? {
@@ -562,11 +565,11 @@ class LayoutManager {
     func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
         let attributedRope = AttributedRope(buffer[range])
 
-        guard let appearanceDelegate else {
+        guard let delegate else {
             return NSAttributedString(attributedRope)
         }
 
-        return NSAttributedString(appearanceDelegate.layoutManager(self, attributedRopeFor: attributedRope))
+        return NSAttributedString(delegate.layoutManager(self, attributedRopeFor: attributedRope))
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
