@@ -10,7 +10,8 @@ import Cocoa
 struct Theme {
     enum ThemeError: Error {
         case notFound
-        case invalid
+        case invalidFormat
+        case cannotParse
     }
 
     let attributes: [Token.TokenType: AttributedRope.Attributes]
@@ -26,7 +27,7 @@ struct Theme {
             case "xccolortheme":
                 try self.init(contentsOfXCColorThemeURL: url)
             default:
-                throw ThemeError.invalid
+                throw ThemeError.invalidFormat
         }
     }
 
@@ -71,11 +72,87 @@ struct XCColorTheme: Decodable {
         }
     }
 
-    // load the colors from the DVTSourceTextSyntaxColors key
-    let colors: [String: Color]
+    struct Font: Decodable {
+        enum FontError: Error {
+            case cannotParse
+        }
+
+        let name: String
+        let weight: NSFont.Weight
+        let symbolicTraits: NSFontDescriptor.SymbolicTraits
+        let size: CGFloat
+
+        // SFMono-Regular - 12.0 -> ("SFMono", .bold, 12.0)
+        // HelveticaNeue - 12.0 -> ("HelveticaNeue", [], 12.0) 
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+            let components = string.split(separator: " - ")
+            guard components.count == 2 else {
+                throw FontError.cannotParse
+            }
+
+            // split name and optional variant
+            let nameAndVariant = components[0].split(separator: "-")
+            guard nameAndVariant.count == 1 || nameAndVariant.count == 2 else {
+                throw FontError.cannotParse
+            }
+
+            self.name = String(nameAndVariant[0])
+
+            if nameAndVariant.count == 2 {
+                let variant = String(nameAndVariant[1])
+                switch variant {
+                case "Regular":
+                    self.weight = .regular
+                    self.symbolicTraits = []
+                case "Bold":
+                    self.weight = .bold
+                    self.symbolicTraits = []
+                case "Italic":
+                    self.weight = .regular
+                    self.symbolicTraits = .italic
+                case "Semibold":
+                    self.weight = .semibold
+                    self.symbolicTraits = []
+                default:
+                    throw FontError.cannotParse
+                }
+            } else {
+                self.weight = .regular
+                self.symbolicTraits = []
+            }
+
+            guard let size = Double(components[1]) else {
+                throw FontError.cannotParse
+            }
+
+            self.size = size
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case colors = "DVTSourceTextSyntaxColors"
+        case fonts = "DVTSourceTextSyntaxFonts"
+    }
+
+    let colors: [String: Color]
+    let fonts: [String: Font]
+}
+
+extension NSFont {
+    convenience init?(xcFont font: XCColorTheme.Font) {
+        let traits: [NSFontDescriptor.TraitKey: Any] = [
+            .weight: font.weight,
+            .symbolic: font.symbolicTraits
+        ]
+
+        let descriptor = NSFontDescriptor(fontAttributes: [
+            .name: font.name,
+            .traits: traits,
+        ])
+
+        self.init(descriptor: descriptor, size: font.size)
     }
 }
 
@@ -119,6 +196,10 @@ extension Theme {
         let decoder = PropertyListDecoder()
         let xcColorTheme = try decoder.decode(XCColorTheme.self, from: data)
 
+        guard let mainFont = xcColorTheme.fonts["xcode.syntax.plain"] else {
+            throw ThemeError.cannotParse
+        }
+
         var attributes: [Token.TokenType: AttributedRope.Attributes] = [:]
 
         for t in Token.TokenType.allCases {
@@ -126,13 +207,27 @@ extension Theme {
                 continue
             }
 
-            guard let color = xcColorTheme.colors[key] else {
-                continue
+            var attrs: AttributedRope.Attributes = AttributedRope.Attributes()
+
+            if let font = xcColorTheme.fonts[key] {
+                if font.name != mainFont.name {
+                    attrs.font = NSFont(xcFont: font)
+                } else {
+                    attrs.fontWeight = font.weight
+
+                    if font.symbolicTraits != [] {
+                        attrs.symbolicTraits = font.symbolicTraits
+                    }
+                }
             }
 
-            let foregroundColor = NSColor(xcColorSchemeColor: color)
-            let attrs = AttributedRope.Attributes.foregroundColor(foregroundColor)
-            attributes[t] = attrs
+            if let color = xcColorTheme.colors[key] {
+                attrs.foregroundColor = NSColor(xcColorSchemeColor: color)
+            }
+
+            if !attrs.isEmpty {
+                attributes[t] = attrs
+            }
         }
 
         self.attributes = attributes

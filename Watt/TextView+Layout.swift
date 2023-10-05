@@ -185,10 +185,20 @@ extension TextView: LayoutManagerDelegate {
 
             if attributes.font != nil {
                 attributes.symbolicTraits = nil
-            } else if let symbolicTraits = attributes.symbolicTraits {
-                let d = font.fontDescriptor.withSymbolicTraits(symbolicTraits)
+                attributes.fontWeight = nil
+            } else {
+                // I don't know if making familyName fall back to font.fontName is
+                // correct, but it seems like it could be reasonable.
+                var d = font
+                    .fontDescriptor
+                    .withFamily(font.familyName ?? font.fontName)
+                    .addingAttributes([.traits: [NSFontDescriptor.TraitKey.weight: attributes.fontWeight ?? .regular]])
+
+                if let symbolicTraits = attributes.symbolicTraits {
+                    d = d.withSymbolicTraits(symbolicTraits)
+                }
+
                 attributes.font = NSFont(descriptor: d, size: font.pointSize) ?? font
-                attributes.symbolicTraits = nil
             }
 
             return attr.replace(with: attributes)

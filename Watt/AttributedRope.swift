@@ -78,11 +78,15 @@ extension AttributedRope {
             contents.count
         }
 
+        var isEmpty: Bool {
+            contents.isEmpty
+        }
+
         init() {
             contents = [:]
         }
 
-        init(_ contents: [String: Any]) {
+        fileprivate init(_ contents: [String: Any]) {
             self.contents = contents
         }
 
@@ -290,6 +294,7 @@ extension AttributedRope {
         // Watt-specific attributes
 
         var token: TokenAttribute
+        var fontWeight: FontWeightAttribute
         var symbolicTraits: SymbolicTraitsAttribute
 
         // Store the whole token instead of just its type, because we want to
@@ -303,6 +308,11 @@ extension AttributedRope {
         enum SymbolicTraitsAttribute: AttributedRopeKey {
             typealias Value = NSFontDescriptor.SymbolicTraits
             static let name = "is.dave.Watt.SymbolicTraits"
+        }
+
+        enum FontWeightAttribute: AttributedRopeKey {
+            typealias Value = NSFont.Weight
+            static let name = "is.dave.Watt.FontWeight"
         }
     }
 }
