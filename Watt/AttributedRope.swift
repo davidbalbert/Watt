@@ -935,7 +935,26 @@ extension Dictionary where Key == NSAttributedString.Key, Value == Any {
         self.init()
 
         for (key, value) in attributes.contents {
-            self[NSAttributedString.Key(key)] = value
+            let k = NSAttributedString.Key(key)
+
+            // NSAttributedString requires underline style to be specified
+            // as an NSNumber, not an NSUnderlineStyle, but we want
+            // .underlineStyle to be an NSUnderlineStyle, so we transform
+            // it here.
+            //
+            // This is definitely a hack, but it's easy. If we find more
+            // keys like this, we should consider a more general solution.
+            // If that comes up, take a look at ObjectiveCConvertibleAttributedStringKey
+            // in swift-corelibs-foundation, which is solving the same
+            // problem. We can't implement attributeKeyType(matching key: String)
+            // because _forEachField(of:, options:) isn't public, but we could
+            // find another way to recover the AttributedRopeKey for a given
+            // String in Attributes.contents.
+            if k == .underlineStyle, let value = value as? NSUnderlineStyle {
+                self[k] = value.rawValue
+            } else {
+                self[k] = value
+            }
         }
     }
 }
