@@ -197,6 +197,7 @@ extension TSInputEdit {
     }
 }
 
+// TODO: turn this into a copy-on-write struct
 final class TreeSitterTree {
     let pointer: OpaquePointer // TSTree *
 
