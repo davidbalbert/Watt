@@ -75,6 +75,7 @@ struct XCColorTheme: Decodable {
     struct Font: Decodable {
         enum FontError: Error {
             case cannotParse
+            case unknownVariant
         }
 
         let name: String
@@ -115,8 +116,11 @@ struct XCColorTheme: Decodable {
                 case "Semibold":
                     self.weight = .semibold
                     self.symbolicTraits = []
+                case "Medium":
+                    self.weight = .medium
+                    self.symbolicTraits = []
                 default:
-                    throw FontError.cannotParse
+                    throw FontError.unknownVariant
                 }
             } else {
                 self.weight = .regular
