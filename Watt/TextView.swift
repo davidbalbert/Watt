@@ -39,9 +39,14 @@ class TextView: NSView, ClipViewDelegate {
         }
     }
 
+    var backgroundColor: NSColor {
+        theme.backgroundColor
+    }
+
     var theme: Theme = .defaultTheme {
         didSet {
             layoutManager.invalidateLayout()
+            needsDisplay = true
         }
     }
 
@@ -53,6 +58,10 @@ class TextView: NSView, ClipViewDelegate {
 
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 
+    // TODO: get this from Theme.
+    // Maybe make Theme into a protocol so that we can have a NullTheme
+    // which returns this, as well as textBackgroundColor for the view's
+    // background color.
     var markedTextAttributes: AttributedRope.Attributes {
         AttributedRope.Attributes([
             .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
@@ -167,7 +176,7 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func updateLayer() {
-        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+        layer?.backgroundColor = theme.backgroundColor.cgColor
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {

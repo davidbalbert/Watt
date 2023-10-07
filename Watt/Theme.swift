@@ -12,11 +12,13 @@ struct Theme {
         case notFound
         case invalidFormat
         case cannotParse
+        case noMainFont
     }
 
+    let backgroundColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
-    static let defaultTheme: Theme = try! Theme(name: "Default (Light)", withExtension: "xccolortheme")
+    static let defaultTheme: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
 
     init(name: String, withExtension ext: String) throws {
         guard let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Themes") else {
@@ -136,10 +138,12 @@ struct XCColorTheme: Decodable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case backgroundColor = "DVTSourceTextBackground"
         case colors = "DVTSourceTextSyntaxColors"
         case fonts = "DVTSourceTextSyntaxFonts"
     }
 
+    let backgroundColor: Color
     let colors: [String: Color]
     let fonts: [String: Font]
 }
@@ -188,7 +192,7 @@ extension Token.TokenType {
 }
 
 extension NSColor {
-    convenience init(xcColorSchemeColor color: XCColorTheme.Color) {
+    convenience init(xcColorThemeColor color: XCColorTheme.Color) {
         self.init(red: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
     }
 }
@@ -201,7 +205,7 @@ extension Theme {
         let xcColorTheme = try decoder.decode(XCColorTheme.self, from: data)
 
         guard let mainFont = xcColorTheme.fonts["xcode.syntax.plain"] else {
-            throw ThemeError.cannotParse
+            throw ThemeError.noMainFont
         }
 
         var attributes: [Token.TokenType: AttributedRope.Attributes] = [:]
@@ -226,7 +230,7 @@ extension Theme {
             }
 
             if let color = xcColorTheme.colors[key] {
-                attrs.foregroundColor = NSColor(xcColorSchemeColor: color)
+                attrs.foregroundColor = NSColor(xcColorThemeColor: color)
             }
 
             if !attrs.isEmpty {
@@ -234,6 +238,7 @@ extension Theme {
             }
         }
 
+        self.backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
         self.attributes = attributes
     }
 }
