@@ -29,7 +29,8 @@ struct Theme {
     static let system: Theme = Theme(
         foregroundColor: .textColor,
         backgroundColor: .textBackgroundColor,
-        insertionPointColor: .black, // TODO: .textInsertionPointColor on Sonoma.
+        // TODO: .textInsertionPointColor on Sonoma.
+        insertionPointColor: .textColor,
         selectedTextBackgroundColor: .selectedTextBackgroundColor,
         lineNumberColor: .secondaryLabelColor
     )

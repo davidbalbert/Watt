@@ -56,8 +56,20 @@ extension TextView {
         }
     }
 
+    func setTextNeedsDisplay() {
+        for l in textLayer.sublayers ?? [] {
+            l.setNeedsDisplay()
+        }
+    }
+
     func setSelectionNeedsDisplay() {
         for l in selectionLayer.sublayers ?? [] {
+            l.setNeedsDisplay()
+        }
+    }
+
+    func setInsertionPointNeedsDisplay() {
+        for l in insertionPointLayer.sublayers ?? [] {
             l.setNeedsDisplay()
         }
     }
@@ -101,6 +113,10 @@ extension TextView {
 }
 
 extension TextView: SelectionLayerDelegate {
+    func effectiveAppearance(for selectionLayer: SelectionLayer) -> NSAppearance {
+        effectiveAppearance
+    }
+    
     func selectedTextBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor {
         if windowIsKey && isFirstResponder {
             return theme.selectedTextBackgroundColor
@@ -111,6 +127,10 @@ extension TextView: SelectionLayerDelegate {
 }
 
 extension TextView: InsertionPointLayerDelegate {
+    func effectiveAppearance(for insertionPointLayer: InsertionPointLayer) -> NSAppearance {
+        effectiveAppearance
+    }
+    
     func insertionPointColor(for selectionLayer: InsertionPointLayer) -> NSColor {
         theme.insertionPointColor
     }

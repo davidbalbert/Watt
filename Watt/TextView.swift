@@ -181,6 +181,10 @@ class TextView: NSView, ClipViewDelegate {
 
     override func updateLayer() {
         layer?.backgroundColor = theme.backgroundColor.cgColor
+
+        setTextNeedsDisplay()
+        setSelectionNeedsDisplay()
+        setInsertionPointNeedsDisplay()
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {

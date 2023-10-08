@@ -269,6 +269,7 @@ extension TextView: LayoutManagerDelegate {
         l.anchorPoint = .zero
         l.needsDisplayOnBoundsChange = true
         l.delegate = self // NSViewLayerContentScaleDelegate
+        l.lineLayerDelegate = self
         l.contentsScale = window?.backingScaleFactor ?? 1.0
 
         return l
@@ -324,5 +325,11 @@ extension TextView: LayoutManagerDelegate {
         l.position = convertFromTextContainer(rect.origin)
 
         return l
+    }
+}
+
+extension TextView: LineLayerDelegate {
+    func effectiveAppearance(for lineLayer: LineLayer) -> NSAppearance {
+        effectiveAppearance
     }
 }

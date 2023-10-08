@@ -33,26 +33,28 @@ class LineNumberLayer: CALayer {
             return
         }
 
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: lineNumberView.font,
-            .foregroundColor: lineNumberView.textColor
-        ]
-        let s = NSAttributedString(string: "\(lineNumber)", attributes: attrs)
-        let line = CTLineCreateWithAttributedString(s)
-
-        let typographicBounds = CTLineGetBoundsWithOptions(line, [])
-
-        // glyph origin in flipped coordinate space
-        let glyphOrigin = CGPoint(
-            x: bounds.width - lineNumberView.trailingPadding - typographicBounds.width,
-            y: round(typographicBounds.height + typographicBounds.minY)
-        )
-
-        ctx.saveGState()
-        ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
-        ctx.textPosition = glyphOrigin
-        CTLineDraw(line, ctx)
-        ctx.restoreGState()
+        lineNumberView.effectiveAppearance.performAsCurrentDrawingAppearance {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: lineNumberView.font,
+                .foregroundColor: lineNumberView.textColor
+            ]
+            let s = NSAttributedString(string: "\(lineNumber)", attributes: attrs)
+            let line = CTLineCreateWithAttributedString(s)
+            
+            let typographicBounds = CTLineGetBoundsWithOptions(line, [])
+            
+            // glyph origin in flipped coordinate space
+            let glyphOrigin = CGPoint(
+                x: bounds.width - lineNumberView.trailingPadding - typographicBounds.width,
+                y: round(typographicBounds.height + typographicBounds.minY)
+            )
+            
+            ctx.saveGState()
+            ctx.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
+            ctx.textPosition = glyphOrigin
+            CTLineDraw(line, ctx)
+            ctx.restoreGState()
+        }
     }
 
     override func action(forKey event: String) -> CAAction? {
