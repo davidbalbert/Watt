@@ -14,12 +14,14 @@ struct Theme {
         case cannotParse
         case noMainFont
         case noForegroundColor
+        case noLineNumberColor
     }
 
     let foregroundColor: NSColor
     let backgroundColor: NSColor
     let insertionPointColor: NSColor
     let selectedTextBackgroundColor: NSColor
+    let lineNumberColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
     static let defaultTheme: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
@@ -256,10 +258,15 @@ extension Theme {
             insertionPointColor = .black
         }
 
+        guard let lineNumberColor = xcColorTheme.colors["xcode.syntax.comment"] else {
+            throw ThemeError.noLineNumberColor
+        }
+
         self.foregroundColor = NSColor(xcColorThemeColor: foregroundColor)
         self.backgroundColor = backgroundColor
         self.insertionPointColor = insertionPointColor
         self.selectedTextBackgroundColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
+        self.lineNumberColor = NSColor(xcColorThemeColor: lineNumberColor)
         self.attributes = attributes
     }
 }

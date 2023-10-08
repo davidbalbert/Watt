@@ -12,6 +12,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
+    @Invalidating(.display) var backgroundColor: NSColor = .textBackgroundColor
 
     var buffer: Buffer {
         didSet {
@@ -75,7 +76,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     }
 
     override func updateLayer() {
-        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+        layer?.backgroundColor = backgroundColor.cgColor
 
         for l in textLayer.sublayers ?? [] {
             l.setNeedsDisplay()

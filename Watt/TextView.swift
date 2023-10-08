@@ -47,6 +47,8 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             layoutManager.invalidateLayout()
             needsDisplay = true
+            lineNumberView.textColor = theme.lineNumberColor
+            lineNumberView.backgroundColor = theme.backgroundColor
         }
     }
 
@@ -150,6 +152,8 @@ class TextView: NSView, ClipViewDelegate {
         
         lineNumberView.buffer = buffer
         lineNumberView.font = font
+        lineNumberView.textColor = theme.lineNumberColor
+        lineNumberView.backgroundColor = backgroundColor
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
         NotificationCenter.default.addObserver(self, selector: #selector(lineNumberViewFrameDidChange(_:)), name: NSView.frameDidChangeNotification, object: lineNumberView)
