@@ -24,8 +24,8 @@ struct Theme {
     let lineNumberColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
-    static let `default`: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
-
+    // A theme that uses system colors and reacts to
+    // changes in the system appearance.
     static let system: Theme = Theme(
         foregroundColor: .textColor,
         backgroundColor: .textBackgroundColor,
