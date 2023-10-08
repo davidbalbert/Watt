@@ -903,7 +903,13 @@ extension AttributedRope.Attributes {
             if !AttributedRope.AttributeKeys.knownNSAttributedStringKeys.contains(key.rawValue) {
                 print("Unknown attribute key: \(key)")
             }
-            contents[key.rawValue] = value
+
+            // See comment in [NSAttributedString.Key: Any].init(_ attributes:).
+            if key == .underlineStyle, let value = value as? Int {
+                contents[key.rawValue] = NSUnderlineStyle(rawValue: value)
+            } else {
+                contents[key.rawValue] = value
+            }
         }
 
         self.init(contents)
