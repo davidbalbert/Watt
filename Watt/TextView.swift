@@ -39,10 +39,6 @@ class TextView: NSView, ClipViewDelegate {
         }
     }
 
-    var backgroundColor: NSColor {
-        theme.backgroundColor
-    }
-
     var theme: Theme = .system {
         didSet {
             layoutManager.invalidateLayout()
@@ -50,6 +46,31 @@ class TextView: NSView, ClipViewDelegate {
             lineNumberView.textColor = theme.lineNumberColor
             lineNumberView.backgroundColor = theme.backgroundColor
         }
+    }
+
+    var foregroundColor: NSColor {
+        get { theme.foregroundColor }
+        set { theme.foregroundColor = newValue }
+    }
+
+    var backgroundColor: NSColor {
+        get { theme.backgroundColor }
+        set { theme.backgroundColor = newValue }
+    }
+
+    var insertionPointColor: NSColor {
+        get { theme.insertionPointColor }
+        set { theme.insertionPointColor = newValue }
+    }
+
+    var selectedTextBackgroundColor: NSColor {
+        get { theme.selectedTextBackgroundColor }
+        set { theme.selectedTextBackgroundColor = newValue }
+    }
+
+    var lineNumberColor: NSColor {
+        get { theme.lineNumberColor }
+        set { theme.lineNumberColor = newValue }
     }
 
     var defaultAttributes: AttributedRope.Attributes {
@@ -61,9 +82,6 @@ class TextView: NSView, ClipViewDelegate {
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 
     // TODO: get this from Theme.
-    // Maybe make Theme into a protocol so that we can have a NullTheme
-    // which returns this, as well as textBackgroundColor for the view's
-    // background color.
     var markedTextAttributes: AttributedRope.Attributes {
         AttributedRope.Attributes([
             .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),

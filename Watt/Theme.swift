@@ -17,12 +17,12 @@ struct Theme {
         case noLineNumberColor
     }
 
-    let foregroundColor: NSColor
-    let backgroundColor: NSColor
-    let insertionPointColor: NSColor
-    let selectedTextBackgroundColor: NSColor
-    let lineNumberColor: NSColor
-    let attributes: [Token.TokenType: AttributedRope.Attributes]
+    var foregroundColor: NSColor
+    var backgroundColor: NSColor
+    var insertionPointColor: NSColor
+    var selectedTextBackgroundColor: NSColor
+    var lineNumberColor: NSColor
+    var attributes: [Token.TokenType: AttributedRope.Attributes]
 
     // A theme that uses system colors and reacts to
     // changes in the system appearance.
