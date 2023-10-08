@@ -24,7 +24,7 @@ struct Theme {
     let lineNumberColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
-    static let defaultTheme: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
+    static let `default`: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
 
     init(name: String, withExtension ext: String) throws {
         guard let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Themes") else {
