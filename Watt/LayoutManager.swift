@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Cocoa
 import CoreText
 
 protocol LayoutManagerDelegate: AnyObject {
