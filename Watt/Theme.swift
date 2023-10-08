@@ -26,6 +26,14 @@ struct Theme {
 
     static let `default`: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
 
+    static let system: Theme = Theme(
+        foregroundColor: .textColor,
+        backgroundColor: .textBackgroundColor,
+        insertionPointColor: .black, // TODO: .textInsertionPointColor on Sonoma.
+        selectedTextBackgroundColor: .selectedTextBackgroundColor,
+        lineNumberColor: .secondaryLabelColor
+    )
+
     init(name: String, withExtension ext: String) throws {
         guard let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Themes") else {
             throw ThemeError.notFound
@@ -37,6 +45,15 @@ struct Theme {
             default:
                 throw ThemeError.invalidFormat
         }
+    }
+
+    init(foregroundColor: NSColor, backgroundColor: NSColor, insertionPointColor: NSColor, selectedTextBackgroundColor: NSColor, lineNumberColor: NSColor, attributes: [Token.TokenType: AttributedRope.Attributes] = [:]) {
+        self.foregroundColor = foregroundColor
+        self.backgroundColor = backgroundColor
+        self.insertionPointColor = insertionPointColor
+        self.selectedTextBackgroundColor = selectedTextBackgroundColor
+        self.lineNumberColor = lineNumberColor
+        self.attributes = attributes
     }
 
     subscript(key: Token.TokenType) -> AttributedRope.Attributes? {

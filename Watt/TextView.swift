@@ -43,7 +43,7 @@ class TextView: NSView, ClipViewDelegate {
         theme.backgroundColor
     }
 
-    var theme: Theme = .default {
+    var theme: Theme = .system {
         didSet {
             layoutManager.invalidateLayout()
             needsDisplay = true
