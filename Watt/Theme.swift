@@ -13,8 +13,10 @@ struct Theme {
         case invalidFormat
         case cannotParse
         case noMainFont
+        case noForegroundColor
     }
 
+    let foregroundColor: NSColor
     let backgroundColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
@@ -208,6 +210,10 @@ extension Theme {
             throw ThemeError.noMainFont
         }
 
+        guard let foregroundColor = xcColorTheme.colors["xcode.syntax.plain"] else {
+            throw ThemeError.noForegroundColor
+        }
+
         var attributes: [Token.TokenType: AttributedRope.Attributes] = [:]
 
         for t in Token.TokenType.allCases {
@@ -238,6 +244,7 @@ extension Theme {
             }
         }
 
+        self.foregroundColor = NSColor(xcColorThemeColor: foregroundColor)
         self.backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
         self.attributes = attributes
     }

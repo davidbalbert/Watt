@@ -180,7 +180,11 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
-        return attrRope.transformingAttributes(\.token) { attr in
+        var new = attrRope
+
+        new.foregroundColor = theme.foregroundColor
+
+        return new.transformingAttributes(\.token) { attr in
             var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
 
             if attributes.font != nil {
