@@ -109,7 +109,7 @@ fileprivate extension TreeSitterTextPoint {
     }
 }
 
-extension TreeSitterInputEdit {
+fileprivate extension TreeSitterInputEdit {
     init(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
         // TODO: with multiple cursors, we should find a way to do a more efficient summary.
         let (replacementRange, newCount) = delta.summary()
