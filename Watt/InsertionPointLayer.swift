@@ -7,9 +7,15 @@
 
 import Cocoa
 
+protocol InsertionPointLayerDelegate: AnyObject {
+    func insertionPointColor(for selectionLayer: InsertionPointLayer) -> NSColor
+}
+
 class InsertionPointLayer: CALayer {
+    weak var insertionPointDelegate: InsertionPointLayerDelegate?
+
     override func display() {
-        backgroundColor = NSColor.black.cgColor
+        backgroundColor = insertionPointDelegate?.insertionPointColor(for: self).cgColor ?? .black
     }
 
     override func action(forKey event: String) -> CAAction? {

@@ -317,6 +317,7 @@ extension TextView: LayoutManagerDelegate {
         let l = InsertionPointLayer()
         l.anchorPoint = .zero
         l.delegate = self // NSViewLayerContentScaleDelegate
+        l.insertionPointDelegate = self
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)

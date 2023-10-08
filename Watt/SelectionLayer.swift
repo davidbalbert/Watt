@@ -8,14 +8,14 @@
 import Cocoa
 
 protocol SelectionLayerDelegate: AnyObject {
-    func textSelectionBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor
+    func selectedTextBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor
 }
 
 class SelectionLayer: CALayer {
     weak var selectionDelegate: SelectionLayerDelegate?
 
     override func display() {
-        backgroundColor = selectionDelegate?.textSelectionBackgroundColor(for: self).cgColor ?? NSColor.selectedTextBackgroundColor.cgColor
+        backgroundColor = selectionDelegate?.selectedTextBackgroundColor(for: self).cgColor ?? NSColor.selectedTextBackgroundColor.cgColor
     }
 
     override func action(forKey event: String) -> CAAction? {

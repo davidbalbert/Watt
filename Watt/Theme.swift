@@ -18,7 +18,8 @@ struct Theme {
 
     let foregroundColor: NSColor
     let backgroundColor: NSColor
-    let textSelectionColor: NSColor
+    let insertionPointColor: NSColor
+    let selectedTextBackgroundColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
     static let defaultTheme: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
@@ -247,9 +248,18 @@ extension Theme {
             }
         }
 
+        let backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
+        let insertionPointColor: NSColor
+        if backgroundColor.brightnessComponent < 0.5 {
+            insertionPointColor = .white
+        } else {
+            insertionPointColor = .black
+        }
+
         self.foregroundColor = NSColor(xcColorThemeColor: foregroundColor)
-        self.backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
-        self.textSelectionColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
+        self.backgroundColor = backgroundColor
+        self.insertionPointColor = insertionPointColor
+        self.selectedTextBackgroundColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
         self.attributes = attributes
     }
 }

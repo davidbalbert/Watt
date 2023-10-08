@@ -101,11 +101,17 @@ extension TextView {
 }
 
 extension TextView: SelectionLayerDelegate {
-    func textSelectionBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor {
+    func selectedTextBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor {
         if windowIsKey && isFirstResponder {
-            return theme.textSelectionColor
+            return theme.selectedTextBackgroundColor
         } else {
             return .unemphasizedSelectedTextBackgroundColor
         }
+    }
+}
+
+extension TextView: InsertionPointLayerDelegate {
+    func insertionPointColor(for selectionLayer: InsertionPointLayer) -> NSColor {
+        theme.insertionPointColor
     }
 }
