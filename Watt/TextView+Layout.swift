@@ -182,6 +182,7 @@ extension TextView: LayoutManagerDelegate {
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
         var new = attrRope
 
+        // TODO: this ignores any foregroundColor that's set on buffer.content. Find a better way to do this.
         new.foregroundColor = theme.foregroundColor
 
         return new.transformingAttributes(\.token) { attr in
