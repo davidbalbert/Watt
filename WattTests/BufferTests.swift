@@ -20,7 +20,7 @@ final class BufferTests: XCTestCase {
         }
         """
 
-        let buffer = Buffer(code, language: .cSource)
+        let buffer = Buffer(code, language: .c)
 
         let tokens = [
             Token(type: .keyword, range: 0..<8), // #include

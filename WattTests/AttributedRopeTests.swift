@@ -129,7 +129,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
         XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .red)
         XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
-        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
+        XCTAssertEqual(attrs[.underlineStyle] as? Int, NSUnderlineStyle.single.rawValue)
         XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
 
         // unsetting attributes
@@ -198,7 +198,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 14))
         XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .yellow)
         XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
-        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
+        XCTAssertEqual(attrs[.underlineStyle] as? Int, NSUnderlineStyle.single.rawValue)
         XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
 
         range = NSRange(location: 0, length: 0)
@@ -209,7 +209,7 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(attrs[.font] as? NSFont, .systemFont(ofSize: 12))
         XCTAssertEqual(attrs[.foregroundColor] as? NSColor, .red)
         XCTAssertEqual(attrs[.backgroundColor] as? NSColor, .blue)
-        XCTAssertEqual(attrs[.underlineStyle] as? NSUnderlineStyle, .single)
+        XCTAssertEqual(attrs[.underlineStyle] as? Int, NSUnderlineStyle.single.rawValue)
         XCTAssertEqual(attrs[.underlineColor] as? NSColor, .green)
 
         // merging ranges

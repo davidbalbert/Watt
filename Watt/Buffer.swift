@@ -232,10 +232,8 @@ class Buffer {
     func getAttributes(at i: Index) -> AttributedRope.Attributes {
         contents.getAttributes(at: i)
     }
-}
 
-extension Buffer: HighlighterDelegate {
-    func highlighter(_ highlighter: Highlighter, applyTokens tokens: [Token]) {
+    func applyTokens(_ tokens: [Token]) {
         var ranges: [Range<Index>] = []
 
         for t in tokens {
@@ -247,6 +245,12 @@ extension Buffer: HighlighterDelegate {
         for layoutManager in layoutManagers {
             layoutManager.attributesDidChange(in: ranges)
         }
+    }
+}
+
+extension Buffer: HighlighterDelegate {
+    func highlighter(_ highlighter: Highlighter, applyTokens tokens: [Token]) {
+        applyTokens(tokens)
     }
 
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
