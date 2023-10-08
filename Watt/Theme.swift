@@ -18,6 +18,7 @@ struct Theme {
 
     let foregroundColor: NSColor
     let backgroundColor: NSColor
+    let textSelectionColor: NSColor
     let attributes: [Token.TokenType: AttributedRope.Attributes]
 
     static let defaultTheme: Theme = try! Theme(name: "Default (Dark)", withExtension: "xccolortheme")
@@ -141,10 +142,12 @@ struct XCColorTheme: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case backgroundColor = "DVTSourceTextBackground"
+        case textSelectionColor = "DVTConsoleTextSelectionColor"
         case colors = "DVTSourceTextSyntaxColors"
         case fonts = "DVTSourceTextSyntaxFonts"
     }
 
+    let textSelectionColor: Color
     let backgroundColor: Color
     let colors: [String: Color]
     let fonts: [String: Font]
@@ -246,6 +249,7 @@ extension Theme {
 
         self.foregroundColor = NSColor(xcColorThemeColor: foregroundColor)
         self.backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
+        self.textSelectionColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
         self.attributes = attributes
     }
 }

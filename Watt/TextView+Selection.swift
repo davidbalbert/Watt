@@ -103,7 +103,7 @@ extension TextView {
 extension TextView: SelectionLayerDelegate {
     func textSelectionBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor {
         if windowIsKey && isFirstResponder {
-            return .selectedTextBackgroundColor
+            return theme.textSelectionColor
         } else {
             return .unemphasizedSelectedTextBackgroundColor
         }
