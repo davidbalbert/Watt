@@ -31,6 +31,14 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         true
     }
 
+    override var needsDisplay: Bool {
+        didSet {
+            for l in textLayer.sublayers ?? [] {
+                l.setNeedsDisplay()
+            }
+        }
+    }
+
     override init(frame frameRect: NSRect) {
         self.buffer = Buffer()
         super.init(frame: frameRect)
@@ -77,10 +85,6 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
 
     override func updateLayer() {
         layer?.backgroundColor = backgroundColor.cgColor
-
-        for l in textLayer.sublayers ?? [] {
-            l.setNeedsDisplay()
-        }
     }
 
     override func layout() {

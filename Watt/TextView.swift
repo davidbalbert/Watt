@@ -29,6 +29,14 @@ class TextView: NSView, ClipViewDelegate {
         true
     }
 
+    override var needsDisplay: Bool {
+        didSet {
+            setTextNeedsDisplay()
+            setSelectionNeedsDisplay()
+            setInsertionPointNeedsDisplay()
+        }
+    }
+
     var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
             buffer.contents.font = font
@@ -196,10 +204,6 @@ class TextView: NSView, ClipViewDelegate {
 
     override func updateLayer() {
         layer?.backgroundColor = theme.backgroundColor.cgColor
-
-        setTextNeedsDisplay()
-        setSelectionNeedsDisplay()
-        setInsertionPointNeedsDisplay()
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {
