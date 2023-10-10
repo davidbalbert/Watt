@@ -22,6 +22,7 @@ struct Theme {
     var insertionPointColor: NSColor
     var selectedTextBackgroundColor: NSColor
     var lineNumberColor: NSColor
+    var markedTextAttributes: AttributedRope.Attributes
     var attributes: [Token.TokenType: AttributedRope.Attributes]
 
     // A theme that uses system colors and reacts to
@@ -32,7 +33,8 @@ struct Theme {
         // TODO: .textInsertionPointColor on Sonoma.
         insertionPointColor: .textColor,
         selectedTextBackgroundColor: .selectedTextBackgroundColor,
-        lineNumberColor: .secondaryLabelColor
+        lineNumberColor: .secondaryLabelColor,
+        markedTextAttributes: AttributedRope.Attributes.backgroundColor(.systemYellow.withSystemEffect(.disabled))
     )
 
     init(name: String, withExtension ext: String) throws {
@@ -48,12 +50,13 @@ struct Theme {
         }
     }
 
-    init(foregroundColor: NSColor, backgroundColor: NSColor, insertionPointColor: NSColor, selectedTextBackgroundColor: NSColor, lineNumberColor: NSColor, attributes: [Token.TokenType: AttributedRope.Attributes] = [:]) {
+    init(foregroundColor: NSColor, backgroundColor: NSColor, insertionPointColor: NSColor, selectedTextBackgroundColor: NSColor, lineNumberColor: NSColor, markedTextAttributes: AttributedRope.Attributes, attributes: [Token.TokenType: AttributedRope.Attributes] = [:]) {
         self.foregroundColor = foregroundColor
         self.backgroundColor = backgroundColor
         self.insertionPointColor = insertionPointColor
         self.selectedTextBackgroundColor = selectedTextBackgroundColor
         self.lineNumberColor = lineNumberColor
+        self.markedTextAttributes = markedTextAttributes
         self.attributes = attributes
     }
 
@@ -285,6 +288,7 @@ extension Theme {
         self.insertionPointColor = insertionPointColor
         self.selectedTextBackgroundColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
         self.lineNumberColor = NSColor(xcColorThemeColor: lineNumberColor)
+        self.markedTextAttributes = AttributedRope.Attributes.underlineStyle(.single)
         self.attributes = attributes
     }
 }

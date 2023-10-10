@@ -81,11 +81,8 @@ class TextView: NSView, ClipViewDelegate {
 
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 
-    // TODO: get this from Theme.
     var markedTextAttributes: AttributedRope.Attributes {
-        AttributedRope.Attributes([
-            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
-        ])
+        theme.markedTextAttributes
     }
 
     var buffer: Buffer {
