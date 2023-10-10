@@ -47,10 +47,6 @@ enum Languages {}
 
 extension Languages {
     struct PlainText: Language {
-        var type: UTType {
-            .plainText
-        }
-
         var highlighter: Highlighter? {
             nil
         }
@@ -65,7 +61,6 @@ extension Language where Self == Languages.PlainText {
 
 extension Languages {
     struct C: Language {
-
         var highlighter: Highlighter? {
             let treeSitterLanguage = TreeSitterLanguage(tree_sitter_c())
             guard let parser = try? TreeSitterParser(language: treeSitterLanguage, encoding: .utf8) else {

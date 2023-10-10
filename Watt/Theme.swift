@@ -80,7 +80,7 @@ struct Theme {
     }
 }
 
-struct XCColorTheme: Decodable {
+fileprivate struct XCColorTheme: Decodable {
     struct Color: Decodable {
         let red: CGFloat
         let green: CGFloat
@@ -177,7 +177,7 @@ struct XCColorTheme: Decodable {
     let fonts: [String: Font]
 }
 
-extension NSFont {
+fileprivate extension NSFont {
     convenience init?(xcFont font: XCColorTheme.Font) {
         let traits: [NSFontDescriptor.TraitKey: Any] = [
             .weight: font.weight,
@@ -193,7 +193,7 @@ extension NSFont {
     }
 }
 
-extension Token.TokenType {
+fileprivate extension Token.TokenType {
     var xcColorThemeKey: String? {
         switch self {
             case .keyword:
@@ -220,8 +220,8 @@ extension Token.TokenType {
     }
 }
 
-extension NSColor {
-    convenience init(xcColorThemeColor color: XCColorTheme.Color) {
+fileprivate extension NSColor {
+    convenience init(xcColor color: XCColorTheme.Color) {
         self.init(red: color.red, green: color.green, blue: color.blue, alpha: color.alpha)
     }
 }
@@ -263,7 +263,7 @@ extension Theme {
             }
 
             if let color = xcColorTheme.colors[key] {
-                attrs.foregroundColor = NSColor(xcColorThemeColor: color)
+                attrs.foregroundColor = NSColor(xcColor: color)
             }
 
             if !attrs.isEmpty {
@@ -271,7 +271,7 @@ extension Theme {
             }
         }
 
-        let backgroundColor = NSColor(xcColorThemeColor: xcColorTheme.backgroundColor)
+        let backgroundColor = NSColor(xcColor: xcColorTheme.backgroundColor)
         let insertionPointColor: NSColor
         if backgroundColor.brightnessComponent < 0.5 {
             insertionPointColor = .white
@@ -283,11 +283,11 @@ extension Theme {
             throw ThemeError.noLineNumberColor
         }
 
-        self.foregroundColor = NSColor(xcColorThemeColor: foregroundColor)
+        self.foregroundColor = NSColor(xcColor: foregroundColor)
         self.backgroundColor = backgroundColor
         self.insertionPointColor = insertionPointColor
-        self.selectedTextBackgroundColor = NSColor(xcColorThemeColor: xcColorTheme.textSelectionColor)
-        self.lineNumberColor = NSColor(xcColorThemeColor: lineNumberColor)
+        self.selectedTextBackgroundColor = NSColor(xcColor: xcColorTheme.textSelectionColor)
+        self.lineNumberColor = NSColor(xcColor: lineNumberColor)
         self.markedTextAttributes = AttributedRope.Attributes.underlineStyle(.single)
         self.attributes = attributes
     }

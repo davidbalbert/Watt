@@ -557,7 +557,7 @@ class LayoutManager {
     }
 
     func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString? {
-        guard let buffer else { return nil}
+        guard let buffer else { return nil }
         return nsAttributedSubstring(for: range, in: buffer)
     }
 
