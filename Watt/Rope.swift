@@ -175,7 +175,6 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
     return string.utf8.distance(from: string.startIndex, to: r.lowerBound)
 }
 
-
 // MARK: - Metrics
 
 // It would be better if these metrics were nested inside Rope instead
@@ -791,7 +790,6 @@ extension Rope: RangeReplaceableCollection {
     }
 }
 
-
 // MARK: - Conveniences
 
 // A few niceties that make Rope more like String.
@@ -829,6 +827,10 @@ extension Rope {
 
     subscript(offset: Int) -> Character {
         self[root.index(at: offset, using: .characters)]
+    }
+
+    subscript(bounds: Range<Int>) -> Rope {
+        self[index(at: bounds.lowerBound)..<index(at: bounds.upperBound)]
     }
 }
 
@@ -1289,8 +1291,38 @@ extension Rope.LinesView: BidirectionalCollection {
     }
 }
 
+extension Rope: Equatable {
+    static func == (lhs: Rope, rhs: Rope) -> Bool {
+        if lhs.root === rhs.root {
+            return true
+        }
+
+        if lhs.utf8.count != rhs.utf8.count {
+            return false
+        }
+
+        if lhs.root.leaves.count != rhs.root.leaves.count {
+            return false
+        }
+
+        for (l, r) in zip(lhs.root.leaves, rhs.root.leaves) {
+            if l.string != r.string {
+                return false
+            }
+        }
+
+        return true
+    }
+}
+
 
 // MARK: - Standard library integration
+
+extension Rope: ExpressibleByStringLiteral {
+    init(stringLiteral value: String) {
+        self.init(value)
+    }
+}
 
 extension String {
     init(_ rope: Rope) {
@@ -1382,7 +1414,6 @@ extension NSRange {
     }
 }
 
-
 // MARK: - Helpers
 
 fileprivate func countNewlines(in buf: Slice<UnsafeBufferPointer<UInt8>>) -> Int {
@@ -1396,31 +1427,5 @@ fileprivate func countNewlines(in buf: Slice<UnsafeBufferPointer<UInt8>>) -> Int
     }
 
     return count
-}
-
-fileprivate extension StringProtocol {
-    func index(at offset: Int) -> Index {
-        index(startIndex, offsetBy: offset)
-    }
-
-    func utf8Index(at offset: Int) -> Index {
-        utf8.index(startIndex, offsetBy: offset)
-    }
-
-    func utf16Index(at offset: Int) -> Index {
-        utf16.index(startIndex, offsetBy: offset)
-    }
-
-    func unicodeScalarIndex(at offset: Int) -> Index {
-        unicodeScalars.index(startIndex, offsetBy: offset)
-    }
-
-    // Like withUTF8, but rather than mutating, it just panics if we don't
-    // have contiguous UTF-8 storage.
-    func withExistingUTF8<R>(_ body: (UnsafeBufferPointer<UInt8>) -> R) -> R {
-        utf8.withContiguousStorageIfAvailable { buf in
-            body(buf)
-        }!
-    }
 }
 

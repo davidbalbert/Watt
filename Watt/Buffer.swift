@@ -11,15 +11,32 @@ class Buffer {
     typealias Index = AttributedRope.Index
 
     var contents: AttributedRope
+
+    var language: Language {
+        didSet {
+            highlighter = language.highlighter
+        }
+    }
+
+    var highlighter: Highlighter? {
+        didSet {
+            highlighter?.delegate = self
+        }
+    }
+
     var layoutManagers: [LayoutManager]
 
     convenience init() {
-        self.init("")
+        self.init("", language: .plainText)
     }
 
-    init(_ string: String) {
+    init(_ string: String, language: Language) {
         self.contents = AttributedRope(string)
+        self.language = language
         self.layoutManagers = []
+
+        self.highlighter = language.highlighter
+        highlighter?.delegate = self
     }
 
     var data: Data {
@@ -94,10 +111,6 @@ class Buffer {
         utf8.index(at: oldIndex.position)
     }
 
-    func attributedSubstring(for range: Range<Index>) -> NSAttributedString {
-        NSAttributedString(contents[range])
-    }
-
     func addLayoutManager(_ layoutManager: LayoutManager) {
         if layoutManagers.contains(where: { $0 === layoutManager }) {
             return
@@ -105,6 +118,7 @@ class Buffer {
 
         layoutManagers.append(layoutManager)
         layoutManager.buffer = self
+        highlighter?.highlightIfNecessary()
     }
 
     func removeLayoutManager(_ layoutManager: LayoutManager) {
@@ -168,27 +182,31 @@ class Buffer {
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: attrRope)
-        let delta = b.build()
-
-        let old = contents
-        contents = contents.applying(delta: delta)
-
-        for layoutManager in layoutManagers {
-            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
-        }
+        applying(delta: b.build())
     }
 
     func replaceSubrange(_ subrange: Range<Index>, with s: String) {
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: s)
-        let delta = b.build()
+        applying(delta: b.build())
+    }
 
+    func applying(delta: AttributedRope.Delta) {
         let old = contents
         contents = contents.applying(delta: delta)
 
         for layoutManager in layoutManagers {
-            layoutManager.bufferContentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+            layoutManager.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
         }
+
+        // For now, this must be done after the layout managers are notified of the
+        // changed content, because highlighting triggers highlighter(_:applyTokens:),
+        // which calls LayoutManager.attributesDidChange(in:), potentially referring
+        // to locations in the text that the layout manager doesn't yet know about.
+        // When I understand these interactions better, it might be possible for the
+        // content and attribute changes to be updated in one go.
+        highlighter?.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+        highlighter?.highlight()
     }
 
     func setAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
@@ -197,12 +215,56 @@ class Buffer {
         contents[range].setAttributes(attributes)
 
         for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange(in: documentRange)
+            layoutManager.attributesDidChange(in: range)
+        }
+    }
+
+    func mergeAttributes(_ attributes: AttributedRope.Attributes, in range: Range<Index>? = nil) {
+        let range = range ?? documentRange
+
+        contents[range].mergeAttributes(attributes)
+
+        for layoutManager in layoutManagers {
+            layoutManager.attributesDidChange(in: range)
         }
     }
 
     func getAttributes(at i: Index) -> AttributedRope.Attributes {
         contents.getAttributes(at: i)
+    }
+
+    func applyTokens(_ tokens: [Token]) {
+        var ranges: [Range<Index>] = []
+
+        for t in tokens {
+            let r = Range(t.range, in: contents)
+            ranges.append(r)
+            contents[r].token = t
+        }
+
+        for layoutManager in layoutManagers {
+            layoutManager.attributesDidChange(in: ranges)
+        }
+    }
+}
+
+extension Buffer: HighlighterDelegate {
+    func highlighter(_ highlighter: Highlighter, applyTokens tokens: [Token]) {
+        applyTokens(tokens)
+    }
+
+    func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
+        let i = text.utf8.index(at: byteIndex)
+        guard let (chunk, offset) = i.read() else {
+            return nil
+        }
+
+        return chunk.string[chunk.string.utf8Index(at: offset)...]
+    }
+
+    func highlighter(_ highlighter: Highlighter, stringForByteRange range: Range<Int>) -> String {
+        let range = Range(range, in: text)
+        return String(text[range])
     }
 }
 

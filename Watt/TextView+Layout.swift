@@ -179,6 +179,37 @@ extension TextView: LayoutManagerDelegate {
         typingAttributes
     }
 
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
+        var new = attrRope
+
+        // TODO: this ignores any foregroundColor that's set on buffer.content. Find a better way to do this.
+        new.foregroundColor = theme.foregroundColor
+
+        return new.transformingAttributes(\.token) { attr in
+            var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
+
+            if attributes.font != nil {
+                attributes.symbolicTraits = nil
+                attributes.fontWeight = nil
+            } else {
+                // I don't know if making familyName fall back to font.fontName is
+                // correct, but it seems like it could be reasonable.
+                var d = font
+                    .fontDescriptor
+                    .withFamily(font.familyName ?? font.fontName)
+                    .addingAttributes([.traits: [NSFontDescriptor.TraitKey.weight: attributes.fontWeight ?? .regular]])
+
+                if let symbolicTraits = attributes.symbolicTraits {
+                    d = d.withSymbolicTraits(symbolicTraits)
+                }
+
+                attributes.font = NSFont(descriptor: d, size: font.pointSize) ?? font
+            }
+
+            return attr.replace(with: attributes)
+        }
+    }
+
     // MARK: - Text layout
 
     func layoutTextLayer() {
@@ -238,7 +269,7 @@ extension TextView: LayoutManagerDelegate {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
         l.needsDisplayOnBoundsChange = true
-        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
         l.contentsScale = window?.backingScaleFactor ?? 1.0
 
         return l
@@ -260,8 +291,7 @@ extension TextView: LayoutManagerDelegate {
     func makeLayer(forSelectionRect rect: CGRect) -> CALayer {
         let l = SelectionLayer()
         l.anchorPoint = .zero
-        l.delegate = self // NSViewLayerContentScaleDelegate
-        l.selectionDelegate = self
+        l.delegate = self // SelectionLayerDelegate +  NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)
@@ -286,12 +316,18 @@ extension TextView: LayoutManagerDelegate {
     func makeLayer(forInsertionPointRect rect: CGRect) -> CALayer {
         let l = InsertionPointLayer()
         l.anchorPoint = .zero
-        l.delegate = self // NSViewLayerContentScaleDelegate
+        l.delegate = self // InsertionPointLayerDelegate + NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
         return l
+    }
+}
+
+extension TextView: LineLayerDelegate {
+    func effectiveAppearance(for lineLayer: LineLayer) -> NSAppearance {
+        effectiveAppearance
     }
 }

@@ -13,6 +13,15 @@ protocol LayoutManagerDelegate: AnyObject {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
+
+    // An opportunity for the delegate to return a custom AttributedRope.
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
+}
+
+extension LayoutManagerDelegate {
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
+        attrRope
+    }
 }
 
 protocol LayoutManagerLineNumberDelegate: AnyObject {
@@ -547,6 +556,21 @@ class LayoutManager {
         }
     }
 
+    func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString? {
+        guard let buffer else { return nil }
+        return nsAttributedSubstring(for: range, in: buffer)
+    }
+
+    func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
+        let attributedRope = AttributedRope(buffer[range])
+
+        guard let delegate else {
+            return NSAttributedString(attributedRope)
+        }
+
+        return NSAttributedString(delegate.layoutManager(self, attributedRopeFor: attributedRope))
+    }
+
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
     // method could return a LineFragment. That way, we won't have to worry about
     // calculating UTF-16 offsets into a LineFragment starting from the beginning
@@ -566,7 +590,7 @@ class LayoutManager {
             // an empty NSAttributedString and see what happens.
             attrStr = NSAttributedString(string: "\n", attributes: .init(attrs))
         } else {
-            attrStr = buffer.attributedSubstring(for: range)
+            attrStr = nsAttributedSubstring(for: range, in: buffer)
         }
 
         // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
@@ -664,7 +688,7 @@ class LayoutManager {
     }
 
     // MARK: - Editing
-    func bufferContentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
+    func contentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
         // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
         let (oldRange, count) = delta.summary()
 
@@ -673,7 +697,6 @@ class LayoutManager {
         heights.replaceSubrange(oldRange, with: new[newRange])
 
         lineCache.invalidate(delta: delta)
-
         delegate?.didInvalidateLayout(for: self)
 
         if old.lines.count != new.lines.count {
@@ -682,7 +705,13 @@ class LayoutManager {
     }
 
     func attributesDidChange(in range: Range<Buffer.Index>) {
-        lineCache.invalidate(range: Range(intRangeFor: range))
+        attributesDidChange(in: [range])
+    }
+
+    func attributesDidChange(in ranges: [Range<Buffer.Index>]) {
+        for r in ranges {
+            lineCache.invalidate(range: Range(intRangeFor: r))
+        }
         delegate?.didInvalidateLayout(for: self)
     }
 

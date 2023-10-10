@@ -78,12 +78,20 @@ extension AttributedRope {
             contents.count
         }
 
+        var isEmpty: Bool {
+            contents.isEmpty
+        }
+
         init() {
             contents = [:]
         }
 
-        init(_ contents: [String: Any]) {
+        fileprivate init(_ contents: [String: Any]) {
             self.contents = contents
+        }
+
+        mutating func merge(_ other: Attributes) {
+            contents.merge(other.contents, uniquingKeysWith: { $1 })
         }
 
         func merging(_ other: Attributes) -> Attributes {
@@ -92,6 +100,16 @@ extension AttributedRope {
 
         func merging(_ dictionary: [NSAttributedString.Key: Any]) -> Attributes {
             merging(Attributes(dictionary))
+        }
+    }
+
+    struct AttributeBuilder<T: AttributedRopeKey> {
+        var attributes: Attributes
+
+        func callAsFunction(_ value: T.Value) -> Attributes {
+            var new = attributes
+            new[T.self] = value
+            return new
         }
     }
 }
@@ -152,6 +170,46 @@ extension AttributedRope.Runs: Sequence {
     }
 }
 
+extension AttributedRope {
+    struct AttributesSlice<T> where T: AttributedRopeKey {
+        var runs: AttributedRope.Runs
+
+        var count: Int {
+            var c = 0
+            for run in runs {
+                if run.attributes[T.self] != nil {
+                    c += 1
+                }
+            }
+
+            return c
+        }
+    }
+}
+
+extension AttributedRope.AttributesSlice: Sequence {
+    func makeIterator() -> Iterator {
+        Iterator(self)
+    }
+    
+    struct Iterator: IteratorProtocol {
+        var runsIter: AttributedRope.Runs.Iterator
+
+        init(_ slice: AttributedRope.AttributesSlice<T>) {
+            self.runsIter = slice.runs.makeIterator()
+        }
+
+        mutating func next() -> AttributedRope.Runs.Run? {
+            while let run = runsIter.next() {
+                if run.attributes[T.self] != nil {
+                    return run
+                }
+            }
+
+            return nil
+        }
+    }
+}
 
 // MARK: - Attributes
 
@@ -160,8 +218,8 @@ extension AttributedRope {
         // TODO: Make a macro for defining attributes that:
         // 1. Creates the enum
         // 2. Creates the property
-        // 3. Adds the name to knownAttributes
-        static var knownAttributes: Set = [
+        // 3. If it maps to an NSAttributedString.Key, add the name to knownNSAttributedStringKeys
+        static var knownNSAttributedStringKeys: Set = [
             NSAttributedString.Key.font.rawValue,
             NSAttributedString.Key.foregroundColor.rawValue,
             NSAttributedString.Key.backgroundColor.rawValue,
@@ -231,6 +289,31 @@ extension AttributedRope {
             typealias Value = NSTextAttachment
             static let name = NSAttributedString.Key.attachment.rawValue
         }
+
+
+        // Watt-specific attributes
+
+        var token: TokenAttribute
+        var fontWeight: FontWeightAttribute
+        var symbolicTraits: SymbolicTraitsAttribute
+
+        // Store the whole token instead of just its type, because we want to
+        // make sure that two tokens aren't merged together. Each token has a
+        // unique range, which will prevent merging.
+        enum TokenAttribute: AttributedRopeKey {
+            typealias Value = Token
+            static let name = "is.dave.Watt.Token"
+        }
+
+        enum SymbolicTraitsAttribute: AttributedRopeKey {
+            typealias Value = NSFontDescriptor.SymbolicTraits
+            static let name = "is.dave.Watt.SymbolicTraits"
+        }
+
+        enum FontWeightAttribute: AttributedRopeKey {
+            typealias Value = NSFont.Weight
+            static let name = "is.dave.Watt.FontWeight"
+        }
     }
 }
 
@@ -254,6 +337,20 @@ extension AttributedRope.Attributes {
     }
 }
 
+extension AttributedRope.Attributes {
+    static subscript<K: AttributedRopeKey>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: AttributedRope.Attributes())
+    }
+
+    subscript<K: AttributedRopeKey>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: self)
+    }
+
+    func b<K: AttributedRopeKey>() -> AttributedRope.AttributeBuilder<K> {
+        return AttributedRope.AttributeBuilder(attributes: AttributedRope.Attributes())
+    }
+}
+
 extension AttributedRope {
     subscript<K>(_ attribute: K.Type) -> K.Value? where K: AttributedRopeKey {
         get { self[startIndex..<endIndex][K.self] }
@@ -271,9 +368,31 @@ extension AttributedRope {
         spans = b.build()
     }
 
+    mutating func mergeAttributes(_ attributes: Attributes) {
+        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: 0..<text.utf8.count)
+        spans = spans.merging(b.build()) { a, b in
+            if let a, let b {
+                return a.merging(b)
+            } else {
+                return a ?? b
+            }
+        }
+    }
+
     func getAttributes(at i: Index) -> Attributes {
         precondition(i >= startIndex && i < endIndex)
         return spans.data(at: i.position)!
+    }
+}
+
+extension AttributedRope.Runs {
+    subscript<K>(attribute: K.Type) -> AttributedRope.AttributesSlice<K> where K: AttributedRopeKey {
+        AttributedRope.AttributesSlice(runs: self)
+    }
+
+    subscript<K>(keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> AttributedRope.AttributesSlice<K> where K: AttributedRopeKey {
+        self[K.self]
     }
 }
 
@@ -355,6 +474,92 @@ extension AttributedSubrope {
         spans = spans.merging(b.build()) { a, b in
             b ?? a
         }
+    }
+
+    mutating func mergeAttributes(_ attributes: AttributedRope.Attributes) {
+        if bounds.isEmpty {
+            return
+        }
+
+        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
+        b.add(attributes, covering: Range(intRangeFor: bounds))
+
+        spans = spans.merging(b.build()) { a, b in
+            if let a, let b {
+                return a.merging(b)
+            } else {
+                return b ?? a
+            }
+        }
+    }
+}
+
+// MARK: - Attribute transformation
+
+extension AttributedRope {
+    struct AttributeTransformer<T> where T: AttributedRopeKey {
+        let text: Rope
+        let spans: Spans<Attributes>
+        let range: Range<Index>
+        var builder: SpansBuilder<Attributes>
+
+        var value: T.Value? {
+            get {
+                let span = spans.span(at: range.lowerBound.position)!
+                assert(span.range == Range(intRangeFor: range))
+                return span.data[T.self]
+            }
+            set {
+                if let newValue {
+                    replace(with: T.self, value: newValue)
+                } else {
+                    replace(with: Attributes())
+                }
+            }
+        }
+
+        mutating func replace(with attributes: Attributes) {
+            builder.add(attributes, covering: Range(intRangeFor: range))
+        }
+
+        mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
+            var attrs = Attributes()
+            attrs[key] = value
+            replace(with: attrs)
+        }
+
+        mutating func replace<U>(with keyPath: KeyPath<AttributeKeys, U>, value: U.Value) where U: AttributedRopeKey {
+            replace(with: U.self, value: value)
+        }
+    }
+
+    func transformingAttributes<K>(_ k: K.Type, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
+
+        for run in runs {
+            if run.attributes[K.self] != nil {
+                var t = AttributeTransformer<K>(text: text, spans: spans, range: run.range, builder: b)
+                block(&t)
+                b = t.builder
+            }
+        }
+
+        let newSpans = spans.merging(b.build()) { a, b in
+            guard let b else {
+                return a
+            }
+
+            var a = a ?? Attributes()
+            a[K.self] = nil
+            a.merge(b)
+            return a
+        }
+
+        return AttributedRope(text: text, spans: newSpans)
+    }
+
+    func transformingAttributes<K>(_ k: KeyPath<AttributeKeys, K>, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        transformingAttributes(K.self, block)
     }
 }
 
@@ -657,6 +862,37 @@ extension AttributedRope {
     }
 }
 
+// MARK: - Debugging
+
+extension AttributedRope: CustomStringConvertible {
+    var description: String {
+        var s = ""
+        for run in runs {
+            s += "\(String(text[run.range]))"
+            s += "\(run.attributes)"
+            s += "\n"
+        }
+        return s
+    }
+}
+
+extension AttributedSubrope: CustomStringConvertible {
+    var description: String {
+        AttributedRope(self).description
+    }
+}
+
+extension AttributedRope.Attributes: CustomStringConvertible {
+    var description: String {
+        var s = "{\n"
+        for (key, value) in contents {
+            s += "\t\(key) = \(value);\n"
+        }
+        s += "}"
+        return s
+    }
+}
+
 // MARK: - Conversion
 
 extension AttributedRope.Attributes {
@@ -664,10 +900,16 @@ extension AttributedRope.Attributes {
         var contents: [String: Any] = [:]
 
         for (key, value) in dictionary {
-            if !AttributedRope.AttributeKeys.knownAttributes.contains(key.rawValue) {
+            if !AttributedRope.AttributeKeys.knownNSAttributedStringKeys.contains(key.rawValue) {
                 print("Unknown attribute key: \(key)")
             }
-            contents[key.rawValue] = value
+
+            // See comment in [NSAttributedString.Key: Any].init(_ attributes:).
+            if key == .underlineStyle, let value = value as? Int {
+                contents[key.rawValue] = NSUnderlineStyle(rawValue: value)
+            } else {
+                contents[key.rawValue] = value
+            }
         }
 
         self.init(contents)
@@ -699,7 +941,26 @@ extension Dictionary where Key == NSAttributedString.Key, Value == Any {
         self.init()
 
         for (key, value) in attributes.contents {
-            self[NSAttributedString.Key(key)] = value
+            let k = NSAttributedString.Key(key)
+
+            // NSAttributedString requires underline style to be specified
+            // as an NSNumber, not an NSUnderlineStyle, but we want
+            // .underlineStyle to be an NSUnderlineStyle, so we transform
+            // it here.
+            //
+            // This is definitely a hack, but it's easy. If we find more
+            // keys like this, we should consider a more general solution.
+            // If that comes up, take a look at ObjectiveCConvertibleAttributedStringKey
+            // in swift-corelibs-foundation, which is solving the same
+            // problem. We can't implement attributeKeyType(matching key: String)
+            // because _forEachField(of:, options:) isn't public, but we could
+            // find another way to recover the AttributedRopeKey for a given
+            // String in Attributes.contents.
+            if k == .underlineStyle, let value = value as? NSUnderlineStyle {
+                self[k] = value.rawValue
+            } else {
+                self[k] = value
+            }
         }
     }
 }
@@ -717,5 +978,11 @@ extension NSAttributedString {
 
     convenience init(_ attributedSubrope: AttributedSubrope) {
         self.init(AttributedRope(attributedSubrope))
+    }
+}
+
+extension Range where Bound == AttributedRope.Index {
+    init(_ range: Range<Int>, in attributedRope: AttributedRope) {
+        self.init(range, in: attributedRope.text)
     }
 }

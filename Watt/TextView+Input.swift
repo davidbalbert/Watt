@@ -113,7 +113,7 @@ extension TextView: NSTextInputClient {
         let clamped = range.clamped(to: documentRange)
         actualRange?.pointee = NSRange(clamped, in: buffer)
 
-        return buffer.attributedSubstring(for: clamped)
+        return layoutManager.nsAttributedString(for: clamped)
     }
 
     func validAttributesForMarkedText() -> [NSAttributedString.Key] {

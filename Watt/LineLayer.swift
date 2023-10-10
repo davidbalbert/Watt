@@ -7,6 +7,10 @@
 
 import Cocoa
 
+protocol LineLayerDelegate: CALayerDelegate {
+    func effectiveAppearance(for lineLayer: LineLayer) -> NSAppearance
+}
+
 class LineLayer: CALayer {
     var line: Line
 
@@ -26,7 +30,13 @@ class LineLayer: CALayer {
     }
 
     override func draw(in ctx: CGContext) {
-        line.draw(at: .zero, in: ctx)
+        guard let delegate = delegate as? LineLayerDelegate else {
+            return
+        }
+
+        delegate.effectiveAppearance(for: self).performAsCurrentDrawingAppearance {
+            line.draw(at: .zero, in: ctx)
+        }
     }
 
     override func action(forKey event: String) -> CAAction? {

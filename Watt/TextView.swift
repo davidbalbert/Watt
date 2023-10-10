@@ -29,6 +29,14 @@ class TextView: NSView, ClipViewDelegate {
         true
     }
 
+    override var needsDisplay: Bool {
+        didSet {
+            setTextNeedsDisplay()
+            setSelectionNeedsDisplay()
+            setInsertionPointNeedsDisplay()
+        }
+    }
+
     var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet {
             buffer.contents.font = font
@@ -37,6 +45,40 @@ class TextView: NSView, ClipViewDelegate {
 
             layoutManager.invalidateLayout()
         }
+    }
+
+    var theme: Theme = .system {
+        didSet {
+            layoutManager.invalidateLayout()
+            needsDisplay = true
+            lineNumberView.textColor = theme.lineNumberColor
+            lineNumberView.backgroundColor = theme.backgroundColor
+        }
+    }
+
+    var foregroundColor: NSColor {
+        get { theme.foregroundColor }
+        set { theme.foregroundColor = newValue }
+    }
+
+    var backgroundColor: NSColor {
+        get { theme.backgroundColor }
+        set { theme.backgroundColor = newValue }
+    }
+
+    var insertionPointColor: NSColor {
+        get { theme.insertionPointColor }
+        set { theme.insertionPointColor = newValue }
+    }
+
+    var selectedTextBackgroundColor: NSColor {
+        get { theme.selectedTextBackgroundColor }
+        set { theme.selectedTextBackgroundColor = newValue }
+    }
+
+    var lineNumberColor: NSColor {
+        get { theme.lineNumberColor }
+        set { theme.lineNumberColor = newValue }
     }
 
     var defaultAttributes: AttributedRope.Attributes {
@@ -48,14 +90,15 @@ class TextView: NSView, ClipViewDelegate {
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 
     var markedTextAttributes: AttributedRope.Attributes {
-        AttributedRope.Attributes([
-            .backgroundColor: NSColor.systemYellow.withSystemEffect(.disabled),
-        ])
+        theme.markedTextAttributes
     }
 
     var buffer: Buffer {
         didSet {
-            buffer.setAttributes(defaultAttributes)
+            // It would be more correct to merge defaultAttributes
+            // that aren't set on buffer, but we don't have a good
+            // way to do that.
+            buffer.mergeAttributes(defaultAttributes)
 
             oldValue.removeLayoutManager(layoutManager)
             buffer.addLayoutManager(layoutManager)
@@ -132,6 +175,8 @@ class TextView: NSView, ClipViewDelegate {
         
         lineNumberView.buffer = buffer
         lineNumberView.font = font
+        lineNumberView.textColor = theme.lineNumberColor
+        lineNumberView.backgroundColor = backgroundColor
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
 
         NotificationCenter.default.addObserver(self, selector: #selector(lineNumberViewFrameDidChange(_:)), name: NSView.frameDidChangeNotification, object: lineNumberView)
@@ -158,7 +203,7 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func updateLayer() {
-        layer?.backgroundColor = NSColor.textBackgroundColor.cgColor
+        layer?.backgroundColor = theme.backgroundColor.cgColor
     }
 
     override func viewWillMove(toSuperview newSuperview: NSView?) {

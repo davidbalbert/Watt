@@ -1,0 +1,3 @@
+[submodule "TreeSitterLanguages/Sources/TreeSitterObjC/tree-sitter-objc"]
+	path = TreeSitterLanguages/Sources/TreeSitterObjC/tree-sitter-objc
+	url = https://github.com/jiyee/tree-sitter-objc
