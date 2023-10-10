@@ -85,7 +85,25 @@ final class TreeSitterParser {
 
         let tsInput = TSInput(
             payload: Unmanaged.passUnretained(input).toOpaque(),
-            read: read,
+            read: { payload, byteIndex, position, bytesRead in
+                let input: TreeSitterTextInput = Unmanaged.fromOpaque(payload!).takeUnretainedValue()
+
+                guard let s = input.callback(Int(byteIndex), TreeSitterTextPoint(position)) else {
+                    bytesRead?.pointee = 0
+                    return nil
+                }
+
+                // copy the data into an internally-managed buffer with a lifetime of input
+                let buf = UnsafeMutableBufferPointer<CChar>.allocate(capacity: s.utf8.count)
+                let n = s.withExistingUTF8 { p in
+                    p.copyBytes(to: buf)
+                }
+                precondition(n == s.utf8.count)
+                input.buf = buf
+
+                bytesRead?.pointee = UInt32(buf.count)
+                return UnsafePointer(buf.baseAddress)
+            },
             encoding: encoding
         )
 
@@ -131,29 +149,6 @@ final class TreeSitterTextInput {
     init(callback: @escaping TreeSitterReadCallback) {
         self.callback = callback
     }
-}
-
-fileprivate func read(payload: UnsafeMutableRawPointer?,
-                  byteIndex: UInt32,
-                  position: TSPoint,
-                  bytesRead: UnsafeMutablePointer<UInt32>?) -> UnsafePointer<Int8>? {
-    let input: TreeSitterTextInput = Unmanaged.fromOpaque(payload!).takeUnretainedValue()
-
-    guard let s = input.callback(Int(byteIndex), TreeSitterTextPoint(position)) else {
-        bytesRead?.pointee = 0
-        return nil
-    }
-
-    // copy the data into an internally-managed buffer with a lifetime of input
-    let buf = UnsafeMutableBufferPointer<CChar>.allocate(capacity: s.utf8.count)
-    let n = s.withExistingUTF8 { p in
-        p.copyBytes(to: buf)
-    }
-    precondition(n == s.utf8.count)
-    input.buf = buf
-
-    bytesRead?.pointee = UInt32(buf.count)
-    return UnsafePointer(buf.baseAddress)
 }
 
 struct TreeSitterInputEdit {
