@@ -21,20 +21,11 @@ extension TextView {
         }
 
         replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
-
-        print("insertNewline - ", terminator: "")
         unmarkText()
     }
 
     override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
-
-        print("insertNewlineIgnoringFieldEditor - ", terminator: "")
-        unmarkText()
+        insertNewline(sender)
     }
 
     override func insertTab(_ sender: Any?) {
@@ -43,23 +34,28 @@ extension TextView {
         }
 
         replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
-
-        print("insertTab - ", terminator: "")
         unmarkText()
     }
 
     override func insertTabIgnoringFieldEditor(_ sender: Any?) {
+        insertTab(sender)
+    }
+
+    // MARK: - Text deletion
+
+    override func deleteForward(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
             return
         }
 
-        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
-
-        print("insertTabIgnoringFieldEditor - ", terminator: "")
+        if !selection.isEmpty {
+            replaceSubrange(selection.range, with: "")
+        } else if selection.lowerBound < buffer.endIndex {
+            let end = buffer.index(after: selection.lowerBound)
+            replaceSubrange(selection.lowerBound..<end, with: "")
+        }
         unmarkText()
     }
-
-    // MARK: - Text deletion
 
     override func deleteBackward(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
@@ -75,7 +71,7 @@ extension TextView {
         unmarkText()
     }
 
-    override func deleteForward(_ sender: Any?) {
+    override func deleteWordForward(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
             return
         }
@@ -83,8 +79,40 @@ extension TextView {
         if !selection.isEmpty {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
-            let end = buffer.index(after: selection.lowerBound)
-            replaceSubrange(selection.lowerBound..<end, with: "")
+            let caret = selection.lowerBound
+            var end = caret
+            while end < buffer.endIndex && buffer[end].isWhitespace {
+                end = buffer.index(after: end)
+            }
+            while end < buffer.endIndex && !buffer[end].isWhitespace {
+                end = buffer.index(after: end)
+            }
+
+            replaceSubrange(caret..<end, with: "")
+        }
+        unmarkText()
+    }
+
+    override func deleteWordBackward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty {
+            replaceSubrange(selection.range, with: "")
+        } else if selection.lowerBound > buffer.startIndex {
+            let caret = selection.lowerBound
+            var start = buffer.index(before: caret)
+
+            while start > buffer.startIndex && buffer[buffer.index(before: start)].isWhitespace {
+                start = buffer.index(before: start)
+            }
+
+            while start > buffer.startIndex && !buffer[buffer.index(before: start)].isWhitespace {
+                start = buffer.index(before: start)
+            }
+
+            replaceSubrange(start..<caret, with: "")
         }
         unmarkText()
     }

@@ -87,6 +87,10 @@ class Buffer {
         contents.endIndex
     }
 
+    subscript(position: Index) -> Character {
+        contents.text[position]
+    }
+
     subscript(bounds: Range<Index>) -> AttributedSubrope {
         contents[bounds]
     }
