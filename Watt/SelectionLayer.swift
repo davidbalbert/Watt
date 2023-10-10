@@ -7,21 +7,19 @@
 
 import Cocoa
 
-protocol SelectionLayerDelegate: AnyObject {
+protocol SelectionLayerDelegate: CALayerDelegate {
     func selectedTextBackgroundColor(for selectionLayer: SelectionLayer) -> NSColor
     func effectiveAppearance(for selectionLayer: SelectionLayer) -> NSAppearance
 }
 
 class SelectionLayer: CALayer {
-    weak var selectionDelegate: SelectionLayerDelegate?
-
     override func display() {
-        guard let selectionDelegate else {
+        guard let delegate = delegate as? SelectionLayerDelegate else {
             return
         }
 
-        selectionDelegate.effectiveAppearance(for: self).performAsCurrentDrawingAppearance {
-            backgroundColor = selectionDelegate.selectedTextBackgroundColor(for: self).cgColor
+        delegate.effectiveAppearance(for: self).performAsCurrentDrawingAppearance {
+            backgroundColor = delegate.selectedTextBackgroundColor(for: self).cgColor
         }
     }
 

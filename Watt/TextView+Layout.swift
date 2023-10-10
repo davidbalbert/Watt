@@ -269,8 +269,7 @@ extension TextView: LayoutManagerDelegate {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
         l.needsDisplayOnBoundsChange = true
-        l.delegate = self // NSViewLayerContentScaleDelegate
-        l.lineLayerDelegate = self
+        l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
         l.contentsScale = window?.backingScaleFactor ?? 1.0
 
         return l
@@ -292,8 +291,7 @@ extension TextView: LayoutManagerDelegate {
     func makeLayer(forSelectionRect rect: CGRect) -> CALayer {
         let l = SelectionLayer()
         l.anchorPoint = .zero
-        l.delegate = self // NSViewLayerContentScaleDelegate
-        l.selectionDelegate = self
+        l.delegate = self // SelectionLayerDelegate +  NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)
@@ -318,8 +316,7 @@ extension TextView: LayoutManagerDelegate {
     func makeLayer(forInsertionPointRect rect: CGRect) -> CALayer {
         let l = InsertionPointLayer()
         l.anchorPoint = .zero
-        l.delegate = self // NSViewLayerContentScaleDelegate
-        l.insertionPointDelegate = self
+        l.delegate = self // InsertionPointLayerDelegate + NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
         l.bounds = CGRect(origin: .zero, size: rect.size)

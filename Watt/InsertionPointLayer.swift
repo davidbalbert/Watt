@@ -7,21 +7,19 @@
 
 import Cocoa
 
-protocol InsertionPointLayerDelegate: AnyObject {
+protocol InsertionPointLayerDelegate: CALayerDelegate {
     func insertionPointColor(for insertionPointLayer: InsertionPointLayer) -> NSColor
     func effectiveAppearance(for insertionPointLayer: InsertionPointLayer) -> NSAppearance
 }
 
 class InsertionPointLayer: CALayer {
-    weak var insertionPointDelegate: InsertionPointLayerDelegate?
-
     override func display() {
-        guard let insertionPointDelegate else {
+        guard let delegate = delegate as? InsertionPointLayerDelegate else {
             return
         }
 
-        insertionPointDelegate.effectiveAppearance(for: self).performAsCurrentDrawingAppearance {
-            backgroundColor = insertionPointDelegate.insertionPointColor(for: self).cgColor
+        delegate.effectiveAppearance(for: self).performAsCurrentDrawingAppearance {
+            backgroundColor = delegate.insertionPointColor(for: self).cgColor
         }
     }
 
