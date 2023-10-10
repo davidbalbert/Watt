@@ -7,6 +7,8 @@
 
 import Cocoa
 
+// MARK: - NSStandardKeyBindingResponding
+
 extension TextView {
     // MARK: - Text insertion
 
@@ -32,6 +34,28 @@ extension TextView {
         replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
 
         print("insertNewlineIgnoringFieldEditor - ", terminator: "")
+        unmarkText()
+    }
+
+    override func insertTab(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
+
+        print("insertTab - ", terminator: "")
+        unmarkText()
+    }
+
+    override func insertTabIgnoringFieldEditor(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
+
+        print("insertTabIgnoringFieldEditor - ", terminator: "")
         unmarkText()
     }
 
