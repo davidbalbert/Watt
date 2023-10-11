@@ -10,10 +10,71 @@ import Cocoa
 // MARK: - NSStandardKeyBindingResponding
 
 extension TextView {
-    // MARK: - Text insertion
-
     // List of all key commands for completeness testing: https://support.apple.com/en-us/HT201236
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
+
+    // MARK: Movement
+
+    override func moveForward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty || selection.upperBound == buffer.endIndex {
+            layoutManager.selection = Selection(head: selection.upperBound)
+        } else if selection.lowerBound < buffer.endIndex {
+            layoutManager.selection = Selection(head: buffer.index(after: selection.lowerBound))
+        }
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveRight(_ sender: Any?) {
+        moveForward(sender)
+    }
+
+    override func moveBackward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty || selection.lowerBound == buffer.startIndex {
+            layoutManager.selection = Selection(head: selection.lowerBound)
+        } else if selection.lowerBound > buffer.startIndex {
+            layoutManager.selection = Selection(head: buffer.index(before: selection.lowerBound))
+        }
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveLeft(_ sender: Any?) {
+        moveBackward(sender)
+    }
+
+    // MARK: - Selection
+
+    override func selectAll(_ sender: Any?) {
+        discardMarkedText()
+
+        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+    }
+
+    // MARK: - Insertion and indentation
+
+    override func insertTab(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
+        unmarkText()
+    }
+
 
     override func insertNewline(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
@@ -28,20 +89,11 @@ extension TextView {
         insertNewline(sender)
     }
 
-    override func insertTab(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
-        unmarkText()
-    }
-
     override func insertTabIgnoringFieldEditor(_ sender: Any?) {
         insertTab(sender)
     }
 
-    // MARK: - Text deletion
+    // MARK: - Deletion
 
     override func deleteForward(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
@@ -116,57 +168,6 @@ extension TextView {
             replaceSubrange(start..<caret, with: "")
         }
         unmarkText()
-    }
-
-    // MARK: Character navigation
-
-    override func moveLeft(_ sender: Any?) {
-        moveBackward(sender)
-    }
-
-    override func moveBackward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        if !selection.isEmpty || selection.lowerBound == buffer.startIndex {
-            layoutManager.selection = Selection(head: selection.lowerBound)
-        } else if selection.lowerBound > buffer.startIndex {
-            layoutManager.selection = Selection(head: buffer.index(before: selection.lowerBound))
-        }
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
-    }
-
-    override func moveRight(_ sender: Any?) {
-        moveForward(sender)
-    }
-
-    override func moveForward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        if !selection.isEmpty || selection.upperBound == buffer.endIndex {
-            layoutManager.selection = Selection(head: selection.upperBound)
-        } else if selection.lowerBound < buffer.endIndex {
-            layoutManager.selection = Selection(head: buffer.index(after: selection.lowerBound))
-        }
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
-    }
-
-    // MARK: - Selection
-
-    override func selectAll(_ sender: Any?) {
-        discardMarkedText()
-
-        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
     }
 }
 
