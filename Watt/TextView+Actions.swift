@@ -81,10 +81,11 @@ extension TextView {
         } else if selection.lowerBound < buffer.endIndex {
             let caret = selection.lowerBound
             var end = caret
-            while end < buffer.endIndex && buffer[end].isWhitespace {
+
+            while end < buffer.endIndex && isWordBoundary(buffer[end]) {
                 end = buffer.index(after: end)
             }
-            while end < buffer.endIndex && !buffer[end].isWhitespace {
+            while end < buffer.endIndex && !isWordBoundary(buffer[end]) {
                 end = buffer.index(after: end)
             }
 
@@ -104,11 +105,11 @@ extension TextView {
             let caret = selection.lowerBound
             var start = buffer.index(before: caret)
 
-            while start > buffer.startIndex && buffer[buffer.index(before: start)].isWhitespace {
+            while start > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: start)]) {
                 start = buffer.index(before: start)
             }
 
-            while start > buffer.startIndex && !buffer[buffer.index(before: start)].isWhitespace {
+            while start > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: start)]) {
                 start = buffer.index(before: start)
             }
 
@@ -167,4 +168,8 @@ extension TextView {
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
     }
+}
+
+fileprivate func isWordBoundary(_ c: Character) -> Bool {
+    c.isWhitespace || c.isPunctuation
 }
