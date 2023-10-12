@@ -659,9 +659,20 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
-    // offsetInLine is the offset in the Line, not the LineFragment.
-    func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int, in f: LineFragment) -> CGPoint {
-        CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
+    // TODO: not sure if we'll remove this, but if we do, we should be able to merge line(containing:) and line(containing:in:)
+    func position(forCharacterAt location: Buffer.Index) -> CGPoint {
+        guard let buffer else {
+            return CGPoint.zero
+        }
+
+        let line = line(containing: location, in: buffer)
+        // line should always have a fragment containing location
+        let frag = line.fragment(containing: location)!
+
+        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
+        let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
+        let linePos = convert(fragPos, from: frag)
+        return convert(linePos, from: line)
     }
 
     func line(containing location: Buffer.Index) -> Line? {

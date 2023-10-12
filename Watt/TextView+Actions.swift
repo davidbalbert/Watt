@@ -25,6 +25,9 @@ extension TextView {
         } else if selection.lowerBound < buffer.endIndex {
             layoutManager.selection = Selection(head: buffer.index(after: selection.lowerBound))
         }
+
+        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound).x
+
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
@@ -44,6 +47,9 @@ extension TextView {
         } else if selection.lowerBound > buffer.startIndex {
             layoutManager.selection = Selection(head: buffer.index(before: selection.lowerBound))
         }
+
+        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound).x
+
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
@@ -51,6 +57,85 @@ extension TextView {
 
     override func moveLeft(_ sender: Any?) {
         moveBackward(sender)
+    }
+
+    // Moving up and down when the selection is not empty:
+    // - Xcode: always relative to the selection's lower bound
+    // - Nova: same as Xcode
+    // - TextEdit: always relative to the selection's anchor
+    // - TextMate: always relative to the selection's head
+    // - VS Code: lower bound when moving up, upper bound when moving down
+    // - Zed: Same as VS Code
+    // - Sublime Text: Same as VS Code
+    //
+    // I'm going to match Xcode and Nova for now, but I'm not sure which
+    // option is most natural.
+    //
+    // To get the correct behavior, we need to ensure that selection.xOffset
+    // always corresponds to selection.lowerBound.
+
+    override func moveUp(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.lowerBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.lowerBound) else {
+            return
+        }
+
+        if frag.range.lowerBound == buffer.startIndex {
+            layoutManager.selection = Selection(head: buffer.startIndex, xOffset: selection.xOffset)
+        } else {
+            let pointInLine = CGPoint(
+                x: selection.xOffset,
+                y: frag.frame.minY - 0.0001
+            )
+            let point = layoutManager.convert(pointInLine, from: line)
+            guard let head = layoutManager.location(interactingAt: point) else {
+                return
+            }
+
+            layoutManager.selection = Selection(head: head, xOffset: selection.xOffset)
+        }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveDown(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.lowerBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.lowerBound) else {
+            return
+        }
+
+        if frag.range.upperBound == buffer.endIndex {
+            layoutManager.selection = Selection(head: buffer.endIndex, xOffset: selection.xOffset)
+        } else {
+            let pointInLine = CGPoint(
+                x: selection.xOffset,
+                y: frag.frame.maxY
+            )
+            let point = layoutManager.convert(pointInLine, from: line)
+            guard let head = layoutManager.location(interactingAt: point) else {
+                return
+            }
+
+            layoutManager.selection = Selection(head: head, xOffset: selection.xOffset)
+        }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
     }
 
     // MARK: - Selection
