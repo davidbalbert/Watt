@@ -612,7 +612,7 @@ class LayoutManager {
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let origin = CGPoint(x: textContainer.lineFragmentPadding, y: height)
-            var (glyphOrigin, typographicBounds) = lineMetrics(for: ctLine)
+            var (glyphOrigin, typographicBounds) = metrics(for: ctLine)
 
             if isEmptyLastLine {
                 typographicBounds.size.width = 0
@@ -638,8 +638,8 @@ class LayoutManager {
     }
 
     // returns glyphOrigin, typographicBounds
-    func lineMetrics(for line: CTLine) -> (CGPoint, CGRect) {
-        let ctTypographicBounds = CTLineGetBoundsWithOptions(line, [])
+    func metrics(for ctLine: CTLine) -> (CGPoint, CGRect) {
+        let ctTypographicBounds = CTLineGetBoundsWithOptions(ctLine, [])
 
         // ctTypographicBounds's coordinate system has the glyph origin at (0,0).
         // Here, we assume that the glyph origin lies on the left edge of
