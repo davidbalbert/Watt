@@ -14,6 +14,7 @@ struct LineFragment {
     let glyphOrigin: CGPoint
     let origin: CGPoint
     let typographicBounds: CGRect
+    let range: Range<Buffer.Index>
     let utf16Count: Int
 
     var frame: CGRect {
@@ -34,12 +35,24 @@ struct LineFragment {
         ctx.restoreGState()
     }
 
-    func characterIndex(for point: CGPoint) -> Int {
+    // Returns the offset in UTF-16 code units relative to
+    // the containing Line (not the fragment itself).
+    func utf16OffsetInLine(for point: CGPoint) -> Int? {
         // empty last line
         if utf16Count == 0 {
             return 0
         }
 
-        return CTLineGetStringIndexForPosition(ctLine, point)
+        let i = CTLineGetStringIndexForPosition(ctLine, point)
+        if i == kCFNotFound {
+            return nil
+        }
+
+        return i
+    }
+
+    func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int) -> CGPoint {
+        // TODO: do we need the equivalent of the utf16Count == 0 check above?
+        CGPoint(x: CTLineGetOffsetForStringIndex(ctLine, offsetInLine, nil), y: 0)
     }
 }

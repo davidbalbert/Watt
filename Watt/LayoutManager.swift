@@ -349,7 +349,7 @@ class LayoutManager {
                 let rangeInFrag = range.clamped(to: rangeOfFrag)
 
                 let start = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.lowerBound)
-                let xStart = positionForCharacter(atUTF16OffsetInLine: start, in: f).x
+                let xStart = f.positionForCharacter(atUTF16OffsetInLine: start).x
 
                 let shouldExtendSegment: Bool
                 if type == .selection && !rangeOfFrag.isEmpty {
@@ -365,7 +365,7 @@ class LayoutManager {
                     xEnd = textContainer.lineWidth
                 } else {
                     let end = buffer.utf16.distance(from: lineRange.lowerBound, to: rangeInFrag.upperBound)
-                    let x0 = positionForCharacter(atUTF16OffsetInLine: end, in: f).x
+                    let x0 = f.positionForCharacter(atUTF16OffsetInLine: end).x
                     let x1 = textContainer.lineWidth
                     xEnd = min(x0, x1)
                 }
@@ -436,6 +436,16 @@ class LayoutManager {
         }
     }
 
+    // Point is in text container coordinates.
+    func location(interactingAt point: CGPoint) -> Buffer.Index? {
+        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
+            return nil
+        }
+
+        return location
+    }
+
+    // Point is in text container coordinates.
     func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
         guard let buffer else {
             return nil
@@ -465,41 +475,33 @@ class LayoutManager {
 
         let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
 
-        let pointInLine = convert(point, to: line)
-
-        var lineFragment: LineFragment?
-        var offsetOfLineFragment = 0
-        for f in line.lineFragments {
-            let frame = f.frame
-            if (frame.minY..<frame.maxY).contains(pointInLine.y) {
-                lineFragment = f
-                break
-            }
-            offsetOfLineFragment += f.utf16Count
-        }
-
-        guard let lineFragment else {
+        guard let frag = line.fragment(forVerticalOffset: point.y) else {
             return nil
         }
 
-        let pointInLineFragment = convert(pointInLine, to: lineFragment)
+        let pointInLine = convert(point, to: line)
+        let pointInLineFragment = convert(pointInLine, to: frag)
         let pointInCTLine = CGPoint(
             x: pointInLineFragment.x - textContainer.lineFragmentPadding,
             y: pointInLineFragment.y
         )
 
-        let offsetInLine = lineFragment.characterIndex(for: pointInCTLine)
-        if offsetInLine == kCFNotFound {
+        // TODO: it's a bit odd that this method takes a point in CTLine as opposed
+        // to a point in the LineFragment. I wonder if there's a way to make
+        // this nicer.
+        //
+        // TODO: it would also be nice if this method took care of correcting for
+        // newlines that we're doing below "Rules"
+        guard let offsetInLine = frag.utf16OffsetInLine(for: pointInCTLine) else {
             return nil
         }
 
-        let offsetInLineFragment = offsetInLine - offsetOfLineFragment
+        var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
 
-        let fragStart = buffer.utf16.index(start, offsetBy: offsetOfLineFragment)
-        var pos = buffer.utf16.index(fragStart, offsetBy: offsetInLineFragment)
-
-        // TODO: what if lineFragment is empty?
-        let next = buffer.utf16.index(fragStart, offsetBy: lineFragment.utf16Count)
+        // TODO: what if frag is empty (the empty last line)? In that case
+        // frag.range.upperBound will be buffer.startIndex and
+        // index(before:) will fail. Is this possible?
+        let next = frag.range.upperBound
         let last = buffer.index(before: next)
         let c = buffer.characters[last]
 
@@ -521,7 +523,7 @@ class LayoutManager {
         }
 
         let affinity: Selection.Affinity
-        if pos != fragStart && (afterEnd || (c == "\n" && atEnd)) {
+        if pos != frag.range.lowerBound && (afterEnd || (c == "\n" && atEnd)) {
             affinity = .upstream
         } else {
             affinity = .downstream
@@ -599,11 +601,13 @@ class LayoutManager {
         var width: CGFloat = 0
         var height: CGFloat = 0
         var i = 0
+        var bi = range.lowerBound
 
         var lineFragments: [LineFragment] = []
 
         while i < attrStr.length {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineWidth)
+            let bnext = buffer.utf16.index(bi, offsetBy: next - i)
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let p = CGPoint(x: 0, y: height)
@@ -618,16 +622,18 @@ class LayoutManager {
                 glyphOrigin: glyphOrigin,
                 origin: p,
                 typographicBounds: typographicBounds,
+                range: bi..<bnext,
                 utf16Count: isEmptyLastLine ? 0 : next - i
             )
             lineFragments.append(lineFragment)
 
             i = next
+            bi = bnext
             width = min(max(width, typographicBounds.width), textContainer.width)
             height += typographicBounds.height
         }
 
-        return Line(origin: point, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), lineFragments: lineFragments)
+        return Line(origin: point, typographicBounds: CGRect(x: 0, y: 0, width: width, height: height), range: range, lineFragments: lineFragments)
     }
 
     // returns glyphOrigin, typographicBounds
@@ -658,12 +664,23 @@ class LayoutManager {
         CGPoint(x: CTLineGetOffsetForStringIndex(f.ctLine, offsetInLine, nil), y: 0)
     }
 
-    func location(interactingAt point: CGPoint) -> Buffer.Index? {
-        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
+    func line(containing location: Buffer.Index) -> Line? {
+        guard let buffer else {
             return nil
         }
 
-        return location
+        return line(containing: location, in: buffer)
+    }
+
+    private func line(containing location: Buffer.Index, in buffer: Buffer) -> Line {
+        let start = buffer.lines.index(roundingDown: location)
+        let end = buffer.lines.index(after: start)
+
+        let y = heights.yOffset(upThroughPosition: location.position)
+
+        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+
+        return line
     }
 
     // Returns the range of the buffer contained by rect. The start
