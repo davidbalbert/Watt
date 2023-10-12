@@ -538,6 +538,17 @@ class LayoutManager {
 
         if var line = lineCache[range.lowerBound.position] {
             line.origin.y = point.y
+            line.range = range
+
+            var start = range.lowerBound
+            for i in 0..<line.lineFragments.count {
+                let end = buffer.utf16.index(start, offsetBy: line.lineFragments[i].utf16Count)
+                line.lineFragments[i].range = start..<end
+                start = end
+            }
+
+            assert(start == range.upperBound)
+
             return (line, line.typographicBounds)
         } else {
             let line = makeLine(from: range, in: buffer, at: point)

@@ -14,7 +14,7 @@ struct LineFragment {
     let glyphOrigin: CGPoint
     let origin: CGPoint
     let typographicBounds: CGRect
-    let range: Range<Buffer.Index>
+    var range: Range<Buffer.Index>
     let utf16Count: Int
 
     var frame: CGRect {

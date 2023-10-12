@@ -13,8 +13,8 @@ struct Line: Identifiable {
     var id: UUID = UUID()
     var origin: CGPoint
     let typographicBounds: CGRect
-    let range: Range<Buffer.Index>
-    let lineFragments: [LineFragment]
+    var range: Range<Buffer.Index>
+    var lineFragments: [LineFragment]
 
     var frame: CGRect {
         CGRect(
