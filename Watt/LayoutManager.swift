@@ -154,37 +154,24 @@ class LayoutManager {
             return
         }
 
-        let start = buffer.lines.index(roundingDown: selection.lowerBound)
-
-        let end: Buffer.Index
-        if start == buffer.endIndex {
-            end = start
-        } else {
-            end = buffer.lines.index(after: start)
-        }
-
-        let y = heights.yOffset(upThroughPosition: selection.lowerBound.position)
-        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let line = line(containing: selection.lowerBound, in: buffer)
 
         var frag: LineFragment?
-        var i = start
+        var i = line.range.lowerBound
         var offsetOfLineFragment = 0
         for f in line.lineFragments {
-            let next = buffer.utf16.index(i, offsetBy: f.utf16Count)
-            let r = i..<next
-
-            if selection.lowerBound == r.upperBound && selection.affinity == .upstream {
+            if selection.lowerBound == f.range.upperBound && selection.affinity == .upstream {
                 frag = f
                 break
             }
 
-            if r.contains(selection.lowerBound) {
+            if f.range.contains(selection.lowerBound) {
                 frag = f
                 break
             }
 
             offsetOfLineFragment += f.utf16Count
-            i = next
+            i = f.range.upperBound
         }
 
         guard let frag else {
@@ -452,8 +439,6 @@ class LayoutManager {
         let line = line(forVerticalOffset: point.y, in: buffer)
 
         // the document ends with an empty last line.
-        // TODO: check if this returns upstream in TextKit 2. If it does,
-        // amend the rules.
         if line.range.lowerBound == buffer.endIndex {
             return (buffer.endIndex, .upstream)
         }
@@ -714,7 +699,7 @@ class LayoutManager {
     // Returns the range of the buffer contained by rect. The start
     // and end of the range are rounded down and up to the nearest line
     // boundary respectively, so that if you were to lay out those lines,
-    // you'd fill the entire viewport.
+    // you'd fill the entire rect.
     func lineRange(intersecting rect: CGRect, in buffer: Buffer) -> Range<Buffer.Index> {
         let baseStart = heights.position(upThroughYOffset: rect.minY)
         let baseEnd = heights.position(upThroughYOffset: rect.maxY)
