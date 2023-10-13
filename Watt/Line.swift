@@ -42,6 +42,11 @@ struct Line: Identifiable {
             if f.range.contains(location) {
                 return f
             }
+
+            // The only truly empty line (i.e. "" instead of "\n") is an empty last line.
+            if f.range == location..<location {
+                return f
+            }
         }
 
         return nil

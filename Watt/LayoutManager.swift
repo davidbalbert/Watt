@@ -714,7 +714,7 @@ class LayoutManager {
 
     private func line(containing location: Buffer.Index, in buffer: Buffer) -> Line {
         let start = buffer.lines.index(roundingDown: location)
-        let end = buffer.lines.index(after: start)
+        let end = start == buffer.endIndex ? start : buffer.lines.index(after: start)
 
         let y = heights.yOffset(upThroughPosition: location.position)
 
