@@ -14,7 +14,10 @@ extension TextView {
             return
         }
 
-        let xOffset = layoutManager.position(forCharacterAt: location).x
+        print(affinity)
+
+
+        let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
         layoutManager.selection = Selection(head: location, affinity: affinity, xOffset: xOffset)
         setTypingAttributes()
     }
@@ -26,7 +29,7 @@ extension TextView {
         }
 
         layoutManager.selection!.head = location
-        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound).x
+        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound, affinity: .downstream).x
 
         setTypingAttributes()
     }

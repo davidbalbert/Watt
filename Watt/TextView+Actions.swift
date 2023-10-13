@@ -20,13 +20,30 @@ extension TextView {
             return
         }
 
-        if !selection.isEmpty || selection.upperBound == buffer.endIndex {
-            layoutManager.selection = Selection(head: selection.upperBound)
-        } else if selection.lowerBound < buffer.endIndex {
-            layoutManager.selection = Selection(head: buffer.index(after: selection.lowerBound))
+        if selection.isEmpty && selection.lowerBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
         }
 
-        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound).x
+        let head: Buffer.Index
+        let affinity: Selection.Affinity
+
+        if selection.isEmpty {
+            head = buffer.index(after: selection.lowerBound)
+            affinity = head == buffer.endIndex ? .upstream : .downstream
+        } else {
+            // If the selection ends at the end of a visual line, we want
+            // affinity to be upstream so that when we press the right
+            // arrow key, the caret doesn't end up on the next visual line.
+            let line = layoutManager.line(containing: selection.upperBound)!
+            let frag = line.fragment(containing: selection.upperBound, affinity: .upstream)!
+
+            head = selection.upperBound
+            affinity = head == frag.range.upperBound ? .upstream : .downstream
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -42,13 +59,21 @@ extension TextView {
             return
         }
 
-        if !selection.isEmpty || selection.lowerBound == buffer.startIndex {
-            layoutManager.selection = Selection(head: selection.lowerBound)
-        } else if selection.lowerBound > buffer.startIndex {
-            layoutManager.selection = Selection(head: buffer.index(before: selection.lowerBound))
+        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
         }
 
-        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound).x
+        let head: Buffer.Index
+
+        if selection.isEmpty {
+            head = buffer.index(before: selection.lowerBound)
+        } else {
+            head = selection.lowerBound
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -82,12 +107,12 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.lowerBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.lowerBound) else {
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
             return
         }
 
         if frag.range.lowerBound == buffer.startIndex {
-            layoutManager.selection = Selection(head: buffer.startIndex, xOffset: selection.xOffset)
+            layoutManager.selection = Selection(head: buffer.startIndex, xOffset: 0)
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
@@ -114,11 +139,12 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.lowerBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.lowerBound) else {
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
             return
         }
 
         if frag.range.upperBound == buffer.endIndex {
+            // TODO: we need to set xOffset to the end of the last line, but I've forgotten whether xOffset should be in LineFragment coordinates (without lineFragmentPadding) or in Line coordinates (including lineFragmentPadding).
             layoutManager.selection = Selection(head: buffer.endIndex, xOffset: selection.xOffset)
         } else {
             let pointInLine = CGPoint(

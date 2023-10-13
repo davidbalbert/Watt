@@ -37,12 +37,19 @@ struct Line: Identifiable {
     }
 
     // TODO: there are probably places in LayoutManager where we can use this method
-    func fragment(containing location: Buffer.Index) -> LineFragment? {
+    func fragment(containing location: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
         for f in lineFragments {
+            // This covers the case of the empty last line, which should
+            // always have upstream affinity.
+            if location == f.range.upperBound && affinity == .upstream {
+                return f
+            }
+
             if f.range.contains(location) {
                 return f
             }
 
+            // TODO: pretty sure this isn't needed
             // The only truly empty line (i.e. "" instead of "\n") is an empty last line.
             if f.range == location..<location {
                 return f

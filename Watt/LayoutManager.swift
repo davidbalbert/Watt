@@ -427,8 +427,17 @@ class LayoutManager {
             return nil
         }
 
+        // Rules:
+        //   1. You cannot click to the right of a "\n". No matter how far
+        //      far right you go, you will always be before the newline until
+        //      you move down to the next line.
+        //   2. The last location of any fragment that doesn't end in a "\n"
+        //      is upstream. This means the last location in the document is
+        //      always upstream.
+        //   3. All other locations are downstream.
+
         if point.y <= 0 {
-            return (buffer.startIndex, .downstream)
+            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
         }
         
         // If we click past the end of the document, select the last character
@@ -438,7 +447,7 @@ class LayoutManager {
 
         let line = line(forVerticalOffset: point.y, in: buffer)
 
-        // the document ends with an empty last line.
+        // we clicked on the empty last line
         if line.range.lowerBound == buffer.endIndex {
             return (buffer.endIndex, .upstream)
         }
@@ -456,44 +465,23 @@ class LayoutManager {
 
         var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
 
-        let last = buffer.index(before: frag.range.upperBound)
-        let c = buffer[last]
-
-        // Rules:
-        //   1. You cannot click to the right of a "\n". No matter how far
-        //      far right you go, you will always be before the newline until
-        //      you move down to the next line.
-        //   2. The first location in a line fragment is always downstream.
-        //      No exceptions.
-        //   3. The last location in a line fragment is upstream, unless the
-        //      line is empty (i.e. unless the line is "\n").
-        //   4. All other locations are downstream.
-
-        let atEnd = pos == last
-        let afterEnd = pos == frag.range.upperBound
-
-        if afterEnd && c == "\n" {
-            pos = last
+        // When calling CTLineGetStringIndexForPosition 
+        // string
+        if pos == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
+            pos = buffer.index(before: pos)
         }
 
-        let affinity: Selection.Affinity
-        if pos != frag.range.lowerBound && (afterEnd || (c == "\n" && atEnd)) {
-            affinity = .upstream
-        } else {
-            affinity = .downstream
-        }
-
-        return (pos, affinity)
+        return (pos, pos == frag.range.upperBound ? .upstream : .downstream)
     }
 
-    func position(forCharacterAt location: Buffer.Index) -> CGPoint {
+    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
         guard let buffer else {
             return .zero
         }
 
         let line = line(containing: location, in: buffer)
         // line should always have a fragment containing location
-        let frag = line.fragment(containing: location)!
+        let frag = line.fragment(containing: location, affinity: affinity)!
 
         let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
         let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
