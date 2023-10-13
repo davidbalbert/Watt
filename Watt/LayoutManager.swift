@@ -12,7 +12,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
-    func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
+    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
@@ -582,21 +582,15 @@ class LayoutManager {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
-        let attrStr: NSAttributedString
-        let isEmptyLastLine = range.lowerBound == buffer.endIndex
-
-        if isEmptyLastLine {
-            let attrs = delegate?.typingAttributes(for: self) ?? AttributedRope.Attributes()
-
-            // I believe this has to be a newline because an empty NSAttributedString
-            // has no runs, and thus no styles. Confirm this by attempting to create
-            // an empty NSAttributedString and see what happens.
-            attrStr = NSAttributedString(string: "\n", attributes: .init(attrs))
-        } else {
-            attrStr = nsAttributedSubstring(for: range, in: buffer)
+        if range.lowerBound == buffer.endIndex {
+            return makeEmptyLastLine(using: buffer, at: point)
         }
 
-        // TODO: docs say typesetter can be NULL, but this returns a CTTypesetter, not a CTTypesetter? What happens if this returns NULL?
+        let attrStr = nsAttributedSubstring(for: range, in: buffer)
+
+        // N.b. Docs say this can return NULL, but its declared inside CF_ASSUME_NONNULL_BEGIN,
+        // so it's imported into swift as non-optional. I bet this just means the documentation
+        // is out of date, but keep an eye on this.
         let typesetter = CTTypesetterCreateWithAttributedString(attrStr)
 
         var width: CGFloat = 0
@@ -612,21 +606,17 @@ class LayoutManager {
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
             let origin = CGPoint(x: textContainer.lineFragmentPadding, y: height)
-            var (glyphOrigin, typographicBounds) = metrics(for: ctLine)
+            let (glyphOrigin, typographicBounds) = metrics(for: ctLine)
 
-            if isEmptyLastLine {
-                typographicBounds.size.width = 0
-            }
-
-            let lineFragment = LineFragment(
+            let frag = LineFragment(
                 ctLine: ctLine,
                 glyphOrigin: glyphOrigin,
                 origin: origin,
                 typographicBounds: typographicBounds,
                 range: bi..<bnext,
-                utf16Count: isEmptyLastLine ? 0 : next - i
+                utf16Count: next - i //isEmptyLastLine ? 0 : next - i
             )
-            lineFragments.append(lineFragment)
+            lineFragments.append(frag)
 
             i = next
             bi = bnext
@@ -634,7 +624,48 @@ class LayoutManager {
             height += typographicBounds.height
         }
 
-        return Line(origin: point, typographicBounds: CGRect(x: 0, y: 0, width: width + 2*textContainer.lineFragmentPadding, height: height), range: range, lineFragments: lineFragments)
+        return Line(
+            origin: point,
+            typographicBounds: CGRect(x: 0, y: 0, width: width + 2*textContainer.lineFragmentPadding, height: height),
+            range: range,
+            lineFragments: lineFragments
+        )
+    }
+
+    func makeEmptyLastLine(using buffer: Buffer, at point: CGPoint) -> Line {
+        let attrs: AttributedRope.Attributes
+        if buffer.isEmpty {
+            attrs = delegate?.defaultAttributes(for: self) ?? AttributedRope.Attributes()
+        } else {
+            let last = buffer.index(before: buffer.endIndex)
+            attrs = buffer.getAttributes(at: last)
+        }
+
+        let origin = CGPoint(x: textContainer.lineFragmentPadding, y: 0)
+
+        // An empty NSAttributedString can't have attributes, so we render a dummy
+        // to get the correct line height.
+        let dummy = CTLineCreateWithAttributedString(NSAttributedString(string: " ", attributes: .init(attrs)))
+        var (glyphOrigin, typographicBounds) = metrics(for: dummy)
+        typographicBounds.size.width = 0
+
+        let emptyLine = CTLineCreateWithAttributedString(NSAttributedString(string: ""))
+
+        let frag = LineFragment(
+            ctLine: emptyLine,
+            glyphOrigin: glyphOrigin,
+            origin: origin,
+            typographicBounds: typographicBounds,
+            range: buffer.endIndex..<buffer.endIndex,
+            utf16Count: 0
+        )
+
+        return Line(
+            origin: point,
+            typographicBounds: CGRect(x: 0, y: 0, width: 2*textContainer.lineFragmentPadding, height: typographicBounds.height),
+            range: buffer.endIndex..<buffer.endIndex,
+            lineFragments: [frag]
+        )
     }
 
     // returns glyphOrigin, typographicBounds

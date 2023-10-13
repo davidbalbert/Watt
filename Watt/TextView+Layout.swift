@@ -175,8 +175,8 @@ extension TextView: LayoutManagerDelegate {
         updateFrameHeightIfNeeded()
     }
 
-    func typingAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
-        typingAttributes
+    func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
+        defaultAttributes
     }
 
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
