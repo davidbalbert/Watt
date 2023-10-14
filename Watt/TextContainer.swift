@@ -20,7 +20,7 @@ struct TextContainer: Equatable {
         size.height
     }
 
-    var lineWidth: CGFloat {
+    var lineFragmentWidth: CGFloat {
         size.width - 2*lineFragmentPadding
     }
 }

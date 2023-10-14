@@ -67,8 +67,7 @@ extension TextView {
         discardMarkedText()
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        let point = convertToTextContainer(locationInView)
-        startSelection(at: point)
+        startSelection(at: locationInView)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -81,8 +80,7 @@ extension TextView {
         }
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        let point = convertToTextContainer(locationInView)
-        extendSelection(to: point)
+        extendSelection(to: locationInView)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()

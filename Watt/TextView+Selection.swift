@@ -8,21 +8,26 @@
 import Cocoa
 
 extension TextView {
-    func startSelection(at point: CGPoint) {
+    func startSelection(at locationInView: CGPoint) {
+        let point = convertToTextContainer(locationInView)
         guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
             return
         }
 
-        layoutManager.selection = Selection(head: location, affinity: affinity)
+        let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
+        layoutManager.selection = Selection(head: location, affinity: affinity, xOffset: xOffset)
         setTypingAttributes()
     }
 
-    func extendSelection(to point: CGPoint) {
-        guard let location = layoutManager.location(interactingAt: point) else {
+    func extendSelection(to locationInView: CGPoint) {
+        let point = convertToTextContainer(locationInView)
+        guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
             return
         }
 
-        layoutManager.selection?.head = location
+        layoutManager.selection!.head = location
+        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound, affinity: affinity).x
+
         setTypingAttributes()
     }
 

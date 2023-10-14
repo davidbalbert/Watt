@@ -655,11 +655,19 @@ extension AttributedRope {
         replaceSubrange(endIndex..<endIndex, with: AttributedRope(s))
     }
 
-    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
+    subscript<R>(bounds: R) -> AttributedSubrope where R: RangeExpression<Index> {
         _read {
+            let bounds = bounds.relative(to: text)
+            bounds.lowerBound.validate(for: text.root)
+            bounds.upperBound.validate(for: text.root)
+
             yield AttributedSubrope(text: text, spans: spans, bounds: bounds)
         }
         _modify {
+            let bounds = bounds.relative(to: text)
+            bounds.lowerBound.validate(for: text.root)
+            bounds.upperBound.validate(for: text.root)
+
             var r = AttributedSubrope(text: text, spans: spans, bounds: bounds)
             text = Rope()
             spans = SpansBuilder<Attributes>(totalCount: 0).build()
@@ -708,14 +716,15 @@ extension AttributedRope {
     struct CharacterView {
         var text: Rope
         var spans: Spans<Attributes>
+        var bounds: Range<AttributedRope.Index>
     }
 
     var characters: CharacterView {
         _read {
-            yield CharacterView(text: text, spans: spans)
+            yield CharacterView(text: text, spans: spans, bounds: startIndex..<endIndex)
         }
         _modify {
-            var c = CharacterView(text: text, spans: spans)
+            var c = CharacterView(text: text, spans: spans, bounds: startIndex..<endIndex)
             text = Rope()
             spans = SpansBuilder<Attributes>(totalCount: 0).build()
 
@@ -727,46 +736,64 @@ extension AttributedRope {
     }
 }
 
+extension AttributedSubrope {
+    var characters: AttributedRope.CharacterView {
+        AttributedRope.CharacterView(text: text, spans: spans, bounds: bounds)
+    }
+}
+
 extension AttributedRope.CharacterView: BidirectionalCollection {
     typealias Index = AttributedRope.Index
 
     var startIndex: Index {
-        text.startIndex
+        bounds.lowerBound
     }
 
     var endIndex: Index {
-        text.endIndex
+        bounds.upperBound
     }
 
     func index(after i: Index) -> Index {
-        text.index(after: i)
+        precondition(bounds.lowerBound <= i && i < bounds.upperBound, "out of bounds")
+        return text.index(after: i)
     }
 
     func index(before i: Index) -> Index {
-        text.index(before: i)
+        precondition(bounds.lowerBound < i && i <= bounds.upperBound, "out of bounds")
+        return text.index(before: i)
     }
 
     subscript(position: Index) -> Character {
-        text[position]
+        precondition(bounds.lowerBound <= position && position < bounds.upperBound, "out of bounds")
+        return text[position]
     }
 
     // Delegate to Rope's more efficient implementations of these methods.
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        text.index(i, offsetBy: distance)
+        precondition(bounds.lowerBound <= i && i <= bounds.upperBound, "out of bounds")
+        let res = text.index(i, offsetBy: distance)
+        precondition(bounds.lowerBound <= res && res <= bounds.upperBound, "out of bounds")
+        return res
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        text.index(i, offsetBy: distance, limitedBy: limit)
+        precondition(bounds.lowerBound <= i && i <= bounds.upperBound, "out of bounds")
+        guard let res = text.index(i, offsetBy: distance, limitedBy: limit) else { return nil }
+        precondition(bounds.lowerBound <= res && res <= bounds.upperBound, "out of bounds")
+        return res
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        text.distance(from: start, to: end)
+        precondition(bounds.lowerBound <= start && start <= bounds.upperBound)
+        precondition(bounds.lowerBound <= end && end <= bounds.upperBound)
+        return text.distance(from: start, to: end)
     }
 }
 
 extension AttributedRope.CharacterView: RangeReplaceableCollection {
     init() {
-        self.init(text: Rope(), spans: SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build())
+        let text = Rope()
+        self.init(text: text, spans: SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build(), bounds: text.startIndex..<text.endIndex)
     }
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {

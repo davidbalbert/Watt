@@ -336,14 +336,14 @@ extension Heights {
                 assert(i.offsetOfLeaf + leaf.count == root.count)
 
                 prefixEnd = i.offsetOfLeaf
-                suffixStart = leaf.positions.last!
+                suffixStart = i.offsetOfLeaf + leaf.positions.last!
                 newLeaf = HeightsLeaf(positions: [0], heights: [newValue])
             } else if count == 0 && li == 1 {
                 // Updating a zero length line that's the second line in the leaf
                 assert(i.offsetOfLeaf + leaf.count == root.count)
 
                 prefixEnd = i.offsetOfLeaf
-                suffixStart = leaf.positions.last!
+                suffixStart = i.offsetOfLeaf + leaf.positions.last!
 
                 assert(leaf.positions[0] == leaf.positions[1])
                 let pos = leaf.positions[0]
@@ -354,7 +354,7 @@ extension Heights {
                 assert(i.offsetOfLeaf + leaf.count == root.count)
 
                 prefixEnd = i.offsetOfLeaf + leaf.positions[leaf.positions.count - 3]
-                suffixStart = leaf.positions.last!
+                suffixStart = i.offsetOfLeaf + leaf.positions.last!
 
                 assert(leaf.positions[leaf.positions.count - 2] == leaf.positions[leaf.positions.count - 1])
 
