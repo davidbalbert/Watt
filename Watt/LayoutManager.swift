@@ -306,8 +306,7 @@ class LayoutManager {
 
                 let shouldExtendSegment: Bool
                 if type == .selection && !frag.range.isEmpty {
-                    let last = buffer.index(before: frag.range.upperBound)
-                    let c = buffer.characters[last]
+                    let c = buffer[frag.range].characters.last
                     shouldExtendSegment = (range.upperBound == frag.range.upperBound && c == "\n") || range.upperBound > frag.range.upperBound
                 } else {
                     shouldExtendSegment = false
@@ -420,11 +419,6 @@ class LayoutManager {
         }
 
         let line = line(forVerticalOffset: point.y, in: buffer)
-
-        // we clicked on the empty last line
-        if line.range.lowerBound == buffer.endIndex {
-            return (buffer.endIndex, .upstream)
-        }
 
         // A line containing point.y should always have a fragment
         // that contains point.y.
