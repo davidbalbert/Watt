@@ -155,30 +155,10 @@ class LayoutManager {
         }
 
         let line = line(containing: selection.lowerBound, in: buffer)
-
-        var frag: LineFragment?
-        var i = line.range.lowerBound
-        var offsetOfLineFragment = 0
-        for f in line.lineFragments {
-            if selection.lowerBound == f.range.upperBound && selection.affinity == .upstream {
-                frag = f
-                break
-            }
-
-            if f.range.contains(selection.lowerBound) {
-                frag = f
-                break
-            }
-
-            offsetOfLineFragment += f.utf16Count
-            i = f.range.upperBound
-        }
-
-        guard let frag else {
-            return
-        }
+        let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity)!
 
         var rect: CGRect?
+        var i = frag.range.lowerBound
         var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
         CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
             guard let self else {
@@ -258,14 +238,8 @@ class LayoutManager {
             if i == buffer.endIndex {
                 // empty last line
                 next = i
-            } else if isTrailingSurrogate {
-                // If offsetInLine is pointing at a trailing surrogate, i will
-                // still be pointing at the leading surrogate because
-                // Buffer.utf16.index(_:offsetBy:) rounds down to the nearest
-                // unicode scalar boundary.
-                next = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine + 1)
             } else {
-                next = buffer.utf16.index(i, offsetBy: 1)
+                next = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine + 1)
             }
 
             let downstreamMatch = i == selection.lowerBound && leadingEdge && selection.affinity == .downstream
@@ -465,8 +439,9 @@ class LayoutManager {
 
         var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
 
-        // When calling CTLineGetStringIndexForPosition 
-        // string
+        // If you call CTLineGetStringIndexForPosition with an X value that's large
+        // enough on a CTLine that ends in a "\n", you'll get the index after
+        // the "\n", which we don't want (it's the start of the next line).
         if pos == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
             pos = buffer.index(before: pos)
         }

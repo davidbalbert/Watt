@@ -119,11 +119,11 @@ extension TextView {
                 y: frag.frame.minY - 0.0001
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let head = layoutManager.location(interactingAt: point) else {
+            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
                 return
             }
 
-            layoutManager.selection = Selection(head: head, xOffset: selection.xOffset)
+            layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
         }
 
         selectionLayer.setNeedsLayout()
@@ -145,18 +145,18 @@ extension TextView {
 
         if frag.range.upperBound == buffer.endIndex {
             // TODO: we need to set xOffset to the end of the last line, but I've forgotten whether xOffset should be in LineFragment coordinates (without lineFragmentPadding) or in Line coordinates (including lineFragmentPadding).
-            layoutManager.selection = Selection(head: buffer.endIndex, xOffset: selection.xOffset)
+            layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: selection.xOffset)
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
                 y: frag.frame.maxY
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let head = layoutManager.location(interactingAt: point) else {
+            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
                 return
             }
 
-            layoutManager.selection = Selection(head: head, xOffset: selection.xOffset)
+            layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
         }
 
         selectionLayer.setNeedsLayout()
