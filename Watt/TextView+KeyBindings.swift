@@ -1,5 +1,5 @@
 //
-//  TextView+Actions.swift
+//  TextView+KeyBindings.swift
 //  Watt
 //
 //  Created by David Albert on 5/24/23.
