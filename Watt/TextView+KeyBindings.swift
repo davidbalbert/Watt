@@ -165,6 +165,70 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveWordForward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.isEmpty && selection.lowerBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        var head = selection.upperBound
+        while head < buffer.endIndex && isWordBoundary(buffer[head]) {
+            head = buffer.index(after: head)
+        }
+        while head < buffer.endIndex && !isWordBoundary(buffer[head]) {
+            head = buffer.index(after: head)
+        }
+
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveWordBackward(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        var head = selection.lowerBound
+        while head > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: head)]) {
+            head = buffer.index(before: head)
+        }
+        while head > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: head)]) {
+            head = buffer.index(before: head)
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+
+
+    override func moveWordRight(_ sender: Any?) {
+        moveWordForward(sender)
+    }
+
+    override func moveWordLeft(_ sender: Any?) {
+        moveWordBackward(sender)
+    }
+
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
