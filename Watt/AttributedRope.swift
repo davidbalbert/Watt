@@ -353,8 +353,8 @@ extension AttributedRope.Attributes {
 
 extension AttributedRope {
     subscript<K>(_ attribute: K.Type) -> K.Value? where K: AttributedRopeKey {
-        get { self[...][K.self] }
-        set { self[...][K.self] = newValue }
+        get { self[startIndex..<endIndex][K.self] }
+        set { self[startIndex..<endIndex][K.self] = newValue }
     }
 
     subscript<K>(dynamicMember keyPath: KeyPath<AttributedRope.AttributeKeys, K>) -> K.Value? where K: AttributedRopeKey {
@@ -655,14 +655,16 @@ extension AttributedRope {
         replaceSubrange(endIndex..<endIndex, with: AttributedRope(s))
     }
 
-    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
+    subscript<R>(bounds: R) -> AttributedSubrope where R: RangeExpression<Index> {
         _read {
+            let bounds = bounds.relative(to: text)
             bounds.lowerBound.validate(for: text.root)
             bounds.upperBound.validate(for: text.root)
 
             yield AttributedSubrope(text: text, spans: spans, bounds: bounds)
         }
         _modify {
+            let bounds = bounds.relative(to: text)
             bounds.lowerBound.validate(for: text.root)
             bounds.upperBound.validate(for: text.root)
 
@@ -675,17 +677,6 @@ extension AttributedRope {
             text = r.text
             spans = r.spans
         }
-    }
-
-    // TODO: ensure that these nested yields in modify don't cause extra copies
-    subscript<R>(r: R) -> AttributedSubrope where R: RangeExpression<Index> {
-        _read { yield self[r.relative(to: text)] }
-        _modify { yield &self[r.relative(to: text)] }
-    }
-
-    subscript(r: UnboundedRange) -> AttributedSubrope {
-        _read { yield self[startIndex...] }
-        _modify { yield &self[startIndex...] }
     }
 }
 
