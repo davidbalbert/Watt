@@ -36,7 +36,6 @@ struct Line: Identifiable {
         ctx.restoreGState()
     }
 
-    // TODO: there are probably places in LayoutManager where we can use this method
     func fragment(containing location: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
         for f in lineFragments {
             if location == f.range.upperBound && affinity == .upstream {
@@ -51,7 +50,6 @@ struct Line: Identifiable {
         return nil
     }
 
-    // TODO: ditto
     // verticalOffset is in text container coordinates
     func fragment(forVerticalOffset verticalOffset: CGFloat) -> LineFragment? {
         let offsetInLine = verticalOffset - origin.y
