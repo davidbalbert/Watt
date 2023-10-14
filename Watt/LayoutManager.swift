@@ -362,8 +362,6 @@ class LayoutManager {
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
-        print(heights.root.count)
-
         while i < end {
             let next = buffer.lines.index(after: i)
             let (line, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
