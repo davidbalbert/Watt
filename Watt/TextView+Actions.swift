@@ -112,7 +112,8 @@ extension TextView {
         }
 
         if frag.range.lowerBound == buffer.startIndex {
-            layoutManager.selection = Selection(head: buffer.startIndex, xOffset: 0)
+            let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
+            layoutManager.selection = Selection(head: buffer.startIndex, affinity: .downstream, xOffset: xOffset)
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
@@ -144,8 +145,8 @@ extension TextView {
         }
 
         if frag.range.upperBound == buffer.endIndex {
-            // TODO: we need to set xOffset to the end of the last line, but I've forgotten whether xOffset should be in LineFragment coordinates (without lineFragmentPadding) or in Line coordinates (including lineFragmentPadding).
-            layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: selection.xOffset)
+            let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
+            layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
