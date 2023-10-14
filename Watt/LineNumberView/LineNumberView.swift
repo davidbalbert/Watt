@@ -52,7 +52,6 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     }
 
     func commonInit() {
-        // TODO: subscribe to buffer
         let trackingArea = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .cursorUpdate, .activeInKeyWindow], owner: self)
         addTrackingArea(trackingArea)
 
@@ -115,10 +114,10 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, addLineNumber lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat) {
+    func layoutManager(_ layoutManager: LayoutManager, addLineNumberForLine lineno: Int, withAlignmentFrame alignmentFrame: CGRect) {
         let l = layerCache[lineno] ?? makeLayer(for: lineno)
-        l.position = position
-        l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: lineHeight)
+        l.position = alignmentFrame.origin
+        l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: alignmentFrame.height)
         layerCache[lineno] = l
         textLayer.addSublayer(l)
     }

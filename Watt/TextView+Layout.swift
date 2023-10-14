@@ -217,21 +217,21 @@ extension TextView: LayoutManagerDelegate {
 
         var scrollAdjustment: CGFloat = 0
 
-        layoutManager.layoutText { line, previousBounds in
+        layoutManager.layoutText { line, prevAlignmentFrame in
             let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
 
             // Without making the layer's bounds aligned to the nearest point
             // I run into an issue where the glyphs seem to shift back and forth
             // by a fraction of a point. I'm not sure why that is given that
             // CALayer.masksToBounds is false.
-            l.bounds = line.typographicBounds.integerAligned
+            l.bounds = line.renderingSurfaceBounds
             l.position = convertFromTextContainer(line.origin)
             textLayerCache[line.id] = l
 
             textLayer.addSublayer(l)
 
-            let oldHeight = previousBounds.height
-            let newHeight = line.typographicBounds.height
+            let oldHeight = prevAlignmentFrame.height
+            let newHeight = line.alignmentFrame.height
             let delta = newHeight - oldHeight
             let oldMaxY = line.origin.y + oldHeight
 

@@ -14,9 +14,3 @@ extension CGRect: Hashable {
         hasher.combine(size)
     }
 }
-
-extension CGRect {
-    var integerAligned: CGRect {
-        NSIntegralRectWithOptions(self, .alignAllEdgesNearest)
-    }
-}

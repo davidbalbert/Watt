@@ -27,7 +27,7 @@ extension LayoutManagerDelegate {
 protocol LayoutManagerLineNumberDelegate: AnyObject {
     func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool
     func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, addLineNumber lineno: Int, at position: CGPoint, withLineHeight lineHeight: CGFloat)
+    func layoutManager(_ layoutManager: LayoutManager, addLineNumberForLine lineno: Int, withAlignmentFrame alignmentFrame: CGRect)
     func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager)
     func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int)
 }
@@ -77,7 +77,7 @@ class LayoutManager {
         heights.contentHeight
     }
 
-    func layoutText(using block: (_ line: Line, _ previousBounds: CGRect) -> Void) {
+    func layoutText(using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Void) {
         guard let delegate, let buffer else {
             return
         }
@@ -95,11 +95,11 @@ class LayoutManager {
 
         var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
 
-        enumerateLines(in: viewportRange) { line, previousBounds in
-            block(line, previousBounds)
+        enumerateLines(in: viewportRange) { line, prevAlignmentFrame in
+            block(line, prevAlignmentFrame)
 
             if updateLineNumbers {
-                lineNumberDelegate!.layoutManager(self, addLineNumber: lineno + 1, at: line.origin, withLineHeight: line.typographicBounds.height)
+                lineNumberDelegate!.layoutManager(self, addLineNumberForLine: lineno + 1, withAlignmentFrame: line.alignmentFrame)
             }
 
             lineno += 1
@@ -254,7 +254,7 @@ class LayoutManager {
                 x: round(min(caretOffset, textContainer.lineFragmentWidth)) - 0.5,
                 y: 0,
                 width: 1,
-                height: frag.typographicBounds.height
+                height: frag.alignmentFrame.height
             )
             rect = convert(convert(caretRect, from: frag), from: line)
 
@@ -322,10 +322,8 @@ class LayoutManager {
                     xEnd = min(x0, x1)
                 }
 
-                let bounds = frag.typographicBounds
-
                 // segment rect in line fragment coordinates
-                let rect = CGRect(x: xStart, y: 0, width: xEnd - xStart, height: bounds.height)
+                let rect = CGRect(x: xStart, y: 0, width: xEnd - xStart, height: frag.alignmentFrame.height)
 
                 if !block(rangeInFrag, convert(convert(rect, from: frag), from: line)) {
                     return false
@@ -346,7 +344,7 @@ class LayoutManager {
     //   range - the range of the line in buffer
     //   line - the line
     //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
-    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ previousBounds: CGRect) -> Bool) {
+    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Bool) {
         guard let buffer else {
             return
         }
@@ -364,17 +362,19 @@ class LayoutManager {
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
+        print(heights.root.count)
+
         while i < end {
             let next = buffer.lines.index(after: i)
-            let (line, oldBounds) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
-            let stop = !block(line, oldBounds)
+            let stop = !block(line, prevAlignmentFrame)
 
             if stop {
                 return
             }
 
-            y += line.typographicBounds.height
+            y += line.alignmentFrame.height
             i = next
         }
 
@@ -486,7 +486,7 @@ class LayoutManager {
         return line
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, previousBounds: CGRect) {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, prevAlignmentFrame: CGRect) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
@@ -503,20 +503,20 @@ class LayoutManager {
 
             assert(start == range.upperBound)
 
-            return (line, line.typographicBounds)
+            return (line, line.alignmentFrame)
         } else {
             let line = makeLine(from: range, in: buffer, at: point)
             lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
 
             let hi = heights.index(at: range.lowerBound.position)
             let oldHeight = heights[hi]
-            let newHeight = line.typographicBounds.height
+            let newHeight = line.alignmentFrame.height
 
             if oldHeight != newHeight {
                 heights[hi] = newHeight
             }
 
-            var old = line.typographicBounds
+            var old = line.alignmentFrame
             old.size.height = oldHeight
 
             return (line, old)
@@ -569,23 +569,34 @@ class LayoutManager {
             let bnext = buffer.utf16.index(bi, offsetBy: next - i)
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
 
+            // Fragment origins are always integer aligned
+            assert(round(height) == height)
             let origin = CGPoint(x: textContainer.lineFragmentPadding, y: height)
+
             let (glyphOrigin, typographicBounds) = metrics(for: ctLine)
 
             let frag = LineFragment(
                 ctLine: ctLine,
-                glyphOrigin: glyphOrigin,
-                origin: origin,
+                origin: origin, 
                 typographicBounds: typographicBounds,
+                glyphOrigin: glyphOrigin,
                 range: bi..<bnext,
-                utf16Count: next - i //isEmptyLastLine ? 0 : next - i
+                utf16Count: next - i
             )
             lineFragments.append(frag)
 
             i = next
             bi = bnext
             width = min(max(width, typographicBounds.width), textContainer.lineFragmentWidth)
-            height += typographicBounds.height
+
+            // We round heights because fragments are aligned on integer values. We
+            // don't round the last height because we don't want to cut off the final
+            // fragment if the majority of fragment heights round down.
+            if next == attrStr.length {
+                height += typographicBounds.height
+            } else {
+                height += round(typographicBounds.height)
+            }
         }
 
         return Line(
@@ -610,23 +621,23 @@ class LayoutManager {
         // An empty NSAttributedString can't have attributes, so we render a dummy
         // to get the correct line height.
         let dummy = CTLineCreateWithAttributedString(NSAttributedString(string: " ", attributes: .init(attrs)))
-        var (glyphOrigin, typographicBounds) = metrics(for: dummy)
-        typographicBounds.size.width = 0
+        var (dummyGlyphOrigin, dummyTypographicBounds) = metrics(for: dummy)
+        dummyTypographicBounds.size.width = 0
 
         let emptyLine = CTLineCreateWithAttributedString(NSAttributedString(string: ""))
 
         let frag = LineFragment(
             ctLine: emptyLine,
-            glyphOrigin: glyphOrigin,
-            origin: origin,
-            typographicBounds: typographicBounds,
+            origin: origin, 
+            typographicBounds: dummyTypographicBounds,
+            glyphOrigin: dummyGlyphOrigin,
             range: buffer.endIndex..<buffer.endIndex,
             utf16Count: 0
         )
 
         return Line(
             origin: point,
-            typographicBounds: CGRect(x: 0, y: 0, width: 2*textContainer.lineFragmentPadding, height: typographicBounds.height),
+            typographicBounds: CGRect(x: 0, y: 0, width: 2*textContainer.lineFragmentPadding, height: dummyTypographicBounds.height),
             range: buffer.endIndex..<buffer.endIndex,
             lineFragments: [frag]
         )
@@ -642,12 +653,19 @@ class LayoutManager {
         // of typographicBounds's origin, though everything else should just work.
         assert(ctTypographicBounds.minX == 0)
 
-        // defined to have the origin in the upper left corner
-        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width, height: round(ctTypographicBounds.height))
+        // Translate the Core Text's typographic bounds so that the origin of the
+        // rectangle and the origin of the coordinate space are coincident.
+        let typographicBounds = CGRect(x: 0, y: 0, width: ctTypographicBounds.width, height: ctTypographicBounds.height)
 
+        // The glyph origin in ctTypographicBounds's coordinate space is (0, 0).
+        // Here, we calculate the glyph origin in typographicBounds's coordinate
+        // space, which is flipped and has the coordinate space's origin
+        // coincident with typographicBounds.origin. I.e. typographicBounds's
+        // is a flipped coordinate space with the upper left corner of the
+        // rectangle at (0, 0).
         let glyphOrigin = CGPoint(
             x: ctTypographicBounds.minX,
-            y: round(ctTypographicBounds.height + ctTypographicBounds.minY)
+            y: ctTypographicBounds.height + ctTypographicBounds.minY
         )
 
         return (glyphOrigin, typographicBounds)
@@ -719,15 +737,15 @@ class LayoutManager {
 
     func convert(_ point: CGPoint, from line: Line) -> CGPoint {
         CGPoint(
-            x: line.frame.minX + point.x,
-            y: line.frame.minY + point.y
+            x: line.origin.x + point.x,
+            y: line.origin.y + point.y
         )
     }
 
     func convert(_ point: CGPoint, to line: Line) -> CGPoint {
         CGPoint(
-            x: point.x - line.frame.minX,
-            y: point.y - line.frame.minY
+            x: point.x - line.origin.x,
+            y: point.y - line.origin.y
         )
     }
 
@@ -741,15 +759,15 @@ class LayoutManager {
 
     func convert(_ point: CGPoint, from frag: LineFragment) -> CGPoint {
         CGPoint(
-            x: frag.frame.minX + point.x,
-            y: frag.frame.minY + point.y
+            x: frag.origin.x + point.x,
+            y: frag.origin.y + point.y
         )
     }
 
     func convert(_ point: CGPoint, to frag: LineFragment) -> CGPoint {
         CGPoint(
-            x: point.x - frag.frame.minX,
-            y: point.y - frag.frame.minY
+            x: point.x - frag.origin.x,
+            y: point.y - frag.origin.y
         )
     }
 }

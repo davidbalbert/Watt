@@ -117,7 +117,7 @@ extension TextView {
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
-                y: frag.frame.minY - 0.0001
+                y: frag.alignmentFrame.minY - 0.0001
             )
             let point = layoutManager.convert(pointInLine, from: line)
             guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
@@ -150,7 +150,7 @@ extension TextView {
         } else {
             let pointInLine = CGPoint(
                 x: selection.xOffset,
-                y: frag.frame.maxY
+                y: frag.alignmentFrame.maxY
             )
             let point = layoutManager.convert(pointInLine, from: line)
             guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
