@@ -219,14 +219,78 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveToBeginningOfLine(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
 
+        guard let line = layoutManager.line(containing: selection.lowerBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
+            return
+        }
 
+        if frag.range.lowerBound == selection.lowerBound {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = frag.range.lowerBound
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToEndOfLine(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.upperBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.affinity) else {
+            return
+        }
+
+        if frag.range.upperBound == selection.upperBound {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let hardBreak = buffer[frag.range].characters.last == "\n"
+        let head = hardBreak ? buffer.index(before: frag.range.upperBound) : frag.range.upperBound
+        let affinity: Selection.Affinity = hardBreak ? .downstream : .upstream
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
     }
 
     override func moveWordLeft(_ sender: Any?) {
         moveWordBackward(sender)
+    }
+
+
+
+    override func moveToLeftEndOfLine(_ sender: Any?) {
+        moveToBeginningOfLine(self)
+    }
+
+    override func moveToRightEndOfLine(_ sender: Any?) {
+        moveToEndOfLine(self)
     }
 
     // MARK: - Selection
