@@ -320,6 +320,34 @@ extension TextView {
         updateInsertionPointTimer()   
     }
 
+    override func moveToEndOfDocument(_ sender: Any?) {
+        if let selection = layoutManager.selection, selection.lowerBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
+        layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()   
+    }
+
+    override func moveToBeginningOfDocument(_ sender: Any?) {
+        if let selection = layoutManager.selection, selection.lowerBound == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: affinity).x
+        layoutManager.selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
 
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
