@@ -349,6 +349,57 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func pageDown(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: .upstream)
+
+        let target = CGPoint(
+            x: selection.xOffset,
+            y: point.y + visibleRect.height
+        )
+
+        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
+            return
+        }
+
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
+
+        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func pageUp(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: .downstream)
+
+        let target = CGPoint(
+            x: selection.xOffset,
+            y: point.y - visibleRect.height
+        )
+
+        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
+            return
+        }
+
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
+
+        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
     }
