@@ -51,15 +51,16 @@ extension TextView: NSTextInputClient {
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
         let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        var selection = Selection(head: head, anchor: anchor)
+        let lowerBound = anchor < head ? anchor : head
+        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
 
+        let selection: Selection
         if attrRope.count == 0 {
             print("setMarkedText -  ", terminator: "")
-            unmarkText()
+            selection = Selection(head: head, anchor: anchor, xOffset: xOffset)
         } else {
-            print("setMarkedText")
             let end = buffer.index(start, offsetBy: attrRope.count)
-            selection.markedRange = start..<end
+            selection = Selection(head: head, anchor: anchor, xOffset: xOffset, markedRange: start..<end)
         }
 
         layoutManager.selection = selection
@@ -67,7 +68,10 @@ extension TextView: NSTextInputClient {
 
     func unmarkText() {
         print("unmarkText")
-        layoutManager.selection?.markedRange = nil
+
+        if let selection = layoutManager.selection {
+            layoutManager.selection = selection.unmarked
+        }
 
         // TODO: if we're the only one who calls unmarkText(), we can remove
         // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)

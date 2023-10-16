@@ -16,14 +16,15 @@ struct Selection {
     let head: Rope.Index
     let anchor: Rope.Index
     let affinity: Affinity
-    var markedRange: Range<Rope.Index>?
     let xOffset: CGFloat
+    let markedRange: Range<Rope.Index>?
 
-    init(head: Buffer.Index, anchor: Buffer.Index? = nil, affinity: Affinity = .downstream, xOffset: CGFloat) {
+    init(head: Buffer.Index, anchor: Buffer.Index? = nil, affinity: Affinity = .downstream, xOffset: CGFloat, markedRange: Range<Rope.Index>? = nil) {
         self.head = head
         self.anchor = anchor ?? head
         self.affinity = affinity
         self.xOffset = xOffset
+        self.markedRange = markedRange
     }
 
     var range: Range<Rope.Index> {
@@ -44,5 +45,9 @@ struct Selection {
 
     var isEmpty: Bool {
         head == anchor
+    }
+
+    var unmarked: Selection {
+        Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
     }
 }
