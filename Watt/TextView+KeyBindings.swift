@@ -137,14 +137,14 @@ extension TextView {
             return
         }
 
-        guard let line = layoutManager.line(containing: selection.lowerBound) else {
+        guard let line = layoutManager.line(containing: selection.upperBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
+        guard let frag = line.fragment(containing: selection.upperBound, affinity: .upstream) else {
             return
         }
 
-        if frag.range.upperBound == buffer.endIndex {
+        if selection.isEmpty && frag.range.upperBound == buffer.endIndex {
             let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
             layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
         } else {
@@ -227,7 +227,7 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.lowerBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: .downstream) else {
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
             return
         }
 
@@ -253,7 +253,7 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.upperBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.upperBound, affinity: .upstream) else {
+        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
             return
         }
 
@@ -298,7 +298,13 @@ extension TextView {
     override func selectAll(_ sender: Any?) {
         discardMarkedText()
 
-        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream)
+        if buffer.isEmpty {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
+        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream, xOffset: xOffset)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()

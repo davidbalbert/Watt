@@ -19,7 +19,7 @@ struct Selection {
     var markedRange: Range<Rope.Index>?
     let xOffset: CGFloat
 
-    init(head: Buffer.Index, anchor: Buffer.Index? = nil, affinity: Affinity = .downstream, xOffset: CGFloat = 0) {
+    init(head: Buffer.Index, anchor: Buffer.Index? = nil, affinity: Affinity = .downstream, xOffset: CGFloat) {
         self.head = head
         self.anchor = anchor ?? head
         self.affinity = affinity

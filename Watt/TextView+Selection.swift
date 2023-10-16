@@ -25,11 +25,17 @@ extension TextView {
         guard let selection = layoutManager.selection else {
             return
         }
-        guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
+        guard let location = layoutManager.location(interactingAt: point) else {
             return
         }
 
-        let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
+        // We always want the xOffset to be at the beginning of the selection, because
+        // when we press up and down, we want the new caret to stay vertically aligned
+        // with the selection's lower bound (an arbitrary choice copying Xcode and Nova).
+        // So for finding the offset, we hardcode .downstream.
+        let lowerBound = location < selection.anchor ? location : selection.anchor
+        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
+
         layoutManager.selection = Selection(head: location, anchor: selection.anchor, affinity: selection.affinity, xOffset: xOffset)
 
         setTypingAttributes()

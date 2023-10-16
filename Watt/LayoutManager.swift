@@ -39,7 +39,8 @@ class LayoutManager {
     weak var buffer: Buffer? {
         didSet {
             if let buffer {
-                selection = Selection(head: buffer.startIndex)
+                let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+                selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
                 heights = Heights(rope: buffer.text)
                 lineCache = IntervalCache(upperBound: buffer.utf8.count)
             } else {
