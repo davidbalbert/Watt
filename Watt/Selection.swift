@@ -13,18 +13,9 @@ struct Selection {
         case downstream
     }
 
-    var head: Rope.Index {
-        didSet {
-            if head < anchor {
-                affinity = .upstream
-            } else if anchor < head {
-                affinity = .downstream
-            }
-        }
-    }
-
-    var anchor: Rope.Index
-    var affinity: Affinity
+    let head: Rope.Index
+    let anchor: Rope.Index
+    let affinity: Affinity
     var markedRange: Range<Rope.Index>?
     var xOffset: CGFloat
 

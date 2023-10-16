@@ -227,11 +227,11 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.lowerBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: .downstream) else {
             return
         }
 
-        if frag.range.lowerBound == selection.lowerBound {
+        if selection.isEmpty && frag.range.lowerBound == selection.lowerBound {
             updateInsertionPointTimer()
             return
         }
@@ -253,11 +253,11 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.upperBound) else {
             return
         }
-        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.affinity) else {
+        guard let frag = line.fragment(containing: selection.upperBound, affinity: .upstream) else {
             return
         }
 
-        if frag.range.upperBound == selection.upperBound {
+        if selection.isEmpty && frag.range.upperBound == selection.upperBound {
             updateInsertionPointTimer()
             return
         }

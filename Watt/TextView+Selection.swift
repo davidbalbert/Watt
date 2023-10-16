@@ -21,12 +21,16 @@ extension TextView {
 
     func extendSelection(to locationInView: CGPoint) {
         let point = convertToTextContainer(locationInView)
+        
+        guard let selection = layoutManager.selection else {
+            return
+        }
         guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
             return
         }
 
-        layoutManager.selection!.head = location
-        layoutManager.selection!.xOffset = layoutManager.position(forCharacterAt: layoutManager.selection!.lowerBound, affinity: affinity).x
+        let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
+        layoutManager.selection = Selection(head: location, anchor: selection.anchor, affinity: selection.affinity, xOffset: xOffset)
 
         setTypingAttributes()
     }
