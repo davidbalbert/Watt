@@ -34,6 +34,7 @@ extension TextView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        print("setMarkedText")
         guard let range = getReplacementRange(for: replacementRange) else {
             return
         }
@@ -56,11 +57,10 @@ extension TextView: NSTextInputClient {
 
         let selection: Selection
         if attrRope.count == 0 {
-            print("setMarkedText -  ", terminator: "")
-            selection = Selection(head: head, anchor: anchor, xOffset: xOffset)
+            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
         } else {
             let end = buffer.index(start, offsetBy: attrRope.count)
-            selection = Selection(head: head, anchor: anchor, xOffset: xOffset, markedRange: start..<end)
+            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset, markedRange: start..<end)
         }
 
         layoutManager.selection = selection
