@@ -274,7 +274,53 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
-    
+    override func moveToBeginningOfParagraph(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let start = buffer.lines.index(roundingDown: selection.lowerBound)
+
+        if selection.isEmpty && start == selection.lowerBound {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = start
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToEndOfParagraph(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let end = buffer.lines.index(after: selection.upperBound)
+        let head = end == buffer.endIndex ? end : buffer.index(before: end)
+
+        if selection.isEmpty && selection.lowerBound == head {
+            updateInsertionPointTimer()
+            return
+        }
+
+        assert(head == buffer.endIndex || buffer[head] == "\n")
+
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()   
+    }
+
+
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
     }
