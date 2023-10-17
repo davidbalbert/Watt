@@ -34,7 +34,7 @@ extension TextView {
         // with the selection's lower bound (an arbitrary choice copying Xcode and Nova).
         // So for finding the offset, we hardcode .downstream.
         let lowerBound = location < selection.anchor ? location : selection.anchor
-        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
+        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: lowerBound == buffer.endIndex ? .upstream : .downstream).x
 
         layoutManager.selection = Selection(head: location, anchor: selection.anchor, affinity: selection.affinity, xOffset: xOffset)
 
