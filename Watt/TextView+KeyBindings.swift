@@ -413,6 +413,8 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+
+
     override func moveBackwardAndModifySelection(_ sender: Any?) {
         guard let selection = layoutManager.selection else {
             return
@@ -452,6 +454,61 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveWordForwardAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.head == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        var head = selection.head
+        while head < buffer.endIndex && isWordBoundary(buffer[head]) {
+            head = buffer.index(after: head)
+        }
+        while head < buffer.endIndex && !isWordBoundary(buffer[head]) {
+            head = buffer.index(after: head)
+        }
+
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveWordBackwardAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.head == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        var head = selection.head
+        while head > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: head)]) {
+            head = buffer.index(before: head)
+        }
+        while head > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: head)]) {
+            head = buffer.index(before: head)
+        }
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: .downstream, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+
 
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
@@ -467,6 +524,14 @@ extension TextView {
 
     override func moveLeftAndModifySelection(_ sender: Any?) {
         moveBackwardAndModifySelection(sender)
+    }
+
+    override func moveWordRightAndModifySelection(_ sender: Any?) {
+        moveWordForwardAndModifySelection(sender)
+    }
+
+    override func moveWordLeftAndModifySelection(_ sender: Any?) {
+        moveWordBackwardAndModifySelection(sender)
     }
 
 
