@@ -306,27 +306,26 @@ extension TextView {
         if selection.isEmpty && selection.upperBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
-        } else if selection.upperBound == buffer.endIndex {
-            let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
-            layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
-
-            selectionLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
-            updateInsertionPointTimer()
-            return
         }
 
-        let end = buffer.lines.index(after: selection.upperBound)
         let head: Buffer.Index
-        if end != buffer.endIndex || buffer.characters.last == "\n" {
-            head = buffer.index(before: end)
+        let affinity: Selection.Affinity
+        if selection.upperBound == buffer.endIndex {
+            head = buffer.endIndex
+            affinity = .upstream
         } else {
-            head = end
+            let nextLineStart = buffer.lines.index(after: selection.upperBound)
+            if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
+                head = buffer.endIndex
+                affinity = .upstream
+            } else {
+                head = buffer.index(before: nextLineStart)
+                affinity = .downstream
+            }
         }
 
         assert(head == buffer.endIndex || buffer[head] == "\n")
 
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
         let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
         layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
 
@@ -652,6 +651,38 @@ extension TextView {
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
+    }
+
+    override func moveToBeginningOfParagraphAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let start = buffer.lines.index(roundingDown: selection.lowerBound)
+
+        if start == selection.lowerBound {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = start
+        let anchor = selection.upperBound
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToEndOfParagraphAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let end = buffer.lines.index(after: selection.upperBound)
+        let head = end == buffer.endIndex ? end : buffer.index(before: end)
     }
 
 
