@@ -418,6 +418,25 @@ extension TextView {
         moveToEndOfLine(self)
     }
 
+
+    override func scrollPageUp(_ sender: Any?) {
+        let point = CGPoint(
+            x: 0,
+            y: visibleRect.minY - visibleRect.height
+        )
+
+        animator().scroll(point)
+    }
+
+    override func scrollPageDown(_ sender: Any?) {
+        let point = CGPoint(
+            x: 0,
+            y: visibleRect.maxY
+        )
+
+        animator().scroll(point)
+    }
+
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
