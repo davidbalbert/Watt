@@ -614,8 +614,6 @@ extension TextView {
         let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
         layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
 
-        print(head, anchor)
-
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
         updateInsertionPointTimer()
@@ -698,6 +696,47 @@ extension TextView {
             let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
             layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
         }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToEndOfDocumentAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.upperBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = buffer.endIndex
+        let anchor = selection.lowerBound
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToBeginningOfDocumentAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.lowerBound == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = buffer.startIndex
+        let anchor = selection.upperBound
+        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
