@@ -793,6 +793,55 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.upperBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let nextLineStart = buffer.lines.index(after: selection.upperBound)
+        if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
+            let head = buffer.endIndex
+            let anchor = selection.lowerBound
+            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
+            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
+        } else {
+            let head = buffer.index(before: nextLineStart)
+            let anchor = selection.lowerBound
+            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
+        }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if selection.lowerBound == buffer.startIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let head = buffer.lines.index(roundingDown: selection.lowerBound)
+        let anchor = selection.upperBound
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
 
 
 
