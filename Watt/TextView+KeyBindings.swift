@@ -227,6 +227,8 @@ extension TextView {
         guard let line = layoutManager.line(containing: selection.lowerBound) else {
             return
         }
+        // Empty selections can have upstream affinity if they're at the end of a fragment,
+        // and we need to know this to find the right one. 
         guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
             return
         }
@@ -574,6 +576,73 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.lowerBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
+            return
+        }
+
+        if frag.range.lowerBound == selection.lowerBound {
+            updateInsertionPointTimer()
+            return
+         }
+
+        let head = frag.range.lowerBound
+        // special case: if selection.head == selection.upperBound, we want to
+        // expand the selection to the end of the line, rather than flipping it
+        // around the anchor, so the anchor is always selection.upperBound, rather
+        // than selection.anchor.
+        let anchor = selection.upperBound
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
+
+        print(head, anchor)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveToEndOfLineAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.upperBound) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
+            return
+        }
+
+        if frag.range.upperBound == selection.upperBound {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let hardBreak = buffer[frag.range].characters.last == "\n"
+        let head = hardBreak ? buffer.index(before: frag.range.upperBound) : frag.range.upperBound
+        let affinity: Selection.Affinity = hardBreak ? .downstream : .upstream
+        let anchor = selection.lowerBound
+
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+
+        print(head, anchor)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+
+
 
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
@@ -607,6 +676,14 @@ extension TextView {
 
     override func moveToRightEndOfLine(_ sender: Any?) {
         moveToEndOfLine(self)
+    }
+
+    override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
+        moveToBeginningOfLineAndModifySelection(sender)
+    }
+
+    override func moveToRightEndOfLineAndModifySelection(_ sender: Any?) {
+        moveToEndOfLineAndModifySelection(sender)
     }
 
 
