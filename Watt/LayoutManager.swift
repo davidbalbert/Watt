@@ -457,7 +457,15 @@ class LayoutManager {
         return convert(linePos, from: line)
     }
 
-    func line(forVerticalOffset verticalOffset: CGFloat, in buffer: Buffer) -> Line {
+    func line(forVerticalOffset verticalOffset: CGFloat) -> Line? {
+        guard let buffer else {
+            return nil
+        }
+
+        return line(forVerticalOffset: verticalOffset, in: buffer)
+    }
+
+    private func line(forVerticalOffset verticalOffset: CGFloat, in buffer: Buffer) -> Line {
         let offset = heights.position(upThroughYOffset: verticalOffset)
 
         let lineStart = buffer.utf8.index(at: offset)

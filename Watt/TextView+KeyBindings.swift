@@ -889,6 +889,8 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
+//        scrollLineUp(sender)
+        // TODO: this has to take into account textContainer
         let point = CGPoint(
             x: 0,
             y: visibleRect.minY - visibleRect.height
@@ -898,12 +900,39 @@ extension TextView {
     }
 
     override func scrollPageDown(_ sender: Any?) {
+        scrollLineDown(sender)
+        // TODO: this has to take into account textContainer
+        return
         let point = CGPoint(
             x: 0,
             y: visibleRect.maxY
         )
 
         animator().scroll(point)
+    }
+
+    override func scrollLineUp(_ sender: Any?) {
+        let origin = convertToTextContainer(visibleRect.origin)
+        guard let line = layoutManager.line(forVerticalOffset: origin.y - 0.0001) else {
+            return
+        }
+        guard let frag = line.fragment(forVerticalOffset: origin.y - 0.0001) else {
+            return
+        }
+
+        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+
+        let target = CGPoint(
+            x: 0,
+            y: frame.minY
+        )
+
+        // not sure why this isn't animating? Maybe it doesn't animate for short distances?
+        animator().scroll(convertFromTextContainer(target))
+    }
+
+    override func scrollLineDown(_ sender: Any?) {
+
     }
 
     // MARK: - Selection
