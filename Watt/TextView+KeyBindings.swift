@@ -399,6 +399,20 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func centerSelectionInVisibleArea(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: .downstream)
+
+        scroll(CGPoint(x: 0, y: point.y - visibleRect.height/2))
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
 
     override func moveWordRight(_ sender: Any?) {
         moveWordForward(sender)
