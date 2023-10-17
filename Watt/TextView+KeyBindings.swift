@@ -368,7 +368,7 @@ extension TextView {
             return
         }
 
-        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: .upstream)
+        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
@@ -393,7 +393,7 @@ extension TextView {
             return
         }
 
-        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: .downstream)
+        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
@@ -737,6 +737,56 @@ extension TextView {
         let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
         let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
         layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func pageDownAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+
+        let target = CGPoint(
+            x: selection.xOffset,
+            y: point.y + visibleRect.height
+        )
+
+        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
+            return
+        }
+
+        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
+
+        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func pageUpAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+
+        let target = CGPoint(
+            x: selection.xOffset,
+            y: point.y - visibleRect.height
+        )
+
+        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
+            return
+        }
+
+        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
+
+        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
