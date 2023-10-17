@@ -681,8 +681,27 @@ extension TextView {
             return
         }
 
-        let end = buffer.lines.index(after: selection.upperBound)
-        let head = end == buffer.endIndex ? end : buffer.index(before: end)
+        if selection.upperBound == buffer.endIndex {
+            updateInsertionPointTimer()
+            return
+        }
+
+        let nextLineStart = buffer.lines.index(after: selection.upperBound)
+        if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
+            let head = buffer.endIndex
+            let anchor = selection.lowerBound
+            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
+            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
+        } else {
+            let head = buffer.index(before: nextLineStart)
+            let anchor = selection.lowerBound
+            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
+            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
+        }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
     }
 
 
