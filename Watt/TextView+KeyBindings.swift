@@ -508,6 +508,71 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    override func moveUpAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.head) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
+            return
+        }
+
+        if frag.range.lowerBound == buffer.startIndex {
+            let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
+            layoutManager.selection = Selection(head: buffer.startIndex, anchor: selection.anchor, affinity: .downstream, xOffset: xOffset)
+        } else {
+            let pointInLine = CGPoint(
+                x: selection.xOffset,
+                y: frag.alignmentFrame.minY - 0.0001
+            )
+            let point = layoutManager.convert(pointInLine, from: line)
+            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
+                return
+            }
+
+            layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
+        }
+    
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
+    override func moveDownAndModifySelection(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        guard let line = layoutManager.line(containing: selection.head) else {
+            return
+        }
+        guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
+            return
+        }
+
+        if frag.range.upperBound == buffer.endIndex {
+            let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
+            layoutManager.selection = Selection(head: buffer.endIndex, anchor: selection.anchor, affinity: .upstream, xOffset: xOffset)
+        } else {
+            let pointInLine = CGPoint(
+                x: selection.xOffset,
+                y: frag.alignmentFrame.maxY
+            )
+            let point = layoutManager.convert(pointInLine, from: line)
+            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
+                return
+            }
+
+            layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
+        }
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
 
 
     override func moveWordRight(_ sender: Any?) {
