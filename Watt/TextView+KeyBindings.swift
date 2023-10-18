@@ -368,11 +368,12 @@ extension TextView {
             return
         }
 
+        let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
-            y: point.y + visibleRect.height
+            y: point.y + viewport.height
         )
 
         guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
@@ -381,7 +382,7 @@ extension TextView {
 
         layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 
-        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -393,11 +394,12 @@ extension TextView {
             return
         }
 
+        let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
-            y: point.y - visibleRect.height
+            y: point.y - viewport.height
         )
 
         guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
@@ -406,7 +408,7 @@ extension TextView {
 
         layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 
-        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -418,9 +420,10 @@ extension TextView {
             return
         }
 
+        let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: .downstream)
 
-        scroll(CGPoint(x: 0, y: point.y - visibleRect.height/2))
+        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -748,11 +751,12 @@ extension TextView {
             return
         }
 
+        let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
-            y: point.y + visibleRect.height
+            y: point.y + viewport.height
         )
 
         guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
@@ -761,7 +765,7 @@ extension TextView {
 
         layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
 
-        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+        scroll(CGPoint(x: 0, y: target.y - visiviewportbleRect.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -773,11 +777,12 @@ extension TextView {
             return
         }
 
+        let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
         let target = CGPoint(
             x: selection.xOffset,
-            y: point.y - visibleRect.height
+            y: point.y - viewport.height
         )
 
         guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
@@ -786,7 +791,7 @@ extension TextView {
 
         layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
 
-        scroll(CGPoint(x: 0, y: target.y - visibleRect.height/2))
+        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -889,34 +894,31 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
-//        scrollLineUp(sender)
-        // TODO: this has to take into account textContainer
+        let viewport = convertToTextContainer(visibleRect)
         let point = CGPoint(
             x: 0,
-            y: visibleRect.minY - visibleRect.height
+            y: viewport.minY - viewport.height
         )
 
         animator().scroll(point)
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        scrollLineDown(sender)
-        // TODO: this has to take into account textContainer
-        return
+        let viewport = convertToTextContainer(visibleRect)
         let point = CGPoint(
             x: 0,
-            y: visibleRect.maxY
+            y: viewport.maxY
         )
 
         animator().scroll(point)
     }
 
     override func scrollLineUp(_ sender: Any?) {
-        let origin = convertToTextContainer(visibleRect.origin)
-        guard let line = layoutManager.line(forVerticalOffset: origin.y - 0.0001) else {
+        let viewport = convertToTextContainer(visibleRect)
+        guard let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001) else {
             return
         }
-        guard let frag = line.fragment(forVerticalOffset: origin.y - 0.0001) else {
+        guard let frag = line.fragment(forVerticalOffset: viewport.minY - 0.0001) else {
             return
         }
 
@@ -932,11 +934,11 @@ extension TextView {
     }
 
     override func scrollLineDown(_ sender: Any?) {
-        let origin = convertToTextContainer(visibleRect.origin)
-        guard let line = layoutManager.line(forVerticalOffset: origin.y + visibleRect.height) else {
+        let viewport = convertToTextContainer(visibleRect)
+        guard let line = layoutManager.line(forVerticalOffset: origin.y + viewport.height) else {
             return
         }
-        guard let frag = line.fragment(forVerticalOffset: origin.y + visibleRect.height) else {
+        guard let frag = line.fragment(forVerticalOffset: origin.y + viewport.height) else {
             return
         }
 
@@ -944,7 +946,7 @@ extension TextView {
 
         let target = CGPoint(
             x: 0,
-            y: frame.maxY - visibleRect.height
+            y: frame.maxY - viewport.height
         )
 
         // not sure why this isn't animating? Maybe it doesn't animate for short changes?
