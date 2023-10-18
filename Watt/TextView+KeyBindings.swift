@@ -765,7 +765,7 @@ extension TextView {
 
         layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
 
-        scroll(CGPoint(x: 0, y: target.y - visiviewportbleRect.height/2))
+        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -935,10 +935,10 @@ extension TextView {
 
     override func scrollLineDown(_ sender: Any?) {
         let viewport = convertToTextContainer(visibleRect)
-        guard let line = layoutManager.line(forVerticalOffset: origin.y + viewport.height) else {
+        guard let line = layoutManager.line(forVerticalOffset: viewport.maxY) else {
             return
         }
-        guard let frag = line.fragment(forVerticalOffset: origin.y + viewport.height) else {
+        guard let frag = line.fragment(forVerticalOffset: viewport.maxY) else {
             return
         }
 
