@@ -368,6 +368,10 @@ extension TextView {
             return
         }
 
+        // TODO: I don't think any of these calls to convertToTextContainer are correct.
+        // We're using viewport.height down below, but the if there's a top or bottom
+        // inset on the text container, the container will be shorter than the viewport.
+        // I'm not sure the right way to handle this yet.
         let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
