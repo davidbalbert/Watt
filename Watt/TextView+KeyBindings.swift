@@ -1023,28 +1023,15 @@ extension TextView {
         updateInsertionPointTimer()
     }
 
+    // Swap two words, and select them at the end. If there's
+    // a selection that covers exactly two words, swap them.
+    // If there's a caret, expand outwards to find the words to
+    // swap. If we're in leading or trailing whitespace, there's
+    // nothing to swap. If we're in the last word of the document,
+    // swap that, plus the previous word. If we're in whitespace
+    // between two words, swap those. Otherwise swap the word we're
+    // in and the next word.
     override func transposeWords(_ sender: Any?) {
-        // finds two words separated by any number of whitespace characters and
-        // swaps the words, leaving the whitespace characters the same.
-        //
-        // selection can either be empty or exactly contain two words.
-        //
-        // If the selection is not empty, and it's exactly two words, the
-        // two words in the selection are swapped. Easy.
-        //
-        // If the selection is a caret, and its inside the whitespace between
-        // two words, the word to the left of the whitespace and the word to the
-        // right of the whitespace are swapped.
-        //
-        // If the caret is at the start of a word or in the middle of a word
-        // the word containing the caret and the word following the caret are swapped
-        //
-        // there are special cases:
-        // - if the caret is at the start of the buffer, the first two words are swapped
-        // - if the caret is at the end of the buffer, the last two words are swapped
-        //
-        // After transposing the words, the words are selected
-
         if buffer.isEmpty {
             return
         }
@@ -1262,7 +1249,10 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
     }
 
     let word: Range<Buffer.Index>
-    if isWordChar(buffer[position]) {
+    if position == buffer.endIndex {
+        assert(isWordChar(buffer.characters.last!))
+        word = boundsForWord(containing: buffer.index(before: buffer.endIndex), in: buffer)
+    } else if isWordChar(buffer[position]) {
         word = boundsForWord(containing: position, in: buffer)
     } else {
         // we're in whitespace, so search forward for the next word
@@ -1277,10 +1267,36 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
         word = boundsForWord(containing: i, in: buffer)
     }
 
-    // figure out if word is the first or second word. first
-    // attempt assume we're in the first word (most common),
-    // and search forwards
+    // if we started in whitespace, we're word2, and we need
+    // to search backwards for word1.
+    if position == buffer.endIndex || !isWordChar(buffer[position]) {
+        if position == buffer.endIndex {
+            assert(isWordChar(buffer.characters.last!))
+        }
 
+        let word2 = word
+        var i = word2.lowerBound
+        while i > buffer.startIndex {
+            let prev = buffer.index(before: i)
+            if isWordChar(buffer[prev]) {
+                break
+            }
+            i = prev
+        }
+
+        // there was a single word, so there's nothing to transpose
+        if i == buffer.startIndex { return nil }
+
+        let word1 = boundsForWord(containing: buffer.index(before: i), in: buffer)
+
+        return (word1, word2)
+    }
+
+
+    // We started in the middle of a word. We need to figure out
+    // if we're word1 or word2. First we assume we're the first
+    // word, which is most common, and we search forwards for
+    // the second word
     var i = word.upperBound
     while i < buffer.endIndex && !isWordChar(buffer[i]) {
         i = buffer.index(after: i)
@@ -1343,8 +1359,12 @@ fileprivate func wordStartsAt(_ i: Buffer.Index, in buffer: Buffer) -> Bool {
         return false
     }
 
-    let prevIsWhitespace = i == buffer.startIndex || !isWordChar(buffer[buffer.index(before: i)])
-    return prevIsWhitespace && isWordChar(buffer[i])
+    if i == buffer.startIndex {
+        return isWordChar(buffer[i])
+    }
+
+    let prev = buffer.index(before: i)
+    return !isWordChar(buffer[prev]) && isWordChar(buffer[i])
 }
 
 fileprivate func wordEndsAt(_ i: Buffer.Index, in buffer: Buffer) -> Bool {
@@ -1352,8 +1372,12 @@ fileprivate func wordEndsAt(_ i: Buffer.Index, in buffer: Buffer) -> Bool {
         return false
     }
 
-    let prevIsWordChar = isWordChar(buffer[buffer.index(before: i)])
-    return prevIsWordChar && !isWordChar(buffer[i])
+    if i == buffer.endIndex {
+        return isWordChar(buffer.characters.last!)
+    }
+
+    let prev = buffer.index(before: i)
+    return isWordChar(buffer[prev]) && !isWordChar(buffer[i])
 }
 
 fileprivate func isWordChar(_ c: Character) -> Bool {
