@@ -1261,10 +1261,17 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
             i = buffer.index(after: i)
         }
 
-        // we're in trailing whitespace, so there's nothing
-        // to transpose.
-        if i == buffer.endIndex { return nil }
-        word = boundsForWord(containing: i, in: buffer)
+        if i == buffer.endIndex && position > buffer.startIndex && isWordChar(buffer[buffer.index(before: position)]) {
+            // a special case, we're in trailing whitespace, but the character right before where we started is
+            // a word, so we'll transpose that word with the one previous.
+            word = boundsForWord(containing: buffer.index(before: position), in: buffer)
+        } else if i == buffer.endIndex {
+            // we're in trailing whitespace, and there's nothing to transpose
+            return nil
+        } else {
+            // we found a word searching forward
+            word = boundsForWord(containing: i, in: buffer)
+        }
     }
 
     // if we started in whitespace, we're word2, and we need
