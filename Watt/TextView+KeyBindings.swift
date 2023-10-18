@@ -993,30 +993,25 @@ extension TextView {
             return
         }
 
-        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
-            return
-        }
-
-        let current: Buffer.Index
-        let prev: Buffer.Index
+        let i: Buffer.Index
 
         if !selection.isEmpty {
-            prev = selection.lowerBound
-            current = buffer.index(after: prev)
+            i = selection.lowerBound
+        } else if selection.lowerBound == buffer.startIndex {
+            i = buffer.startIndex
         } else if selection.lowerBound == buffer.endIndex {
-            current = buffer.index(before: selection.lowerBound)
-            prev = buffer.index(before: current)
+            i = buffer.index(selection.lowerBound, offsetBy: -2)
         } else {
-            current = selection.lowerBound
-            prev = buffer.index(before: current)
+            i = buffer.index(before: selection.lowerBound)
         }
 
-        let c1 = buffer[prev]
-        let c2 = buffer[current]
+        let j = buffer.index(after: i)
+        let c1 = buffer[i]
+        let c2 = buffer[j]
 
-        replaceSubrange(prev..<buffer.index(after: current), with: String(c2) + String(c1))
+        replaceSubrange(i..<buffer.index(after: j), with: String(c2) + String(c1))
 
-        let anchor = buffer.index(fromOldIndex: prev)
+        let anchor = buffer.index(fromOldIndex: i)
         let head = buffer.index(anchor, offsetBy: 2)
 
         let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
