@@ -985,22 +985,25 @@ extension TextView {
             return
         }
 
-        if !selection.isEmpty {
-            return
-        }
-
         if buffer.count < 2 {
             return
         }
 
-        if selection.lowerBound == buffer.startIndex {
+        guard selection.isEmpty || buffer.characters.distance(from: selection.lowerBound, to: selection.upperBound) == 2 else {
+            return
+        }
+
+        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
             return
         }
 
         let current: Buffer.Index
         let prev: Buffer.Index
 
-        if selection.lowerBound == buffer.endIndex {
+        if !selection.isEmpty {
+            prev = selection.lowerBound
+            current = buffer.index(after: prev)
+        } else if selection.lowerBound == buffer.endIndex {
             current = buffer.index(before: selection.lowerBound)
             prev = buffer.index(before: current)
         } else {
@@ -1012,7 +1015,22 @@ extension TextView {
         let c2 = buffer[current]
 
         replaceSubrange(prev..<buffer.index(after: current), with: String(c2) + String(c1))
+
+        let anchor = buffer.index(fromOldIndex: prev)
+        let head = buffer.index(anchor, offsetBy: 2)
+
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
     }
+
+    override func transposeWords(_ sender: Any?) {
+    }
+
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
