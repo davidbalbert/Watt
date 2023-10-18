@@ -927,12 +927,28 @@ extension TextView {
             y: frame.minY
         )
 
-        // not sure why this isn't animating? Maybe it doesn't animate for short distances?
+        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
         animator().scroll(convertFromTextContainer(target))
     }
 
     override func scrollLineDown(_ sender: Any?) {
+        let origin = convertToTextContainer(visibleRect.origin)
+        guard let line = layoutManager.line(forVerticalOffset: origin.y + visibleRect.height) else {
+            return
+        }
+        guard let frag = line.fragment(forVerticalOffset: origin.y + visibleRect.height) else {
+            return
+        }
 
+        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+
+        let target = CGPoint(
+            x: 0,
+            y: frame.maxY - visibleRect.height
+        )
+
+        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
+        animator().scroll(convertFromTextContainer(target))
     }
 
     // MARK: - Selection
