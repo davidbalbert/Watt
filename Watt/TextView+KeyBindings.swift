@@ -978,6 +978,41 @@ extension TextView {
         animator().scroll(point)
     }
 
+    // MARK: - Graphical element transposition
+
+    override func transpose(_ sender: Any?) {
+        guard let selection = layoutManager.selection else {
+            return
+        }
+
+        if !selection.isEmpty {
+            return
+        }
+
+        if buffer.count < 2 {
+            return
+        }
+
+        if selection.lowerBound == buffer.startIndex {
+            return
+        }
+
+        let current: Buffer.Index
+        let prev: Buffer.Index
+
+        if selection.lowerBound == buffer.endIndex {
+            current = buffer.index(before: selection.lowerBound)
+            prev = buffer.index(before: current)
+        } else {
+            current = selection.lowerBound
+            prev = buffer.index(before: current)
+        }
+
+        let c1 = buffer[prev]
+        let c2 = buffer[current]
+
+        replaceSubrange(prev..<buffer.index(after: current), with: String(c2) + String(c1))
+    }
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
