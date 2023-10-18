@@ -957,6 +957,27 @@ extension TextView {
         animator().scroll(convertFromTextContainer(target))
     }
 
+
+    override func scrollToBeginningOfDocument(_ sender: Any?) {
+        // TODO: this is broken. I think it's interacting with scroll adjustment...
+        let point = CGPoint(
+            x: 0,
+            y: 0
+        )
+
+        animator().scroll(point)
+    }
+
+    override func scrollToEndOfDocument(_ sender: Any?) {
+        let viewport = convertToTextContainer(visibleRect)
+        let point = CGPoint(
+            x: 0,
+            y: layoutManager.contentHeight - viewport.height
+        )
+
+        animator().scroll(point)
+    }
+
     // MARK: - Selection
 
     override func selectAll(_ sender: Any?) {
