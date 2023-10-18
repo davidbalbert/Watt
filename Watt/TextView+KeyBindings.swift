@@ -1274,6 +1274,31 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
         }
     }
 
+    // if we're at the beginning of a word, and it's not the first word,
+    // we want to treat that as if we were in the whitespace between words.
+    if position > buffer.startIndex && !isWordChar(buffer[buffer.index(before: position)]) {
+        // search backwards for the previous word.
+        var i = position
+        while i > buffer.startIndex {
+            let prev = buffer.index(before: i)
+            if isWordChar(buffer[prev]) {
+                break
+            }
+            i = prev
+        }
+
+        // if we found a previous word, we're word2
+        if i > buffer.startIndex {
+            let word1 = boundsForWord(containing: buffer.index(before: i), in: buffer)
+            let word2 = word
+
+            return (word1, word2)
+        }
+
+        // if we get here, we're at the beginning of the word, and there was no
+        // previous word. Just fall through.
+    }
+
     // if we started in whitespace, we're word2, and we need
     // to search backwards for word1.
     if position == buffer.endIndex || !isWordChar(buffer[position]) {
