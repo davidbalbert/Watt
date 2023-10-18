@@ -1274,34 +1274,10 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
         }
     }
 
-    // if we're at the beginning of a word, and it's not the first word,
-    // we want to treat that as if we were in the whitespace between words.
-    if position > buffer.startIndex && !isWordChar(buffer[buffer.index(before: position)]) {
-        // search backwards for the previous word.
-        var i = position
-        while i > buffer.startIndex {
-            let prev = buffer.index(before: i)
-            if isWordChar(buffer[prev]) {
-                break
-            }
-            i = prev
-        }
-
-        // if we found a previous word, we're word2
-        if i > buffer.startIndex {
-            let word1 = boundsForWord(containing: buffer.index(before: i), in: buffer)
-            let word2 = word
-
-            return (word1, word2)
-        }
-
-        // if we get here, we're at the beginning of the word, and there was no
-        // previous word. Just fall through.
-    }
-
     // if we started in whitespace, we're word2, and we need
-    // to search backwards for word1.
-    if position == buffer.endIndex || !isWordChar(buffer[position]) {
+    // to search backwards for word1. We treat being at the
+    // start of a word as if we were in the whitespace before.
+    if position == buffer.endIndex || wordStartsAt(position, in: buffer) || !isWordChar(buffer[position]) {
         if position == buffer.endIndex {
             assert(isWordChar(buffer.characters.last!))
         }
@@ -1316,19 +1292,25 @@ fileprivate func boundsForTransposeWords(containing position: Buffer.Index, in b
             i = prev
         }
 
-        // there was a single word, so there's nothing to transpose
-        if i == buffer.startIndex { return nil }
+        if i == buffer.startIndex && isWordChar(buffer[position]) {
+            // There was no previous word, but we were at the beginning
+            // of a word, so we can search fowards instead. Just
+            // fall through
+        } else if i == buffer.startIndex {
+            // there was a single word, so there's nothing to transpose
+            return nil
+        } else {
+            // we found a word searching backwards
+            let word1 = boundsForWord(containing: buffer.index(before: i), in: buffer)
 
-        let word1 = boundsForWord(containing: buffer.index(before: i), in: buffer)
-
-        return (word1, word2)
+            return (word1, word2)
+        }
     }
 
-
-    // We started in the middle of a word. We need to figure out
-    // if we're word1 or word2. First we assume we're the first
-    // word, which is most common, and we search forwards for
-    // the second word
+    // We started in the middle of a word (or at the beginning
+    // of the first word). We need to figure out if we're
+    // word1 or word2. First we assume we're the first word, which
+    // is most common, and we search forwards for the second word
     var i = word.upperBound
     while i < buffer.endIndex && !isWordChar(buffer[i]) {
         i = buffer.index(after: i)
