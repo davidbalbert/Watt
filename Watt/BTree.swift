@@ -504,6 +504,22 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
         if range == 0..<node.count {
             // TODO: figure out and explain why we need to unconditionally clone here
+            //
+            // Here's an attempt:
+            //
+            // My first thought: we shouldn't have to clone it if it's a leaf. That
+            // node could be shared between multiple trees. Investigate this as an
+            // optimization.
+            //
+            // That means, we only have to clone if its an intermediate node. Why?
+            // Because as an intermediate node, unless the outermost range that
+            // we're slicing exactly covers a subtree, then one or two of our 
+            // descendence will have to be sliced, which means we can't share
+            // this intermediate node with the previous tree.
+            //
+            // In theory it should be possible to do much better here, but I'm 
+            // not yet sure how.
+
             var n = node.clone()
             push(&n)
             return
