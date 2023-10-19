@@ -115,7 +115,6 @@ struct LineFragment {
     }
 
     func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int) -> CGPoint {
-        // TODO: do we need the equivalent of the utf16Count == 0 check above?
         CGPoint(x: CTLineGetOffsetForStringIndex(ctLine, offsetInLine, nil), y: 0)
     }
 }

@@ -831,6 +831,32 @@ fileprivate func attributes(forReplacementRange range: Range<Int>, in spans: Spa
     return firstSpan.data
 }
 
+// MARK: - Builder
+
+extension AttributedRope {
+    struct Builder {
+        var rb: BTreeBuilder<Rope>
+        var sb: SpansBuilder<Attributes>
+
+        init() {
+            rb = BTreeBuilder<Rope>()
+            sb = SpansBuilder<Attributes>(totalCount: 0)
+        }
+
+        mutating func push(_ r: AttributedSubrope) {
+            let intRange = Range(intRangeFor: r.bounds)
+
+            var root = r.text.root
+            rb.push(&root, slicedBy: intRange)
+            sb.push(r.spans, slicedBy: intRange)
+        }
+
+        consuming func build() -> AttributedRope {
+            AttributedRope(text: rb.build(), spans: sb.build())
+        }
+    }
+}
+
 // MARK: - Deltas
 
 extension AttributedRope {

@@ -34,6 +34,7 @@ extension TextView: NSTextInputClient {
     }
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        print("setMarkedText")
         guard let range = getReplacementRange(for: replacementRange) else {
             return
         }
@@ -51,15 +52,15 @@ extension TextView: NSTextInputClient {
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
         let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        var selection = Selection(head: head, anchor: anchor)
+        let lowerBound = anchor < head ? anchor : head
+        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
 
+        let selection: Selection
         if attrRope.count == 0 {
-            print("setMarkedText -  ", terminator: "")
-            unmarkText()
+            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
         } else {
-            print("setMarkedText")
             let end = buffer.index(start, offsetBy: attrRope.count)
-            selection.markedRange = start..<end
+            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset, markedRange: start..<end)
         }
 
         layoutManager.selection = selection
@@ -67,7 +68,10 @@ extension TextView: NSTextInputClient {
 
     func unmarkText() {
         print("unmarkText")
-        layoutManager.selection?.markedRange = nil
+
+        if let selection = layoutManager.selection {
+            layoutManager.selection = selection.unmarked
+        }
 
         // TODO: if we're the only one who calls unmarkText(), we can remove
         // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
@@ -196,10 +200,9 @@ extension TextView {
         // TODO: Once we have multiple selections, we have to make sure to put each
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
-        layoutManager.selection = Selection(head: head)
-        if head == buffer.endIndex {
-            layoutManager.selection!.affinity = .upstream
-        }
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
+        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
 
         guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection!.range) else {
             return

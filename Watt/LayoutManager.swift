@@ -39,7 +39,8 @@ class LayoutManager {
     weak var buffer: Buffer? {
         didSet {
             if let buffer {
-                selection = Selection(head: buffer.startIndex)
+                let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+                selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
                 heights = Heights(rope: buffer.text)
                 lineCache = IntervalCache(upperBound: buffer.utf8.count)
             } else {
@@ -456,7 +457,15 @@ class LayoutManager {
         return convert(linePos, from: line)
     }
 
-    func line(forVerticalOffset verticalOffset: CGFloat, in buffer: Buffer) -> Line {
+    func line(forVerticalOffset verticalOffset: CGFloat) -> Line? {
+        guard let buffer else {
+            return nil
+        }
+
+        return line(forVerticalOffset: verticalOffset, in: buffer)
+    }
+
+    private func line(forVerticalOffset verticalOffset: CGFloat, in buffer: Buffer) -> Line {
         let offset = heights.position(upThroughYOffset: verticalOffset)
 
         let lineStart = buffer.utf8.index(at: offset)
