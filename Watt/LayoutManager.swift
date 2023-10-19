@@ -36,20 +36,18 @@ class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
     weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
-    weak var buffer: Buffer? {
+    var buffer: Buffer {
         didSet {
-            if let buffer {
-                let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-                selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
-                heights = Heights(rope: buffer.text)
-                lineCache = IntervalCache(upperBound: buffer.utf8.count)
-            } else {
-                selection = nil
-                heights = Heights()
-                lineCache = IntervalCache(upperBound: 0)
-            }
+            oldValue.removeDelegate(self)
+            buffer.addDelegate(self)
 
+            heights = Heights(rope: buffer.text)
+            lineCache = IntervalCache(upperBound: buffer.utf8.count)
             invalidateLayout()
+
+            let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+            let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
+            selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
         }
     }
 
@@ -63,7 +61,7 @@ class LayoutManager {
         }
     }
 
-    var selection: Selection?
+    var selection: Selection
 
     var lineCache: IntervalCache<Line>
 
@@ -71,7 +69,13 @@ class LayoutManager {
         self.heights = Heights()
         self.textContainer = TextContainer()
         self.lineCache = IntervalCache(upperBound: 0)
-        self.selection = nil
+        self.buffer = Buffer()
+        
+        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
+
+        let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
+        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
     }
 
     var contentHeight: CGFloat {
@@ -79,7 +83,7 @@ class LayoutManager {
     }
 
     func layoutText(using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Void) {
-        guard let delegate, let buffer else {
+        guard let delegate else {
             return
         }
 
@@ -114,7 +118,7 @@ class LayoutManager {
     }
 
     func layoutSelections(using block: (CGRect) -> Void) {
-        guard let delegate, let selection, let buffer else {
+        guard let delegate else {
             return
         }
 
@@ -140,7 +144,7 @@ class LayoutManager {
     }
 
     func layoutInsertionPoints(using block: (CGRect) -> Void) {
-        guard let delegate, let selection, let buffer else {
+        guard let delegate else {
             return
         }
 
@@ -155,7 +159,7 @@ class LayoutManager {
             return
         }
 
-        let line = line(containing: selection.lowerBound, in: buffer)
+        let line = line(containing: selection.lowerBound)
         let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity)!
 
         var rect: CGRect?
@@ -286,10 +290,6 @@ class LayoutManager {
     }
 
     func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
-        guard let buffer else {
-            return
-        }
-
         enumerateLines(in: range) { line, _ in
             for frag in line.lineFragments {
                 let rangesOverlap = range.overlaps(frag.range) || range.isEmpty && frag.range.contains(range.lowerBound)
@@ -346,10 +346,6 @@ class LayoutManager {
     //   line - the line
     //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
     func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Bool) {
-        guard let buffer else {
-            return
-        }
-
         var i = buffer.lines.index(roundingDown: range.lowerBound)
 
         let end: Buffer.Index
@@ -385,20 +381,13 @@ class LayoutManager {
     }
 
     // Point is in text container coordinates.
-    func location(interactingAt point: CGPoint) -> Buffer.Index? {
-        guard let (location, _) = locationAndAffinity(interactingAt: point) else {
-            return nil
-        }
-
+    func location(interactingAt point: CGPoint) -> Buffer.Index {
+        let (location, _) = locationAndAffinity(interactingAt: point)
         return location
     }
 
     // Point is in text container coordinates.
-    func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity)? {
-        guard let buffer else {
-            return nil
-        }
-
+    func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
         //      far right you go, you will always be before the newline until
@@ -417,7 +406,7 @@ class LayoutManager {
             return (buffer.endIndex, .upstream)
         }
 
-        let line = line(forVerticalOffset: point.y, in: buffer)
+        let line = line(forVerticalOffset: point.y)
 
         // A line containing point.y should always have a fragment
         // that contains point.y.
@@ -426,9 +415,7 @@ class LayoutManager {
         let pointInLine = convert(point, to: line)
         let pointInLineFragment = convert(pointInLine, to: frag)
 
-        guard let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment) else {
-            return nil
-        }
+        let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment)!
 
         var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
 
@@ -443,11 +430,7 @@ class LayoutManager {
     }
 
     func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        guard let buffer else {
-            return .zero
-        }
-
-        let line = line(containing: location, in: buffer)
+        let line = line(containing: location)
         // line should always have a fragment containing location
         let frag = line.fragment(containing: location, affinity: affinity)!
 
@@ -457,32 +440,16 @@ class LayoutManager {
         return convert(linePos, from: line)
     }
 
-    func line(forVerticalOffset verticalOffset: CGFloat) -> Line? {
-        guard let buffer else {
-            return nil
-        }
-
-        return line(forVerticalOffset: verticalOffset, in: buffer)
-    }
-
-    private func line(forVerticalOffset verticalOffset: CGFloat, in buffer: Buffer) -> Line {
+    func line(forVerticalOffset verticalOffset: CGFloat) -> Line {
         let offset = heights.position(upThroughYOffset: verticalOffset)
 
         let lineStart = buffer.utf8.index(at: offset)
         assert(lineStart == buffer.lines.index(roundingDown: lineStart))
 
-        return line(containing: lineStart, in: buffer)
+        return line(containing: lineStart)
     }
 
-    func line(containing location: Buffer.Index) -> Line? {
-        guard let buffer else {
-            return nil
-        }
-
-        return line(containing: location, in: buffer)
-    }
-
-    private func line(containing location: Buffer.Index, in buffer: Buffer) -> Line {
+    func line(containing location: Buffer.Index) -> Line {
         let start = buffer.lines.index(roundingDown: location)
         let end = start == buffer.endIndex ? start : buffer.lines.index(after: start)
 
@@ -530,12 +497,7 @@ class LayoutManager {
         }
     }
 
-    func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString? {
-        guard let buffer else { return nil }
-        return nsAttributedSubstring(for: range, in: buffer)
-    }
-
-    func nsAttributedSubstring(for range: Range<Buffer.Index>, in buffer: Buffer) -> NSAttributedString {
+    func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString {
         let attributedRope = AttributedRope(buffer[range])
 
         guard let delegate else {
@@ -557,7 +519,7 @@ class LayoutManager {
             return makeEmptyLastLine(using: buffer, at: point)
         }
 
-        let attrStr = nsAttributedSubstring(for: range, in: buffer)
+        let attrStr = nsAttributedString(for: range)
 
         // N.b. Docs say this can return NULL, but its declared inside CF_ASSUME_NONNULL_BEGIN,
         // so it's imported into swift as non-optional. I bet this just means the documentation
@@ -699,34 +661,6 @@ class LayoutManager {
         return start..<end
     }
 
-    // MARK: - Editing
-    func contentsDidChange(from old: Rope, to new: Rope, delta: BTreeDelta<Rope>) {
-        // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
-        let (oldRange, count) = delta.summary()
-
-        let newRange = Range(oldRange.lowerBound..<(oldRange.lowerBound + count), in: new)
-
-        heights.replaceSubrange(oldRange, with: new[newRange])
-
-        lineCache.invalidate(delta: delta)
-        delegate?.didInvalidateLayout(for: self)
-
-        if old.lines.count != new.lines.count {
-            lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
-        }
-    }
-
-    func attributesDidChange(in range: Range<Buffer.Index>) {
-        attributesDidChange(in: [range])
-    }
-
-    func attributesDidChange(in ranges: [Range<Buffer.Index>]) {
-        for r in ranges {
-            lineCache.invalidate(range: Range(intRangeFor: r))
-        }
-        delegate?.didInvalidateLayout(for: self)
-    }
-
     func invalidateLayout() {
         lineCache.removeAll()
         delegate?.didInvalidateLayout(for: self)
@@ -776,5 +710,32 @@ class LayoutManager {
             x: point.x - frag.origin.x,
             y: point.y - frag.origin.y
         )
+    }
+}
+
+// MARK: - BufferDelegate
+
+extension LayoutManager: BufferDelegate {
+    func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
+        // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
+        let (oldRange, count) = delta.summary()
+
+        let newRange = Range(oldRange.lowerBound..<(oldRange.lowerBound + count), in: new)
+
+        heights.replaceSubrange(oldRange, with: new[newRange])
+
+        lineCache.invalidate(delta: delta)
+        delegate?.didInvalidateLayout(for: self)
+
+        if old.lines.count != new.lines.count {
+            lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
+        }
+    }
+
+    func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
+        for r in ranges {
+            lineCache.invalidate(range: Range(intRangeFor: r))
+        }
+        delegate?.didInvalidateLayout(for: self)
     }
 }

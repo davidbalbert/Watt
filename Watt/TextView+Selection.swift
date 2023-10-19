@@ -10,9 +10,7 @@ import Cocoa
 extension TextView {
     func startSelection(at locationInView: CGPoint) {
         let point = convertToTextContainer(locationInView)
-        guard let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
-            return
-        }
+        let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
 
         let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
         layoutManager.selection = Selection(head: location, affinity: affinity, xOffset: xOffset)
@@ -21,13 +19,7 @@ extension TextView {
 
     func extendSelection(to locationInView: CGPoint) {
         let point = convertToTextContainer(locationInView)
-        
-        guard let selection = layoutManager.selection else {
-            return
-        }
-        guard let location = layoutManager.location(interactingAt: point) else {
-            return
-        }
+        let location = layoutManager.location(interactingAt: point)
 
         // We always want the xOffset to be at the beginning of the selection, because
         // when we press up and down, we want the new caret to stay vertically aligned
@@ -42,10 +34,6 @@ extension TextView {
     }
 
     func setTypingAttributes() {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if buffer.isEmpty {
             typingAttributes = defaultAttributes
         } else if selection.lowerBound == buffer.endIndex {
@@ -95,10 +83,6 @@ extension TextView {
 
     func updateInsertionPointTimer() {
         insertionPointTimer?.invalidate()
-
-        guard let selection = layoutManager.selection else {
-            return
-        }
 
         guard shouldDrawInsertionPoint else {
             insertionPointLayer.isHidden = true

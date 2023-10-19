@@ -94,22 +94,29 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     var buffer: Buffer {
-        didSet {
-            // It would be more correct to merge defaultAttributes
-            // that aren't set on buffer, but we don't have a good
-            // way to do that.
+        get {
+            layoutManager.buffer
+        }
+        set {
+            layoutManager.buffer = newValue
+
+            // TODO: this is wrong. If there are two TextViews with the
+            // with the same buffer but differnt fonts, this will
+            // overwrite the font in both views.
+            //
+            // The solution is to merge the default attributes in only
+            // when they're needed in layoutManager(_:attributedRopeFor:).
             buffer.mergeAttributes(defaultAttributes)
 
-            oldValue.removeLayoutManager(layoutManager)
-            buffer.addLayoutManager(layoutManager)
-
             lineNumberView.buffer = buffer
-
-            layoutManager.invalidateLayout()
         }
     }
 
     let layoutManager: LayoutManager
+
+    var selection: Selection {
+        layoutManager.selection
+    }
 
     var lineNumberView: LineNumberView
 
@@ -152,7 +159,6 @@ class TextView: NSView, ClipViewDelegate {
     var previousVisibleRect: CGRect = .zero
 
     override init(frame frameRect: NSRect) {
-        buffer = Buffer()
         layoutManager = LayoutManager()
         lineNumberView = LineNumberView()
         super.init(frame: frameRect)
@@ -160,7 +166,6 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     required init?(coder: NSCoder) {
-        buffer = Buffer()
         layoutManager = LayoutManager()
         lineNumberView = LineNumberView()
         super.init(coder: coder)

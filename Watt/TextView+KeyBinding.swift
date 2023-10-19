@@ -16,10 +16,6 @@ extension TextView {
     // MARK: Movement
 
     override func moveForward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.isEmpty && selection.lowerBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -35,7 +31,7 @@ extension TextView {
             // If the selection ends at the end of a visual line, we want
             // affinity to be upstream so that when we press the right
             // arrow key, the caret doesn't end up on the next visual line.
-            let line = layoutManager.line(containing: selection.upperBound)!
+            let line = layoutManager.line(containing: selection.upperBound)
             let frag = line.fragment(containing: selection.upperBound, affinity: .upstream)!
 
             head = selection.upperBound
@@ -55,10 +51,6 @@ extension TextView {
     }
 
     override func moveBackward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.isEmpty && selection.lowerBound == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -100,13 +92,7 @@ extension TextView {
     // always corresponds to selection.lowerBound.
 
     override func moveUp(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.lowerBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.lowerBound)
         guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
             return
         }
@@ -120,9 +106,7 @@ extension TextView {
                 y: frag.alignmentFrame.minY - 0.0001
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
-                return
-            }
+            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
 
             layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
         }
@@ -133,13 +117,7 @@ extension TextView {
     }
 
     override func moveDown(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.upperBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.upperBound)
         guard let frag = line.fragment(containing: selection.upperBound, affinity: .upstream) else {
             return
         }
@@ -153,9 +131,7 @@ extension TextView {
                 y: frag.alignmentFrame.maxY
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
-                return
-            }
+            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
 
             layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
         }
@@ -166,10 +142,6 @@ extension TextView {
     }
 
     override func moveWordForward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.isEmpty && selection.lowerBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -194,10 +166,6 @@ extension TextView {
     }
 
     override func moveWordBackward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.isEmpty && selection.lowerBound == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -220,13 +188,7 @@ extension TextView {
     }
 
     override func moveToBeginningOfLine(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.lowerBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.lowerBound)
         // Empty selections can have upstream affinity if they're at the end of a fragment,
         // and we need to know this to find the right one. 
         guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
@@ -248,13 +210,7 @@ extension TextView {
     }
 
     override func moveToEndOfLine(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.upperBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.upperBound)
         guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
             return
         }
@@ -277,10 +233,6 @@ extension TextView {
     }
 
     override func moveToBeginningOfParagraph(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let start = buffer.lines.index(roundingDown: selection.lowerBound)
 
         if selection.isEmpty && start == selection.lowerBound {
@@ -299,10 +251,6 @@ extension TextView {
     }
 
     override func moveToEndOfParagraph(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.isEmpty && selection.upperBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -335,7 +283,7 @@ extension TextView {
     }
 
     override func moveToEndOfDocument(_ sender: Any?) {
-        if let selection = layoutManager.selection, selection.lowerBound == buffer.endIndex {
+        if selection.lowerBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
         }
@@ -349,7 +297,7 @@ extension TextView {
     }
 
     override func moveToBeginningOfDocument(_ sender: Any?) {
-        if let selection = layoutManager.selection, selection.lowerBound == buffer.startIndex {
+        if selection.lowerBound == buffer.startIndex {
             updateInsertionPointTimer()
             return
         }
@@ -364,10 +312,6 @@ extension TextView {
     }
 
     override func pageDown(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         // TODO: I don't think any of these calls to convertToTextContainer are correct.
         // We're using viewport.height down below, but the if there's a top or bottom
         // inset on the text container, the container will be shorter than the viewport.
@@ -380,9 +324,7 @@ extension TextView {
             y: point.y + viewport.height
         )
 
-        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
-            return
-        }
+        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
 
         layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 
@@ -394,10 +336,6 @@ extension TextView {
     }
 
     override func pageUp(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
@@ -406,9 +344,7 @@ extension TextView {
             y: point.y - viewport.height
         )
 
-        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
-            return
-        }
+        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
 
         layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 
@@ -420,10 +356,6 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: .downstream)
 
@@ -437,10 +369,6 @@ extension TextView {
 
 
     override func moveBackwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.head == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -456,10 +384,6 @@ extension TextView {
     }
 
     override func moveForwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.head == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -476,10 +400,6 @@ extension TextView {
     }
 
     override func moveWordForwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.head == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -504,10 +424,6 @@ extension TextView {
     }
 
     override func moveWordBackwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.head == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -530,13 +446,7 @@ extension TextView {
     }
 
     override func moveUpAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.head) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.head)
         guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
             return
         }
@@ -550,9 +460,7 @@ extension TextView {
                 y: frag.alignmentFrame.minY - 0.0001
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
-                return
-            }
+            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
 
             layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
         }
@@ -563,13 +471,7 @@ extension TextView {
     }
 
     override func moveDownAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.head) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.head)
         guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
             return
         }
@@ -583,9 +485,7 @@ extension TextView {
                 y: frag.alignmentFrame.maxY
             )
             let point = layoutManager.convert(pointInLine, from: line)
-            guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point) else {
-                return
-            }
+            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
 
             layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
         }
@@ -596,13 +496,7 @@ extension TextView {
     }
 
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.lowerBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.lowerBound)
         guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
             return
         }
@@ -627,13 +521,7 @@ extension TextView {
     }
 
     override func moveToEndOfLineAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
-        guard let line = layoutManager.line(containing: selection.upperBound) else {
-            return
-        }
+        let line = layoutManager.line(containing: selection.upperBound)
         guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
             return
         }
@@ -659,10 +547,6 @@ extension TextView {
     }
 
     override func moveToBeginningOfParagraphAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let start = buffer.lines.index(roundingDown: selection.lowerBound)
 
         if start == selection.lowerBound {
@@ -682,10 +566,6 @@ extension TextView {
     }
 
     override func moveToEndOfParagraphAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.upperBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -710,10 +590,6 @@ extension TextView {
     }
 
     override func moveToEndOfDocumentAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.upperBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -730,10 +606,6 @@ extension TextView {
     }
 
     override func moveToBeginningOfDocumentAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.lowerBound == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -751,10 +623,6 @@ extension TextView {
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
@@ -763,9 +631,7 @@ extension TextView {
             y: point.y + viewport.height
         )
 
-        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
-            return
-        }
+        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
 
         layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
 
@@ -777,10 +643,6 @@ extension TextView {
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         let viewport = convertToTextContainer(visibleRect)
         let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
 
@@ -789,9 +651,7 @@ extension TextView {
             y: point.y - viewport.height
         )
 
-        guard let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target) else {
-            return
-        }
+        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
 
         layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
 
@@ -803,10 +663,6 @@ extension TextView {
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.upperBound == buffer.endIndex {
             updateInsertionPointTimer()
             return
@@ -831,10 +687,6 @@ extension TextView {
     }
 
     override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if selection.lowerBound == buffer.startIndex {
             updateInsertionPointTimer()
             return
@@ -919,9 +771,7 @@ extension TextView {
 
     override func scrollLineUp(_ sender: Any?) {
         let viewport = convertToTextContainer(visibleRect)
-        guard let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001) else {
-            return
-        }
+        let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001)
         guard let frag = line.fragment(forVerticalOffset: viewport.minY - 0.0001) else {
             return
         }
@@ -939,9 +789,7 @@ extension TextView {
 
     override func scrollLineDown(_ sender: Any?) {
         let viewport = convertToTextContainer(visibleRect)
-        guard let line = layoutManager.line(forVerticalOffset: viewport.maxY) else {
-            return
-        }
+        let line = layoutManager.line(forVerticalOffset: viewport.maxY)
         guard let frag = line.fragment(forVerticalOffset: viewport.maxY) else {
             return
         }
@@ -981,10 +829,6 @@ extension TextView {
     // MARK: - Graphical element transposition
 
     override func transpose(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if buffer.count < 2 {
             return
         }
@@ -1033,10 +877,6 @@ extension TextView {
     // in and the next word.
     override func transposeWords(_ sender: Any?) {
         if buffer.isEmpty {
-            return
-        }
-
-        guard let selection = layoutManager.selection else {
             return
         }
 
@@ -1098,20 +938,12 @@ extension TextView {
     // MARK: - Insertion and indentation
 
     override func insertTab(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
         unmarkText()
     }
 
 
     override func insertNewline(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
         unmarkText()
     }
@@ -1127,10 +959,6 @@ extension TextView {
     // MARK: - Deletion
 
     override func deleteForward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if !selection.isEmpty {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
@@ -1141,10 +969,6 @@ extension TextView {
     }
 
     override func deleteBackward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if !selection.isEmpty {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
@@ -1155,10 +979,6 @@ extension TextView {
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if !selection.isEmpty {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
@@ -1178,10 +998,6 @@ extension TextView {
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        guard let selection = layoutManager.selection else {
-            return
-        }
-
         if !selection.isEmpty {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
