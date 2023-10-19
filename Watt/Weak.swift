@@ -74,3 +74,7 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
         storage.removeAll(keepingCapacity: true)
     }
 }
+
+struct WeakSet<Element> where Element: AnyObject {
+
+}
