@@ -176,10 +176,10 @@ extension TextView {
         }
 
         var head = selection.upperBound
-        while head < buffer.endIndex && isWordBoundary(buffer[head]) {
+        while head < buffer.endIndex && !isWordChar(buffer[head]) {
             head = buffer.index(after: head)
         }
-        while head < buffer.endIndex && !isWordBoundary(buffer[head]) {
+        while head < buffer.endIndex && isWordChar(buffer[head]) {
             head = buffer.index(after: head)
         }
 
@@ -204,10 +204,10 @@ extension TextView {
         }
 
         var head = selection.lowerBound
-        while head > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: head)]) {
+        while head > buffer.startIndex && !isWordChar(buffer[buffer.index(before: head)]) {
             head = buffer.index(before: head)
         }
-        while head > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: head)]) {
+        while head > buffer.startIndex && isWordChar(buffer[buffer.index(before: head)]) {
             head = buffer.index(before: head)
         }
 
@@ -486,10 +486,10 @@ extension TextView {
         }
 
         var head = selection.head
-        while head < buffer.endIndex && isWordBoundary(buffer[head]) {
+        while head < buffer.endIndex && !isWordChar(buffer[head]) {
             head = buffer.index(after: head)
         }
-        while head < buffer.endIndex && !isWordBoundary(buffer[head]) {
+        while head < buffer.endIndex && isWordChar(buffer[head]) {
             head = buffer.index(after: head)
         }
 
@@ -514,10 +514,10 @@ extension TextView {
         }
 
         var head = selection.head
-        while head > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: head)]) {
+        while head > buffer.startIndex && !isWordChar(buffer[buffer.index(before: head)]) {
             head = buffer.index(before: head)
         }
-        while head > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: head)]) {
+        while head > buffer.startIndex && isWordChar(buffer[buffer.index(before: head)]) {
             head = buffer.index(before: head)
         }
 
@@ -1165,10 +1165,10 @@ extension TextView {
             let caret = selection.lowerBound
             var end = caret
 
-            while end < buffer.endIndex && isWordBoundary(buffer[end]) {
+            while end < buffer.endIndex && !isWordChar(buffer[end]) {
                 end = buffer.index(after: end)
             }
-            while end < buffer.endIndex && !isWordBoundary(buffer[end]) {
+            while end < buffer.endIndex && isWordChar(buffer[end]) {
                 end = buffer.index(after: end)
             }
 
@@ -1188,11 +1188,11 @@ extension TextView {
             let caret = selection.lowerBound
             var start = buffer.index(before: caret)
 
-            while start > buffer.startIndex && isWordBoundary(buffer[buffer.index(before: start)]) {
+            while start > buffer.startIndex && !isWordChar(buffer[buffer.index(before: start)]) {
                 start = buffer.index(before: start)
             }
 
-            while start > buffer.startIndex && !isWordBoundary(buffer[buffer.index(before: start)]) {
+            while start > buffer.startIndex && isWordChar(buffer[buffer.index(before: start)]) {
                 start = buffer.index(before: start)
             }
 
