@@ -161,7 +161,7 @@ class LayoutManager {
 
         let line = line(containing: selection.lowerBound)
         guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
-            debugFatalError("couldn't find line fragment")
+            assertionFailure("couldn't find line fragment")
             return
         }
 
