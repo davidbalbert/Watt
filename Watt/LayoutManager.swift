@@ -160,7 +160,10 @@ class LayoutManager {
         }
 
         let line = line(containing: selection.lowerBound)
-        let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity)!
+        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
+            debugFatalError("couldn't find line fragment")
+            return
+        }
 
         var rect: CGRect?
         var i = frag.range.lowerBound
@@ -410,12 +413,18 @@ class LayoutManager {
 
         // A line containing point.y should always have a fragment
         // that contains point.y.
-        let frag = line.fragment(forVerticalOffset: point.y)!
+        guard let frag = line.fragment(forVerticalOffset: point.y) else {
+            assertionFailure("no frag")
+            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+        }
 
         let pointInLine = convert(point, to: line)
         let pointInLineFragment = convert(pointInLine, to: frag)
 
-        let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment)!
+        guard let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment) else {
+            assertionFailure("no utf16OffsetInLine")
+            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+        }
 
         var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
 
@@ -432,7 +441,10 @@ class LayoutManager {
     func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
         let line = line(containing: location)
         // line should always have a fragment containing location
-        let frag = line.fragment(containing: location, affinity: affinity)!
+        guard let frag = line.fragment(containing: location, affinity: affinity) else {
+            assertionFailure("no frag")
+            return .zero
+        }
 
         let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
         let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
