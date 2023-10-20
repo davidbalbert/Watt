@@ -7,6 +7,11 @@
 
 import Foundation
 
+protocol BufferDelegate: AnyObject {
+    func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
+    func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>])
+}
+
 class Buffer {
     typealias Index = AttributedRope.Index
 
@@ -24,7 +29,7 @@ class Buffer {
         }
     }
 
-    var layoutManagers: [LayoutManager]
+    var delegates: WeakSet<BufferDelegate>
 
     convenience init() {
         self.init("", language: .plainText)
@@ -33,7 +38,7 @@ class Buffer {
     init(_ string: String, language: Language) {
         self.contents = AttributedRope(string)
         self.language = language
-        self.layoutManagers = []
+        self.delegates = WeakSet<BufferDelegate>()
 
         self.highlighter = language.highlighter
         highlighter?.delegate = self
@@ -115,19 +120,13 @@ class Buffer {
         utf8.index(at: oldIndex.position)
     }
 
-    func addLayoutManager(_ layoutManager: LayoutManager) {
-        if layoutManagers.contains(where: { $0 === layoutManager }) {
-            return
-        }
-
-        layoutManagers.append(layoutManager)
-        layoutManager.buffer = self
+    func addDelegate(_ delegate: BufferDelegate) {
+        delegates.insert(delegate)
         highlighter?.highlightIfNecessary()
     }
 
-    func removeLayoutManager(_ layoutManager: LayoutManager) {
-        layoutManagers.removeAll { $0 === layoutManager }
-        layoutManager.buffer = nil
+    func removeDelegate(_ delegate: BufferDelegate) {
+        delegates.remove(delegate)
    }
 
     // TODO: at some point, we're going to add editing transactions. You will be
@@ -199,8 +198,8 @@ class Buffer {
         let old = contents
         contents = contents.applying(delta: delta)
 
-        for layoutManager in layoutManagers {
-            layoutManager.contentsDidChange(from: old.text, to: contents.text, delta: delta.ropeDelta)
+        for delegate in delegates {
+            delegate.buffer(self, contentsDidChangeFrom: old.text, to: contents.text, withDelta: delta.ropeDelta)
         }
 
         // For now, this must be done after the layout managers are notified of the
@@ -218,8 +217,8 @@ class Buffer {
 
         contents[range].setAttributes(attributes)
 
-        for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange(in: range)
+        for delegate in delegates {
+            delegate.buffer(self, attributesDidChangeIn: [range])
         }
     }
 
@@ -228,8 +227,8 @@ class Buffer {
 
         contents[range].mergeAttributes(attributes)
 
-        for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange(in: range)
+        for delegate in delegates {
+            delegate.buffer(self, attributesDidChangeIn: [range])
         }
     }
 
@@ -246,8 +245,8 @@ class Buffer {
             contents[r].token = t
         }
 
-        for layoutManager in layoutManagers {
-            layoutManager.attributesDidChange(in: ranges)
+        for delegate in delegates {
+            delegate.buffer(self, attributesDidChangeIn: ranges)
         }
     }
 }
