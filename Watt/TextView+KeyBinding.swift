@@ -841,8 +841,8 @@ extension TextView {
 
         if !selection.isEmpty {
             i = selection.lowerBound
-        } else if selection.lowerBound == buffer.startIndex {
-            i = buffer.startIndex
+        } else if buffer.lines.index(roundingDown: selection.lowerBound) == selection.lowerBound {
+            i = buffer.lines.index(roundingDown: selection.lowerBound)
         } else if selection.lowerBound == buffer.endIndex {
             i = buffer.index(selection.lowerBound, offsetBy: -2)
         } else {
