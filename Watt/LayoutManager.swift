@@ -43,7 +43,7 @@ class LayoutManager {
 
             heights = Heights(rope: buffer.text)
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
-            invalidateLayout()
+            delegate?.didInvalidateLayout(for: self)
 
             let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
             let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
