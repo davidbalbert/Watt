@@ -56,6 +56,8 @@ struct LineFragment {
     // - glyphOrigin.y > 0.
     let glyphOrigin: CGPoint
 
+    // The start of the Line that contains self.
+    var lineStart: Buffer.Index
     var range: Range<Buffer.Index>
     let utf16Count: Int
 

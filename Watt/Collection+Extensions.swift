@@ -19,7 +19,7 @@ extension RandomAccessCollection where Element: Comparable {
     // While you can use this method on collections that have
     // repeated elements, you must be sure you're not searching
     // for the repeated element before you use it.
-    func binarySearch(for value: Element) -> (index: Index, found: Bool) {
+    func firstIndexBinarySearch(of value: Element) -> (index: Index, found: Bool) {
         var low = startIndex
         var high = endIndex
 
@@ -30,6 +30,38 @@ extension RandomAccessCollection where Element: Comparable {
             } else if self[mid] < value {
                 low = index(after: mid)
             } else {
+                high = mid
+            }
+        }
+
+        return (low, false)
+    }
+}
+
+extension RandomAccessCollection {
+    func binarySearch(using comparator: (Element) -> ComparisonResult ) -> Element? {
+        let (i, found) = firstIndexBinarySearch(using: comparator)
+
+        if found {
+            return self[i]
+        } else {
+            return nil
+        }
+    }
+
+    func firstIndexBinarySearch(using comparator: (Element) -> ComparisonResult) -> (index: Index, found: Bool) {
+        var low = startIndex
+        var high = endIndex
+
+        while low < high {
+            let mid = index(low, offsetBy: distance(from: low, to: high) / 2)
+
+            switch comparator(self[mid]) {
+            case .orderedSame:
+                return (mid, true)
+            case .orderedAscending:
+                low = index(after: mid)
+            case .orderedDescending:
                 high = mid
             }
         }

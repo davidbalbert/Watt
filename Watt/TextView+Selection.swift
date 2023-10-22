@@ -82,7 +82,7 @@ extension TextView {
             return
         }
 
-        if !selection.isCaret {
+        if selection.isRange {
             return
         }
 

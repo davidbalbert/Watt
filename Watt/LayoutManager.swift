@@ -411,9 +411,6 @@ class LayoutManager {
         }
 
         let line = line(forVerticalOffset: point.y)
-
-        // A line containing point.y should always have a fragment
-        // that contains point.y.
         guard let frag = line.fragment(forVerticalOffset: point.y) else {
             assertionFailure("no frag")
             return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
@@ -422,39 +419,29 @@ class LayoutManager {
         let pointInLine = convert(point, to: line)
         let pointInLineFragment = convert(pointInLine, to: frag)
 
-        guard let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment) else {
-            assertionFailure("no utf16OffsetInLine")
+        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
+            assertionFailure("no index")
             return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
         }
 
-        var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
+        return (i, i == frag.range.upperBound ? .upstream : .downstream)
+    }
+
+    func index(for pointInLineFragment: CGPoint, inLineFragment frag: LineFragment) -> Buffer.Index? {
+        guard let u16Offset = frag.utf16OffsetInLine(for: pointInLineFragment) else {
+            return nil
+        }
+
+        var i = buffer.utf16.index(frag.lineStart, offsetBy: u16Offset)
 
         // If you call CTLineGetStringIndexForPosition with an X value that's large
         // enough on a CTLine that ends in a "\n", you'll get the index after
         // the "\n", which we don't want (it's the start of the next line).
-        if pos == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
-            pos = buffer.index(before: pos)
+        if i == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
+            i = buffer.index(before: i)
         }
 
-        return (pos, pos == frag.range.upperBound ? .upstream : .downstream)
-    }
-
-    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        let line = line(containing: location)
-        // line should always have a fragment containing location
-        guard let frag = line.fragment(containing: location, affinity: affinity) else {
-            assertionFailure("no frag")
-            return .zero
-        }
-
-        let fragPos = position(inFrag: frag, forCharacterAt: location, lineStart: line.range.lowerBound)
-        let linePos = convert(fragPos, from: frag)
-        return convert(linePos, from: line)
-    }
-
-    func position(inFrag frag: LineFragment, forCharacterAt location: Buffer.Index, lineStart: Buffer.Index) -> CGPoint {
-        let offsetInLine = buffer.utf16.distance(from: lineStart, to: location)
-        return frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
+        return i
     }
 
     func line(forVerticalOffset verticalOffset: CGFloat) -> Line {
@@ -488,6 +475,7 @@ class LayoutManager {
             var start = range.lowerBound
             for i in 0..<line.lineFragments.count {
                 let end = buffer.utf16.index(start, offsetBy: line.lineFragments[i].utf16Count)
+                line.lineFragments[i].lineStart = line.range.lowerBound
                 line.lineFragments[i].range = start..<end
                 start = end
             }
@@ -566,6 +554,7 @@ class LayoutManager {
                 origin: origin, 
                 typographicBounds: typographicBounds,
                 glyphOrigin: glyphOrigin,
+                lineStart: range.lowerBound,
                 range: bi..<bnext,
                 utf16Count: next - i
             )
@@ -617,6 +606,7 @@ class LayoutManager {
             origin: origin, 
             typographicBounds: dummyTypographicBounds,
             glyphOrigin: dummyGlyphOrigin,
+            lineStart: buffer.endIndex,
             range: buffer.endIndex..<buffer.endIndex,
             utf16Count: 0
         )
@@ -766,7 +756,7 @@ extension LayoutManager {
             movement: movement,
             extending: false,
             buffer: buffer,
-            layoutManager: self
+            layoutDataSource: self
         )
     }
 
@@ -776,7 +766,46 @@ extension LayoutManager {
             movement: movement,
             extending: true,
             buffer: buffer,
-            layoutManager: self
+            layoutDataSource: self
         )
+    }
+}
+
+extension LayoutManager: SelectionLayoutDataSource {
+    func lineFragmentRange(containing index: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>? {
+        let line = line(containing: index)
+        return line.fragment(containing: index, affinity: affinity)?.range
+    }
+
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index? {
+        let line = line(containing: i)
+        guard let frag = line.fragment(containing: i, affinity: affinity) else {
+            assertionFailure("no frag")
+            return nil
+        }
+
+        let pointInLine = CGPoint(x: xOffset, y: frag.alignmentFrame.minY)
+        let pointInLineFragment = convert(pointInLine, to: frag)
+
+        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
+            assertionFailure("no index")
+            return nil
+        }
+
+        return i
+    }
+
+
+    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
+        let line = line(containing: location)
+        guard let frag = line.fragment(containing: location, affinity: affinity) else {
+            assertionFailure("no frag")
+            return .zero
+        }
+
+        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
+        let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
+        let linePos = convert(fragPos, from: frag)
+        return convert(linePos, from: line)
     }
 }

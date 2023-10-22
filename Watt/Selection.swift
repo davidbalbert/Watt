@@ -7,6 +7,12 @@
 
 import Foundation
 
+protocol SelectionLayoutDataSource {
+    func lineFragmentRange(containing: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>?
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index?
+    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
+}
+
 struct Selection {
     enum Affinity {
         case upstream
@@ -21,7 +27,7 @@ struct Selection {
 
     let range: Range<Buffer.Index>
     let affinity: Affinity
-    let xOffset: CGFloat?
+    let xOffset: CGFloat? // in text container coordinates
     let markedRange: Range<Rope.Index>?
 
     init(caretAt index: Buffer.Index, affinity: Affinity, xOffset: CGFloat? = nil, markedRange: Range<Rope.Index>? = nil) {
@@ -45,6 +51,10 @@ struct Selection {
 
     var isCaret: Bool {
         head == anchor
+    }
+
+    var isRange: Bool {
+        !isCaret
     }
 
     var anchor: Buffer.Index {
@@ -93,7 +103,7 @@ extension Selection {
         case endOfDocument
     }
 
-    init(fromExisting selection: Selection, movement: Movement, extending: Bool, buffer: Buffer, layoutManager: LayoutManager) {
+    init(fromExisting selection: Selection, movement: Movement, extending: Bool, buffer: Buffer, layoutDataSource: some SelectionLayoutDataSource) {
         if buffer.isEmpty {
             self.init(caretAt: buffer.startIndex, affinity: .upstream)
             return
@@ -125,34 +135,32 @@ extension Selection {
             head = buffer.words.index(after: selection.head, clampedTo: buffer.endIndex)
             affinity = .downstream
         case .up:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutManager: layoutManager)
+            (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
             if !extending || head == selection.anchor {
                 affinity = .upstream
             }
         case .down:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutManager: layoutManager)
+            (head, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
             if !extending || head == selection.anchor {
                 affinity = .downstream
             }
         case .beginningOfLine:
-            let line = layoutManager.line(containing: selection.lowerBound)
-            if let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) {
-                head = frag.range.lowerBound
-            } else {
-                assertionFailure("couldn't find frag")
-                head = selection.lowerBound
+            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
+                assertionFailure("couldn't find fragRange")
+                self = selection
+                return
             }
+            head = fragRange.lowerBound
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .endOfLine:
-            let line = layoutManager.line(containing: selection.upperBound)
-            guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
-                assertionFailure("couldn't find frag")
+            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
+                assertionFailure("couldn't find fragRange")
                 self = selection
                 return
             }
 
-            let hardBreak = buffer[frag.range].characters.last == "\n"
-            head = hardBreak ? buffer.index(before: frag.range.upperBound) : frag.range.upperBound
+            let hardBreak = buffer[fragRange].characters.last == "\n"
+            head = hardBreak ? buffer.index(before: fragRange.upperBound) : fragRange.upperBound
             affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
             head = buffer.lines.index(roundingDown: selection.lowerBound)
@@ -210,39 +218,30 @@ extension Selection {
 //
 // To get the correct behavior, we need to ensure that selection.xOffset
 // always corresponds to selection.lowerBound.
-func verticalDestination(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutManager: LayoutManager) -> (Buffer.Index, xOffset: CGFloat?) {
-    let i = extending ? selection.lowerBound : selection.head
+func verticalDestination(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: some SelectionLayoutDataSource) -> (Buffer.Index, xOffset: CGFloat?) {
+    let i = selection.isRange && extending ? selection.head : selection.lowerBound
+    let affinity: Selection.Affinity = selection.isCaret ? selection.affinity : (movingUp ? .downstream : .upstream)
 
-    let line = layoutManager.line(containing: i)
-    guard let frag = line.fragment(containing: i, affinity: selection.isCaret ? selection.affinity : (movingUp ? .downstream : .upstream)) else {
+    guard let fragRange = layoutDataSource.lineFragmentRange(containing: i, affinity: affinity) else {
         assertionFailure("couldn't find frag")
         return (selection.lowerBound, nil)
     }
 
-    if movingUp {
-        if frag.range.lowerBound == buffer.startIndex {
-            return (buffer.startIndex, nil)
-        }
-    } else {
-        if frag.range.upperBound == buffer.endIndex {
-            return (buffer.endIndex, nil)
-        }
+    if movingUp && fragRange.lowerBound == buffer.startIndex {
+        return (buffer.startIndex, nil)
+    }
+    if !movingUp && fragRange.upperBound == buffer.endIndex {
+        return (buffer.endIndex, nil)
     }
 
-    let xOffset: CGFloat
-    if let x = selection.xOffset {
-        xOffset = x
-    } else {
-        xOffset = layoutManager.position(inFrag: frag, forCharacterAt: i, lineStart: line.range.lowerBound).x
-    }
+    let xOffset = selection.xOffset ?? layoutDataSource.position(forCharacterAt: i, affinity: affinity).x
+    let target = movingUp ? fragRange.lowerBound : fragRange.upperBound
+    let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
 
-    let pointInFrag = CGPoint(
-        x: xOffset,
-        y: movingUp ? -0.0001 : frag.alignmentFrame.height
-    )
-    let pointInLine = layoutManager.convert(pointInFrag, from: frag)
-    let point = layoutManager.convert(pointInLine, from: line)
-    let head = layoutManager.location(interactingAt: point)
+    guard let head = layoutDataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
+        assertionFailure("couldn't find head")
+        return (selection.lowerBound, nil)
+    }
 
     return (head, xOffset)
 }

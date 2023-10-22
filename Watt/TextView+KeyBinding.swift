@@ -360,7 +360,7 @@ extension TextView {
         let i: Buffer.Index
         let lineStart = buffer.lines.index(roundingDown: selection.lowerBound)
 
-        if !selection.isCaret {
+        if selection.isRange {
             i = selection.lowerBound
         } else if lineStart == selection.lowerBound {
             i = lineStart
@@ -397,7 +397,7 @@ extension TextView {
         let word1: Range<Buffer.Index>
         let word2: Range<Buffer.Index>
 
-        if !selection.isCaret {
+        if selection.isRange {
             guard let (w1, w2) = boundsForTransposeWords(exactlyCoveredBy: selection.range, in: buffer) else {
                 return
             }
@@ -470,7 +470,7 @@ extension TextView {
     // MARK: - Deletion
 
     override func deleteForward(_ sender: Any?) {
-        if !selection.isCaret {
+        if selection.isRange {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
             let end = buffer.index(after: selection.lowerBound)
@@ -480,7 +480,7 @@ extension TextView {
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if !selection.isCaret {
+        if selection.isRange {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
             let start = buffer.index(before: selection.lowerBound)
@@ -490,7 +490,7 @@ extension TextView {
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        if !selection.isCaret {
+        if selection.isRange {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
             let caret = selection.lowerBound
@@ -509,7 +509,7 @@ extension TextView {
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        if !selection.isCaret {
+        if selection.isRange {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
             let caret = selection.lowerBound
