@@ -8,9 +8,9 @@
 import Foundation
 
 protocol SelectionLayoutDataSource {
-    func lineFragmentRange(containing: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>?
+    func lineFragmentRange(containing index: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>?
     func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index?
-    func point(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
+    func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
 }
 
 struct Selection {

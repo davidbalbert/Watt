@@ -795,14 +795,14 @@ extension LayoutManager: SelectionLayoutDataSource {
         return i
     }
 
-    func point(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        let line = line(containing: location)
-        guard let frag = line.fragment(containing: location, affinity: affinity) else {
+    func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: affinity) else {
             assertionFailure("no frag")
             return .zero
         }
 
-        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
+        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
         let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
         let linePos = convert(fragPos, from: frag)
         return convert(linePos, from: line)

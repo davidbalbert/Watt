@@ -83,13 +83,15 @@ struct Line: Identifiable {
         ctx.restoreGState()
     }
 
-    func fragment(containing location: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
+    func fragment(containing index: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
         return lineFragments.binarySearch { frag in
-            if location == frag.range.upperBound && affinity == .upstream {
+            if index == frag.range.upperBound && affinity == .upstream {
                 return .orderedSame
-            } else if frag.range.contains(location) {
+            } else if index == frag.range.upperBound {
+                return .orderedAscending
+            } else if frag.range.contains(index) {
                 return .orderedSame
-            } else if location < frag.range.lowerBound {
+            } else if index < frag.range.lowerBound {
                 return .orderedAscending
             } else {
                 return .orderedDescending
