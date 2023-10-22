@@ -145,8 +145,8 @@ extension TextView: NSTextInputClient {
         let viewPoint = convert(windowPoint, from: nil)
         let textContainerPoint = convertToTextContainer(viewPoint)
 
-        let location = layoutManager.location(interactingAt: textContainerPoint)
-        return buffer.utf16.distance(from: buffer.startIndex, to: location)
+        let i = layoutManager.index(interactingAt: textContainerPoint)
+        return buffer.utf16.distance(from: buffer.startIndex, to: i)
     }
 }
 

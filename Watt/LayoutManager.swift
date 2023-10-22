@@ -307,7 +307,7 @@ class LayoutManager {
                 let rangeInFrag = range.clamped(to: frag.range)
 
                 let start = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.lowerBound)
-                let xStart = frag.positionForCharacter(atUTF16OffsetInLine: start).x
+                let xStart = frag.pointForCharacter(atUTF16OffsetInLine: start).x
 
                 let shouldExtendSegment: Bool
                 if type == .selection && !frag.range.isEmpty {
@@ -322,7 +322,7 @@ class LayoutManager {
                     xEnd = textContainer.lineFragmentWidth
                 } else {
                     let end = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.upperBound)
-                    let x0 = frag.positionForCharacter(atUTF16OffsetInLine: end).x
+                    let x0 = frag.pointForCharacter(atUTF16OffsetInLine: end).x
                     let x1 = textContainer.lineFragmentWidth
                     xEnd = min(x0, x1)
                 }
@@ -385,13 +385,13 @@ class LayoutManager {
     }
 
     // Point is in text container coordinates.
-    func location(interactingAt point: CGPoint) -> Buffer.Index {
-        let (location, _) = locationAndAffinity(interactingAt: point)
+    func index(interactingAt point: CGPoint) -> Buffer.Index {
+        let (location, _) = indexAndAffinity(interactingAt: point)
         return location
     }
 
     // Point is in text container coordinates.
-    func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
+    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
         //      far right you go, you will always be before the newline until
@@ -795,8 +795,7 @@ extension LayoutManager: SelectionLayoutDataSource {
         return i
     }
 
-
-    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
+    func point(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
         let line = line(containing: location)
         guard let frag = line.fragment(containing: location, affinity: affinity) else {
             assertionFailure("no frag")
@@ -804,7 +803,7 @@ extension LayoutManager: SelectionLayoutDataSource {
         }
 
         let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
-        let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
+        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
         let linePos = convert(fragPos, from: frag)
         return convert(linePos, from: line)
     }

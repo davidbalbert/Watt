@@ -116,7 +116,7 @@ struct LineFragment {
         return i
     }
 
-    func positionForCharacter(atUTF16OffsetInLine offsetInLine: Int) -> CGPoint {
+    func pointForCharacter(atUTF16OffsetInLine offsetInLine: Int) -> CGPoint {
         CGPoint(x: CTLineGetOffsetForStringIndex(ctLine, offsetInLine, nil), y: 0)
     }
 }

@@ -10,14 +10,14 @@ import Cocoa
 extension TextView {
     func startSelection(at locationInView: CGPoint) {
         let point = convertToTextContainer(locationInView)
-        let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-        layoutManager.selection = Selection(caretAt: location, affinity: affinity)
+        let (i, affinity) = layoutManager.indexAndAffinity(interactingAt: point)
+        layoutManager.selection = Selection(caretAt: i, affinity: affinity)
     }
 
     func extendSelection(to locationInView: CGPoint) {
         let point = convertToTextContainer(locationInView)
-        let location = layoutManager.location(interactingAt: point)
-        layoutManager.selection = Selection(anchor: selection.anchor, head: location)
+        let i = layoutManager.index(interactingAt: point)
+        layoutManager.selection = Selection(anchor: selection.anchor, head: i)
     }
 
     func setTypingAttributes() {

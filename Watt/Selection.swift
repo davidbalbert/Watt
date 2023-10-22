@@ -10,7 +10,7 @@ import Foundation
 protocol SelectionLayoutDataSource {
     func lineFragmentRange(containing: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>?
     func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index?
-    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
+    func point(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
 }
 
 struct Selection {
@@ -234,7 +234,7 @@ func verticalDestination(selection: Selection, movingUp: Bool, extending: Bool, 
         return (buffer.endIndex, nil)
     }
 
-    let xOffset = selection.xOffset ?? layoutDataSource.position(forCharacterAt: i, affinity: affinity).x
+    let xOffset = selection.xOffset ?? layoutDataSource.point(forCharacterAt: i, affinity: affinity).x
     let target = movingUp ? fragRange.lowerBound : fragRange.upperBound
     let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
 
