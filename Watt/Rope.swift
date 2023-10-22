@@ -798,12 +798,12 @@ extension Rope {
         var l = left
         var r = right
 
-        var b = BTreeBuilder<Rope>()
         var old = GraphemeBreaker()
         var new = GraphemeBreaker(for: l, upTo: l.endIndex)
 
         r.resyncBreaks(old: &old, new: &new)
 
+        var b = BTreeBuilder<Rope>()
         b.push(&l.root)
         b.push(&r.root)
         return b.build()

@@ -12,6 +12,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
+    func selectionDidChange(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
     // An opportunity for the delegate to return a custom AttributedRope.
@@ -46,8 +47,7 @@ class LayoutManager {
             delegate?.didInvalidateLayout(for: self)
 
             let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-            let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
-            selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
+            selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
         }
     }
 
@@ -61,7 +61,11 @@ class LayoutManager {
         }
     }
 
-    var selection: Selection
+    var selection: Selection {
+        didSet {
+            delegate?.selectionDidChange(for: self)
+        }
+    }
 
     var lineCache: IntervalCache<Line>
 
@@ -72,10 +76,7 @@ class LayoutManager {
         self.buffer = Buffer()
         
         let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
-
-        let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
-        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
+        selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
     }
 
     var contentHeight: CGFloat {
@@ -148,7 +149,7 @@ class LayoutManager {
             return
         }
 
-        guard selection.isEmpty else {
+        guard selection.isCaret else {
             return
         }
 
@@ -446,10 +447,14 @@ class LayoutManager {
             return .zero
         }
 
-        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
-        let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
+        let fragPos = position(inFrag: frag, forCharacterAt: location, lineStart: line.range.lowerBound)
         let linePos = convert(fragPos, from: frag)
         return convert(linePos, from: line)
+    }
+
+    func position(inFrag frag: LineFragment, forCharacterAt location: Buffer.Index, lineStart: Buffer.Index) -> CGPoint {
+        let offsetInLine = buffer.utf16.distance(from: lineStart, to: location)
+        return frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
     }
 
     func line(forVerticalOffset verticalOffset: CGFloat) -> Line {
@@ -749,5 +754,29 @@ extension LayoutManager: BufferDelegate {
             lineCache.invalidate(range: Range(intRangeFor: r))
         }
         delegate?.didInvalidateLayout(for: self)
+    }
+}
+
+// MARK: - Selection navigation
+
+extension LayoutManager {
+    func moveSelection(_ movement: Selection.Movement) {
+        selection = Selection(
+            fromExisting: selection,
+            movement: movement,
+            extending: false,
+            buffer: buffer,
+            layoutManager: self
+        )
+    }
+
+    func extendSelection(_ movement: Selection.Movement) {
+        selection = Selection(
+            fromExisting: selection,
+            movement: movement,
+            extending: true,
+            buffer: buffer,
+            layoutManager: self
+        )
     }
 }

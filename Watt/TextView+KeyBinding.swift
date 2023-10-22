@@ -16,299 +16,59 @@ extension TextView {
     // MARK: Movement
 
     override func moveForward(_ sender: Any?) {
-        if selection.isEmpty && selection.lowerBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head: Buffer.Index
-        let affinity: Selection.Affinity
-
-        if selection.isEmpty {
-            head = buffer.index(after: selection.lowerBound)
-            affinity = head == buffer.endIndex ? .upstream : .downstream
-        } else {
-            // If the selection ends at the end of a visual line, we want
-            // affinity to be upstream so that when we press the right
-            // arrow key, the caret doesn't end up on the next visual line.
-            let line = layoutManager.line(containing: selection.upperBound)
-            let frag = line.fragment(containing: selection.upperBound, affinity: .upstream)!
-
-            head = selection.upperBound
-            affinity = head == frag.range.upperBound ? .upstream : .downstream
-        }
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.right)
     }
 
     override func moveRight(_ sender: Any?) {
-        moveForward(sender)
+        layoutManager.moveSelection(.right)
     }
 
     override func moveBackward(_ sender: Any?) {
-        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head: Buffer.Index
-
-        if selection.isEmpty {
-            head = buffer.index(before: selection.lowerBound)
-        } else {
-            head = selection.lowerBound
-        }
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.left)
     }
 
     override func moveLeft(_ sender: Any?) {
-        moveBackward(sender)
+        layoutManager.moveSelection(.left)
     }
 
-    // Moving up and down when the selection is not empty:
-    // - Xcode: always relative to the selection's lower bound
-    // - Nova: same as Xcode
-    // - TextEdit: always relative to the selection's anchor
-    // - TextMate: always relative to the selection's head
-    // - VS Code: lower bound when moving up, upper bound when moving down
-    // - Zed: Same as VS Code
-    // - Sublime Text: Same as VS Code
-    //
-    // I'm going to match Xcode and Nova for now, but I'm not sure which
-    // option is most natural.
-    //
-    // To get the correct behavior, we need to ensure that selection.xOffset
-    // always corresponds to selection.lowerBound.
-
     override func moveUp(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.lowerBound)
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
-            return
-        }
-
-        if frag.range.lowerBound == buffer.startIndex {
-            let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
-            layoutManager.selection = Selection(head: buffer.startIndex, affinity: .downstream, xOffset: xOffset)
-        } else {
-            let pointInLine = CGPoint(
-                x: selection.xOffset,
-                y: frag.alignmentFrame.minY - 0.0001
-            )
-            let point = layoutManager.convert(pointInLine, from: line)
-            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-
-            layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-        }
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.up)
     }
 
     override func moveDown(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.upperBound)
-        guard let frag = line.fragment(containing: selection.upperBound, affinity: .upstream) else {
-            return
-        }
-
-        if selection.isEmpty && frag.range.upperBound == buffer.endIndex {
-            let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
-            layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
-        } else {
-            let pointInLine = CGPoint(
-                x: selection.xOffset,
-                y: frag.alignmentFrame.maxY
-            )
-            let point = layoutManager.convert(pointInLine, from: line)
-            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-
-            layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-        }
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.down)
     }
 
     override func moveWordForward(_ sender: Any?) {
-        if selection.isEmpty && selection.lowerBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        var head = selection.upperBound
-        while head < buffer.endIndex && !isWordChar(buffer[head]) {
-            head = buffer.index(after: head)
-        }
-        while head < buffer.endIndex && isWordChar(buffer[head]) {
-            head = buffer.index(after: head)
-        }
-
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.rightWord)
     }
 
     override func moveWordBackward(_ sender: Any?) {
-        if selection.isEmpty && selection.lowerBound == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        var head = selection.lowerBound
-        while head > buffer.startIndex && !isWordChar(buffer[buffer.index(before: head)]) {
-            head = buffer.index(before: head)
-        }
-        while head > buffer.startIndex && isWordChar(buffer[buffer.index(before: head)]) {
-            head = buffer.index(before: head)
-        }
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.leftWord)
     }
 
     override func moveToBeginningOfLine(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.lowerBound)
-        // Empty selections can have upstream affinity if they're at the end of a fragment,
-        // and we need to know this to find the right one. 
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
-            return
-        }
-
-        if selection.isEmpty && frag.range.lowerBound == selection.lowerBound {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = frag.range.lowerBound
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, affinity: .downstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.beginningOfLine)
     }
 
     override func moveToEndOfLine(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.upperBound)
-        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
-            return
-        }
-
-        if selection.isEmpty && frag.range.upperBound == selection.upperBound {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let hardBreak = buffer[frag.range].characters.last == "\n"
-        let head = hardBreak ? buffer.index(before: frag.range.upperBound) : frag.range.upperBound
-        let affinity: Selection.Affinity = hardBreak ? .downstream : .upstream
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.endOfLine)
     }
 
     override func moveToBeginningOfParagraph(_ sender: Any?) {
-        let start = buffer.lines.index(roundingDown: selection.lowerBound)
-
-        if selection.isEmpty && start == selection.lowerBound {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = start
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.beginningOfParagraph)
     }
 
     override func moveToEndOfParagraph(_ sender: Any?) {
-        if selection.isEmpty && selection.upperBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head: Buffer.Index
-        let affinity: Selection.Affinity
-        if selection.upperBound == buffer.endIndex {
-            head = buffer.endIndex
-            affinity = .upstream
-        } else {
-            let nextLineStart = buffer.lines.index(after: selection.upperBound)
-            if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
-                head = buffer.endIndex
-                affinity = .upstream
-            } else {
-                head = buffer.index(before: nextLineStart)
-                affinity = .downstream
-            }
-        }
-
-        assert(head == buffer.endIndex || buffer[head] == "\n")
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()   
+        layoutManager.moveSelection(.endOfParagraph)
     }
 
     override func moveToEndOfDocument(_ sender: Any?) {
-        if selection.lowerBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
-        layoutManager.selection = Selection(head: buffer.endIndex, affinity: .upstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()   
+        layoutManager.moveSelection(.endOfDocument)
     }
 
     override func moveToBeginningOfDocument(_ sender: Any?) {
-        if selection.lowerBound == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: affinity).x
-        layoutManager.selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.moveSelection(.beginningOfDocument)
     }
 
     override func pageDown(_ sender: Any?) {
@@ -316,43 +76,43 @@ extension TextView {
         // We're using viewport.height down below, but the if there's a top or bottom
         // inset on the text container, the container will be shorter than the viewport.
         // I'm not sure the right way to handle this yet.
-        let viewport = convertToTextContainer(visibleRect)
-        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
-
-        let target = CGPoint(
-            x: selection.xOffset,
-            y: point.y + viewport.height
-        )
-
-        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-
-        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+//        let viewport = convertToTextContainer(visibleRect)
+//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//
+//        let target = CGPoint(
+//            x: selection.xOffset,
+//            y: point.y + viewport.height
+//        )
+//
+//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
+//
+//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
+//
+//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//
+//        selectionLayer.setNeedsLayout()
+//        insertionPointLayer.setNeedsLayout()
+//        updateInsertionPointTimer()
     }
 
     override func pageUp(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
-
-        let target = CGPoint(
-            x: selection.xOffset,
-            y: point.y - viewport.height
-        )
-
-        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-
-        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+//        let viewport = convertToTextContainer(visibleRect)
+//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//
+//        let target = CGPoint(
+//            x: selection.xOffset,
+//            y: point.y - viewport.height
+//        )
+//
+//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
+//
+//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
+//
+//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//
+//        selectionLayer.setNeedsLayout()
+//        insertionPointLayer.setNeedsLayout()
+//        updateInsertionPointTimer()
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
@@ -369,383 +129,143 @@ extension TextView {
 
 
     override func moveBackwardAndModifySelection(_ sender: Any?) {
-        if selection.head == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = buffer.index(before: selection.head)
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: selection.affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.left)
     }
 
     override func moveForwardAndModifySelection(_ sender: Any?) {
-        if selection.head == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = buffer.index(after: selection.head)
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.right)
     }
 
     override func moveWordForwardAndModifySelection(_ sender: Any?) {
-        if selection.head == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        var head = selection.head
-        while head < buffer.endIndex && !isWordChar(buffer[head]) {
-            head = buffer.index(after: head)
-        }
-        while head < buffer.endIndex && isWordChar(buffer[head]) {
-            head = buffer.index(after: head)
-        }
-
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.rightWord)
     }
 
     override func moveWordBackwardAndModifySelection(_ sender: Any?) {
-        if selection.head == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        var head = selection.head
-        while head > buffer.startIndex && !isWordChar(buffer[buffer.index(before: head)]) {
-            head = buffer.index(before: head)
-        }
-        while head > buffer.startIndex && isWordChar(buffer[buffer.index(before: head)]) {
-            head = buffer.index(before: head)
-        }
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: .downstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.leftWord)
     }
 
     override func moveUpAndModifySelection(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.head)
-        guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
-            return
-        }
-
-        if frag.range.lowerBound == buffer.startIndex {
-            let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
-            layoutManager.selection = Selection(head: buffer.startIndex, anchor: selection.anchor, affinity: .downstream, xOffset: xOffset)
-        } else {
-            let pointInLine = CGPoint(
-                x: selection.xOffset,
-                y: frag.alignmentFrame.minY - 0.0001
-            )
-            let point = layoutManager.convert(pointInLine, from: line)
-            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-
-            layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
-        }
-    
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.up)
     }
 
     override func moveDownAndModifySelection(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.head)
-        guard let frag = line.fragment(containing: selection.head, affinity: selection.affinity) else {
-            return
-        }
-
-        if frag.range.upperBound == buffer.endIndex {
-            let xOffset = layoutManager.position(forCharacterAt: buffer.endIndex, affinity: .upstream).x
-            layoutManager.selection = Selection(head: buffer.endIndex, anchor: selection.anchor, affinity: .upstream, xOffset: xOffset)
-        } else {
-            let pointInLine = CGPoint(
-                x: selection.xOffset,
-                y: frag.alignmentFrame.maxY
-            )
-            let point = layoutManager.convert(pointInLine, from: line)
-            let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-
-            layoutManager.selection = Selection(head: head, anchor: selection.anchor, affinity: affinity, xOffset: selection.xOffset)
-        }
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.down)
     }
 
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.lowerBound)
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .downstream) else {
-            return
-        }
-
-        if frag.range.lowerBound == selection.lowerBound {
-            updateInsertionPointTimer()
-            return
-         }
-
-        let head = frag.range.lowerBound
-        // special case: if selection.head == selection.upperBound, we want to
-        // expand the selection to the end of the line, rather than flipping it
-        // around the anchor, so the anchor is always selection.upperBound, rather
-        // than selection.anchor.
-        let anchor = selection.upperBound
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.beginningOfLine)
     }
 
     override func moveToEndOfLineAndModifySelection(_ sender: Any?) {
-        let line = layoutManager.line(containing: selection.upperBound)
-        guard let frag = line.fragment(containing: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream) else {
-            return
-        }
-
-        if frag.range.upperBound == selection.upperBound {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let hardBreak = buffer[frag.range].characters.last == "\n"
-        let head = hardBreak ? buffer.index(before: frag.range.upperBound) : frag.range.upperBound
-        let affinity: Selection.Affinity = hardBreak ? .downstream : .upstream
-        let anchor = selection.lowerBound
-
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
-
-        print(head, anchor)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.endOfLine)
     }
 
     override func moveToBeginningOfParagraphAndModifySelection(_ sender: Any?) {
-        let start = buffer.lines.index(roundingDown: selection.lowerBound)
-
-        if start == selection.lowerBound {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = start
-        let anchor = selection.upperBound
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.beginningOfParagraph)
     }
 
     override func moveToEndOfParagraphAndModifySelection(_ sender: Any?) {
-        if selection.upperBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let nextLineStart = buffer.lines.index(after: selection.upperBound)
-        if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
-            let head = buffer.endIndex
-            let anchor = selection.lowerBound
-            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
-            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
-        } else {
-            let head = buffer.index(before: nextLineStart)
-            let anchor = selection.lowerBound
-            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
-        }
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.endOfParagraph)
     }
 
     override func moveToEndOfDocumentAndModifySelection(_ sender: Any?) {
-        if selection.upperBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = buffer.endIndex
-        let anchor = selection.lowerBound
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.endOfDocument)
     }
 
     override func moveToBeginningOfDocumentAndModifySelection(_ sender: Any?) {
-        if selection.lowerBound == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = buffer.startIndex
-        let anchor = selection.upperBound
-        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.beginningOfDocument)
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
-
-        let target = CGPoint(
-            x: selection.xOffset,
-            y: point.y + viewport.height
-        )
-
-        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-
-        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
-
-        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+//        let viewport = convertToTextContainer(visibleRect)
+//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//
+//        let target = CGPoint(
+//            x: selection.xOffset,
+//            y: point.y + viewport.height
+//        )
+//
+//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
+//
+//        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
+//
+//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//
+//        selectionLayer.setNeedsLayout()
+//        insertionPointLayer.setNeedsLayout()
+//        updateInsertionPointTimer()
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
-
-        let target = CGPoint(
-            x: selection.xOffset,
-            y: point.y - viewport.height
-        )
-
-        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-
-        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
-
-        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+//        let viewport = convertToTextContainer(visibleRect)
+//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//
+//        let target = CGPoint(
+//            x: selection.xOffset,
+//            y: point.y - viewport.height
+//        )
+//
+//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
+//
+//        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
+//
+//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//
+//        selectionLayer.setNeedsLayout()
+//        insertionPointLayer.setNeedsLayout()
+//        updateInsertionPointTimer()
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
-        if selection.upperBound == buffer.endIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let nextLineStart = buffer.lines.index(after: selection.upperBound)
-        if nextLineStart == buffer.endIndex && buffer.characters.last != "\n" {
-            let head = buffer.endIndex
-            let anchor = selection.lowerBound
-            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .upstream).x
-            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .upstream, xOffset: xOffset)
-        } else {
-            let head = buffer.index(before: nextLineStart)
-            let anchor = selection.lowerBound
-            let xOffset = layoutManager.position(forCharacterAt: head, affinity: .downstream).x
-            layoutManager.selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
-        }
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.endOfParagraph)
     }
 
     override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
-        if selection.lowerBound == buffer.startIndex {
-            updateInsertionPointTimer()
-            return
-        }
-
-        let head = buffer.lines.index(roundingDown: selection.lowerBound)
-        let anchor = selection.upperBound
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.extendSelection(.beginningOfParagraph)
     }
-
 
 
 
     override func moveWordRight(_ sender: Any?) {
-        moveWordForward(sender)
+        layoutManager.moveSelection(.rightWord)
     }
 
     override func moveWordLeft(_ sender: Any?) {
-        moveWordBackward(sender)
+        layoutManager.moveSelection(.leftWord)
     }
 
     override func moveRightAndModifySelection(_ sender: Any?) {
-        moveForwardAndModifySelection(sender)
+        layoutManager.extendSelection(.right)
     }
 
     override func moveLeftAndModifySelection(_ sender: Any?) {
-        moveBackwardAndModifySelection(sender)
+        layoutManager.extendSelection(.left)
     }
 
     override func moveWordRightAndModifySelection(_ sender: Any?) {
-        moveWordForwardAndModifySelection(sender)
+        layoutManager.extendSelection(.rightWord)
     }
 
     override func moveWordLeftAndModifySelection(_ sender: Any?) {
-        moveWordBackwardAndModifySelection(sender)
+        layoutManager.extendSelection(.leftWord)
     }
 
 
 
     override func moveToLeftEndOfLine(_ sender: Any?) {
-        moveToBeginningOfLine(self)
+        layoutManager.moveSelection(.beginningOfLine)
     }
 
     override func moveToRightEndOfLine(_ sender: Any?) {
-        moveToEndOfLine(self)
+        layoutManager.moveSelection(.endOfLine)
     }
 
     override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
-        moveToBeginningOfLineAndModifySelection(sender)
+        layoutManager.extendSelection(.beginningOfLine)
     }
 
     override func moveToRightEndOfLineAndModifySelection(_ sender: Any?) {
-        moveToEndOfLineAndModifySelection(sender)
+        layoutManager.extendSelection(.endOfLine)
     }
 
 
@@ -833,14 +353,14 @@ extension TextView {
             return
         }
 
-        guard selection.isEmpty || buffer.characters.distance(from: selection.lowerBound, to: selection.upperBound) == 2 else {
+        guard selection.isCaret || buffer.characters.distance(from: selection.lowerBound, to: selection.upperBound) == 2 else {
             return
         }
 
         let i: Buffer.Index
         let lineStart = buffer.lines.index(roundingDown: selection.lowerBound)
 
-        if !selection.isEmpty {
+        if !selection.isCaret {
             i = selection.lowerBound
         } else if lineStart == selection.lowerBound {
             i = lineStart
@@ -858,14 +378,7 @@ extension TextView {
 
         let anchor = buffer.index(fromOldIndex: i)
         let head = buffer.index(anchor, offsetBy: 2)
-
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        layoutManager.selection = Selection(anchor: anchor, head: head)
     }
 
     // Swap two words, and select them at the end. If there's
@@ -884,7 +397,7 @@ extension TextView {
         let word1: Range<Buffer.Index>
         let word2: Range<Buffer.Index>
 
-        if !selection.isEmpty {
+        if !selection.isCaret {
             guard let (w1, w2) = boundsForTransposeWords(exactlyCoveredBy: selection.range, in: buffer) else {
                 return
             }
@@ -910,9 +423,7 @@ extension TextView {
         let anchor = buffer.index(fromOldIndex: word1.lowerBound)
         let head = buffer.index(fromOldIndex: word2.upperBound)
 
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: anchor, affinity: .upstream).x
-        layoutManager.selection = Selection(head: head, anchor: anchor, affinity: affinity, xOffset: xOffset)
+        layoutManager.selection = Selection(anchor: anchor, head: head)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -929,8 +440,7 @@ extension TextView {
             return
         }
 
-        let xOffset = layoutManager.position(forCharacterAt: buffer.startIndex, affinity: .downstream).x
-        layoutManager.selection = Selection(head: buffer.endIndex, anchor: buffer.startIndex, affinity: .downstream, xOffset: xOffset)
+        layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -960,7 +470,7 @@ extension TextView {
     // MARK: - Deletion
 
     override func deleteForward(_ sender: Any?) {
-        if !selection.isEmpty {
+        if !selection.isCaret {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
             let end = buffer.index(after: selection.lowerBound)
@@ -970,7 +480,7 @@ extension TextView {
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if !selection.isEmpty {
+        if !selection.isCaret {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
             let start = buffer.index(before: selection.lowerBound)
@@ -980,7 +490,7 @@ extension TextView {
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        if !selection.isEmpty {
+        if !selection.isCaret {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound < buffer.endIndex {
             let caret = selection.lowerBound
@@ -999,7 +509,7 @@ extension TextView {
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        if !selection.isEmpty {
+        if !selection.isCaret {
             replaceSubrange(selection.range, with: "")
         } else if selection.lowerBound > buffer.startIndex {
             let caret = selection.lowerBound

@@ -12,6 +12,7 @@ import TreeSitterC
 
 protocol Language {
     var highlighter: Highlighter? { get }
+    func isWordCharacter(_ character: Character) -> Bool
 }
 
 extension Language {
@@ -25,6 +26,10 @@ extension Language {
 
     func url(forResource resourceName: String, withExtension ext: String?, in bundleName: String) -> URL? {
         bundle(forResource: bundleName)?.url(forResource: resourceName, withExtension: ext)
+    }
+
+    func isWordCharacter(_ c: Character) -> Bool {
+        !c.isWhitespace && !c.isPunctuation
     }
 }
 

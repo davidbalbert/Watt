@@ -271,6 +271,98 @@ extension Buffer: HighlighterDelegate {
     }
 }
 
+// MARK: - Word view
+
+extension Buffer {
+    var words: WordsView {
+        WordsView(buffer: self)
+    }
+
+    struct WordsView: BidirectionalCollection {
+        let buffer: Buffer
+        
+        var startIndex: Index {
+            buffer.startIndex
+        }
+        
+        var endIndex: Index {
+            buffer.startIndex
+        }
+        
+        func index(before i: Index) -> Index {
+            var i = i
+            while i > startIndex && !isWordCharacter(buffer[i]) {
+                i = buffer.index(before: i)
+            }
+            while i > startIndex && isWordCharacter(buffer[i]) {
+                i = buffer.index(before: i)
+            }
+            
+            return i
+        }
+        
+        func index(after i: Index) -> Index {
+            var i = i
+            while i < endIndex && !isWordCharacter(buffer[i]) {
+                i = buffer.index(after: i)
+            }
+            while i < endIndex && isWordCharacter(buffer[i]) {
+                i = buffer.index(after: i)
+            }
+            
+            return i
+        }
+        
+        func index(roundingDown i: Index) -> Index {
+            if wordStartsAt(i) {
+                return i
+            }
+            
+            return index(before: i)
+        }
+        
+        subscript(position: Index) -> String? {
+            if buffer.isEmpty {
+                return nil
+            }
+            
+            var i = index(roundingDown: position)
+            
+            if i == startIndex && !isWordCharacter(buffer[i]) {
+                i = index(after: i)
+            }
+            
+            if i == endIndex {
+                return nil
+            }
+            
+            let start = i
+            let end = index(after: i)
+            
+            return String(buffer[start..<end])
+        }
+        
+        private func wordStartsAt(_ i: Index) -> Bool {
+            if buffer.isEmpty || i == buffer.endIndex {
+                return false
+            }
+            
+            if i == buffer.startIndex {
+                return isWordCharacter(buffer[i])
+            }
+            
+            let prev = buffer.index(before: i)
+            return !isWordCharacter(buffer[prev]) && isWordCharacter(buffer[i])
+        }
+        
+        private func isWordCharacter(_ c: Character) -> Bool {
+            buffer.language.isWordCharacter(c)
+        }
+    }
+}
+
+// MARK: - Ranges
+
 extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {
         self.init(range, in: buffer.text)

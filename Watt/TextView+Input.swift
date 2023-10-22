@@ -52,18 +52,19 @@ extension TextView: NSTextInputClient {
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
         let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        let lowerBound = anchor < head ? anchor : head
-        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
-
-        let selection: Selection
+        let markedRange: Range<Buffer.Index>?
         if attrRope.count == 0 {
-            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
+            markedRange = nil
         } else {
             let end = buffer.index(start, offsetBy: attrRope.count)
-            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset, markedRange: start..<end)
+            markedRange = start..<end
         }
 
-        layoutManager.selection = selection
+        if anchor == head {
+            layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, markedRange: markedRange)
+        } else {
+            layoutManager.selection = Selection(anchor: anchor, head: head, markedRange: markedRange)
+        }
     }
 
     func unmarkText() {
@@ -188,8 +189,7 @@ extension TextView {
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+        layoutManager.selection = Selection(caretAt: head, affinity: affinity)
 
         guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
             return

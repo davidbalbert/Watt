@@ -37,3 +37,15 @@ extension RandomAccessCollection where Element: Comparable {
         return (low, false)
     }
 }
+
+extension Collection {
+    func index(after i: Index, clampedTo upperBound: Index) -> Index {
+        index(i, offsetBy: 1, limitedBy: upperBound) ?? upperBound
+    }
+}
+
+extension BidirectionalCollection {
+    func index(before i: Index, clampedTo lowerBound: Index) -> Index {
+        index(i, offsetBy: -1, limitedBy: lowerBound) ?? lowerBound
+    }
+}
