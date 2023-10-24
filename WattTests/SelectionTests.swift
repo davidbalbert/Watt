@@ -75,7 +75,7 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
             return nil
         }
 
-        let offsetInFrag = Int(xOffset/Self.charWidth)
+        let offsetInFrag = Int(round(xOffset/Self.charWidth))
 
         let hasHardBreak = buffer[fragRange].characters.last == "\n"
 
@@ -105,6 +105,8 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
 // MARK: - Sanity checks for SimpleSelectionDataSource
 
 final class SimpleSelectionDataSourceTests: XCTestCase {
+    // MARK: lineFragmentRange(containing:affinity:)
+
     func testLineFragmentRangesEmptyBuffer() {
         let buffer = Buffer("", language: .plainText)
         let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
@@ -427,5 +429,247 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func intRange(_ r: Range<Buffer.Index>, in buffer: Buffer) -> Range<Int> {
         buffer.characters.distance(from: buffer.startIndex, to: r.lowerBound)..<buffer.characters.distance(from: buffer.startIndex, to: r.upperBound)
+    }
+
+
+    // MARK: index(forHorizontalOffset:inLineFragmentContaining:affinity:)
+
+    func testIndexForHorizontalOffsetEmptyBuffer() {
+        let buffer = Buffer("", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // Only upstream finds an index because the buffer is empty. No matter
+        // how far to the right we go, we always get buffer.startIndex.
+
+        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.startIndex, i)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertNil(i)
+
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.startIndex, i)
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertNil(i)
+
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.startIndex, i)
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertNil(i)
+
+        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.startIndex, i)
+        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertNil(i)
+    }
+
+    func testIndexForHorizontalOffsetNoTrailingNewline() {
+        let buffer = Buffer("abc\ndef", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+
+        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 2), i)
+        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 2), i)
+
+        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 2), i)
+        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 2), i)
+
+        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+
+        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+
+        // can't click past the end of the "\n" in line 1
+
+        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+
+        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+
+        // next line
+
+        let line2Start = buffer.index(buffer.startIndex, offsetBy: 4)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+
+        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 6), i)
+        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 6), i)
+
+        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 6), i)
+        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 6), i)
+
+        // end of buffer
+
+        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.endIndex, i)
+        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.endIndex, i)
+
+        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.endIndex, i)
+        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.endIndex, i)
+    }
+
+    func testIndexForHorizontalOffsetTrailingNewline() {
+        let buffer = Buffer("abc\ndef\n", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // can't click past the end of the "\n" in line 2
+        let line2Start = buffer.index(buffer.startIndex, offsetBy: 4)
+        var i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 7), i)
+        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 7), i)
+
+        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 7), i)
+        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 7), i)
+
+        // end of buffer - downstream is nil because line3start == endIndex
+
+        let line3start = buffer.index(buffer.startIndex, offsetBy: 8)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .upstream)
+        XCTAssertEqual(buffer.endIndex, i)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .downstream)
+        XCTAssertNil(i)
+
+        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .upstream)
+        XCTAssertEqual(buffer.endIndex, i)
+        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .downstream)
+        XCTAssertNil(i)
+    }
+
+    func testIndexForHorizontalOffsetWithWrapping() {
+        let s = """
+        0123456789wrap
+
+        """
+
+        let buffer = Buffer(s, language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+
+        let boundary = buffer.index(buffer.startIndex, offsetBy: 10)
+
+        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 10), i)
+
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 0), i)
+        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 10), i)
+
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 11), i)
+
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 1), i)
+        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 11), i)
+
+        // jump forward a bit to just before the wrap
+
+        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 13), i)
+
+        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 3), i)
+        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 13), i)
+
+        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
+
+        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 4), i)
+        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
+
+        // can't click past the end of the "\n" in line 2
+
+        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
+
+        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 5), i)
+        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
+
+        // end of the first fragment
+
+        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 9), i)
+        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
+
+        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .upstream)
+        XCTAssertEqual(buffer.index(at: 10), i)
+        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 14), i)
     }
 }
