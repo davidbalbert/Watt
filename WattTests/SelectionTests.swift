@@ -597,7 +597,6 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
     func testIndexForHorizontalOffsetWithWrapping() {
         let s = """
         0123456789wrap
-
         """
 
         let buffer = Buffer(s, language: .plainText)
@@ -671,5 +670,57 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(buffer.index(at: 10), i)
         i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .downstream)
         XCTAssertEqual(buffer.index(at: 14), i)
+    }
+
+
+    // MARK: point(forCharacterAt:affinity:)
+
+    func testPointForCharacterAtEmptyBuffer() {
+        let buffer = Buffer("", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // Upstream results are .zero because the fragment contains no characters.
+        // Downstream results are .zero because there's no fragment.
+
+        var p = dataSource.point(forCharacterAt: buffer.startIndex, affinity: .upstream)
+        XCTAssertEqual(.zero, p)
+        p = dataSource.point(forCharacterAt: buffer.startIndex, affinity: .downstream)
+        XCTAssertEqual(.zero, p)
+
+        p = dataSource.point(forCharacterAt: buffer.endIndex, affinity: .upstream)
+        XCTAssertEqual(.zero, p)
+        p = dataSource.point(forCharacterAt: buffer.endIndex, affinity: .downstream)
+        XCTAssertEqual(.zero, p)
+    }
+
+    func testPointForCharacterAtNoTrailingNewline() {
+        let buffer = Buffer("abc\ndef", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+        
+        var p = dataSource.point(forCharacterAt: buffer.index(at: 0), affinity: .upstream)
+        XCTAssertEqual(.zero, p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 0), affinity: .downstream)
+        XCTAssertEqual(.zero, p)
+        
+        p = dataSource.point(forCharacterAt: buffer.index(at: 3), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 3), affinity: .downstream)
+        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
+
+        p = dataSource.point(forCharacterAt: buffer.index(at: 4), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 4), affinity: .downstream)
+        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+
+        p = dataSource.point(forCharacterAt: buffer.index(at: 6), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 6), affinity: .downstream)
+        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
+
+        p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .downstream)
+        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+
     }
 }
