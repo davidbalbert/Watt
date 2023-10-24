@@ -71,7 +71,10 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index? {
-        let fragRange = lineFragmentRange(containing: index, affinity: affinity)!
+        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
+            return nil
+        }
+
         let offsetInFrag = Int(xOffset/Self.charWidth)
 
         let hasHardBreak = buffer[fragRange].characters.last == "\n"
@@ -85,7 +88,10 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        let fragRange = lineFragmentRange(containing: index, affinity: affinity)!
+        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
+            return .zero
+        }
+
         let offsetOfFrag = buffer.characters.distance(from: buffer.startIndex, to: fragRange.lowerBound)
         let offsetInFrag = buffer.characters.distance(from: fragRange.lowerBound, to: index)
 
@@ -289,9 +295,6 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: charsPerFrag)
 
-        XCTAssertEqual(6, buffer.lines.first!.count)
-
-
         // First line: affinity doesn't matter for fragments that end in a newline
         let start0 = buffer.index(buffer.startIndex, offsetBy: 0)
         var r = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
@@ -300,6 +303,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         r = dataSource.lineFragmentRange(containing: start0, affinity: .downstream)!
         XCTAssertEqual(0..<6, intRange(r, in: buffer))
 
+        // between "o" and "\n"
         let last0 = buffer.index(buffer.startIndex, offsetBy: 5)
         r = dataSource.lineFragmentRange(containing: last0, affinity: .upstream)!
         XCTAssertEqual(0..<6, intRange(r, in: buffer))
@@ -316,15 +320,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         r = dataSource.lineFragmentRange(containing: start1, affinity: .downstream)!
         XCTAssertEqual(6..<17, intRange(r, in: buffer))
 
-        let last1 = buffer.index(buffer.startIndex, offsetBy: 15)
+        // between "9" and "\n"
+        let last1 = buffer.index(buffer.startIndex, offsetBy: 16)
         r = dataSource.lineFragmentRange(containing: last1, affinity: .upstream)!
         XCTAssertEqual(6..<17, intRange(r, in: buffer))
 
         r = dataSource.lineFragmentRange(containing: last1, affinity: .downstream)!
-        XCTAssertEqual(6..<17, intRange(r, in: buffer))
-
-        let nl1 = buffer.index(buffer.startIndex, offsetBy: 16)
-        r = dataSource.lineFragmentRange(containing: nl1, affinity: .downstream)!
         XCTAssertEqual(6..<17, intRange(r, in: buffer))
 
 
@@ -338,15 +339,40 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         r = dataSource.lineFragmentRange(containing: start2, affinity: .downstream)!
         XCTAssertEqual(17..<27, intRange(r, in: buffer))
 
+        // between "9" and "w"
         let boundary2 = buffer.index(buffer.startIndex, offsetBy: 27)
         r = dataSource.lineFragmentRange(containing: boundary2, affinity: .upstream)!
         XCTAssertEqual(17..<27, intRange(r, in: buffer))
 
-        // second fragment
+        // Second fragment
         r = dataSource.lineFragmentRange(containing: boundary2, affinity: .downstream)!
         XCTAssertEqual(27..<32, intRange(r, in: buffer))
         
+        // between "w" and "\n"
+        let last2 = buffer.index(buffer.startIndex, offsetBy: 31)
+        r = dataSource.lineFragmentRange(containing: last2, affinity: .upstream)!
+        XCTAssertEqual(27..<32, intRange(r, in: buffer))
 
+        r = dataSource.lineFragmentRange(containing: last2, affinity: .downstream)!
+        XCTAssertEqual(27..<32, intRange(r, in: buffer))
+
+
+        // Fourth line
+        let start3 = buffer.index(buffer.startIndex, offsetBy: 32)
+        r = dataSource.lineFragmentRange(containing: start3, affinity: .upstream)!
+        XCTAssertEqual(32..<37, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: start3, affinity: .downstream)!
+        XCTAssertEqual(32..<37, intRange(r, in: buffer))
+
+        // At the end of the buffer
+        let last3 = buffer.index(buffer.startIndex, offsetBy: 37)
+        XCTAssertEqual(last3, buffer.endIndex)
+
+        r = dataSource.lineFragmentRange(containing: last3, affinity: .upstream)!
+        XCTAssertEqual(32..<37, intRange(r, in: buffer))
+
+        XCTAssertNil(dataSource.lineFragmentRange(containing: last3, affinity: .downstream))
     }
 
     func intRange(_ r: Range<Buffer.Index>, in buffer: Buffer) -> Range<Int> {
