@@ -87,8 +87,6 @@ struct Line: Identifiable {
         return lineFragments.binarySearch { frag in
             if index == frag.range.upperBound && affinity == .upstream {
                 return .orderedSame
-            } else if index == frag.range.upperBound {
-                return .orderedAscending
             } else if frag.range.contains(index) {
                 return .orderedSame
             } else if index < frag.range.lowerBound {

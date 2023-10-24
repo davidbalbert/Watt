@@ -8,12 +8,23 @@
 import XCTest
 @testable import Watt
 
-// Simple monospaced layout:
+// Simple monospaced grid-of-characters layout:
 // - All characters are 8 points wide
 // - All lines are 14 points high
 // - No line fragment padding
+// - Does not do any word breaking. A word that extends beyond
+//   a line fragment is not moved down to the next line. It stays
+//   in the same place and is broken in the middle, right after
+//   it hits the line fragment boundary.
+// - Whitespace is treated just like normal characters. If you add
+//   a space after the end of a line fragment, no fancy wrapping
+//   happens. The next line fragment just starts with a space.
 struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     let buffer: Buffer
+
+    // Number of visual characters in a line fragment. Does
+    // not include a trailing newline character at a hard
+    // line break.
     let charsPerFrag: Int
 
     static var charWidth: CGFloat {
@@ -25,34 +36,35 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func lineFragmentRange(containing index: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>? {
+        if index == buffer.endIndex && affinity != .upstream {
+            return nil
+        }
+
         let lineStart = buffer.lines.index(roundingDown: index)
         let lineEnd = buffer.lines.index(after: lineStart, clampedTo: buffer.endIndex)
         let lineLen = buffer.characters.distance(from: lineStart, to: lineEnd)
+        let offsetInLine = buffer.characters.distance(from: lineStart, to: index)
 
-        // find the line fragment range containing index
-        // calculate the fragment range based on containerSize and the fact that all characters are 8 points wide
-        let offset = buffer.characters.distance(from: lineStart, to: index)
+        // A trailing "\n", which is present in all but the last line, doesn't
+        // contribute to the number of fragments a line takes up.
+        let visualLineLen = lineEnd == buffer.endIndex ? lineLen : lineLen - 1
+        let nfrags = max(1, Int(ceil(Double(visualLineLen) / Double(charsPerFrag))))
 
-        let onBoundary = offset % charsPerFrag == 0
-        let atStart = offset == 0
-        let atEnd = offset == lineLen
+        let onTrailingBoundary = offsetInLine > 0 && offsetInLine % charsPerFrag == 0
+        let beforeTrailingNewline = lineEnd < buffer.endIndex && offsetInLine == lineLen - 1
 
         let fragIndex: Int
-
-        if atStart && !buffer.isEmpty && affinity == .upstream {
-            return nil
-        } else if atEnd && affinity == .upstream {
-            fragIndex = lineLen/charsPerFrag
-        } else if atEnd {
-            return nil
-        } else if onBoundary && affinity == .upstream {
-            fragIndex = offset/charsPerFrag - 1
+        if onTrailingBoundary && (affinity == .upstream || beforeTrailingNewline) {
+            fragIndex = (offsetInLine/charsPerFrag) - 1
         } else {
-            fragIndex = offset/charsPerFrag
+            fragIndex = offsetInLine/charsPerFrag
         }
 
-        let fragLen = min(charsPerFrag, lineLen - fragIndex*charsPerFrag)
-        let fragStart = buffer.index(lineStart, offsetBy: fragIndex*charsPerFrag)
+        let inLastFrag = fragIndex == nfrags - 1
+
+        let fragOffset = fragIndex * charsPerFrag
+        let fragLen = inLastFrag ? lineLen - fragOffset : charsPerFrag
+        let fragStart = buffer.index(lineStart, offsetBy: fragOffset)
         let fragEnd = buffer.index(fragStart, offsetBy: fragLen)
 
         return fragStart..<fragEnd
@@ -84,7 +96,7 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 }
 
-// MARK: - Sanity checks for SimpleDataSource
+// MARK: - Sanity checks for SimpleSelectionDataSource
 
 final class SimpleSelectionDataSourceTests: XCTestCase {
     func testLineFragmentRangesEmptyBuffer() {
@@ -139,13 +151,13 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let start3 = buffer.index(buffer.startIndex, offsetBy: 3*charsPerFrag)
         let start4 = buffer.index(buffer.startIndex, offsetBy: 4*charsPerFrag)
 
-        let r0 = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)
+        let r0 = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
         let r1 = dataSource.lineFragmentRange(containing: start1, affinity: .upstream)!
         let r2 = dataSource.lineFragmentRange(containing: start2, affinity: .upstream)!
         let r3 = dataSource.lineFragmentRange(containing: start3, affinity: .upstream)!
         let r4 = dataSource.lineFragmentRange(containing: start4, affinity: .upstream)!
 
-        XCTAssertNil(r0)
+        XCTAssertEqual(0..<10, intRange(r0, in: buffer)) // beginning of line matches .upstream or .downstream
         XCTAssertEqual(0..<10, intRange(r1, in: buffer))
         XCTAssertEqual(10..<20, intRange(r2, in: buffer))
         XCTAssertEqual(20..<30, intRange(r3, in: buffer))
@@ -258,6 +270,83 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(20..<30, intRange(r2, in: buffer))
         XCTAssertEqual(30..<40, intRange(r3, in: buffer))
         XCTAssertEqual(40..<42, intRange(r4, in: buffer))
+    }
+
+    func testLineFragmentRangesMultipleLines() {
+        // 4 lines, 5 line fragments
+        let charsPerFrag = 10
+
+        let s = """
+        hello
+        0123456789
+        0123456789wrap
+        world
+        """
+
+        let buffer = Buffer(s, language: .plainText)
+
+        XCTAssertEqual(4, buffer.lines.count)
+
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: charsPerFrag)
+
+        XCTAssertEqual(6, buffer.lines.first!.count)
+
+
+        // First line: affinity doesn't matter for fragments that end in a newline
+        let start0 = buffer.index(buffer.startIndex, offsetBy: 0)
+        var r = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
+        XCTAssertEqual(0..<6, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: start0, affinity: .downstream)!
+        XCTAssertEqual(0..<6, intRange(r, in: buffer))
+
+        let last0 = buffer.index(buffer.startIndex, offsetBy: 5)
+        r = dataSource.lineFragmentRange(containing: last0, affinity: .upstream)!
+        XCTAssertEqual(0..<6, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: last0, affinity: .downstream)!
+        XCTAssertEqual(0..<6, intRange(r, in: buffer))
+
+
+        // Second line: a fragment that takes up the entire width and ends in a newline.
+        let start1 = buffer.index(buffer.startIndex, offsetBy: 6)
+        r = dataSource.lineFragmentRange(containing: start1, affinity: .upstream)!
+        XCTAssertEqual(6..<17, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: start1, affinity: .downstream)!
+        XCTAssertEqual(6..<17, intRange(r, in: buffer))
+
+        let last1 = buffer.index(buffer.startIndex, offsetBy: 15)
+        r = dataSource.lineFragmentRange(containing: last1, affinity: .upstream)!
+        XCTAssertEqual(6..<17, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: last1, affinity: .downstream)!
+        XCTAssertEqual(6..<17, intRange(r, in: buffer))
+
+        let nl1 = buffer.index(buffer.startIndex, offsetBy: 16)
+        r = dataSource.lineFragmentRange(containing: nl1, affinity: .downstream)!
+        XCTAssertEqual(6..<17, intRange(r, in: buffer))
+
+
+        // Third line wraps, with two fragments
+        //
+        // First fragment
+        let start2 = buffer.index(buffer.startIndex, offsetBy: 17)
+        r = dataSource.lineFragmentRange(containing: start2, affinity: .upstream)!
+        XCTAssertEqual(17..<27, intRange(r, in: buffer))
+
+        r = dataSource.lineFragmentRange(containing: start2, affinity: .downstream)!
+        XCTAssertEqual(17..<27, intRange(r, in: buffer))
+
+        let boundary2 = buffer.index(buffer.startIndex, offsetBy: 27)
+        r = dataSource.lineFragmentRange(containing: boundary2, affinity: .upstream)!
+        XCTAssertEqual(17..<27, intRange(r, in: buffer))
+
+        // second fragment
+        r = dataSource.lineFragmentRange(containing: boundary2, affinity: .downstream)!
+        XCTAssertEqual(27..<32, intRange(r, in: buffer))
+        
+
     }
 
     func intRange(_ r: Range<Buffer.Index>, in buffer: Buffer) -> Range<Int> {
