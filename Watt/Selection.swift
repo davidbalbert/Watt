@@ -12,6 +12,8 @@ protocol SelectionLayoutDataSource {
 
     // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
     func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index?
+
+    // point is in text container coordinates
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
 }
 
