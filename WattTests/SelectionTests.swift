@@ -88,15 +88,29 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
+        var y: CGFloat = 0
+
+        // we iterate rather than just asking for the line fragment range containing index
+        // so that we can calculate y in text container coordinates.
+        var range: Range<Buffer.Index>?
+        var i = buffer.startIndex
+        while let r = lineFragmentRange(containing: i, affinity: affinity) {
+            if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
+                range = r
+                break
+            }
+
+            y += Self.lineHeight
+            i = r.upperBound
+        }
+
+        guard let range else {
             return .zero
         }
 
-        let offsetOfFrag = buffer.characters.distance(from: buffer.startIndex, to: fragRange.lowerBound)
-        let offsetInFrag = buffer.characters.distance(from: fragRange.lowerBound, to: index)
 
+        let offsetInFrag = buffer.characters.distance(from: range.lowerBound, to: index)
         let x = CGFloat(offsetInFrag)*Self.charWidth
-        let y = CGFloat(offsetOfFrag/charsPerFrag)*Self.lineHeight
 
         return CGPoint(x: x, y: y)
     }
