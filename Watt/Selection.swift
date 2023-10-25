@@ -128,7 +128,7 @@ extension Selection {
             } else {
                 head = selection.lowerBound
             }
-            affinity = .downstream
+            affinity = head == buffer.endIndex ? .upstream : .downstream
         case .right:
             if selection.isCaret || extending {
                 head = buffer.characters.index(after: selection.head, clampedTo: buffer.endIndex)
@@ -138,7 +138,7 @@ extension Selection {
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .leftWord:
             head = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
-            affinity = .downstream
+            affinity = head == buffer.endIndex ? .upstream : .downstream
         case .rightWord:
             head = buffer.words.index(after: extending ? selection.head : selection.upperBound, clampedTo: buffer.endIndex)
             affinity = head == buffer.endIndex ? .upstream : .downstream
@@ -176,8 +176,8 @@ extension Selection {
         case .endOfParagraph:
             // end of document is end of last paragraph. This is
             // necessary so that we can distingush this case from
-            // moving to the end of the second paragraph when the
-            // last paragraph is an empty last line.
+            // moving to the end of the second to last paragraph
+            // when the last paragraph is an empty last line.
             if selection.upperBound == buffer.endIndex {
                 head = buffer.endIndex
             } else {
@@ -190,7 +190,7 @@ extension Selection {
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
-            self.init(caretAt: buffer.startIndex, affinity: .downstream)
+            self.init(caretAt: buffer.startIndex, affinity: buffer.isEmpty ? .upstream : .downstream)
             return
         case .endOfDocument:
             self.init(caretAt: buffer.endIndex, affinity: .upstream)
