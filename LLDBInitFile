@@ -1,4 +1,5 @@
 script print("Loading Watt/LLDBInitFile")
 
 type summary add Watt.BTreeNode<Watt.RopeSummary>.Index --summary-string "${var.position}[utf8]"
+type summary add Range<Watt.BTreeNode<Watt.RopeSummary>.Index> --summary-string "${var.lowerBound.position}[utf8]..<${var.upperBound.position}[utf8]"
 type summary add Range<Watt.Buffer.Index> --summary-string "${var.lowerBound.position}[utf8]..<${var.upperBound.position}[utf8]"
