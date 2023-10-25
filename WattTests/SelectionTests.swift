@@ -781,6 +781,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 // MARK: - Selection tests
 
 final class SelectionTests: XCTestCase {
+    // MARK: Creating selections
+
+    // TODO: creating carets
+    // TODO: creating ranges – make sure affinity gets set correctly
+
+
     // MARK: Selection navigation
 
     func testMoveHorizontallyByCharacter() {
@@ -1018,6 +1024,85 @@ final class SelectionTests: XCTestCase {
         s = Selection(caretAt: buffer.index(at: 16), affinity: .upstream)
         s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
         s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
+    }
+
+    func testMoveLineMultipleFragments() {
+        let str = """
+        0123456789abcdefghijwrap
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // between "0" and "1"
+        var s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
+        // end of line
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // reset
+        s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
+        // beginning of line
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // between "a" and "b"
+        s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
+        // end of line
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+
+        // reset
+        s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
+        // beginning of line
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+
+        // no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+
+        // between "w" and "r"
+        s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
+        // end of line
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
+
+        // reset
+        s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
+        // beginning of line
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+
+        // no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
+    }
+
+    func testMoveLineMultipleFragmentsOnFragmentBoundary() {
+        let str = """
+        0123456789abcdefghijwrap
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+    
+        // upstream between "9" and "a"
+        var s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
+        // left
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        // reset
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
+        // moving right is a no-op
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // downstream between "9" and "a"
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
+        // right
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        // reset
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
+        // moving left is a no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
     }
 
     func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
