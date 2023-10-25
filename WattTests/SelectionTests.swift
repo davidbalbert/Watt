@@ -1331,6 +1331,52 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
     }
 
+    func testMoveDocument() {
+        let str = """
+        0123456789abcdefghijwrap
+        foo
+
+        baz
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // no-ops
+        var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
+        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 33), affinity: .upstream)
+        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // between "f" and "o"
+        s = Selection(caretAt: buffer.index(at: 26), affinity: .downstream)
+        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 26), affinity: .downstream)
+        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+    }
+
+    func testMoveDocumentFromSelection() {
+        let str = """
+        0123456789abcdefghijwrap
+        foo
+
+        baz
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "ijwrap\nfoo\n\nb"
+        var s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 31))
+        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 31))
+        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 18))
+        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 18))
+        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+    }
+
     func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = dataSource.moveSelection(s, movement: direction)
         assert(selection: s2, hasCaret: andAssertCaret, andAffinity: andAffinity, file: file, line: line)
