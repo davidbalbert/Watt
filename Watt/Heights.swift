@@ -245,7 +245,7 @@ extension Heights.Index {
             return (leaf, leaf.positions.count - 1)
         }
 
-        let (i, found) = leaf.positions.firstIndexBinarySearch(of: offset)
+        let (i, found) = leaf.positions.binarySearch(of: offset)
         // Because leaf stores line lengths, the index of a line
         // starting at positions[n] will be n+1.
         if found {
@@ -518,7 +518,7 @@ extension Heights {
                 return leaf.endsWithBlankLine
             }
 
-            let (_, found) = leaf.positions.firstIndexBinarySearch(of: offset)
+            let (_, found) = leaf.positions.binarySearch(of: offset)
             return found
         }
 
@@ -573,7 +573,7 @@ extension Heights {
             // but we know offset < leaf.count, and the only repeated elements will be
             // leaf.count, so we're ok.
             let n: Int
-            switch leaf.positions.firstIndexBinarySearch(of: offset) {
+            switch leaf.positions.binarySearch(of: offset) {
             case let (i, true):
                 n = i + 1
             case let (i, false):
@@ -623,7 +623,7 @@ extension Heights {
                 return leaf.positions.last!
             }
 
-            var (i, found) = leaf.heights.firstIndexBinarySearch(of: measuredUnits)
+            var (i, found) = leaf.heights.binarySearch(of: measuredUnits)
             if found {
                 i += 1
             }
@@ -635,7 +635,7 @@ extension Heights {
                 return leaf.heights.last!
             }
 
-            var (i, found) = leaf.positions.firstIndexBinarySearch(of: baseUnits)
+            var (i, found) = leaf.positions.binarySearch(of: baseUnits)
             if found {
                 i += 1
             }

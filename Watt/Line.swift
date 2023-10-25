@@ -84,31 +84,29 @@ struct Line: Identifiable {
     }
 
     func fragment(containing index: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
-        return lineFragments.binarySearch { frag in
-            if index == frag.range.upperBound && affinity == .upstream {
-                return .orderedSame
-            } else if frag.range.contains(index) {
-                return .orderedSame
-            } else if frag.range.upperBound <= index {
-                return .orderedAscending
-            } else {
-                return .orderedDescending
+        for f in lineFragments {
+            if index == f.range.upperBound && affinity == .upstream {
+                return f
+            }
+
+            if f.range.contains(index) {
+                return f
             }
         }
+
+        return nil
     }
 
     // verticalOffset is in text container coordinates
     func fragment(forVerticalOffset verticalOffset: CGFloat) -> LineFragment? {
         let offsetInLine = verticalOffset - origin.y
 
-        return lineFragments.binarySearch { frag in
-            if (frag.alignmentFrame.minY..<frag.alignmentFrame.maxY).contains(offsetInLine) {
-                return .orderedSame
-            } else if offsetInLine < frag.alignmentFrame.minY {
-                return .orderedAscending
-            } else {
-                return .orderedDescending
+        for f in lineFragments {
+            if (f.alignmentFrame.minY..<f.alignmentFrame.maxY).contains(offsetInLine) {
+                return f
             }
         }
+
+        return nil
     }
 }
