@@ -976,6 +976,50 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
     }
 
+    func testMoveLineSingleFragments() {
+        let buffer = Buffer("foo bar\nbaz qux\n", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // between "a" and "r"
+        var s = Selection(caretAt: buffer.index(at: 6), affinity: .downstream)
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        // moving again is a no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // end of line
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+
+        // from end to beginning
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // between "o" and "o"
+        s = Selection(caretAt: buffer.index(at: 2), affinity: .downstream)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+
+
+
+        // between "r" and "\n"
+        s = Selection(caretAt: buffer.index(at: 7), affinity: .downstream)
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // between "z" and " "
+        s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 8), andAffinity: .downstream, dataSource: d)
+        // no-op
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 8), andAffinity: .downstream, dataSource: d)
+        
+        // end of line
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 15), andAffinity: .downstream, dataSource: d)
+        // no-op
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 15), andAffinity: .downstream, dataSource: d)
+
+        // end of buffer
+        s = Selection(caretAt: buffer.index(at: 16), affinity: .upstream)
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
+    }
+
     func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = dataSource.moveSelection(s, movement: direction)
         assert(selection: s2, hasCaret: andAssertCaret, andAffinity: andAffinity, file: file, line: line)
