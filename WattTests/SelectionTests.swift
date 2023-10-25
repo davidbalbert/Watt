@@ -1105,6 +1105,103 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
     }
 
+    func testMoveLineFromSelection() {
+        let str = """
+        0123456789abcdefghijwrap
+        bar
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "0123"
+        var s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // select "1234"
+        s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+
+        // select "9abc"
+        s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 13))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 13))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 13), head: buffer.index(at: 9))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 13), head: buffer.index(at: 9))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+
+        // select "9abcdefghijw"
+        s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 21))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 21))
+        // downstream because we're before a hard line break
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 9))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 9))
+        // ditto
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // select "ijwr"
+        s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 22))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 22))
+        // ditto
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 18))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 18))
+        // ditto
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // select "ap\nba"
+        s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 27))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 27))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 22))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 22))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+
+        // select "a"
+        s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 27))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 27))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+
+        // swap anchor and head
+        s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 26))
+        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 26))
+        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+    }
+
     func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = dataSource.moveSelection(s, movement: direction)
         assert(selection: s2, hasCaret: andAssertCaret, andAffinity: andAffinity, file: file, line: line)

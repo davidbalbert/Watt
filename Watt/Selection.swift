@@ -161,7 +161,7 @@ extension Selection {
             head = fragRange.lowerBound
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .endOfLine:
-            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
+            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
                 assertionFailure("couldn't find fragRange")
                 self = selection
                 return
