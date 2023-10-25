@@ -286,18 +286,17 @@ extension Buffer {
         }
         
         var endIndex: Index {
-            buffer.startIndex
+            buffer.endIndex
         }
         
         func index(before i: Index) -> Index {
             var i = i
-            while i > startIndex && !isWordCharacter(buffer[i]) {
+            while i > buffer.startIndex && !isWordCharacter(buffer[buffer.index(before: i)]) {
                 i = buffer.index(before: i)
             }
-            while i > startIndex && isWordCharacter(buffer[i]) {
+            while i > buffer.startIndex && isWordCharacter(buffer[buffer.index(before: i)]) {
                 i = buffer.index(before: i)
             }
-            
             return i
         }
         

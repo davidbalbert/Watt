@@ -19,7 +19,7 @@ import XCTest
 // - Whitespace is treated just like normal characters. If you add
 //   a space after the end of a line fragment, no fancy wrapping
 //   happens. The next line fragment just starts with a space.
-struct SimpleSelectionDataSource: SelectionLayoutDataSource {
+struct SimpleSelectionDataSource {
     let buffer: Buffer
 
     // Number of visual characters in a line fragment. Does
@@ -35,6 +35,12 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
         14
     }
 
+    func moveSelection(_ selection: Selection, movement: Selection.Movement) -> Selection {
+        Selection(fromExisting: selection, movement: movement, extending: false, buffer: buffer, layoutDataSource: self)
+    }
+}
+
+extension SimpleSelectionDataSource: SelectionLayoutDataSource {
     func lineFragmentRange(containing index: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>? {
         if index == buffer.endIndex && affinity != .upstream {
             return nil
@@ -107,7 +113,6 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
         guard let range else {
             return .zero
         }
-
 
         let offsetInFrag = buffer.characters.distance(from: range.lowerBound, to: index)
         let x = CGFloat(offsetInFrag)*Self.charWidth
@@ -770,5 +775,91 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(CGPoint(x: 0, y: 28), p)
         p = dataSource.point(forCharacterAt: buffer.index(at: 8), affinity: .downstream)
         XCTAssertEqual(.zero, p)
+    }
+}
+
+// MARK: - Selection tests
+
+final class SelectionTests: XCTestCase {
+    // MARK: Selection navigation
+
+    func testMoveHorizontallyByCharacter() {
+        let buffer = Buffer("ab\ncd\n", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
+        XCTAssertEqual(buffer.index(at: 0), s.caret)
+        XCTAssertEqual(.downstream, s.affinity)
+
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 3), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .downstream, dataSource: d)
+        // going right at the end doesn't move the caret
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .downstream, dataSource: d)
+
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 3), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        // going left at the beginning doesn't move the caret
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+    }
+
+    func testMoveHorizontallyByWord() {
+        let buffer = Buffer("  hello, world; this is (a test) ", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
+
+        // between "o" and ","
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+        // between "d" and ";"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+        // after "this"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        // after "is"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 23), andAffinity: .downstream, dataSource: d)
+        // after "a"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 26), andAffinity: .downstream, dataSource: d)
+        // after "test"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 31), andAffinity: .downstream, dataSource: d)
+        // end of buffer
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        // doesn't move right
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+
+        // beginning of "test"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 27), andAffinity: .downstream, dataSource: d)
+        // beginning of "a"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        // beginning of "is"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+        // beginning of "this"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 16), andAffinity: .downstream, dataSource: d)
+        // beginning of "world"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 9), andAffinity: .downstream, dataSource: d)
+        // beginning of "hello"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        // beginning of buffer
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        // doesn't move left
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+    }
+
+    func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+        let s2 = dataSource.moveSelection(s, movement: direction)
+        assert(selection: s2, hasCaret: andAssertCaret, andAffinity: andAffinity, file: file, line: line)
+        return s2
+    }
+
+    func assert(selection: Selection, hasCaret caret: Buffer.Index, andAffinity affinity: Selection.Affinity, file: StaticString = #file, line: UInt = #line) {
+        XCTAssertEqual(caret, selection.caret, file: file, line: line)
+        XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 }
