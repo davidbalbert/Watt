@@ -796,9 +796,9 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .right, andAssertCaret: buffer.index(at: 3), andAffinity: .downstream, dataSource: d)
         s = move(s, direction: .right, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
         s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .upstream, dataSource: d)
         // going right at the end doesn't move the caret
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .downstream, dataSource: d)
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .upstream, dataSource: d)
 
         s = move(s, direction: .left, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
         s = move(s, direction: .left, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
@@ -807,6 +807,66 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
         s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
         // going left at the beginning doesn't move the caret
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+    }
+
+    func testMoveRightFromSelection() {
+        let buffer = Buffer("foo bar baz", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "oo b"
+        var s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
+        // the caret moves to the end of the selection
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+
+        // it doesn't matter if the selection is reversed
+        s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+
+        // select "baz"
+        s = Selection(anchor: buffer.index(at: 8), head: buffer.index(at: 11))
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+
+        // reverse
+        s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 8))
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+
+        // select all
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 11))
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+
+        // reverse
+        s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 0))
+        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+    }
+
+    func testMoveLeftFromSelection() {
+        let buffer = Buffer("foo bar baz", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "oo b"
+        var s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
+        // the caret moves to the beginning of the selection
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+
+        // select "foo"
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 3))
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // reverse
+        s = Selection(anchor: buffer.index(at: 3), head: buffer.index(at: 0))
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // select all
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 11))
+        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // reverse
+        s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 0))
         s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
     }
 
@@ -849,6 +909,70 @@ final class SelectionTests: XCTestCase {
         // beginning of buffer
         s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
         // doesn't move left
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+    }
+
+    func testMoveRightWordFromSelection() {
+        let buffer = Buffer("  hello, world; this is (a test) ", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "ello, w"
+        var s = Selection(anchor: buffer.index(at: 3), head: buffer.index(at: 10))
+        // the caret moves to the end of "world"
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 10), head: buffer.index(at: 3))
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+
+        // select "(a test"
+        s = Selection(anchor: buffer.index(at: 24), head: buffer.index(at: 31))
+        // the caret moves to the end of the buffer
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 24))
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // select all
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 33))
+        // the caret moves to the end of the buffer
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 33), head: buffer.index(at: 0))
+        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+    }
+
+    func testMoveLeftWordFromSelection() {
+        let buffer = Buffer("  hello, world; this is (a test) ", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // select "lo, w"
+        var s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 10))
+        // the caret moves to the beginning of "hello"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 10), head: buffer.index(at: 5))
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+
+        // select "(a test"
+        s = Selection(anchor: buffer.index(at: 24), head: buffer.index(at: 31))
+        // the caret moves to the beginning of "is"
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 24))
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+
+        // select all
+        s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 33))
+        // the caret moves to the beginning of the buffer
+        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+
+        // reverse the selection
+        s = Selection(anchor: buffer.index(at: 33), head: buffer.index(at: 0))
         s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
     }
 

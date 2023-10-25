@@ -137,10 +137,10 @@ extension Selection {
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .leftWord:
-            head = buffer.words.index(before: selection.head, clampedTo: buffer.startIndex)
+            head = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
             affinity = .downstream
         case .rightWord:
-            head = buffer.words.index(after: selection.head, clampedTo: buffer.endIndex)
+            head = buffer.words.index(after: extending ? selection.head : selection.upperBound, clampedTo: buffer.endIndex)
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .up:
             (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
