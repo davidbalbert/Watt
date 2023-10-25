@@ -88,12 +88,12 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        var y: CGFloat = 0
+        var (lineRange, y) = lineRangeAndVerticalOffset(forCharacterAt: index)
 
         // we iterate rather than just asking for the line fragment range containing index
         // so that we can calculate y in text container coordinates.
         var range: Range<Buffer.Index>?
-        var i = buffer.startIndex
+        var i = lineRange.lowerBound
         while let r = lineFragmentRange(containing: i, affinity: affinity) {
             if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
                 range = r
@@ -113,6 +113,24 @@ struct SimpleSelectionDataSource: SelectionLayoutDataSource {
         let x = CGFloat(offsetInFrag)*Self.charWidth
 
         return CGPoint(x: x, y: y)
+    }
+
+    func lineRangeAndVerticalOffset(forCharacterAt index: Buffer.Index) -> (Range<Buffer.Index>, CGFloat) {
+        let lineStart = buffer.lines.index(roundingDown: index)
+        let lineEnd = buffer.lines.index(after: lineStart, clampedTo: buffer.endIndex)
+
+        var y: CGFloat = 0
+        var i = buffer.startIndex
+        while let r = lineFragmentRange(containing: i, affinity: .downstream) {
+            if r.contains(lineStart) {
+                break
+            }
+
+            y += Self.lineHeight
+            i = r.upperBound
+        }
+
+        return (lineStart..<lineEnd, y)
     }
 }
 
@@ -734,7 +752,23 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .upstream)
         XCTAssertEqual(CGPoint(x: 24, y: 14), p)
         p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .downstream)
+        XCTAssertEqual(.zero, p)
+    }
+
+    func testPointForCharacterAtTrailingNewline() {
+        let buffer = Buffer("abc\ndef\n", language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // let's start right before the second newline. We tested everything else above.
+
+        var p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 7), affinity: .downstream)
         XCTAssertEqual(CGPoint(x: 24, y: 14), p)
 
+        p = dataSource.point(forCharacterAt: buffer.index(at: 8), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 0, y: 28), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 8), affinity: .downstream)
+        XCTAssertEqual(.zero, p)
     }
 }
