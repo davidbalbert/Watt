@@ -188,7 +188,7 @@ extension Selection {
                     head = buffer.index(before: i)
                 }
             }
-            affinity = .upstream
+            affinity = head == buffer.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
             self.init(caretAt: buffer.startIndex, affinity: .downstream)
             return

@@ -1202,6 +1202,76 @@ final class SelectionTests: XCTestCase {
         s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
     }
 
+    func testMoveBeginningOfParagraph() {
+        let str = """
+        0123456789abcdefghijwrap
+        foo
+
+        baz
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // no-ops
+        var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 24), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)        
+
+        // no-op around "baz"
+        s = Selection(caretAt: buffer.index(at: 30), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 30), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 33), affinity: .upstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+
+        // no-op in blank line
+        s = Selection(caretAt: buffer.index(at: 29), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 29), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 29), affinity: .downstream)
+
+        // between "0" and "1"
+        s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // between "9" and "a" upstream
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // between "9" and "a" downstream
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // between "a" and "b"
+        s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // between "w" and "r"
+        s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+
+        // between "o" and "o"
+        s = Selection(caretAt: buffer.index(at: 27), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 27), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 28), andAffinity: .downstream, dataSource: d)
+
+        // between "a" and "z"
+        s = Selection(caretAt: buffer.index(at: 32), affinity: .downstream)
+        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 30), andAffinity: .downstream, dataSource: d)
+        s = Selection(caretAt: buffer.index(at: 32), affinity: .downstream)
+        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+    }
+
     func move(_ s: Selection, direction: Selection.Movement, andAssertCaret: Buffer.Index, andAffinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = dataSource.moveSelection(s, movement: direction)
         assert(selection: s2, hasCaret: andAssertCaret, andAffinity: andAffinity, file: file, line: line)
