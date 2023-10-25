@@ -89,7 +89,7 @@ struct Line: Identifiable {
                 return .orderedSame
             } else if frag.range.contains(index) {
                 return .orderedSame
-            } else if index < frag.range.lowerBound {
+            } else if frag.range.upperBound <= index {
                 return .orderedAscending
             } else {
                 return .orderedDescending
