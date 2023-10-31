@@ -1450,6 +1450,54 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
     }
 
+    func testExtendSelectionByParagraph() {
+        let str = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // caret at "5"
+        var s = Selection(caretAt: buffer.index(at: 9), affinity: .downstream)
+        s = extendAndAssert(s, direction: .endOfParagraph, selected: "56789wrap", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfParagraph, dataSource: d)
+        s = extendAndAssert(s, direction: .beginningOfParagraph, selected: "0123456789wrap", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfParagraph, dataSource: d)
+
+        // caret at "5"
+        s = Selection(caretAt: buffer.index(at: 9), affinity: .downstream)
+        s = extendAndAssert(s, direction: .beginningOfParagraph, selected: "01234", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfParagraph, dataSource: d)
+        s = extendAndAssert(s, direction: .endOfParagraph, selected: "0123456789wrap", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfParagraph, dataSource: d)
+    }
+
+    func testExtendSelectionByDocument() {
+        let str = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // caret at "5"
+        var s = Selection(caretAt: buffer.index(at: 9), affinity: .downstream)
+        s = extendAndAssert(s, direction: .endOfDocument, selected: "56789wrap\nbar", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfDocument, dataSource: d)
+        s = extendAndAssert(s, direction: .beginningOfDocument, selected: "foo\n0123456789wrap\nbar", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfDocument, dataSource: d)
+
+        // caret at "5"
+        s = Selection(caretAt: buffer.index(at: 9), affinity: .downstream)
+        s = extendAndAssert(s, direction: .beginningOfDocument, selected: "foo\n01234", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfDocument, dataSource: d)
+        s = extendAndAssert(s, direction: .endOfDocument, selected: "foo\n0123456789wrap\nbar", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfDocument, dataSource: d)
+    }
+
     func extendAndAssert(_ s: Selection, direction: Selection.Movement, caret c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = Selection(fromExisting: s, movement: direction, extending: true, buffer: dataSource.buffer, layoutDataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)

@@ -202,11 +202,11 @@ extension Selection {
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
-            self.init(caretAt: buffer.startIndex, affinity: buffer.isEmpty ? .upstream : .downstream)
-            return
+            head = buffer.startIndex
+            affinity = buffer.isEmpty ? .upstream : .downstream
         case .endOfDocument:
-            self.init(caretAt: buffer.endIndex, affinity: .upstream)
-            return
+            head = buffer.endIndex
+            affinity = .upstream
         }
 
         if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
