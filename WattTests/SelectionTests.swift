@@ -1415,33 +1415,35 @@ final class SelectionTests: XCTestCase {
         // caret at "o"
         var s = Selection(caretAt: buffer.index(at: 8), affinity: .downstream)
         s = extendAndAssert(s, direction: .endOfLine, selected: "or", affinity: .upstream, dataSource: d)
-        // no-op
-        s = extendAndAssert(s, direction: .endOfLine, selected: "or", affinity: .upstream, dataSource: d)
-
+        s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, wor", affinity: .downstream, dataSource: d)
-        // no-op
-        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, wor", affinity: .downstream, dataSource: d)
-
-
+        s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
 
         // caret at "o"
         s = Selection(caretAt: buffer.index(at: 8), affinity: .downstream)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, w", affinity: .downstream, dataSource: d)
-        // no-op
-        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, w", affinity: .downstream, dataSource: d)
-
+        s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
-        // no-op
-        s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
     }
 
     func testExtendSelectionByLineHardWrap() {
         let buffer = Buffer("foo\nbar\nqux", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
 
         // caret at first "a"
         var s = Selection(caretAt: buffer.index(at: 5), affinity: .downstream)
-        s = extendAndAssert(s, direction: .endOfLine, selected: "ar", affinity: .upstream, dataSource: SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10))
-        s = extendAndAssert(s, direction: .beginningOfLine, selected: "bar", affinity: .downstream, dataSource: SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10))
+        s = extendAndAssert(s, direction: .endOfLine, selected: "ar", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "bar", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
+
+        // caret at first "a"
+        s = Selection(caretAt: buffer.index(at: 5), affinity: .downstream)
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "b", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
+        s = extendAndAssert(s, direction: .endOfLine, selected: "bar", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
     }
 
     func extendAndAssert(_ s: Selection, direction: Selection.Movement, caret c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
@@ -1453,6 +1455,12 @@ final class SelectionTests: XCTestCase {
     func extendAndAssert(_ s: Selection, direction: Selection.Movement, selected string: String, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = Selection(fromExisting: s, movement: direction, extending: true, buffer: dataSource.buffer, layoutDataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
+        return s2
+    }
+
+    func extendAndAssertNoop(_ s: Selection, direction: Selection.Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+        let s2 = Selection(fromExisting: s, movement: direction, extending: true, buffer: dataSource.buffer, layoutDataSource: dataSource)
+        XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 

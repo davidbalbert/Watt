@@ -17,8 +17,8 @@ protocol SelectionLayoutDataSource {
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
 }
 
-struct Selection {
-    enum Affinity {
+struct Selection: Equatable {
+    enum Affinity: Equatable {
         case upstream
         case downstream
     }
@@ -138,6 +138,16 @@ extension Selection {
                 head = selection.upperBound
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
+        case .up:
+            (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
+            if !extending || head == selection.anchor {
+                affinity = .upstream
+            }
+        case .down:
+            (head, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
+            if !extending || head == selection.anchor {
+                affinity = .downstream
+            }
         case .leftWord:
             let wordBoundary = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
             if extending && selection.isRange && selection.affinity == .downstream {
@@ -154,16 +164,6 @@ extension Selection {
                 head = wordBoundary
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
-        case .up:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
-            if !extending || head == selection.anchor {
-                affinity = .upstream
-            }
-        case .down:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
-            if !extending || head == selection.anchor {
-                affinity = .downstream
-            }
         case .beginningOfLine:
             guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
                 assertionFailure("couldn't find fragRange")
