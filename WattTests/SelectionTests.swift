@@ -793,23 +793,23 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(buffer.index(at: 0), s.caret)
         XCTAssertEqual(.downstream, s.affinity)
 
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 3), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 1), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 2), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 3), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 4), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 5), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 6), affinity: .upstream, dataSource: d)
         // going right at the end doesn't move the caret
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 6), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 6), affinity: .upstream, dataSource: d)
 
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 4), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 3), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 5), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 4), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 3), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 2), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 1), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         // going left at the beginning doesn't move the caret
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
     func testMoveRightFromSelection() {
@@ -819,27 +819,27 @@ final class SelectionTests: XCTestCase {
         // select "oo b"
         var s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
         // the caret moves to the end of the selection
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 5), affinity: .downstream, dataSource: d)
 
         // it doesn't matter if the selection is reversed
         s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 5), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 5), affinity: .downstream, dataSource: d)
 
         // select "baz"
         s = Selection(anchor: buffer.index(at: 8), head: buffer.index(at: 11))
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 11), affinity: .upstream, dataSource: d)
 
         // reverse
         s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 8))
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 11), affinity: .upstream, dataSource: d)
 
         // select all
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 11))
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 11), affinity: .upstream, dataSource: d)
 
         // reverse
         s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 0))
-        s = move(s, direction: .right, andAssertCaret: buffer.index(at: 11), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .right, caretAt: buffer.index(at: 11), affinity: .upstream, dataSource: d)
     }
 
     func testMoveLeftFromSelection() {
@@ -849,27 +849,28 @@ final class SelectionTests: XCTestCase {
         // select "oo b"
         var s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
         // the caret moves to the beginning of the selection
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 1), affinity: .downstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 1), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 1), affinity: .downstream, dataSource: d)
 
         // select "foo"
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 3))
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse
         s = Selection(anchor: buffer.index(at: 3), head: buffer.index(at: 0))
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // select all
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 11))
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse
         s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 0))
-        s = move(s, direction: .left, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
+    }
     }
 
     func testMoveHorizontallyByWord() {
@@ -879,39 +880,39 @@ final class SelectionTests: XCTestCase {
         var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
 
         // between "o" and ","
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 7), affinity: .downstream, dataSource: d)
         // between "d" and ";"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 14), affinity: .downstream, dataSource: d)
         // after "this"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 20), affinity: .downstream, dataSource: d)
         // after "is"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 23), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 23), affinity: .downstream, dataSource: d)
         // after "a"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 26), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 26), affinity: .downstream, dataSource: d)
         // after "test"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 31), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 31), affinity: .downstream, dataSource: d)
         // end of buffer
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
         // doesn't move right
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
 
         // beginning of "test"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 27), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 27), affinity: .downstream, dataSource: d)
         // beginning of "a"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         // beginning of "is"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 21), affinity: .downstream, dataSource: d)
         // beginning of "this"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 16), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 16), affinity: .downstream, dataSource: d)
         // beginning of "world"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 9), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 9), affinity: .downstream, dataSource: d)
         // beginning of "hello"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 2), affinity: .downstream, dataSource: d)
         // beginning of buffer
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         // doesn't move left
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
     func testMoveRightWordFromSelection() {
@@ -921,29 +922,29 @@ final class SelectionTests: XCTestCase {
         // select "ello, w"
         var s = Selection(anchor: buffer.index(at: 3), head: buffer.index(at: 10))
         // the caret moves to the end of "world"
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 14), affinity: .downstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 10), head: buffer.index(at: 3))
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 14), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 14), affinity: .downstream, dataSource: d)
 
         // select "(a test"
         s = Selection(anchor: buffer.index(at: 24), head: buffer.index(at: 31))
         // the caret moves to the end of the buffer
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 24))
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // select all
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 33))
         // the caret moves to the end of the buffer
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 33), head: buffer.index(at: 0))
-        s = move(s, direction: .rightWord, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
     func testMoveLeftWordFromSelection() {
@@ -953,29 +954,29 @@ final class SelectionTests: XCTestCase {
         // select "lo, w"
         var s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 10))
         // the caret moves to the beginning of "hello"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 2), affinity: .downstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 10), head: buffer.index(at: 5))
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 2), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 2), affinity: .downstream, dataSource: d)
 
         // select "(a test"
         s = Selection(anchor: buffer.index(at: 24), head: buffer.index(at: 31))
         // the caret moves to the beginning of "is"
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 21), affinity: .downstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 24))
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 21), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 21), affinity: .downstream, dataSource: d)
 
         // select all
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 33))
         // the caret moves to the beginning of the buffer
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse the selection
         s = Selection(anchor: buffer.index(at: 33), head: buffer.index(at: 0))
-        s = move(s, direction: .leftWord, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
     func testMoveLineSingleFragments() {
@@ -984,42 +985,42 @@ final class SelectionTests: XCTestCase {
 
         // between "a" and "r"
         var s = Selection(caretAt: buffer.index(at: 6), affinity: .downstream)
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         // moving again is a no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // end of line
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 7), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 7), affinity: .downstream, dataSource: d)
 
         // from end to beginning
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // between "o" and "o"
         s = Selection(caretAt: buffer.index(at: 2), affinity: .downstream)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 7), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 7), affinity: .downstream, dataSource: d)
 
 
 
         // between "r" and "\n"
         s = Selection(caretAt: buffer.index(at: 7), affinity: .downstream)
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // between "z" and " "
         s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 8), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 8), affinity: .downstream, dataSource: d)
         // no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 8), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 8), affinity: .downstream, dataSource: d)
         
         // end of line
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 15), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 15), affinity: .downstream, dataSource: d)
         // no-op
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 15), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 15), affinity: .downstream, dataSource: d)
 
         // end of buffer
         s = Selection(caretAt: buffer.index(at: 16), affinity: .upstream)
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 16), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 16), affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 16), affinity: .upstream, dataSource: d)
     }
 
     func testMoveLineMultipleFragments() {
@@ -1032,47 +1033,47 @@ final class SelectionTests: XCTestCase {
         // between "0" and "1"
         var s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
         // end of line
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // reset
         s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
         // beginning of line
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
 
         // no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // between "a" and "b"
         s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
         // end of line
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
 
         // reset
         s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
         // beginning of line
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 10), affinity: .downstream, dataSource: d)
 
         // no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 10), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
 
         // between "w" and "r"
         s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
         // end of line
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .upstream, dataSource: d)
 
         // reset
         s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
         // beginning of line
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 20), affinity: .downstream, dataSource: d)
 
         // no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 20), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .upstream, dataSource: d)
     }
 
     func testMoveLineMultipleFragmentsOnFragmentBoundary() {
@@ -1085,20 +1086,20 @@ final class SelectionTests: XCTestCase {
         // upstream between "9" and "a"
         var s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
         // left
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         // reset
         s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
         // moving right is a no-op
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // downstream between "9" and "a"
         s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
         // right
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
         // reset
         s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
         // moving left is a no-op
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 10), affinity: .downstream, dataSource: d)
     }
 
     func testMoveLineFromSelection() {
@@ -1111,91 +1112,91 @@ final class SelectionTests: XCTestCase {
 
         // select "0123"
         var s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // select "1234"
         s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 1), head: buffer.index(at: 5))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 5), head: buffer.index(at: 1))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 10), affinity: .upstream, dataSource: d)
 
         // select "9abc"
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 13))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 13))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 13), head: buffer.index(at: 9))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 13), head: buffer.index(at: 9))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 20), affinity: .upstream, dataSource: d)
 
         // select "9abcdefghijw"
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 21))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 21))
         // downstream because we're before a hard line break
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 9))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 9))
         // ditto
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "ijwr"
         s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 22))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 10), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 22))
         // ditto
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 18))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 10), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 10), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 18))
         // ditto
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "ap\nba"
         s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 27))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 20), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 22), head: buffer.index(at: 27))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 28), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 22))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 20), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 20), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 22))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 28), affinity: .upstream, dataSource: d)
 
         // select "a"
         s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 27))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 27))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 28), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 26))
-        s = move(s, direction: .beginningOfLine, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 26))
-        s = move(s, direction: .endOfLine, andAssertCaret: buffer.index(at: 28), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: buffer.index(at: 28), affinity: .upstream, dataSource: d)
     }
 
     func testMoveBeginningOfParagraph() {
@@ -1210,62 +1211,62 @@ final class SelectionTests: XCTestCase {
 
         // no-ops
         var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 24), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)        
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)        
 
         // no-op around "baz"
         s = Selection(caretAt: buffer.index(at: 30), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 30), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 30), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 33), affinity: .upstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // no-op in blank line
         s = Selection(caretAt: buffer.index(at: 29), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 29), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 29), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 29), affinity: .downstream)
 
         // between "0" and "1"
         s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "9" and "a" upstream
         s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 10), affinity: .upstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "9" and "a" downstream
         s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 10), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "a" and "b"
         s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 11), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "w" and "r"
         s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 21), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "o" and "o"
         s = Selection(caretAt: buffer.index(at: 27), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 27), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 28), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 28), affinity: .downstream, dataSource: d)
 
         // between "a" and "z"
         s = Selection(caretAt: buffer.index(at: 32), affinity: .downstream)
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 30), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 30), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 32), affinity: .downstream)
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
     func testMoveParagraphFromSelection() {
@@ -1280,51 +1281,51 @@ final class SelectionTests: XCTestCase {
 
         // select "0123"
         var s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 0), head: buffer.index(at: 4))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 4), head: buffer.index(at: 0))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "9abcdefghi"
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 19))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 9), head: buffer.index(at: 19))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 19), head: buffer.index(at: 9))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 19), head: buffer.index(at: 9))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 24), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "rap\nfo"
         s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 27))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 21), head: buffer.index(at: 27))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 28), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 28), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 21))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 27), head: buffer.index(at: 21))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 28), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 28), affinity: .downstream, dataSource: d)
 
         // select "o\n\nba"
         s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 32))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 26), head: buffer.index(at: 32))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 32), head: buffer.index(at: 26))
-        s = move(s, direction: .beginningOfParagraph, andAssertCaret: buffer.index(at: 25), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: buffer.index(at: 25), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 32), head: buffer.index(at: 26))
-        s = move(s, direction: .endOfParagraph, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
     func testMoveDocument() {
@@ -1339,15 +1340,15 @@ final class SelectionTests: XCTestCase {
 
         // no-ops
         var s = Selection(caretAt: buffer.index(at: 0), affinity: .downstream)
-        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 33), affinity: .upstream)
-        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfDocument, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // between "f" and "o"
         s = Selection(caretAt: buffer.index(at: 26), affinity: .downstream)
-        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: buffer.index(at: 26), affinity: .downstream)
-        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfDocument, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
     func testMoveDocumentFromSelection() {
@@ -1362,15 +1363,15 @@ final class SelectionTests: XCTestCase {
 
         // select "ijwrap\nfoo\n\nb"
         var s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 31))
-        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 18), head: buffer.index(at: 31))
-        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfDocument, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
         s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 18))
-        s = move(s, direction: .beginningOfDocument, andAssertCaret: buffer.index(at: 0), andAffinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(anchor: buffer.index(at: 31), head: buffer.index(at: 18))
-        s = move(s, direction: .endOfDocument, andAssertCaret: buffer.index(at: 33), andAffinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfDocument, caretAt: buffer.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
     func testExtendSelectionByCharacter() {
@@ -1515,8 +1516,26 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
+    
+    func moveAndAssert(_ s: Selection, direction: Selection.Movement, caret c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+        let s2 = Selection(fromExisting: s, movement: direction, extending: false, buffer: dataSource.buffer, layoutDataSource: dataSource)
+        assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
+        return s2
+    }
 
-    func move(_ s: Selection, direction: Selection.Movement, andAssertCaret caret: Buffer.Index, andAffinity affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+    func moveAndAssert(_ s: Selection, direction: Selection.Movement, selected string: String, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+        let s2 = Selection(fromExisting: s, movement: direction, extending: false, buffer: dataSource.buffer, layoutDataSource: dataSource)
+        assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
+        return s2
+    }
+
+    func moveAndAssertNoop(_ s: Selection, direction: Selection.Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
+        let s2 = Selection(fromExisting: s, movement: direction, extending: false, buffer: dataSource.buffer, layoutDataSource: dataSource)
+        XCTAssertEqual(s, s2, file: file, line: line)
+        return s2
+    }
+
+    func moveAndAssert(_ s: Selection, direction: Selection.Movement, caretAt caret: Buffer.Index, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = Selection(fromExisting: s, movement: direction, extending: false, buffer: dataSource.buffer, layoutDataSource: dataSource)
         assert(selection: s2, hasCaret: caret, andAffinity: affinity, file: file, line: line)
         return s2
