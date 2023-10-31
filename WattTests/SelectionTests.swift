@@ -1392,6 +1392,22 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssert(s, direction: .left, caret: "e", affinity: .downstream, dataSource: d)
     }
 
+    func testExtendSelectionByWord() {
+        let buffer = Buffer("foo; (bar) qux", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // caret at "a"
+        var s = Selection(caretAt: buffer.index(at: 7), affinity: .downstream)
+        s = extendAndAssert(s, direction: .rightWord, selected: "ar", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .rightWord, selected: "ar) qux", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .leftWord, selected: "ar) ", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .leftWord, caret: "a", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .leftWord, selected: "b", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .leftWord, selected: "foo; (b", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .rightWord, selected: "; (b", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .rightWord, caret: "a", affinity: .downstream, dataSource: d)
+    }
+
     func extendAndAssert(_ s: Selection, direction: Selection.Movement, caret c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = Selection(fromExisting: s, movement: direction, extending: true, buffer: dataSource.buffer, layoutDataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
@@ -1411,14 +1427,15 @@ final class SelectionTests: XCTestCase {
     }
 
     func assert(selection: Selection, hasCaretBefore c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
-        XCTAssert(selection.isCaret)
-        XCTAssertEqual(dataSource.buffer[selection.range.lowerBound], c, file: file, line: line)
+        XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
+        XCTAssertEqual(dataSource.buffer[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
     func assert(selection: Selection, hasRangeCovering string: String, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         let range = selection.range
-        XCTAssertEqual(String(dataSource.buffer[range]), string, file: file, line: line)
+        XCTAssert(selection.isRange, "selection is not a range", file: file, line: line)
+        XCTAssertEqual(String(dataSource.buffer[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
