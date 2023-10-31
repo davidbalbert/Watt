@@ -241,6 +241,15 @@ extension Selection {
 // To get the correct behavior, we need to ensure that selection.xOffset
 // always corresponds to selection.lowerBound.
 func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: D) -> (Buffer.Index, Selection.Affinity, xOffset: CGFloat?) where D: SelectionLayoutDataSource {
+    // Moving up when we're already at the front or moving down when we're already
+    // at the end is a no-op.
+    if movingUp && selection.lowerBound == buffer.startIndex {
+        return (selection.lowerBound, selection.affinity, selection.xOffset)
+    }
+    if !movingUp && selection.upperBound == buffer.endIndex {
+        return (selection.upperBound, selection.affinity, selection.xOffset)
+    }
+
     let i = selection.isRange && extending ? selection.head : selection.lowerBound
     let affinity: Selection.Affinity
     if i == buffer.endIndex {
@@ -251,15 +260,6 @@ func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Boo
         affinity = .downstream
     } else {
         affinity = .upstream
-    }
-
-    // Moving up when we're already at the front or moving down when we're already
-    // at the end is a no-op.
-    if movingUp && selection.lowerBound == buffer.startIndex {
-        return (selection.lowerBound, selection.affinity, selection.xOffset)
-    }
-    if !movingUp && selection.upperBound == buffer.endIndex {
-        return (selection.upperBound, selection.affinity, selection.xOffset)
     }
 
     guard let fragRange = layoutDataSource.lineFragmentRange(containing: i, affinity: affinity) else {
