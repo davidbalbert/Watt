@@ -113,7 +113,7 @@ extension Selection {
         case endOfDocument
     }
 
-    init(fromExisting selection: Selection, movement: Movement, extending: Bool, buffer: Buffer, layoutDataSource: some SelectionLayoutDataSource) {
+    init<D>(fromExisting selection: Selection, movement: Movement, extending: Bool, buffer: Buffer, layoutDataSource: D) where D: SelectionLayoutDataSource {
         if buffer.isEmpty {
             self.init(caretAt: buffer.startIndex, affinity: .upstream)
             return
@@ -139,15 +139,9 @@ extension Selection {
             }
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .up:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
-            if !extending || head == selection.anchor {
-                affinity = .upstream
-            }
+            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
         case .down:
-            (head, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
-            if !extending || head == selection.anchor {
-                affinity = .downstream
-            }
+            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
         case .leftWord:
             let wordBoundary = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
             if extending && selection.isRange && selection.affinity == .downstream {
@@ -241,30 +235,55 @@ extension Selection {
 //
 // To get the correct behavior, we need to ensure that selection.xOffset
 // always corresponds to selection.lowerBound.
-func verticalDestination(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: some SelectionLayoutDataSource) -> (Buffer.Index, xOffset: CGFloat?) {
+func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: D) -> (Buffer.Index, Selection.Affinity, xOffset: CGFloat?) where D: SelectionLayoutDataSource {
     let i = selection.isRange && extending ? selection.head : selection.lowerBound
     let affinity: Selection.Affinity = selection.isCaret ? selection.affinity : (movingUp ? .downstream : .upstream)
 
-    guard let fragRange = layoutDataSource.lineFragmentRange(containing: i, affinity: affinity) else {
-        assertionFailure("couldn't find frag")
-        return (selection.lowerBound, nil)
+    // Moving up when we're already at the front or moving down when we're already
+    // at the end is a no-op.
+    if movingUp && selection.lowerBound == buffer.startIndex {
+        return (selection.lowerBound, selection.affinity, selection.xOffset)
+    }
+    if !movingUp && selection.upperBound == buffer.endIndex {
+        return (selection.upperBound, selection.affinity, selection.xOffset)
     }
 
+    guard let fragRange = layoutDataSource.lineFragmentRange(containing: i, affinity: affinity) else {
+        assertionFailure("couldn't find fragRange")
+        return (selection.lowerBound, selection.affinity, selection.xOffset)
+    }
+
+    // Moving up when we're in the first frag, moves left to the beginning. Moving
+    // down when we're in the last frag moves right to the end.
+    //
+    // Because we move horizontally, xOffset gets cleared.
     if movingUp && fragRange.lowerBound == buffer.startIndex {
-        return (buffer.startIndex, nil)
+        return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream, nil)
     }
     if !movingUp && fragRange.upperBound == buffer.endIndex {
-        return (buffer.endIndex, nil)
+        return (buffer.endIndex, .upstream, nil)
     }
 
     let xOffset = selection.xOffset ?? layoutDataSource.point(forCharacterAt: i, affinity: affinity).x
-    let target = movingUp ? fragRange.lowerBound : fragRange.upperBound
+
+    var target = movingUp ? fragRange.lowerBound : fragRange.upperBound
+
+    // If we're at the beginning of a Line, we need to target the previous line.
+    if movingUp && target > buffer.startIndex && buffer[buffer.index(before: target)] == "\n" {
+        target = buffer.index(before: target)
+    }
     let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
+    
+    guard let targetFragRange = layoutDataSource.lineFragmentRange(containing: target, affinity: targetAffinity) else {
+        assertionFailure("couldn't find target fragRange")
+        return (selection.lowerBound, selection.affinity, selection.xOffset)
+    }
 
     guard let head = layoutDataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
         assertionFailure("couldn't find head")
-        return (selection.lowerBound, nil)
+        return (selection.lowerBound, selection.affinity, selection.xOffset)
     }
 
-    return (head, xOffset)
+    let newAffinity: Selection.Affinity = head == targetFragRange.upperBound ? .upstream : .downstream
+    return (head, newAffinity, xOffset)
 }

@@ -897,6 +897,44 @@ final class SelectionTests: XCTestCase {
         s = Selection(anchor: buffer.index(at: 11), head: buffer.index(at: 0))
         s = moveAndAssert(s, direction: .left, caretAt: buffer.index(at: 0), affinity: .downstream, dataSource: d)
     }
+
+    func testMoveVertically() {
+        let str = """
+        qux
+        0123456789abcdefghijwrap
+        xyz
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // caret at "1"
+        var s = Selection(caretAt: buffer.index(at: 5), affinity: .downstream)
+        s = moveAndAssert(s, direction: .up, caret: "u", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .up, caret: "q", affinity: .downstream, dataSource: d)
+        s = moveAndAssertNoop(s, direction: .up, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "0", affinity: .downstream, dataSource: d)
+
+        // caret at "1"
+        s = Selection(caretAt: buffer.index(at: 5), affinity: .downstream)
+        s = moveAndAssert(s, direction: .down, caret: "b", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "r", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "y", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caretAt: buffer.endIndex, affinity: .upstream, dataSource: d)
+        s = moveAndAssertNoop(s, direction: .down, dataSource: d)
+        s = moveAndAssert(s, direction: .up, caret: "p", affinity: .downstream, dataSource: d)
+
+
+        // caret at "5"
+        s = Selection(caretAt: buffer.index(at: 9), affinity: .downstream)
+        // after "qux"
+        s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "5", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "f", affinity: .downstream, dataSource: d)
+        // after "wrap"
+        s = moveAndAssert(s, direction: .down, caret: "\n", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caretAt: buffer.endIndex, affinity: .upstream, dataSource: d)
+        s = moveAndAssertNoop(s, direction: .down, dataSource: d)
+        s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
     }
 
     func testMoveHorizontallyByWord() {
