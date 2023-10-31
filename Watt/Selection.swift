@@ -40,12 +40,17 @@ struct Selection: Equatable {
         self.init(range: index..<index, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
     }
 
-    init(anchor: Buffer.Index, head: Buffer.Index, markedRange: Range<Rope.Index>? = nil) {
+    // xOffset still needs to be maintained while selecting for a specific special case:
+    // If we're moving up from within the first fragment to the beginning of the document
+    // or moving down from the within the last fragment to the end of the document, we want
+    // to maintain our xOffset so that when we move back in the opposite vertical direction,
+    // we move by one line fragment and also jump horizontally to our xOffset
+    init(anchor: Buffer.Index, head: Buffer.Index, xOffset: CGFloat? = nil, markedRange: Range<Rope.Index>? = nil) {
         let i = min(anchor, head)
         let j = max(anchor, head)
         let affinity: Affinity = anchor < head ? .downstream : .upstream
 
-        self.init(range: i..<j, affinity: affinity, xOffset: nil, markedRange: markedRange)
+        self.init(range: i..<j, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
     }
 
     private init(range: Range<Buffer.Index>, affinity: Affinity, xOffset: CGFloat?, markedRange: Range<Rope.Index>?) {
@@ -208,7 +213,7 @@ extension Selection {
         } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             self.init(anchor: head, head: selection.lowerBound)
         } else if extending && head != selection.anchor {
-            self.init(anchor: selection.anchor, head: head)
+            self.init(anchor: selection.anchor, head: head, xOffset: xOffset)
         } else {
             // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
             if let affinity {
@@ -237,7 +242,16 @@ extension Selection {
 // always corresponds to selection.lowerBound.
 func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: D) -> (Buffer.Index, Selection.Affinity, xOffset: CGFloat?) where D: SelectionLayoutDataSource {
     let i = selection.isRange && extending ? selection.head : selection.lowerBound
-    let affinity: Selection.Affinity = selection.isCaret ? selection.affinity : (movingUp ? .downstream : .upstream)
+    let affinity: Selection.Affinity
+    if i == buffer.endIndex {
+        affinity = .upstream
+    } else if selection.isCaret {
+        affinity = selection.affinity
+    } else if movingUp {
+        affinity = .downstream
+    } else {
+        affinity = .upstream
+    }
 
     // Moving up when we're already at the front or moving down when we're already
     // at the end is a no-op.
@@ -256,12 +270,15 @@ func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Boo
     // Moving up when we're in the first frag, moves left to the beginning. Moving
     // down when we're in the last frag moves right to the end.
     //
-    // Because we move horizontally, xOffset gets cleared.
+    // When we're moving (not extending), because we're going horizontally, xOffset
+    // gets cleared.
     if movingUp && fragRange.lowerBound == buffer.startIndex {
-        return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream, nil)
+        let xOffset = extending ? selection.xOffset : nil
+        return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream, xOffset)
     }
     if !movingUp && fragRange.upperBound == buffer.endIndex {
-        return (buffer.endIndex, .upstream, nil)
+        let xOffset = extending ? selection.xOffset : nil
+        return (buffer.endIndex, .upstream, xOffset)
     }
 
     let xOffset = selection.xOffset ?? layoutDataSource.point(forCharacterAt: i, affinity: affinity).x

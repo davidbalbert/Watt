@@ -1459,6 +1459,32 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssert(s, direction: .left, caret: "e", affinity: .downstream, dataSource: d)
     }
 
+    func testExtendSelectionVertically() {
+        let str = """
+        qux
+        0123456789abcdefghijwrap
+        xyz
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        // caret at "b"
+        var s = Selection(caretAt: buffer.index(at: 15), affinity: .downstream)
+        s = extendAndAssert(s, direction: .up, selected: "123456789a", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .up, selected: "ux\n0123456789a", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .up, selected: "qux\n0123456789a", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .up, dataSource: d)
+        // Even though we went left to the start of the document, we don't adjust xOffset while extending.
+        s = extendAndAssert(s, direction: .down, selected: "123456789a", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .down, caret: "b", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .down, selected: "bcdefghijw", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .down, selected: "bcdefghijwrap\nx", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .down, selected: "bcdefghijwrap\nxyz", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .down, dataSource: d)
+        s = extendAndAssert(s, direction: .up, selected: "bcdefghijw", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .up, caret: "b", affinity: .downstream, dataSource: d)
+    }
+
     func testExtendSelectionByWord() {
         let buffer = Buffer("foo; (bar) qux", language: .plainText)
         let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
