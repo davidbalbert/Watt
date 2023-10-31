@@ -30,6 +30,8 @@ struct Selection {
     }
 
     let range: Range<Buffer.Index>
+    // For caret, determines which side of a line wrap the caret is on.
+    // For range, determins which the end is head, and which end is the anchor.
     let affinity: Affinity
     let xOffset: CGFloat? // in text container coordinates
     let markedRange: Range<Rope.Index>?
