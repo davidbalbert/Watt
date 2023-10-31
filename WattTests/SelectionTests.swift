@@ -1380,6 +1380,7 @@ final class SelectionTests: XCTestCase {
         // caret at "!"
         var s = Selection(caretAt: buffer.index(at: 12), affinity: .downstream)
         s = extendAndAssert(s, direction: .right, selected: "!", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .right, dataSource: d)
         s = extendAndAssert(s, direction: .left, caret: "!", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .left, selected: "d", affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .right, caret: "!", affinity: .downstream, dataSource: d)
@@ -1387,6 +1388,7 @@ final class SelectionTests: XCTestCase {
         // caret at "e"
         s = Selection(caretAt: buffer.index(at: 1), affinity: .downstream)
         s = extendAndAssert(s, direction: .left, selected: "H", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .left, dataSource: d)
         s = extendAndAssert(s, direction: .right, caret: "e", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .right, selected: "e", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .left, caret: "e", affinity: .downstream, dataSource: d)
@@ -1400,10 +1402,12 @@ final class SelectionTests: XCTestCase {
         var s = Selection(caretAt: buffer.index(at: 7), affinity: .downstream)
         s = extendAndAssert(s, direction: .rightWord, selected: "ar", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .rightWord, selected: "ar) qux", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .rightWord, dataSource: d)
         s = extendAndAssert(s, direction: .leftWord, selected: "ar) ", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .leftWord, caret: "a", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .leftWord, selected: "b", affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .leftWord, selected: "foo; (b", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .leftWord, dataSource: d)
         s = extendAndAssert(s, direction: .rightWord, selected: "; (b", affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .rightWord, caret: "a", affinity: .downstream, dataSource: d)
     }
