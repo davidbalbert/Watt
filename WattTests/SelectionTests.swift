@@ -1408,6 +1408,42 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssert(s, direction: .rightWord, caret: "a", affinity: .downstream, dataSource: d)
     }
 
+    func testExtendSelectionByLineSoftWrap() {
+        let buffer = Buffer("Hello, world!", language: .plainText)
+        let d = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10) // Wraps after "r"
+
+        // caret at "o"
+        var s = Selection(caretAt: buffer.index(at: 8), affinity: .downstream)
+        s = extendAndAssert(s, direction: .endOfLine, selected: "or", affinity: .upstream, dataSource: d)
+        // no-op
+        s = extendAndAssert(s, direction: .endOfLine, selected: "or", affinity: .upstream, dataSource: d)
+
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, wor", affinity: .downstream, dataSource: d)
+        // no-op
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, wor", affinity: .downstream, dataSource: d)
+
+
+
+        // caret at "o"
+        s = Selection(caretAt: buffer.index(at: 8), affinity: .downstream)
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, w", affinity: .downstream, dataSource: d)
+        // no-op
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, w", affinity: .downstream, dataSource: d)
+
+        s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
+        // no-op
+        s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
+    }
+
+    func testExtendSelectionByLineHardWrap() {
+        let buffer = Buffer("foo\nbar\nqux", language: .plainText)
+
+        // caret at first "a"
+        var s = Selection(caretAt: buffer.index(at: 5), affinity: .downstream)
+        s = extendAndAssert(s, direction: .endOfLine, selected: "ar", affinity: .upstream, dataSource: SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10))
+        s = extendAndAssert(s, direction: .beginningOfLine, selected: "bar", affinity: .downstream, dataSource: SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10))
+    }
+
     func extendAndAssert(_ s: Selection, direction: Selection.Movement, caret c: Character, affinity: Selection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection {
         let s2 = Selection(fromExisting: s, movement: direction, extending: true, buffer: dataSource.buffer, layoutDataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)

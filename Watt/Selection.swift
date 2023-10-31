@@ -140,7 +140,7 @@ extension Selection {
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .leftWord:
             let wordBoundary = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
-            if selection.isRange && selection.affinity == .downstream {
+            if extending && selection.isRange && selection.affinity == .downstream {
                 head = max(wordBoundary, selection.lowerBound)
             } else {
                 head = wordBoundary
@@ -148,7 +148,7 @@ extension Selection {
             affinity = head == buffer.endIndex ? .upstream : .downstream
         case .rightWord:
             let wordBoundary = buffer.words.index(after: extending ? selection.head : selection.upperBound, clampedTo: buffer.endIndex)
-            if selection.isRange && selection.affinity == .upstream {
+            if extending && selection.isRange && selection.affinity == .upstream {
                 head = min(selection.upperBound, wordBoundary)
             } else {
                 head = wordBoundary
@@ -209,17 +209,20 @@ extension Selection {
             return
         }
 
-        if !extending || head == selection.anchor, let affinity {
-            self.init(caretAt: head, affinity: affinity, xOffset: xOffset)
-        } else if !extending || head == selection.anchor {
-            assertionFailure("missing affinity")
-            self = selection
-        } else if movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument{
+        if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
             self.init(anchor: head, head: selection.upperBound)
-        } else if movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument {
+        } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             self.init(anchor: head, head: selection.lowerBound)
-        } else {
+        } else if extending && head != selection.anchor {
             self.init(anchor: selection.anchor, head: head)
+        } else {
+            // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
+            if let affinity {
+                self.init(caretAt: head, affinity: affinity, xOffset: xOffset)
+            } else {
+                assertionFailure("missing affinity")
+                self = selection
+            }
         }
     }
 }
