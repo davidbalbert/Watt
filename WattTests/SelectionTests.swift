@@ -90,13 +90,21 @@ extension SimpleSelectionDataSource: SelectionLayoutDataSource {
     }
 
     func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
+        if index == buffer.endIndex && affinity == .downstream {
+            return .zero
+        }
+
         var (lineRange, y) = lineRangeAndVerticalOffset(forCharacterAt: index)
 
         // we iterate rather than just asking for the line fragment range containing index
         // so that we can calculate y in text container coordinates.
         var range: Range<Buffer.Index>?
         var i = lineRange.lowerBound
-        while let r = lineFragmentRange(containing: i, affinity: affinity) {
+        
+        // i always the beginning of a line fragment, so downstream is the appropriate affinity, but if the
+        // line fragment is empty (i.e. we're at an empty last line), we need to use upstream affinity to find
+        // the range, which will be i..<i.
+        while let r = lineFragmentRange(containing: i, affinity: i == buffer.endIndex ? .upstream : .downstream) {
             if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
                 range = r
                 break
@@ -770,6 +778,24 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         p = dataSource.point(forCharacterAt: buffer.index(at: 8), affinity: .upstream)
         XCTAssertEqual(CGPoint(x: 0, y: 28), p)
         p = dataSource.point(forCharacterAt: buffer.index(at: 8), affinity: .downstream)
+        XCTAssertEqual(.zero, p)
+    }
+
+    func testPointForCharacterAtWrappedLine() {
+        let str = """
+        0123456789wrap
+        """
+        let buffer = Buffer(str, language: .plainText)
+        let dataSource = SimpleSelectionDataSource(buffer: buffer, charsPerFrag: 10)
+
+        var p = dataSource.point(forCharacterAt: buffer.index(at: 10), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 80, y: 0), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 10), affinity: .downstream)
+        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+        
+        p = dataSource.point(forCharacterAt: buffer.index(at: 14), affinity: .upstream)
+        XCTAssertEqual(CGPoint(x: 32, y: 14), p)
+        p = dataSource.point(forCharacterAt: buffer.index(at: 14), affinity: .downstream)
         XCTAssertEqual(.zero, p)
     }
 }
