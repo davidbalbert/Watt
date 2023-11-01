@@ -114,7 +114,7 @@ class TextView: NSView, ClipViewDelegate {
 
     let layoutManager: LayoutManager
 
-    var selection: Selection {
+    var selection: Selection<Buffer.Index> {
         layoutManager.selection
     }
 

@@ -7,17 +7,146 @@
 
 import Foundation
 
-protocol SelectionLayoutDataSource {
-    func lineFragmentRange(containing index: Buffer.Index, affinity: Selection.Affinity) -> Range<Buffer.Index>?
+protocol SelectionDataSource {
+    associatedtype Index: Comparable
+
+    // MARK: Storage
+    var documentRange: Range<Index> { get }
+
+    func index(beforeCharacter i: Index) -> Index
+    func index(afterCharacter i: Index) -> Index
+
+    func index(roundingDownToLine i: Index) -> Index
+    func index(afterLine i: Index) -> Index
+
+    func index(beforeWord i: Index) -> Index
+    func index(afterWord i: Index) -> Index
+
+    subscript(index: Index) -> Character { get }
+
+    // MARK: Layout
+    func lineFragmentRange(containing index: Index, affinity: Selection<Index>.Affinity) -> Range<Index>?
 
     // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Buffer.Index, affinity: Selection.Affinity) -> Buffer.Index?
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Index, affinity: Selection<Index>.Affinity) -> Index?
 
     // point is in text container coordinates
-    func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint
+    func point(forCharacterAt index: Index, affinity: Selection<Index>.Affinity) -> CGPoint
 }
 
-struct Selection: Equatable {
+// Default implementations
+extension SelectionDataSource {
+    func index(roundingDownToLine i: Index) -> Index {
+        var i = i
+        while i > startIndex {
+            let prev = index(beforeCharacter: i)
+            if self[prev] == "\n" {
+                break
+            }
+            i = prev
+        }
+        return i
+    }
+
+    func index(afterLine i: Index) -> Index {
+        var i = i
+        while i < endIndex {
+            let prev = i
+            i = index(afterCharacter: i)
+            if self[prev] == "\n" {
+                break
+            }
+        }
+        return i
+    }
+
+    func index(beforeWord i: Index) -> Index {
+        var i = i
+        while i > startIndex && !isWordCharacter(self[index(beforeCharacter: i)]) {
+            i = index(beforeCharacter: i)
+        }
+        while i > startIndex && isWordCharacter(self[index(beforeCharacter: i)]) {
+            i = index(beforeCharacter: i)
+        }
+        return i
+    }
+
+    func index(afterWord i: Index) -> Index {
+        var i = i
+        while i < endIndex && !isWordCharacter(self[i]) {
+            i = index(afterCharacter: i)
+        }
+        while i < endIndex && isWordCharacter(self[i]) {
+            i = index(afterCharacter: i)
+        }
+
+        return i
+    }
+}
+
+// Internal
+extension SelectionDataSource {
+    var isEmpty: Bool {
+        documentRange.isEmpty
+    }
+
+    var startIndex: Index {
+        documentRange.lowerBound
+    }
+
+    var endIndex: Index {
+        documentRange.upperBound
+    }
+
+    func index(beforeCharacter i: Index, clampedTo limit: Index) -> Index {
+        if i <= limit {
+            return limit
+        }
+        return index(beforeCharacter: i)
+    }
+
+    func index(afterCharacter i: Index, clampedTo limit: Index) -> Index {
+        if i >= limit {
+            return limit
+        }
+        return index(afterCharacter: i)
+    }
+
+    func index(beforeWord i: Index, clampedTo limit: Index) -> Index {
+        if i <= limit {
+            return limit
+        }
+        return index(beforeWord: i)
+    }
+
+    func index(afterWord i: Index, clampedTo limit: Index) -> Index {
+        if i >= limit {
+            return limit
+        }
+        return index(afterWord: i)
+    }
+
+    func index(afterLine i: Index, clampedTo limit: Index) -> Index {
+        if i >= limit {
+            return limit
+        }
+        return index(afterLine: i)
+    }
+
+    func isWordCharacter(_ c: Character) -> Bool {
+        !c.isWhitespace && !c.isPunctuation
+    }
+
+    func lastCharacter(inRange range: Range<Index>) -> Character? {
+        if range.isEmpty {
+            return nil
+        }
+
+        return self[index(beforeCharacter: range.upperBound)]
+    }
+}
+
+struct Selection<Index>: Equatable where Index: Comparable {
     enum Affinity: Equatable {
         case upstream
         case downstream
@@ -29,14 +158,14 @@ struct Selection: Equatable {
         case line        
     }
 
-    let range: Range<Buffer.Index>
+    let range: Range<Index>
     // For caret, determines which side of a line wrap the caret is on.
     // For range, determins which the end is head, and which end is the anchor.
     let affinity: Affinity
     let xOffset: CGFloat? // in text container coordinates
-    let markedRange: Range<Rope.Index>?
+    let markedRange: Range<Index>?
 
-    init(caretAt index: Buffer.Index, affinity: Affinity, xOffset: CGFloat? = nil, markedRange: Range<Rope.Index>? = nil) {
+    init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat? = nil, markedRange: Range<Index>? = nil) {
         self.init(range: index..<index, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
     }
 
@@ -45,7 +174,7 @@ struct Selection: Equatable {
     // or moving down from the within the last fragment to the end of the document, we want
     // to maintain our xOffset so that when we move back in the opposite vertical direction,
     // we move by one line fragment and also jump horizontally to our xOffset
-    init(anchor: Buffer.Index, head: Buffer.Index, xOffset: CGFloat? = nil, markedRange: Range<Rope.Index>? = nil) {
+    init(anchor: Index, head: Index, xOffset: CGFloat? = nil, markedRange: Range<Index>? = nil) {
         let i = min(anchor, head)
         let j = max(anchor, head)
         let affinity: Affinity = anchor < head ? .downstream : .upstream
@@ -53,7 +182,7 @@ struct Selection: Equatable {
         self.init(range: i..<j, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
     }
 
-    private init(range: Range<Buffer.Index>, affinity: Affinity, xOffset: CGFloat?, markedRange: Range<Rope.Index>?) {
+    private init(range: Range<Index>, affinity: Affinity, xOffset: CGFloat?, markedRange: Range<Index>?) {
         self.range = range
         self.affinity = affinity
         self.xOffset = xOffset
@@ -68,11 +197,11 @@ struct Selection: Equatable {
         !isCaret
     }
 
-    var caret: Buffer.Index? {
+    var caret: Index? {
         isCaret ? head : nil
     }
 
-    var anchor: Buffer.Index {
+    var anchor: Index {
         if affinity == .upstream {
             range.upperBound
         } else {
@@ -80,7 +209,7 @@ struct Selection: Equatable {
         }
     }
 
-    var head: Buffer.Index {
+    var head: Index {
         if affinity == .upstream {
             range.lowerBound
         } else {
@@ -88,11 +217,11 @@ struct Selection: Equatable {
         }
     }
 
-    var lowerBound: Buffer.Index {
+    var lowerBound: Index {
         range.lowerBound
     }
 
-    var upperBound: Buffer.Index {
+    var upperBound: Index {
         range.upperBound
     }
 
@@ -118,93 +247,93 @@ extension Selection {
         case endOfDocument
     }
 
-    init<D>(fromExisting selection: Selection, movement: Movement, extending: Bool, buffer: Buffer, layoutDataSource: D) where D: SelectionLayoutDataSource {
-        if buffer.isEmpty {
-            self.init(caretAt: buffer.startIndex, affinity: .upstream)
+    init<DataSource>(fromExisting selection: Selection, movement: Movement, extending: Bool, dataSource: DataSource) where DataSource: SelectionDataSource, DataSource.Index == Index {
+        if dataSource.isEmpty {
+            self.init(caretAt: dataSource.startIndex, affinity: .upstream)
             return
         }
 
-        let head: Buffer.Index
+        let head: Index
         var affinity: Affinity? = nil
         var xOffset: CGFloat? = nil
 
         switch movement {
         case .left:
             if selection.isCaret || extending {
-                head = buffer.characters.index(before: selection.head, clampedTo: buffer.startIndex)
+                head = dataSource.index(beforeCharacter: selection.head, clampedTo: dataSource.startIndex)
             } else {
                 head = selection.lowerBound
             }
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .right:
             if selection.isCaret || extending {
-                head = buffer.characters.index(after: selection.head, clampedTo: buffer.endIndex)
+                head = dataSource.index(afterCharacter: selection.head, clampedTo: dataSource.endIndex)
             } else {
                 head = selection.upperBound
             }
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .up:
-            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
+            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: true, extending: extending, dataSource: dataSource)
         case .down:
-            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, buffer: buffer, layoutDataSource: layoutDataSource)
+            (head, affinity, xOffset) = verticalDestination(selection: selection, movingUp: false, extending: extending, dataSource: dataSource)
         case .leftWord:
-            let wordBoundary = buffer.words.index(before: extending ? selection.head : selection.lowerBound, clampedTo: buffer.startIndex)
+            let wordBoundary = dataSource.index(beforeWord: extending ? selection.head : selection.lowerBound, clampedTo: dataSource.startIndex)
             if extending && selection.isRange && selection.affinity == .downstream {
                 head = max(wordBoundary, selection.lowerBound)
             } else {
                 head = wordBoundary
             }
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .rightWord:
-            let wordBoundary = buffer.words.index(after: extending ? selection.head : selection.upperBound, clampedTo: buffer.endIndex)
+            let wordBoundary = dataSource.index(afterWord: extending ? selection.head : selection.upperBound, clampedTo: dataSource.endIndex)
             if extending && selection.isRange && selection.affinity == .upstream {
                 head = min(selection.upperBound, wordBoundary)
             } else {
                 head = wordBoundary
             }
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfLine:
-            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
+            guard let fragRange = dataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
                 assertionFailure("couldn't find fragRange")
                 self = selection
                 return
             }
             head = fragRange.lowerBound
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
-            guard let fragRange = layoutDataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
+            guard let fragRange = dataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
                 assertionFailure("couldn't find fragRange")
                 self = selection
                 return
             }
 
-            let hardBreak = buffer[fragRange].characters.last == "\n"
-            head = hardBreak ? buffer.index(before: fragRange.upperBound) : fragRange.upperBound
+            let hardBreak = dataSource.lastCharacter(inRange: fragRange) == "\n"
+            head = hardBreak ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
             affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
-            head = buffer.lines.index(roundingDown: selection.lowerBound)
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            head = dataSource.index(roundingDownToLine: selection.lowerBound)
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfParagraph:
             // end of document is end of last paragraph. This is
             // necessary so that we can distingush this case from
             // moving to the end of the second to last paragraph
             // when the last paragraph is an empty last line.
-            if selection.upperBound == buffer.endIndex {
-                head = buffer.endIndex
+            if selection.upperBound == dataSource.endIndex {
+                head = dataSource.endIndex
             } else {
-                let i = buffer.lines.index(after: selection.upperBound, clampedTo: buffer.endIndex)
-                if i == buffer.endIndex && buffer.characters.last != "\n" {
+                let i = dataSource.index(afterLine: selection.upperBound, clampedTo: dataSource.endIndex)
+                if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
                     head = i
                 } else {
-                    head = buffer.index(before: i)
+                    head = dataSource.index(beforeCharacter: i)
                 }
             }
-            affinity = head == buffer.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
-            head = buffer.startIndex
-            affinity = buffer.isEmpty ? .upstream : .downstream
+            head = dataSource.startIndex
+            affinity = dataSource.isEmpty ? .upstream : .downstream
         case .endOfDocument:
-            head = buffer.endIndex
+            head = dataSource.endIndex
             affinity = .upstream
         }
 
@@ -240,19 +369,19 @@ extension Selection {
 //
 // To get the correct behavior, we need to ensure that selection.xOffset
 // always corresponds to selection.lowerBound.
-func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Bool, buffer: Buffer, layoutDataSource: D) -> (Buffer.Index, Selection.Affinity, xOffset: CGFloat?) where D: SelectionLayoutDataSource {
+func verticalDestination<Index, DataSource>(selection: Selection<Index>, movingUp: Bool, extending: Bool, dataSource: DataSource) -> (Index, Selection<Index>.Affinity, xOffset: CGFloat?) where DataSource: SelectionDataSource, Index == DataSource.Index {
     // Moving up when we're already at the front or moving down when we're already
     // at the end is a no-op.
-    if movingUp && selection.lowerBound == buffer.startIndex {
+    if movingUp && selection.lowerBound == dataSource.startIndex {
         return (selection.lowerBound, selection.affinity, selection.xOffset)
     }
-    if !movingUp && selection.upperBound == buffer.endIndex {
+    if !movingUp && selection.upperBound == dataSource.endIndex {
         return (selection.upperBound, selection.affinity, selection.xOffset)
     }
 
     let i = selection.isRange && extending ? selection.head : selection.lowerBound
-    let affinity: Selection.Affinity
-    if i == buffer.endIndex {
+    let affinity: Selection<Index>.Affinity
+    if i == dataSource.endIndex {
         affinity = .upstream
     } else if selection.isCaret {
         affinity = selection.affinity
@@ -262,7 +391,7 @@ func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Boo
         affinity = .upstream
     }
 
-    guard let fragRange = layoutDataSource.lineFragmentRange(containing: i, affinity: affinity) else {
+    guard let fragRange = dataSource.lineFragmentRange(containing: i, affinity: affinity) else {
         assertionFailure("couldn't find fragRange")
         return (selection.lowerBound, selection.affinity, selection.xOffset)
     }
@@ -272,35 +401,35 @@ func verticalDestination<D>(selection: Selection, movingUp: Bool, extending: Boo
     //
     // When we're moving (not extending), because we're going horizontally, xOffset
     // gets cleared.
-    if movingUp && fragRange.lowerBound == buffer.startIndex {
+    if movingUp && fragRange.lowerBound == dataSource.startIndex {
         let xOffset = extending ? selection.xOffset : nil
-        return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream, xOffset)
+        return (dataSource.startIndex, dataSource.isEmpty ? .upstream : .downstream, xOffset)
     }
-    if !movingUp && fragRange.upperBound == buffer.endIndex {
+    if !movingUp && fragRange.upperBound == dataSource.endIndex {
         let xOffset = extending ? selection.xOffset : nil
-        return (buffer.endIndex, .upstream, xOffset)
+        return (dataSource.endIndex, .upstream, xOffset)
     }
 
-    let xOffset = selection.xOffset ?? layoutDataSource.point(forCharacterAt: i, affinity: affinity).x
+    let xOffset = selection.xOffset ?? dataSource.point(forCharacterAt: i, affinity: affinity).x
 
     var target = movingUp ? fragRange.lowerBound : fragRange.upperBound
 
     // If we're at the beginning of a Line, we need to target the previous line.
-    if movingUp && target > buffer.startIndex && buffer[buffer.index(before: target)] == "\n" {
-        target = buffer.index(before: target)
+    if movingUp && target > dataSource.startIndex && dataSource[dataSource.index(beforeCharacter: target)] == "\n" {
+        target = dataSource.index(beforeCharacter: target)
     }
-    let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
-    
-    guard let targetFragRange = layoutDataSource.lineFragmentRange(containing: target, affinity: targetAffinity) else {
+    let targetAffinity: Selection<Index>.Affinity = movingUp ? .upstream : .downstream
+
+    guard let targetFragRange = dataSource.lineFragmentRange(containing: target, affinity: targetAffinity) else {
         assertionFailure("couldn't find target fragRange")
         return (selection.lowerBound, selection.affinity, selection.xOffset)
     }
 
-    guard let head = layoutDataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
+    guard let head = dataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
         assertionFailure("couldn't find head")
         return (selection.lowerBound, selection.affinity, selection.xOffset)
     }
 
-    let newAffinity: Selection.Affinity = head == targetFragRange.upperBound ? .upstream : .downstream
+    let newAffinity: Selection<Index>.Affinity = head == targetFragRange.upperBound ? .upstream : .downstream
     return (head, newAffinity, xOffset)
 }

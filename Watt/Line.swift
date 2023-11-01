@@ -83,7 +83,7 @@ struct Line: Identifiable {
         ctx.restoreGState()
     }
 
-    func fragment(containing index: Buffer.Index, affinity: Selection.Affinity) -> LineFragment? {
+    func fragment(containing index: Buffer.Index, affinity: Selection<Buffer.Index>.Affinity) -> LineFragment? {
         for f in lineFragments {
             if index == f.range.upperBound && affinity == .upstream {
                 return f
