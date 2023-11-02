@@ -1,12 +1,34 @@
 //
 //  SelectionTests.swift
-//  WattTests
+//  Watt
 //
-//  Created by David Albert on 10/22/23.
+//  Created by David Albert on 11/2/23.
 //
 
 import XCTest
-@testable import Watt
+@testable import StandardKeyBindingResponder
+
+extension StringProtocol {
+    func index(at offset: Int) -> Index {
+        index(startIndex, offsetBy: offset)
+    }
+}
+
+extension Collection {
+    func index(after i: Index, clampedTo upperBound: Index) -> Index {
+        index(i, offsetBy: 1, limitedBy: upperBound) ?? upperBound
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, clampedTo limit: Index) -> Index {
+        index(i, offsetBy: distance, limitedBy: limit) ?? limit
+    }
+}
+
+extension BidirectionalCollection {
+    func index(before i: Index, clampedTo lowerBound: Index) -> Index {
+        index(i, offsetBy: -1, limitedBy: lowerBound) ?? lowerBound
+    }
+}
 
 // Simple monospaced grid-of-characters layout:
 // - All characters are 8 points wide
@@ -53,7 +75,7 @@ extension SimpleSelectionDataSource: SelectionDataSource {
         string[index]
     }
 
-    func lineFragmentRange(containing i: String.Index, affinity: Selection<String.Index>.Affinity) -> Range<String.Index>? {
+    func lineFragmentRange(containing i: String.Index, affinity: SelectionAffinity) -> Range<String.Index>? {
         if i == string.endIndex && affinity != .upstream {
             return nil
         }
@@ -88,7 +110,7 @@ extension SimpleSelectionDataSource: SelectionDataSource {
         return fragStart..<fragEnd
     }
 
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: String.Index, affinity: Selection<String.Index>.Affinity) -> String.Index? {
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: String.Index, affinity: SelectionAffinity) -> String.Index? {
         guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
             return nil
         }
@@ -105,7 +127,7 @@ extension SimpleSelectionDataSource: SelectionDataSource {
         return i
     }
 
-    func point(forCharacterAt index: String.Index, affinity: Selection<String.Index>.Affinity) -> CGPoint {
+    func point(forCharacterAt index: String.Index, affinity: SelectionAffinity) -> CGPoint {
         if index == string.endIndex && affinity == .downstream {
             return .zero
         }
@@ -116,7 +138,7 @@ extension SimpleSelectionDataSource: SelectionDataSource {
         // so that we can calculate y in text container coordinates.
         var range: Range<String.Index>?
         var i = lineRange.lowerBound
-        
+
         // i always the beginning of a line fragment, so downstream is the appropriate affinity, but if the
         // line fragment is empty (i.e. we're at an empty last line), we need to use upstream affinity to find
         // the range, which will be i..<i.
@@ -396,7 +418,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // Second fragment
         r = dataSource.lineFragmentRange(containing: boundary2, affinity: .downstream)!
         XCTAssertEqual(27..<32, intRange(r, in: string))
-        
+
         // between "w" and "\n"
         let last2 = string.index(string.startIndex, offsetBy: 31)
         r = dataSource.lineFragmentRange(containing: last2, affinity: .upstream)!
@@ -738,12 +760,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
     func testPointForCharacterAtNoTrailingNewline() {
         let string = "abc\ndef"
         let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-        
+
         var p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .upstream)
         XCTAssertEqual(.zero, p)
         p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .downstream)
         XCTAssertEqual(.zero, p)
-        
+
         p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .upstream)
         XCTAssertEqual(CGPoint(x: 24, y: 0), p)
         p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .downstream)
@@ -792,7 +814,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(CGPoint(x: 80, y: 0), p)
         p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .downstream)
         XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-        
+
         p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .upstream)
         XCTAssertEqual(CGPoint(x: 32, y: 14), p)
         p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .downstream)
@@ -1074,7 +1096,7 @@ final class SelectionTests: XCTestCase {
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 8), affinity: .downstream, dataSource: d)
         // no-op
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 8), affinity: .downstream, dataSource: d)
-        
+
         // end of line
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 15), affinity: .downstream, dataSource: d)
         // no-op
@@ -1143,7 +1165,7 @@ final class SelectionTests: XCTestCase {
         0123456789abcdefghijwrap
         """
         let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-    
+
         // upstream between "9" and "a"
         var s = Selection(caretAt: string.index(at: 10), affinity: .upstream)
         // left
@@ -1272,7 +1294,7 @@ final class SelectionTests: XCTestCase {
         var s = Selection(caretAt: string.index(at: 0), affinity: .downstream)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
         s = Selection(caretAt: string.index(at: 24), affinity: .downstream)
-        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)        
+        s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // no-op around "baz"
         s = Selection(caretAt: string.index(at: 30), affinity: .downstream)
@@ -1578,62 +1600,62 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssertNoop(s, direction: .endOfDocument, dataSource: d)
     }
 
-    func extendAndAssert(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, caret c: Character, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func extendAndAssert(_ s: Selection<String.Index>, direction: SelectionMovement, caret c: Character, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection<String.Index>(fromExisting: s, movement: direction, extending: true, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func extendAndAssert(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, selected string: String, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func extendAndAssert(_ s: Selection<String.Index>, direction: SelectionMovement, selected string: String, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection<String.Index>(fromExisting: s, movement: direction, extending: true, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func extendAndAssertNoop(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func extendAndAssertNoop(_ s: Selection<String.Index>, direction: SelectionMovement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection<String.Index>(fromExisting: s, movement: direction, extending: true, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
-    
-    func moveAndAssert(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, caret c: Character, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+
+    func moveAndAssert(_ s: Selection<String.Index>, direction: SelectionMovement, caret c: Character, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection<String.Index>(fromExisting: s, movement: direction, extending: false, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, selected string: String, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func moveAndAssert(_ s: Selection<String.Index>, direction: SelectionMovement, selected string: String, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection(fromExisting: s, movement: direction, extending: false, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func moveAndAssertNoop(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func moveAndAssertNoop(_ s: Selection<String.Index>, direction: SelectionMovement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection(fromExisting: s, movement: direction, extending: false, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: Selection<String.Index>, direction: Selection<String.Index>.Movement, caretAt caret: String.Index, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
+    func moveAndAssert(_ s: Selection<String.Index>, direction: SelectionMovement, caretAt caret: String.Index, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> Selection<String.Index> {
         let s2 = Selection<String.Index>(fromExisting: s, movement: direction, extending: false, dataSource: dataSource)
-        assert(selection: s2, hasCaret: caret, andAffinity: affinity, file: file, line: line)
+        assert(selection: s2, hasCaret: caret, andSelectionAffinity: affinity, file: file, line: line)
         return s2
     }
 
-    func assert(selection: Selection<String.Index>, hasCaretBefore c: Character, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: Selection<String.Index>, hasCaretBefore c: Character, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
         XCTAssertEqual(dataSource.string[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: Selection<String.Index>, hasRangeCovering string: String, affinity: Selection<String.Index>.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: Selection<String.Index>, hasRangeCovering string: String, affinity: SelectionAffinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         let range = selection.range
         XCTAssert(selection.isRange, "selection is not a range", file: file, line: line)
         XCTAssertEqual(String(dataSource.string[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: Selection<String.Index>, hasCaret caret: String.Index, andAffinity affinity: Selection<String.Index>.Affinity, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: Selection<String.Index>, hasCaret caret: String.Index, andSelectionAffinity affinity: SelectionAffinity, file: StaticString = #file, line: UInt = #line) {
         XCTAssertEqual(selection.caret, caret, file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }

@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreText
+import StandardKeyBindingResponder
 
 protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
@@ -46,7 +47,7 @@ class LayoutManager {
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
             delegate?.didInvalidateLayout(for: self)
 
-            let affinity: Selection<Buffer.Index>.Affinity = buffer.isEmpty ? .upstream : .downstream
+            let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
             selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
         }
     }
@@ -61,7 +62,7 @@ class LayoutManager {
         }
     }
 
-    var selection: Selection<Buffer.Index> {
+    var selection: Selection {
         didSet {
             delegate?.selectionDidChange(for: self)
         }
@@ -75,7 +76,7 @@ class LayoutManager {
         self.lineCache = IntervalCache(upperBound: 0)
         self.buffer = Buffer()
         
-        let affinity: Selection<Buffer.Index>.Affinity = buffer.isEmpty ? .upstream : .downstream
+        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
         selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
     }
 
@@ -391,7 +392,7 @@ class LayoutManager {
     }
 
     // Point is in text container coordinates.
-    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection<Buffer.Index>.Affinity) {
+    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
         //      far right you go, you will always be before the newline until
@@ -444,7 +445,7 @@ class LayoutManager {
         return i
     }
 
-    func point(forCharacterAt index: Buffer.Index, affinity: Selection<Buffer.Index>.Affinity) -> CGPoint {
+    func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
         let line = line(containing: index)
         guard let frag = line.fragment(containing: index, affinity: affinity) else {
             assertionFailure("no frag")
@@ -797,14 +798,14 @@ struct BufferSelectionDataSource: SelectionDataSource {
         buffer[index]
     }
 
-    func lineFragmentRange(containing index: Buffer.Index, affinity: Selection<Buffer.Index>.Affinity) -> Range<Buffer.Index>? {
+    func lineFragmentRange(containing index: Buffer.Index, affinity: SelectionAffinity) -> Range<Buffer.Index>? {
         let line = layoutManager.line(containing: index)
-        return line.fragment(containing: index, affinity: affinity)?.range
+        return line.fragment(containing: index, affinity: Selection.Affinity(affinity))?.range
     }
 
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Selection<Buffer.Index>.Affinity) -> Buffer.Index? {
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: SelectionAffinity) -> Buffer.Index? {
         let line = layoutManager.line(containing: i)
-        guard let frag = line.fragment(containing: i, affinity: affinity) else {
+        guard let frag = line.fragment(containing: i, affinity: Selection.Affinity(affinity)) else {
             assertionFailure("no frag")
             return nil
         }
@@ -820,27 +821,27 @@ struct BufferSelectionDataSource: SelectionDataSource {
         return i
     }
 
-    func point(forCharacterAt index: Buffer.Index, affinity: Selection<Buffer.Index>.Affinity) -> CGPoint {
-        layoutManager.point(forCharacterAt: index, affinity: affinity)
+    func point(forCharacterAt index: Buffer.Index, affinity: SelectionAffinity) -> CGPoint {
+        layoutManager.point(forCharacterAt: index, affinity: Selection.Affinity(affinity))
     }
 }
 
 extension LayoutManager {
-    func moveSelection(_ movement: Selection<Buffer.Index>.Movement) {
-        selection = Selection(
-            fromExisting: selection,
+    func moveSelection(_ movement: SelectionMovement) {
+        selection = Selection(StandardKeyBindingResponder.Selection<Buffer.Index>(
+            fromExisting: StandardKeyBindingResponder.Selection<Buffer.Index>(selection),
             movement: movement,
             extending: false,
             dataSource: BufferSelectionDataSource(buffer: buffer, layoutManager: self)
-        )
+        ))
     }
 
-    func extendSelection(_ movement: Selection<Buffer.Index>.Movement) {
-        selection = Selection(
-            fromExisting: selection,
+    func extendSelection(_ movement: SelectionMovement) {
+        selection = Selection(StandardKeyBindingResponder.Selection<Buffer.Index>(
+            fromExisting: StandardKeyBindingResponder.Selection<Buffer.Index>(selection),
             movement: movement,
             extending: true,
             dataSource: BufferSelectionDataSource(buffer: buffer, layoutManager: self)
-        )
+        ))
     }
 }

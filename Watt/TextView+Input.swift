@@ -188,7 +188,7 @@ extension TextView {
         // TODO: Once we have multiple selections, we have to make sure to put each
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
-        let affinity: Selection<Buffer.Index>.Affinity = head == buffer.endIndex ? .upstream : .downstream
+        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
         layoutManager.selection = Selection(caretAt: head, affinity: affinity)
 
         guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
