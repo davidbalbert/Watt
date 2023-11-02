@@ -59,6 +59,24 @@ public protocol NavigableSelection {
     var xOffset: CGFloat? { get }
 }
 
+extension NavigableSelection {
+    var lowerBound: Index {
+        range.lowerBound
+    }
+
+    var upperBound: Index {
+        range.upperBound
+    }
+
+    var isCaret: Bool {
+        range.isEmpty
+    }
+
+    var isRange: Bool {
+        !isCaret
+    }
+}
+
 public protocol SelectionNavigationDataSource {
     // MARK: Storage
     associatedtype Index: Comparable
@@ -87,24 +105,6 @@ public protocol SelectionNavigationDataSource {
     func point(forCharacterAt index: Index, affinity: Affinity) -> CGPoint
 }
 
-
-extension NavigableSelection {
-    var lowerBound: Index {
-        range.lowerBound
-    }
-
-    var upperBound: Index {
-        range.upperBound
-    }
-
-    var isCaret: Bool {
-        range.isEmpty
-    }
-
-    var isRange: Bool {
-        !isCaret
-    }
-}
 
 public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: SelectionNavigationDataSource, Selection.Index == DataSource.Index, Selection.Affinity == DataSource.Affinity {
     public let selection: Selection
