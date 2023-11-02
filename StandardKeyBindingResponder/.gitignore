@@ -3,6 +3,10 @@
 /Packages
 xcuserdata/
 DerivedData/
-.swiftpm/configuration/registries.json
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+# Default: uncomment when we extract this into a separate repo
+# .swiftpm/configuration/registries.json
+# .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/
 .netrc
+
+.vscode

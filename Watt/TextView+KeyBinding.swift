@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import StandardKeyBindingResponder
 
 // MARK: - NSStandardKeyBindingResponding
 
@@ -77,7 +78,7 @@ extension TextView {
         // inset on the text container, the container will be shorter than the viewport.
         // I'm not sure the right way to handle this yet.
 //        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
 //            x: selection.xOffset,
@@ -97,7 +98,7 @@ extension TextView {
 
     override func pageUp(_ sender: Any?) {
 //        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
 //            x: selection.xOffset,
@@ -178,7 +179,7 @@ extension TextView {
 
     override func pageDownAndModifySelection(_ sender: Any?) {
 //        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
 //            x: selection.xOffset,
@@ -198,7 +199,7 @@ extension TextView {
 
     override func pageUpAndModifySelection(_ sender: Any?) {
 //        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? selection.affinity : .upstream)
+//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
 //            x: selection.xOffset,

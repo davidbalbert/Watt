@@ -47,8 +47,8 @@ class LayoutManager {
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
             delegate?.didInvalidateLayout(for: self)
 
-            let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-            selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
+            let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
+            selection = Selection(caretAt: buffer.startIndex, affinity: affinity, xOffset: nil)
         }
     }
 
@@ -76,8 +76,8 @@ class LayoutManager {
         self.lineCache = IntervalCache(upperBound: 0)
         self.buffer = Buffer()
         
-        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-        selection = Selection(caretAt: buffer.startIndex, affinity: affinity)
+        let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
+        selection = Selection(caretAt: buffer.startIndex, affinity: affinity, xOffset: nil)
     }
 
     var contentHeight: CGFloat {
@@ -392,7 +392,7 @@ class LayoutManager {
     }
 
     // Point is in text container coordinates.
-    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
+    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Affinity) {
         // Rules:
         //   1. You cannot click to the right of a "\n". No matter how far
         //      far right you go, you will always be before the newline until
@@ -443,19 +443,6 @@ class LayoutManager {
         }
 
         return i
-    }
-
-    func point(forCharacterAt index: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        let line = line(containing: index)
-        guard let frag = line.fragment(containing: index, affinity: affinity) else {
-            assertionFailure("no frag")
-            return .zero
-        }
-
-        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
-        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
-        let linePos = convert(fragPos, from: frag)
-        return convert(linePos, from: line)
     }
 
     func line(forVerticalOffset verticalOffset: CGFloat) -> Line {
@@ -763,10 +750,17 @@ extension LayoutManager: BufferDelegate {
 
 // MARK: - Selection navigation
 
-struct BufferSelectionDataSource: SelectionDataSource {
-    var buffer: Buffer
-    var layoutManager: LayoutManager
+extension LayoutManager {
+    func moveSelection(_ movement: SelectionMovement) {
+        selection = SelectionNavigator(selection: selection).move(movement, dataSource: self)
+    }
 
+    func extendSelection(_ movement: SelectionMovement) {
+        selection = SelectionNavigator(selection: selection).extend(movement, dataSource: self)
+    }
+}
+
+extension LayoutManager: SelectionNavigationDataSource {
     var documentRange: Range<Buffer.Index> {
         buffer.documentRange
     }
@@ -798,22 +792,22 @@ struct BufferSelectionDataSource: SelectionDataSource {
         buffer[index]
     }
 
-    func lineFragmentRange(containing index: Buffer.Index, affinity: SelectionAffinity) -> Range<Buffer.Index>? {
-        let line = layoutManager.line(containing: index)
-        return line.fragment(containing: index, affinity: Selection.Affinity(affinity))?.range
+    func lineFragmentRange(containing index: Buffer.Index, affinity: Affinity) -> Range<Buffer.Index>? {
+        let line = line(containing: index)
+        return line.fragment(containing: index, affinity: affinity)?.range
     }
 
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: SelectionAffinity) -> Buffer.Index? {
-        let line = layoutManager.line(containing: i)
-        guard let frag = line.fragment(containing: i, affinity: Selection.Affinity(affinity)) else {
+    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Affinity) -> Buffer.Index? {
+        let line = line(containing: i)
+        guard let frag = line.fragment(containing: i, affinity: affinity) else {
             assertionFailure("no frag")
             return nil
         }
 
         let pointInLine = CGPoint(x: xOffset, y: frag.alignmentFrame.minY)
-        let pointInLineFragment = layoutManager.convert(pointInLine, to: frag)
+        let pointInLineFragment = convert(pointInLine, to: frag)
 
-        guard let i = layoutManager.index(for: pointInLineFragment, inLineFragment: frag) else {
+        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
             assertionFailure("no index")
             return nil
         }
@@ -821,27 +815,16 @@ struct BufferSelectionDataSource: SelectionDataSource {
         return i
     }
 
-    func point(forCharacterAt index: Buffer.Index, affinity: SelectionAffinity) -> CGPoint {
-        layoutManager.point(forCharacterAt: index, affinity: Selection.Affinity(affinity))
-    }
-}
+    func point(forCharacterAt index: Buffer.Index, affinity: Affinity) -> CGPoint {
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: affinity) else {
+            assertionFailure("no frag")
+            return .zero
+        }
 
-extension LayoutManager {
-    func moveSelection(_ movement: SelectionMovement) {
-        selection = Selection(StandardKeyBindingResponder.Selection<Buffer.Index>(
-            fromExisting: StandardKeyBindingResponder.Selection<Buffer.Index>(selection),
-            movement: movement,
-            extending: false,
-            dataSource: BufferSelectionDataSource(buffer: buffer, layoutManager: self)
-        ))
-    }
-
-    func extendSelection(_ movement: SelectionMovement) {
-        selection = Selection(StandardKeyBindingResponder.Selection<Buffer.Index>(
-            fromExisting: StandardKeyBindingResponder.Selection<Buffer.Index>(selection),
-            movement: movement,
-            extending: true,
-            dataSource: BufferSelectionDataSource(buffer: buffer, layoutManager: self)
-        ))
+        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
+        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
+        let linePos = convert(fragPos, from: frag)
+        return convert(linePos, from: line)
     }
 }
