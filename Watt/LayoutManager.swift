@@ -785,7 +785,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     func index(afterWord i: Buffer.Index) -> Buffer.Index {
-        buffer.words.index(before: i)
+        buffer.words.index(after: i)
     }
 
     subscript(index: Buffer.Index) -> Character {
