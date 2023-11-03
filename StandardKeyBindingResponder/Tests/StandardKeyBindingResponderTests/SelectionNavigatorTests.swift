@@ -68,6 +68,8 @@ extension SimpleSelection: NavigableSelection {
     }
     
     init(anchor: String.Index, head: String.Index, xOffset: CGFloat? = nil) {
+        precondition(anchor != head, "anchor and head must be different")
+
         let i = min(anchor, head)
         let j = max(anchor, head)
         let affinity: Affinity = anchor < head ? .downstream : .upstream
@@ -1126,6 +1128,15 @@ final class SelectionTests: XCTestCase {
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
+    func testMoveLineEmpty() {
+        let string = ""
+        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+
+        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
+        s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+    }
+
     func testMoveLineSingleFragments() {
         let string = "foo bar\nbaz qux\n"
         let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
@@ -1578,6 +1589,15 @@ final class SelectionTests: XCTestCase {
         s = extendAndAssert(s, direction: .rightWord, caret: "a", affinity: .downstream, dataSource: d)
     }
 
+    func testExtendSelectionByLineEmpty() {
+        let string = ""
+        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+
+        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
+        s = extendAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+    }
+
     func testExtendSelectionByLineSoftWrap() {
         let string = "Hello, world!"
         let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10) // Wraps after "r"
@@ -1680,6 +1700,12 @@ final class SelectionTests: XCTestCase {
         return s2
     }
 
+    func extendAndAssert(_ s: SimpleSelection, direction: SelectionMovement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
+        let s2 = SelectionNavigator(selection: s).extend(direction, dataSource: dataSource)
+        assert(selection: s2, hasCaretAt: caret, andSelectionAffinity: affinity, file: file, line: line)
+        return s2
+    }
+
     func moveAndAssert(_ s: SimpleSelection, direction: SelectionMovement, caret c: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
         let s2 = SelectionNavigator(selection: s).move(direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
@@ -1700,7 +1726,7 @@ final class SelectionTests: XCTestCase {
 
     func moveAndAssert(_ s: SimpleSelection, direction: SelectionMovement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
         let s2 = SelectionNavigator(selection: s).move(direction, dataSource: dataSource)
-        assert(selection: s2, hasCaret: caret, andSelectionAffinity: affinity, file: file, line: line)
+        assert(selection: s2, hasCaretAt: caret, andSelectionAffinity: affinity, file: file, line: line)
         return s2
     }
 
@@ -1717,7 +1743,7 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: SimpleSelection, hasCaret caret: String.Index, andSelectionAffinity affinity: SimpleSelection.Affinity, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: SimpleSelection, hasCaretAt caret: String.Index, andSelectionAffinity affinity: SimpleSelection.Affinity, file: StaticString = #file, line: UInt = #line) {
         XCTAssertEqual(selection.caret, caret, file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }

@@ -39,6 +39,8 @@ struct Selection {
     }
 
     init(anchor: Buffer.Index, head: Buffer.Index, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
+        assert(anchor != head, "anchor and head must be different")
+
         let i = min(anchor, head)
         let j = max(anchor, head)
         let affinity: Affinity = anchor < head ? .downstream : .upstream
