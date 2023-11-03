@@ -225,7 +225,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
             // Swap anchor and head so that if the next movement is endOf*, we end
             // up selecting the entire line, paragraph, or document.
-            return Selection(anchor: head, head: selection.anchor, xOffset: nil)
+            return Selection(anchor: head, head: selection.upperBound, xOffset: nil)
         } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             // ditto
             return Selection(anchor: head, head: selection.lowerBound, xOffset: nil)
