@@ -31,11 +31,11 @@ public protocol InitializableFromSelectionAffinity {
     init(_ affinity: SelectionAffinity)
 }
 
-extension InitializableFromSelectionAffinity {
-    // fileprivate so there's no ambiguity in SelectionNavigatorTests when
-    // we import StandardKeyBindingResponder as @testable.
-    fileprivate static var upstream: Self { Self(.upstream) }
-    fileprivate static var downstream: Self { Self(.downstream) }
+// fileprivate so there's no ambiguity in SelectionNavigatorTests when
+// we import StandardKeyBindingResponder as @testable.
+fileprivate extension InitializableFromSelectionAffinity {
+    static var upstream: Self { Self(.upstream) }
+    static var downstream: Self { Self(.downstream) }
 }
 
 public protocol NavigableSelection {
