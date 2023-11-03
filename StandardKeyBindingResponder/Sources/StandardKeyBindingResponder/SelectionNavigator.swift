@@ -52,8 +52,6 @@ public protocol NavigableSelection {
     // also jump horizontally to our xOffset
     init(anchor: Index, head: Index, xOffset: CGFloat?)
 
-    var anchor: Index { get }
-    var head: Index { get }
     var range: Range<Index> { get }
     var affinity: Affinity { get }
     var xOffset: CGFloat? { get }
@@ -66,6 +64,22 @@ extension NavigableSelection {
 
     var upperBound: Index {
         range.upperBound
+    }
+
+    var anchor: Index {
+        if affinity == .upstream {
+            range.upperBound
+        } else {
+            range.lowerBound
+        }
+    }
+
+    var head: Index {
+        if affinity == .upstream {
+            range.lowerBound
+        } else {
+            range.upperBound
+        }
     }
 
     var isCaret: Bool {
@@ -126,52 +140,52 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return Selection(caretAt: dataSource.startIndex, affinity: Selection.Affinity(.upstream), xOffset: nil)
         }
 
-        let newHead: Selection.Index
-        var newAffinity: Selection.Affinity? = nil
+        let head: Selection.Index
+        var affinity: Selection.Affinity? = nil
         var xOffset: CGFloat? = nil
 
         switch movement {
         case .left:
             if selection.isCaret || extending {
-                newHead = dataSource.index(beforeCharacter: selection.head, clampedTo: dataSource.startIndex)
+                head = dataSource.index(beforeCharacter: selection.head, clampedTo: dataSource.startIndex)
             } else {
-                newHead = selection.lowerBound
+                head = selection.lowerBound
             }
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .right:
             if selection.isCaret || extending {
-                newHead = dataSource.index(afterCharacter: selection.head, clampedTo: dataSource.endIndex)
+                head = dataSource.index(afterCharacter: selection.head, clampedTo: dataSource.endIndex)
             } else {
-                newHead = selection.upperBound
+                head = selection.upperBound
             }
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .up:
-            (newHead, newAffinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
+            (head, affinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
         case .down:
-            (newHead, newAffinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
+            (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
         case .leftWord:
             let wordBoundary = dataSource.index(beforeWord: extending ? selection.head : selection.lowerBound, clampedTo: dataSource.startIndex)
             if extending && selection.isRange && selection.affinity == .downstream {
-                newHead = max(wordBoundary, selection.lowerBound)
+                head = max(wordBoundary, selection.lowerBound)
             } else {
-                newHead = wordBoundary
+                head = wordBoundary
             }
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .rightWord:
             let wordBoundary = dataSource.index(afterWord: extending ? selection.head : selection.upperBound, clampedTo: dataSource.endIndex)
             if extending && selection.isRange && selection.affinity == .upstream {
-                newHead = min(selection.range.upperBound, wordBoundary)
+                head = min(selection.range.upperBound, wordBoundary)
             } else {
-                newHead = wordBoundary
+                head = wordBoundary
             }
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfLine:
             guard let fragRange = dataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
                 assertionFailure("couldn't find fragRange")
                 return selection
             }
-            newHead = fragRange.lowerBound
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            head = fragRange.lowerBound
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
             guard let fragRange = dataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
                 assertionFailure("couldn't find fragRange")
@@ -179,48 +193,48 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             }
 
             let hardBreak = dataSource.lastCharacter(inRange: fragRange) == "\n"
-            newHead = hardBreak ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
-            newAffinity = hardBreak ? .downstream : .upstream
+            head = hardBreak ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
+            affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
-            newHead = dataSource.index(roundingDownToLine: selection.lowerBound)
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            head = dataSource.index(roundingDownToLine: selection.lowerBound)
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfParagraph:
             // end of document is end of last paragraph. This is
             // necessary so that we can distingush this case from
             // moving to the end of the second to last paragraph
             // when the last paragraph is an empty last line.
             if selection.upperBound == dataSource.endIndex {
-                newHead = dataSource.endIndex
+                head = dataSource.endIndex
             } else {
                 let i = dataSource.index(afterLine: selection.upperBound, clampedTo: dataSource.endIndex)
                 if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
-                    newHead = i
+                    head = i
                 } else {
-                    newHead = dataSource.index(beforeCharacter: i)
+                    head = dataSource.index(beforeCharacter: i)
                 }
             }
-            newAffinity = newHead == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
-            newHead = dataSource.startIndex
-            newAffinity = dataSource.isEmpty ? .upstream : .downstream
+            head = dataSource.startIndex
+            affinity = dataSource.isEmpty ? .upstream : .downstream
         case .endOfDocument:
-            newHead = dataSource.endIndex
-            newAffinity = .upstream
+            head = dataSource.endIndex
+            affinity = .upstream
         }
 
         if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
             // Swap anchor and head so that if the next movement is endOf*, we end
             // up selecting the entire line, paragraph, or document.
-            return Selection(anchor: newHead, head: selection.anchor, xOffset: nil)
+            return Selection(anchor: head, head: selection.anchor, xOffset: nil)
         } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             // ditto
-            return Selection(anchor: newHead, head: selection.lowerBound, xOffset: nil)
-        } else if extending && newHead != selection.anchor {
-            return Selection(anchor: selection.anchor, head: newHead, xOffset: xOffset)
+            return Selection(anchor: head, head: selection.lowerBound, xOffset: nil)
+        } else if extending && head != selection.anchor {
+            return Selection(anchor: selection.anchor, head: head, xOffset: xOffset)
         } else {
             // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
-            if let newAffinity {
-                return Selection(caretAt: newHead, affinity: newAffinity, xOffset: xOffset)
+            if let affinity {
+                return Selection(caretAt: head, affinity: affinity, xOffset: xOffset)
             } else {
                 assertionFailure("missing affinity")
                 return selection
