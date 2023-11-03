@@ -91,6 +91,25 @@ extension NavigableSelection {
     }
 }
 
+// TODO: consider bringing this design more in line with NSTextSelectionNavigation
+// but in a more Swifty way.
+//
+// Specifically:
+// - lineFragmentRange(containing:affinity:), as well as the line and word index functions
+//   can be replaced with range(for granularity:, enclosing index:).
+// - index(forHorizontalOffset:inLineFragmentContaining) could be replaced with
+//   a) enumerateCaretOffsetsInLineFragment(at:using:) for the case where we need to know
+//      the horizontal offset.
+//   b) lineFragmentRange(for point:, at index:) for handling mouse clicks when we need
+//      the equivalent of indexAndAffinity(interactingAt:).
+//
+// To implement verticalDestination(movingUp:extending:dataSource:), do the following:
+// - find the range of the current frag with range(for granularity:, enclosing index:) -- how to deal with affinity?
+// - get the xOffset of the current point using enumerateCaretOffsetsInLineFragment(at:using:)
+// - get targetFragRange using range(for:enclosing:)
+// - get head using enumerateCaretOffsetsInLineFragment(at:using:)
+//
+// I'm not sure if this is a good idea. It seems like the interface might be harder to implement? I'm not sure.
 public protocol SelectionNavigationDataSource {
     // MARK: Storage
     associatedtype Index: Comparable
@@ -263,7 +282,11 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
     //
     // To get the correct behavior, we need to ensure that selection.xOffset
     // always corresponds to lowerBound.
+    //
+    // This is only called with a non-empty data source.
     func verticalDestination(movingUp: Bool, extending: Bool, dataSource: DataSource) -> (Selection.Index, Selection.Affinity, xOffset: CGFloat?) {
+        assert(!dataSource.isEmpty)
+
         // Moving up when we're already at the front or moving down when we're already
         // isn't quite a no-op – if we're starting at a range, we'll end up with a
         // caret – but it's close.
@@ -271,7 +294,6 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return (selection.lowerBound, selection.affinity, selection.xOffset)
         }
         if !movingUp && selection.upperBound == dataSource.endIndex {
-            // TODO: This might be wrong! If we're moving from a downstream range to the end of the doc would cause affinity to be downstream, which is an error.
             return (selection.upperBound, selection.affinity, selection.xOffset)
         }
 
@@ -312,17 +334,17 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         var target = movingUp ? fragRange.lowerBound : fragRange.upperBound
 
         // If we're at the beginning of a Line, we need to target the previous line.
-        if movingUp && target > dataSource.startIndex && dataSource[dataSource.index(beforeCharacter: target)] == "\n" {
+        if movingUp && dataSource.index(roundingDownToLine: target) == target {
             target = dataSource.index(beforeCharacter: target)
         }
-        let targetAffinity: SelectionAffinity = movingUp ? .upstream : .downstream
+        let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
 
-        guard let targetFragRange = dataSource.lineFragmentRange(containing: target, affinity: Selection.Affinity(targetAffinity)) else {
+        guard let targetFragRange = dataSource.lineFragmentRange(containing: target, affinity: targetAffinity) else {
             assertionFailure("couldn't find target fragRange")
             return (selection.lowerBound, affinity, xOffset)
         }
 
-        guard let head = dataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: Selection.Affinity(targetAffinity)) else {
+        guard let head = dataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
             assertionFailure("couldn't find head")
             return (selection.lowerBound, affinity, xOffset)
         }
