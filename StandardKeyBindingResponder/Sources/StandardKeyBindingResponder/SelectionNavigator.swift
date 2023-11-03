@@ -110,6 +110,11 @@ public protocol SelectionNavigationDataSource {
     subscript(index: Index) -> Character { get }
 
     // MARK: Layout
+
+    // TODO: the layout methods can return nil if given incorrect arguments. But we don't
+    // want to crash the editor just because we can't generate a selection, so we assertFailure
+    // in Debug. That feels a bit gross. Is there a better way to do it? Maybe a
+    // different interface?
     func lineFragmentRange(containing index: Index, affinity: Affinity) -> Range<Index>?
 
     // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
