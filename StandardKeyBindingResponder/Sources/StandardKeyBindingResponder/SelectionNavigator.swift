@@ -161,8 +161,11 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
 
     func makeSelection(movement: SelectionMovement, extending: Bool, dataSource: DataSource) -> Selection {
         if dataSource.isEmpty {
-            return Selection(caretAt: dataSource.startIndex, affinity: Selection.Affinity(.upstream), xOffset: nil)
+            return Selection(caretAt: dataSource.startIndex, affinity: .upstream, xOffset: nil)
         }
+
+        // after this point, dataSource can't be empty, which means that moving to startIndex
+        // can never yield an upstream affinity.
 
         let head: Selection.Index
         var affinity: Selection.Affinity? = nil
