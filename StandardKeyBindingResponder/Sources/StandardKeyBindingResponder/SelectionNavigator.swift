@@ -178,7 +178,9 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             } else {
                 head = selection.lowerBound
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            // dataSource can't be empty, and we're moving left, so we're never at endIndex, so
+            // affinity can't be .upstream.
+            affinity = .downstream
         case .right:
             if selection.isCaret || extending {
                 head = dataSource.index(afterCharacter: selection.head, clampedTo: dataSource.endIndex)
@@ -197,7 +199,8 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             } else {
                 head = wordBoundary
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            // dataSource can't be empty, so moving left can't cause an affinity of .upstream
+            affinity = .downstream
         case .rightWord:
             let wordBoundary = dataSource.index(afterWord: extending ? selection.head : selection.upperBound, clampedTo: dataSource.endIndex)
             if extending && selection.isRange && selection.affinity == .upstream {
@@ -212,6 +215,8 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
                 return selection
             }
             head = fragRange.lowerBound
+            // Even though we're moving left, if the line is the empty last line, we could be
+            // at endIndex and need an upstream affinity.
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
             guard let fragRange = dataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
@@ -224,7 +229,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
             head = dataSource.index(roundingDownToLine: selection.lowerBound)
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            affinity = .downstream
         case .endOfParagraph:
             // end of document is end of last paragraph. This is
             // necessary so that we can distingush this case from
