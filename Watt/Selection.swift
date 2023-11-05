@@ -17,7 +17,8 @@ struct Selection {
     enum Granularity {
         case character
         case word
-        case line        
+        case line  
+        case paragraph      
     }
 
     let range: Range<Buffer.Index>

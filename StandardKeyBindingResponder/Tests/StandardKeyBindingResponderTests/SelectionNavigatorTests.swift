@@ -120,6 +120,57 @@ struct SimpleSelectionDataSource {
     static var lineHeight: CGFloat {
         14
     }
+
+    func index(ofWordBoundaryBefore i: String.Index) -> String.Index {
+        var j = i
+        while j > string.startIndex && isWhitespaceCharacter(string[string.index(before: j)]) {
+            j = string.index(before: j)
+        }
+        if j < i {
+            return j
+        }
+        while j > string.startIndex && !isWhitespaceCharacter(string[string.index(before: j)]) {
+            j = string.index(before: j)
+        }
+        return j
+    }
+
+    func index(ofWordBoundaryAfter i: String.Index) -> String.Index {
+        var j = i
+        while j < endIndex && isWhitespaceCharacter(string[j]) {
+            j = string.index(after: j)
+        }
+        if j > i {
+            return j
+        }
+        while j < endIndex && !isWhitespaceCharacter(string[j]) {
+            j = string.index(after: j)
+        }
+        return j
+    }
+
+    func index(roundedDownToWordBoundary i: String.Index) -> String.Index {
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryBefore: i)
+    }
+
+    func index(roundedUpToWordBoundary i: String.Index) -> String.Index{
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryAfter: i)
+    }
+
+    func isWordBoundary(_ i: String.Index) -> Bool {
+        if i == string.startIndex || i == string.endIndex {
+            return true
+        }
+        
+        let prev = string.index(before: i)
+        return isWhitespaceCharacter(string[prev]) != isWhitespaceCharacter(string[i])
+    }
 }
 
 extension SimpleSelectionDataSource: SelectionNavigationDataSource {
@@ -137,6 +188,47 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
 
     subscript(index: String.Index) -> Character {
         string[index]
+    }
+
+    func range(for granularity: StandardKeyBindingResponder.SelectionGranularity, enclosing index: String.Index) -> Range<String.Index> {
+        if string.isEmpty { 
+            return string.startIndex..<string.startIndex
+        }
+
+        switch granularity {
+        case .character:
+            var start = index
+            if index == string.endIndex {
+                start = string.index(before: start)
+            }
+
+            return start..<string.index(after: start)
+        case .word:
+            let start: String.Index
+            let end: String.Index
+            if index == string.endIndex {
+                start = self.index(ofWordBoundaryBefore: index)
+                end = string.endIndex
+            } else if isWordBoundary(index) {
+                start = index
+                end = self.index(ofWordBoundaryAfter: index)
+            } else {
+                start = self.index(roundedDownToWordBoundary: index)
+                end = self.index(roundedUpToWordBoundary: index)
+            }
+
+            return start..<end
+        case .line:
+            return lineFragmentRange(containing: index, affinity: index == endIndex ? .upstream : .downstream)!
+        case .paragraph:
+            let start = self.index(roundingDownToLine: index)
+            let end = self.index(afterLine: index)
+            return start..<end
+        }
+    }
+
+    func isWhitespaceCharacter(_ c: Character) -> Bool {
+        c.isWhitespace || c.isPunctuation
     }
 
     func lineFragmentRange(containing i: String.Index, affinity: SimpleSelection.Affinity) -> Range<String.Index>? {

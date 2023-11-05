@@ -827,4 +827,46 @@ extension LayoutManager: SelectionNavigationDataSource {
         let linePos = convert(fragPos, from: frag)
         return convert(linePos, from: line)
     }
+
+    func range(for granularity: SelectionGranularity, enclosing index: Buffer.Index) -> Range<Buffer.Index> {
+        if buffer.isEmpty {
+            return buffer.startIndex..<buffer.startIndex
+        }
+
+        switch granularity {
+        case .character:
+            var start = index
+            if index == buffer.endIndex {
+                start = buffer.index(before: start)
+            }
+
+            return start..<buffer.index(after: start)
+        case .word:
+            let start: Buffer.Index
+            let end: Buffer.Index
+            if index == buffer.endIndex {
+                start = buffer.words.index(ofBoundaryBefore: index)
+                end = buffer.endIndex
+            } else if buffer.words.isBoundary(index) {
+                start = index
+                end = buffer.words.index(ofBoundaryAfter: index)
+            } else {
+                start = buffer.words.index(roundedDownToBoundary: index)
+                end = buffer.words.index(roundedUpToBoundary: index)
+            }
+
+            return start..<end
+        case .line:
+            let line = line(containing: index)
+            return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
+        case .paragraph:
+            let start = buffer.lines.index(roundingDown: index)
+            let end = buffer.lines.index(index, offsetBy: 1, limitedBy: buffer.endIndex) ?? buffer.endIndex
+            return start..<end
+        }
+    }
+
+    func isWhitespaceCharacter(_ c: Character) -> Bool {
+        !buffer.language.isWordCharacter(c)
+    }
 }

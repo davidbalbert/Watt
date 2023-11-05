@@ -319,7 +319,49 @@ extension Buffer {
             
             return index(before: i)
         }
-        
+
+        func index(ofBoundaryBefore i: Index) -> Index {
+            var j = i
+            while j > buffer.startIndex && !isWordCharacter(buffer[buffer.index(before: j)]) {
+                j = buffer.index(before: j)
+            }
+            if j < i {
+                return j
+            }
+            while j > buffer.startIndex && isWordCharacter(buffer[buffer.index(before: j)]) {
+                j = buffer.index(before: j)
+            }
+            return j
+        }
+
+        func index(ofBoundaryAfter i: Index) -> Index {
+            var j = i
+            while j < endIndex && !isWordCharacter(buffer[j]) {
+                j = buffer.index(after: j)
+            }
+            if j > i {
+                return j
+            }
+            while j < endIndex && isWordCharacter(buffer[j]) {
+                j = buffer.index(after: j)
+            }
+            return j
+        }
+
+        func index(roundedDownToBoundary i: Index) -> Index {
+            if isBoundary(i) {
+                return i
+            }
+            return index(ofBoundaryBefore: i)
+        }
+
+        func index(roundedUpToBoundary i: Index) -> Index {
+            if isBoundary(i) {
+                return i
+            }
+            return index(ofBoundaryAfter: i)
+        }
+
         subscript(position: Index) -> String? {
             if buffer.isEmpty {
                 return nil
@@ -339,6 +381,15 @@ extension Buffer {
             let end = index(after: i)
             
             return String(buffer[start..<end])
+        }
+
+        func isBoundary(_ i: Index) -> Bool {
+            if i == buffer.startIndex || i == buffer.endIndex {
+                return true
+            }
+            
+            let prev = buffer.index(before: i)
+            return isWordCharacter(buffer[prev]) != isWordCharacter(buffer[i])
         }
         
         private func wordStartsAt(_ i: Index) -> Bool {

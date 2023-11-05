@@ -12,6 +12,13 @@ public enum SelectionAffinity {
     case downstream
 }
 
+public enum SelectionGranularity {
+    case character
+    case word
+    case line
+    case paragraph
+}
+
 public enum SelectionMovement: Equatable {
     case left
     case right
@@ -82,6 +89,10 @@ extension NavigableSelection {
         }
     }
 
+    var caretIndex: Index? {
+        isCaret ? range.lowerBound : nil
+    }
+
     var isCaret: Bool {
         range.isEmpty
     }
@@ -129,6 +140,9 @@ public protocol SelectionNavigationDataSource {
     subscript(index: Index) -> Character { get }
 
     // MARK: Layout
+
+    func range(for granularity: SelectionGranularity, enclosing index: Index) -> Range<Index>
+    func isWhitespaceCharacter(_ c: Character) -> Bool
 
     // If we do the above refactor and change this to range(for:enclosing:), we might
     // be able to get away with not passing in affinity and having that always return
@@ -192,58 +206,102 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         case .down:
             (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
         case .leftWord:
-            let wordBoundary = dataSource.index(beforeWord: extending ? selection.head : selection.lowerBound, clampedTo: dataSource.startIndex)
+            var i = extending ? selection.head : selection.lowerBound
+            if i > dataSource.startIndex {
+                i = dataSource.index(beforeCharacter: i)
+            }
+            var range = dataSource.range(for: .word, enclosing: i)
+
+            assert(!range.isEmpty)
+            // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
+            // beginning of the document, we need to move left one more time.
+            if dataSource.startIndex < range.lowerBound && dataSource.isWhitespaceCharacter(dataSource[range.lowerBound]) {
+                range = dataSource.range(for: .word, enclosing: dataSource.index(beforeCharacter: range.lowerBound))
+            }
+
             if extending && selection.isRange && selection.affinity == .downstream {
-                head = max(wordBoundary, selection.lowerBound)
+                // if we're shrinking the selection to the left, don't move past the anchor
+                head = max(range.lowerBound, selection.anchor)
             } else {
-                head = wordBoundary
+                head = range.lowerBound
             }
             // dataSource can't be empty, so moving left can't cause an affinity of .upstream
             affinity = .downstream
         case .rightWord:
-            let wordBoundary = dataSource.index(afterWord: extending ? selection.head : selection.upperBound, clampedTo: dataSource.endIndex)
+            var range = dataSource.range(for: .word, enclosing: extending ? selection.head : selection.upperBound)
+            assert(!range.isEmpty)
+
+            // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
+            // end of the document, we need to move right one more time.
+            if range.upperBound < dataSource.endIndex && !dataSource.isWhitespaceCharacter(dataSource[range.upperBound]) {
+                range = dataSource.range(for: .word, enclosing: range.upperBound)
+            }
+
             if extending && selection.isRange && selection.affinity == .upstream {
-                head = min(selection.range.upperBound, wordBoundary)
+                // if we're shrinking the selection to the right, don't move past the anchor
+                head = min(selection.anchor, range.upperBound)
             } else {
-                head = wordBoundary
+                head = range.upperBound
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfLine:
-            guard let fragRange = dataSource.lineFragmentRange(containing: selection.lowerBound, affinity: selection.isCaret ? selection.affinity : .downstream) else {
-                assertionFailure("couldn't find fragRange")
-                return selection
+            let target = selection.lowerBound
+            let targetAffinity = selection.isCaret ? selection.affinity : .downstream
+
+            let lineRange = dataSource.range(for: .paragraph, enclosing: target)
+            if target == lineRange.lowerBound {
+                head = lineRange.lowerBound
+            } else {
+                var fragRange = dataSource.range(for: .line, enclosing: target)
+
+                if targetAffinity == .upstream && target == fragRange.lowerBound && dataSource.startIndex < fragRange.lowerBound {
+                    fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: target))
+                }
+                head = fragRange.lowerBound
             }
-            head = fragRange.lowerBound
+
             // Even though we're moving left, if the line is the empty last line, we could be
             // at endIndex and need an upstream affinity.
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
-            guard let fragRange = dataSource.lineFragmentRange(containing: selection.upperBound, affinity: selection.isCaret ? selection.affinity : .upstream) else {
-                assertionFailure("couldn't find fragRange")
-                return selection
+            let target = selection.upperBound
+            let targetAffinity = selection.isCaret ? selection.affinity : .upstream
+
+            let lineRange = dataSource.range(for: .paragraph, enclosing: target)
+            var fragRange = dataSource.range(for: .line, enclosing: target)
+            if targetAffinity == .upstream && target == fragRange.lowerBound && lineRange.lowerBound < fragRange.lowerBound {
+                fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: target))
             }
 
             let hardBreak = dataSource.lastCharacter(inRange: fragRange) == "\n"
             head = hardBreak ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
             affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
-            head = dataSource.index(roundingDownToLine: selection.lowerBound)
+            head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
             affinity = .downstream
         case .endOfParagraph:
+            let i = dataSource.range(for: .paragraph, enclosing: selection.upperBound).upperBound
+            if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
+                head = i
+            } else {
+                head = dataSource.index(beforeCharacter: i)
+            }
+
+
             // end of document is end of last paragraph. This is
             // necessary so that we can distingush this case from
             // moving to the end of the second to last paragraph
             // when the last paragraph is an empty last line.
-            if selection.upperBound == dataSource.endIndex {
-                head = dataSource.endIndex
-            } else {
-                let i = dataSource.index(afterLine: selection.upperBound, clampedTo: dataSource.endIndex)
-                if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
-                    head = i
-                } else {
-                    head = dataSource.index(beforeCharacter: i)
-                }
-            }
+            // if selection.upperBound == dataSource.endIndex {
+            //     head = dataSource.endIndex
+            // } else {
+            //     let i = dataSource.index(afterLine: selection.upperBound, clampedTo: dataSource.endIndex)
+            //     if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
+            //         head = i
+            //     } else {
+            //         head = dataSource.index(beforeCharacter: i)
+            //     }
+            // }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
             head = dataSource.startIndex
@@ -469,6 +527,15 @@ extension SelectionNavigationDataSource {
         }
 
         return i
+    }
+
+    func hasWordBoundary(at i: Index) -> Bool {
+        if i == startIndex || i == endIndex {
+            return true
+        }
+
+        let prev = index(beforeCharacter: i)
+        return isWordCharacter(self[prev]) != isWordCharacter(self[i])
     }
 }
 
