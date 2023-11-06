@@ -760,6 +760,7 @@ extension LayoutManager {
     }
 }
 
+
 extension LayoutManager: SelectionNavigationDataSource {
     var documentRange: Range<Buffer.Index> {
         buffer.documentRange
@@ -773,19 +774,12 @@ extension LayoutManager: SelectionNavigationDataSource {
         buffer.index(after: i)
     }
 
-    func index(roundingDownToLine i: Buffer.Index) -> Buffer.Index {
-        buffer.lines.index(roundingDown: i)
+    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
+        buffer.lines.index(before: i)
     }
-    func index(afterLine i: Buffer.Index) -> Buffer.Index {
+
+    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
         buffer.lines.index(after: i)
-    }
-
-    func index(beforeWord i: Buffer.Index) -> Buffer.Index {
-        buffer.words.index(before: i)
-    }
-
-    func index(afterWord i: Buffer.Index) -> Buffer.Index {
-        buffer.words.index(after: i)
     }
 
     subscript(index: Buffer.Index) -> Character {
@@ -797,36 +791,111 @@ extension LayoutManager: SelectionNavigationDataSource {
         return line.fragment(containing: index, affinity: affinity)?.range
     }
 
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Affinity) -> Buffer.Index? {
-        let line = line(containing: i)
-        guard let frag = line.fragment(containing: i, affinity: affinity) else {
-            assertionFailure("no frag")
-            return nil
-        }
-
-        let pointInLine = CGPoint(x: xOffset, y: frag.alignmentFrame.minY)
-        let pointInLineFragment = convert(pointInLine, to: frag)
-
-        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
-            assertionFailure("no index")
-            return nil
-        }
-
-        return i
-    }
-
-    func point(forCharacterAt index: Buffer.Index, affinity: Affinity) -> CGPoint {
+    func lineFragmentRange(containing index: Buffer.Index) -> Range<Buffer.Index> {
         let line = line(containing: index)
-        guard let frag = line.fragment(containing: index, affinity: affinity) else {
+        return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
+    }
+
+    // Yields the caret offsets in text container coordinates.
+    // If a fragment has 3 characters before wrapping, we'll yield (assuming a monospaced font for simplicity):
+    // 1. (0*charWidth, 0, leadingEdge=true)
+    // 2. (1*charWidth, 0, leadingEdge=false)
+    // 3. (1*charWidth, 1, leadingEdge=true)
+    // 4. (2*charWidth, 1, leadingEdge=false)
+    // 5. (2*charWidth, 2, leadingEdge=true)
+    // 6. (3*charWidth, 2, leadingEdge=false)
+
+    // if a fragment ends in a newline (e.g. "ab\n"), we stop after the trailing edge of the "b"
+    // 1. (0*charWidth, 0, leadingEdge=true)
+    // 2. (1*charWidth, 0, leadingEdge=false)
+    // 3. (1*charWidth, 1, leadingEdge=true)
+    // 4. (2*charWidth, 1, leadingEdge=false)
+    // 5. (2*charWidth, 2, leadingEdge=true)
+
+    // Make sure to take into account the possibility of a syntehsized empty last line (LineFragment.utf16Count == 0). In that
+    // case, there's a single offset at (0, 0, leadingEdge=false). Note that 0 there is in line fragment coordinates, and
+    // must be adjusted to be in text container coordinates
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ leadingEdge: Bool) -> Bool) {
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
             assertionFailure("no frag")
-            return .zero
+            return
         }
 
-        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
-        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
-        let linePos = convert(fragPos, from: frag)
-        return convert(linePos, from: line)
+        // hardcode empty last line because it was created from a dummy non-empty CTLine
+        if frag.range.isEmpty {
+            let fragPos = CGPoint(x: 0, y: 0)
+            let linePos = convert(fragPos, from: frag)
+            let pos = convert(linePos, from: line)
+            _ = block(pos.x, frag.range.lowerBound, false)
+            return
+        }
+
+        let endsInNewline = buffer[frag.range].characters.last == "\n"
+
+        var i = frag.range.lowerBound
+        var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
+
+        withoutActuallyEscaping(block) { block in
+            CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
+                guard let self else {
+                    stop.pointee = true
+                    return
+                }
+
+                let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
+                if !isTrailingSurrogate {
+                    i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
+                    prevOffsetInLine = offsetInLine
+                }
+
+                // Don't include trailing newlines
+                if endsInNewline && i == buffer.index(before: frag.range.upperBound) {
+                    return
+                }
+
+                let fragPos = CGPoint(x: caretOffset, y: 0)
+                let linePos = convert(fragPos, from: frag)
+                let pos = convert(linePos, from: line)
+
+                if !block(pos.x, i, leadingEdge) {
+                    stop.pointee = true
+                    return
+                }
+            }
+        }
     }
+
+//    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Affinity) -> Buffer.Index? {
+//        let line = line(containing: i)
+//        guard let frag = line.fragment(containing: i, affinity: affinity) else {
+//            assertionFailure("no frag")
+//            return nil
+//        }
+//
+//        let pointInLine = CGPoint(x: xOffset, y: frag.alignmentFrame.minY)
+//        let pointInLineFragment = convert(pointInLine, to: frag)
+//
+//        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
+//            assertionFailure("no index")
+//            return nil
+//        }
+//
+//        return i
+//    }
+//
+//    func point(forCharacterAt index: Buffer.Index, affinity: Affinity) -> CGPoint {
+//        let line = line(containing: index)
+//        guard let frag = line.fragment(containing: index, affinity: affinity) else {
+//            assertionFailure("no frag")
+//            return .zero
+//        }
+//
+//        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
+//        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
+//        let linePos = convert(fragPos, from: frag)
+//        return convert(linePos, from: line)
+//    }
 
     func range(for granularity: SelectionGranularity, enclosing index: Buffer.Index) -> Range<Buffer.Index> {
         if buffer.isEmpty {
@@ -868,5 +937,34 @@ extension LayoutManager: SelectionNavigationDataSource {
 
     func isWhitespaceCharacter(_ c: Character) -> Bool {
         !buffer.language.isWordCharacter(c)
+    }
+}
+
+// TODO: Why in the wolrd is this necessary? What's going on?
+extension LayoutManager {
+    func isWordStart(_ i: Buffer.Index) -> Bool {
+        assert(!buffer.isEmpty)
+        if i == buffer.endIndex {
+            return false
+        }
+
+        if i == buffer.startIndex {
+            return !isWhitespaceCharacter(self[i])
+        }
+        let prev = index(beforeCharacter: i)
+        return isWhitespaceCharacter(self[prev]) && !isWhitespaceCharacter(self[i])
+    }
+
+    func isWordEnd(_ i: Buffer.Index) -> Bool {
+        assert(!buffer.isEmpty)
+        if i == buffer.startIndex {
+            return false
+        }
+
+        let prev = index(beforeCharacter: i)
+        if i == buffer.endIndex {
+            return !isWhitespaceCharacter(self[prev])
+        }
+        return !isWhitespaceCharacter(self[prev]) && isWhitespaceCharacter(self[i])
     }
 }

@@ -51,8 +51,8 @@ public protocol NavigableSelection {
 
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
 
-    // You might think that a non-caret Selection doesn't need an xOffset. We still need
-    // to maintained maintain it for a specific special case: If we're moving up from within
+    // You might think that a non-caret Selection doesn't need an xOffset, but we still
+    // need to maintain it for a specific special case: If we're moving up from within
     // the first fragment to the beginning of the document or moving down from the within
     // the last fragment to the end of the document, we want to maintain our xOffset so that
     // when we move back in the opposite vertical direction, we move by one line fragment and
@@ -124,40 +124,38 @@ extension NavigableSelection {
 public protocol SelectionNavigationDataSource {
     // MARK: Storage
     associatedtype Index: Comparable
-    associatedtype Affinity: InitializableFromSelectionAffinity
 
     var documentRange: Range<Index> { get }
 
     func index(beforeCharacter i: Index) -> Index
     func index(afterCharacter i: Index) -> Index
 
-    func index(roundingDownToLine i: Index) -> Index
-    func index(afterLine i: Index) -> Index
-
-    func index(beforeWord i: Index) -> Index
-    func index(afterWord i: Index) -> Index
+    func index(beforeParagraph i: Index) -> Index
+    func index(afterParagraph i: Index) -> Index
 
     subscript(index: Index) -> Character { get }
 
     // MARK: Layout
 
-    func range(for granularity: SelectionGranularity, enclosing index: Index) -> Range<Index>
-    func isWhitespaceCharacter(_ c: Character) -> Bool
-
+    func lineFragmentRange(containing index: Index) -> Range<Index>
+    func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ leadingEdge: Bool) -> Bool)
     // If we do the above refactor and change this to range(for:enclosing:), we might
     // be able to get away with not passing in affinity and having that always return
     // a range.
-    func lineFragmentRange(containing index: Index, affinity: Affinity) -> Range<Index>?
+//    func lineFragmentRange(containing index: Index, affinity: Affinity) -> Range<Index>?
 
     // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Index, affinity: Affinity) -> Index?
+//    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: Index, affinity: Affinity) -> Index?
 
     // point is in text container coordinates
-    func point(forCharacterAt index: Index, affinity: Affinity) -> CGPoint
+//    func point(forCharacterAt index: Index, affinity: Affinity) -> CGPoint
+
+    func isWordStart(_ i: Index) -> Bool
+    func isWordEnd(_ i: Index) -> Bool
 }
 
 
-public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: SelectionNavigationDataSource, Selection.Index == DataSource.Index, Selection.Affinity == DataSource.Affinity {
+public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: SelectionNavigationDataSource, Selection.Index == DataSource.Index {
     public let selection: Selection
 
     public init(selection: Selection) {
@@ -215,7 +213,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             assert(!range.isEmpty)
             // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
             // beginning of the document, we need to move left one more time.
-            if dataSource.startIndex < range.lowerBound && dataSource.isWhitespaceCharacter(dataSource[range.lowerBound]) {
+            if dataSource.startIndex < range.lowerBound && dataSource.isWordEnd(range.lowerBound) {
                 range = dataSource.range(for: .word, enclosing: dataSource.index(beforeCharacter: range.lowerBound))
             }
 
@@ -233,7 +231,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
 
             // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
             // end of the document, we need to move right one more time.
-            if range.upperBound < dataSource.endIndex && !dataSource.isWhitespaceCharacter(dataSource[range.upperBound]) {
+            if range.upperBound < dataSource.endIndex && dataSource.isWordStart(range.upperBound) {
                 range = dataSource.range(for: .word, enclosing: range.upperBound)
             }
 
@@ -363,21 +361,25 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         }
 
         let i = selection.isRange && extending ? selection.head : selection.lowerBound
-        let affinity: Selection.Affinity
-        if i == dataSource.endIndex {
-            affinity = .upstream
-        } else if selection.isCaret {
-            affinity = selection.affinity
-        } else if movingUp {
-            affinity = .downstream
-        } else {
-            affinity = .upstream
-        }
+//        let affinity: Selection.Affinity
+//        if i == dataSource.endIndex {
+//            affinity = .upstream
+//        } else if selection.isCaret {
+//            affinity = selection.affinity
+//        } else if movingUp {
+//            affinity = .downstream
+//        } else {
+//            affinity = .upstream
+//        }
 
-        guard let fragRange = dataSource.lineFragmentRange(containing: i, affinity: affinity) else {
-            assertionFailure("couldn't find fragRange")
-            return (selection.lowerBound, affinity, selection.xOffset)
+        var fragRange = dataSource.range(for: .line, enclosing: i)
+        if fragRange.lowerBound == i && selection.isCaret && selection.affinity == .upstream {
+            assert(i != dataSource.startIndex)
+            // If we have a caret at the end of a line fragment, we need to ask the data source
+            // for the previous fragment.
+            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: i))
         }
+        // TODO: there's still the !movingUp use upstream affinity case, but I don't remember why that's there.
 
         // Moving up when we're in the first frag, moves left to the beginning. Moving
         // down when we're in the last frag moves right to the end.
@@ -393,26 +395,11 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return (dataSource.endIndex, .upstream, xOffset)
         }
 
-        // This needs a type declaration or it will be inferred as a CGFloat?. I'm not sure why.
-        let xOffset: CGFloat = selection.xOffset ?? dataSource.point(forCharacterAt: i, affinity: affinity).x
+        let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: i, inLineFragmentWithRange: fragRange)
 
-        var target = movingUp ? fragRange.lowerBound : fragRange.upperBound
-
-        // If we're at the beginning of a Line, we need to target the previous line.
-        if movingUp && dataSource.index(roundingDownToLine: target) == target {
-            target = dataSource.index(beforeCharacter: target)
-        }
-        let targetAffinity: Selection.Affinity = movingUp ? .upstream : .downstream
-
-        guard let targetFragRange = dataSource.lineFragmentRange(containing: target, affinity: targetAffinity) else {
-            assertionFailure("couldn't find target fragRange")
-            return (selection.lowerBound, affinity, xOffset)
-        }
-
-        guard let head = dataSource.index(forHorizontalOffset: xOffset, inLineFragmentContaining: target, affinity: targetAffinity) else {
-            assertionFailure("couldn't find head")
-            return (selection.lowerBound, affinity, xOffset)
-        }
+        let target = movingUp ? dataSource.index(beforeCharacter: fragRange.lowerBound) : fragRange.upperBound
+        let targetFragRange = dataSource.range(for: .line, enclosing: target)
+        let head = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
     }
@@ -460,11 +447,11 @@ extension SelectionNavigationDataSource {
         return index(afterWord: i)
     }
 
-    func index(afterLine i: Index, clampedTo limit: Index) -> Index {
+    func index(afterParagraph i: Index, clampedTo limit: Index) -> Index {
         if i >= limit {
             return limit
         }
-        return index(afterLine: i)
+        return index(afterParagraph: i)
     }
 
     func isWordCharacter(_ c: Character) -> Bool {
@@ -478,32 +465,205 @@ extension SelectionNavigationDataSource {
 
         return self[index(beforeCharacter: range.upperBound)]
     }
+
+    func range(for granularity: SelectionGranularity, enclosing i: Index) -> Range<Index> {
+        if isEmpty {
+            return startIndex..<startIndex
+        }
+
+        switch granularity {
+        case .character:
+            var start = i
+            if i == endIndex {
+                start = index(beforeCharacter: start)
+            }
+
+            return start..<index(afterCharacter: start)
+        case .word:
+            let start: Index
+            let end: Index
+
+            if i == endIndex {
+                start = index(ofWordBoundaryBefore: i)
+                end = endIndex
+            } else if isWordBoundary(i) {
+                start = i
+                end = index(ofWordBoundaryAfter: i)
+            } else {
+                start = index(roundedDownToWordBoundary: i)
+                end = index(roundedUpToWordBoundary: i)
+            }
+
+            return start..<end
+        case .line:
+            return lineFragmentRange(containing: i)
+        case .paragraph:
+            let start = index(roundedDownToParagraph: i)
+            let end = index(afterParagraph: i, clampedTo: endIndex)
+            return start..<end
+        }
+    }
+
+    func index(ofWordBoundaryBefore i: Index) -> Index {
+        precondition(i > startIndex)
+        var j = i
+        while i > startIndex {
+            j = index(beforeCharacter: j)
+            if isWordBoundary(j) {
+                break
+            }
+        }
+        return j
+    }
+
+    func index(ofWordBoundaryAfter i: Index) -> Index {
+        precondition(i < endIndex)
+        var j = i
+        while j < endIndex {
+            j = index(afterCharacter: j)
+            if isWordBoundary(j) {
+                break
+            }
+        }
+        return j
+    }
+
+    func index(roundedDownToWordBoundary i: Index) -> Index {
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryBefore: i)
+    }
+
+    func index(roundedUpToWordBoundary i: Index) -> Index {
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryAfter: i)
+    }
+
+    func isWordBoundary(_ i: Index) -> Bool {
+        isWordStart(i) || isWordEnd(i)
+    }
+
+    func isWhitespace(_ i: Index) -> Bool {
+        let c = self[i]
+        return c.isWhitespace || c.isPunctuation
+    }
+
+    func index(roundedDownToParagraph i: Index) -> Index {
+        if isParagraphBoundary(i) {
+            return i
+        }
+        return index(beforeParagraph: i)
+    }
+
+    func isParagraphBoundary(_ i: Index) -> Bool {
+        i == startIndex || self[index(beforeCharacter: i)] == "\n"
+    }
+
+    func caretOffset(forCharacterAt target: Index, inLineFragmentWithRange fragRange: Range<Index>) -> CGFloat {
+        // if the fragment ends in a newline, we are not allowed to ask for the caret offset
+        // at the upper bound of the frag range.
+        assert(lastCharacter(inRange: fragRange) != "\n" || target != fragRange.upperBound)
+
+        var caretOffset: CGFloat?
+        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
+            if target == i && leadingEdge {
+                caretOffset = offset
+                return false
+            }
+
+            // If our target is fragRange.upperBound, that means we're at the "upstream" position
+            // at the end of this line fragment.
+            if target == fragRange.upperBound && i == index(beforeCharacter: fragRange.upperBound) && !leadingEdge {
+                caretOffset = offset
+                return false
+            }
+
+            return true
+        }
+
+        return caretOffset!
+    }
+
+    // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
+    func index(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> Index {
+        var res: Index?
+        var prev: (offset: CGFloat, i: Index)?
+        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
+            if offset < targetOffset {
+                prev = (offset, i)
+                return true
+            }
+
+            if let prev {
+                if abs(offset - targetOffset) < abs(prev.offset - targetOffset) {
+                    res = prev.i
+                } else {
+                    res = i
+                }
+            } else {
+                res = i
+            }
+
+            return false
+        }
+
+        if let res {
+            return res
+        }
+
+        // If we didn't find an index, it's because we're past the end of the line fragment.
+        // In that case, return the upper bound of fragRange, with one exception: if the
+        // fragment ends in a newline, return the index of the newline – it's impossible
+        // to be on the leading edge of a newline character.
+        if lastCharacter(inRange: fragRange) == "\n" {
+            return index(beforeCharacter: fragRange.upperBound)
+        } else {
+            return fragRange.upperBound
+        }
+    }
 }
 
 // MARK: Default implementations
 extension SelectionNavigationDataSource {
-    func index(roundingDownToLine i: Index) -> Index {
-        var i = i
-        while i > startIndex {
-            let prev = index(beforeCharacter: i)
-            if self[prev] == "\n" {
-                break
-            }
-            i = prev
+    func index(beforeParagraph i: Index) -> Index {
+        // i is at a paragraph boundary if i == startIndex or self[i-1] == "\n"
+        // if we're in the middle of a paragraph, we need to move down to the beginning
+        // of that paragraph. If we're at the beginning of a paragraph, we need to move
+        // down to the beginning of the previous paragraph.
+        
+        precondition(i > startIndex)
+
+        // deal with the possibility that we're already at the beginning of a paragraph.
+        // in this case, we have to go to the beginning of the previous paragraph
+
+        var j = i
+        if self[index(beforeCharacter: j)] == "\n" {
+            j = index(beforeCharacter: j)
         }
-        return i
+
+        while j > startIndex && self[index(beforeCharacter: j)] != "\n" {
+            j = index(beforeCharacter: j)
+        }
+
+        return j
     }
 
-    func index(afterLine i: Index) -> Index {
-        var i = i
-        while i < endIndex {
-            let prev = i
-            i = index(afterCharacter: i)
-            if self[prev] == "\n" {
-                break
-            }
+    func index(afterParagraph i: Index) -> Index {
+        precondition(i < endIndex)
+
+        var j = i
+        while j < endIndex && self[j] != "\n" {
+            j = index(afterCharacter: j)
         }
-        return i
+
+        if j < endIndex {
+            j = index(afterCharacter: j)
+        }
+
+        return j
     }
 
     func index(beforeWord i: Index) -> Index {
@@ -536,6 +696,32 @@ extension SelectionNavigationDataSource {
 
         let prev = index(beforeCharacter: i)
         return isWordCharacter(self[prev]) != isWordCharacter(self[i])
+    }
+
+    func isWordStart(_ i: Index) -> Bool {
+        assert(!isEmpty)
+        if i == endIndex {
+            return false
+        }
+
+        if i == startIndex {
+            return !isWhitespace(i)
+        }
+        let prev = index(beforeCharacter: i)
+        return isWhitespace(prev) && !isWhitespace(i)
+    }
+
+    func isWordEnd(_ i: Index) -> Bool {
+        assert(!isEmpty)
+        if i == startIndex {
+            return false
+        }
+
+        let prev = index(beforeCharacter: i)
+        if i == endIndex {
+            return !isWhitespace(prev)
+        }
+        return !isWhitespace(prev) && isWhitespace(i)
     }
 }
 

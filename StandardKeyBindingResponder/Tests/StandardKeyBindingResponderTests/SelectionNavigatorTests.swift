@@ -111,7 +111,7 @@ struct SimpleSelectionDataSource {
     // Number of visual characters in a line fragment. Does
     // not include a trailing newline character at a hard
     // line break.
-    let charsPerFrag: Int
+    let charsPerLine: Int
 
     static var charWidth: CGFloat {
         8
@@ -119,57 +119,6 @@ struct SimpleSelectionDataSource {
 
     static var lineHeight: CGFloat {
         14
-    }
-
-    func index(ofWordBoundaryBefore i: String.Index) -> String.Index {
-        var j = i
-        while j > string.startIndex && isWhitespaceCharacter(string[string.index(before: j)]) {
-            j = string.index(before: j)
-        }
-        if j < i {
-            return j
-        }
-        while j > string.startIndex && !isWhitespaceCharacter(string[string.index(before: j)]) {
-            j = string.index(before: j)
-        }
-        return j
-    }
-
-    func index(ofWordBoundaryAfter i: String.Index) -> String.Index {
-        var j = i
-        while j < endIndex && isWhitespaceCharacter(string[j]) {
-            j = string.index(after: j)
-        }
-        if j > i {
-            return j
-        }
-        while j < endIndex && !isWhitespaceCharacter(string[j]) {
-            j = string.index(after: j)
-        }
-        return j
-    }
-
-    func index(roundedDownToWordBoundary i: String.Index) -> String.Index {
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryBefore: i)
-    }
-
-    func index(roundedUpToWordBoundary i: String.Index) -> String.Index{
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryAfter: i)
-    }
-
-    func isWordBoundary(_ i: String.Index) -> Bool {
-        if i == string.startIndex || i == string.endIndex {
-            return true
-        }
-        
-        let prev = string.index(before: i)
-        return isWhitespaceCharacter(string[prev]) != isWhitespaceCharacter(string[i])
     }
 }
 
@@ -190,151 +139,138 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         string[index]
     }
 
-    func range(for granularity: StandardKeyBindingResponder.SelectionGranularity, enclosing index: String.Index) -> Range<String.Index> {
-        if string.isEmpty { 
-            return string.startIndex..<string.startIndex
-        }
+    func lineFragmentRange(containing i: String.Index) -> Range<String.Index> {
+        let paraStart = index(roundedDownToParagraph: i)
+        let paraEnd = index(afterParagraph: paraStart, clampedTo: string.endIndex)
+        let paraLen = string.distance(from: paraStart, to: paraEnd)
+        let offsetInParagraph = string.distance(from: paraStart, to: i)
 
-        switch granularity {
-        case .character:
-            var start = index
-            if index == string.endIndex {
-                start = string.index(before: start)
-            }
+        // A trailing "\n", which is present in all but the last paragraph, doesn't
+        // contribute to the number of fragments a paragraph takes up.
+        let visualParaLen = paraEnd == string.endIndex ? paraLen : paraLen - 1
+        let nfrags = max(1, Int(ceil(Double(visualParaLen) / Double(charsPerLine))))
 
-            return start..<string.index(after: start)
-        case .word:
-            let start: String.Index
-            let end: String.Index
-            if index == string.endIndex {
-                start = self.index(ofWordBoundaryBefore: index)
-                end = string.endIndex
-            } else if isWordBoundary(index) {
-                start = index
-                end = self.index(ofWordBoundaryAfter: index)
-            } else {
-                start = self.index(roundedDownToWordBoundary: index)
-                end = self.index(roundedUpToWordBoundary: index)
-            }
-
-            return start..<end
-        case .line:
-            return lineFragmentRange(containing: index, affinity: index == endIndex ? .upstream : .downstream)!
-        case .paragraph:
-            let start = self.index(roundingDownToLine: index)
-            let end = self.index(afterLine: index)
-            return start..<end
-        }
-    }
-
-    func isWhitespaceCharacter(_ c: Character) -> Bool {
-        c.isWhitespace || c.isPunctuation
-    }
-
-    func lineFragmentRange(containing i: String.Index, affinity: SimpleSelection.Affinity) -> Range<String.Index>? {
-        if i == string.endIndex && affinity != .upstream {
-            return nil
-        }
-
-        let lineStart = index(roundingDownToLine: i)
-        let lineEnd = index(afterLine: lineStart, clampedTo: string.endIndex)
-        let lineLen = string.distance(from: lineStart, to: lineEnd)
-        let offsetInLine = string.distance(from: lineStart, to: i)
-
-        // A trailing "\n", which is present in all but the last line, doesn't
-        // contribute to the number of fragments a line takes up.
-        let visualLineLen = lineEnd == string.endIndex ? lineLen : lineLen - 1
-        let nfrags = max(1, Int(ceil(Double(visualLineLen) / Double(charsPerFrag))))
-
-        let onTrailingBoundary = offsetInLine > 0 && offsetInLine % charsPerFrag == 0
-        let beforeTrailingNewline = lineEnd < string.endIndex && offsetInLine == lineLen - 1
+        let onTrailingBoundary = offsetInParagraph > 0 && offsetInParagraph % charsPerLine == 0
+        let beforeTrailingNewline = paraEnd < string.endIndex && offsetInParagraph == paraLen - 1
 
         let fragIndex: Int
-        if onTrailingBoundary && (affinity == .upstream || beforeTrailingNewline) {
-            fragIndex = (offsetInLine/charsPerFrag) - 1
+        if onTrailingBoundary && beforeTrailingNewline {
+            fragIndex = (offsetInParagraph/charsPerLine) - 1
         } else {
-            fragIndex = offsetInLine/charsPerFrag
+            fragIndex = offsetInParagraph/charsPerLine
         }
 
         let inLastFrag = fragIndex == nfrags - 1
 
-        let fragOffset = fragIndex * charsPerFrag
-        let fragLen = inLastFrag ? lineLen - fragOffset : charsPerFrag
-        let fragStart = string.index(lineStart, offsetBy: fragOffset)
+        let fragOffset = fragIndex * charsPerLine
+        let fragLen = inLastFrag ? paraLen - fragOffset : charsPerLine
+        let fragStart = string.index(paraStart, offsetBy: fragOffset)
         let fragEnd = string.index(fragStart, offsetBy: fragLen)
 
         return fragStart..<fragEnd
     }
 
-    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: String.Index, affinity: Affinity) -> String.Index? {
-        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
-            return nil
-        }
+    func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Bool) -> Bool) {
+        let fragRange = lineFragmentRange(containing: index)
 
-        let offsetInFrag = Int(round(xOffset/Self.charWidth))
+        let endsInNewline = string[fragRange].last == "\n"
 
-        let hasHardBreak = string[fragRange].last == "\n"
+        var i = fragRange.lowerBound
+        var offset: CGFloat = 0
+        var leadingEdge = false
+        while true {
+            // increment offset when we are on the trailing edge
+            // increment i when we're on the leading edge
+            // call block on both edges
+            //
+            // don't call block with a index pointing to a trailing newline
 
-        var i = string.index(fragRange.lowerBound, offsetBy: offsetInFrag, clampedTo: fragRange.upperBound)
-        if i == fragRange.upperBound && hasHardBreak {
-            i = string.index(before: i)
-        }
-
-        return i
-    }
-
-    func point(forCharacterAt index: String.Index, affinity: SimpleSelection.Affinity) -> CGPoint {
-        if index == string.endIndex && affinity == .downstream {
-            return .zero
-        }
-
-        var (lineRange, y) = lineRangeAndVerticalOffset(forCharacterAt: index)
-
-        // we iterate rather than just asking for the line fragment range containing index
-        // so that we can calculate y in text container coordinates.
-        var range: Range<String.Index>?
-        var i = lineRange.lowerBound
-
-        // i always the beginning of a line fragment, so downstream is the appropriate affinity, but if the
-        // line fragment is empty (i.e. we're at an empty last line), we need to use upstream affinity to find
-        // the range, which will be i..<i.
-        while let r = lineFragmentRange(containing: i, affinity: i == string.endIndex ? .upstream : .downstream) {
-            if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
-                range = r
-                break
+            if endsInNewline && i == string.index(before: fragRange.upperBound) {
+                return
             }
 
-            y += Self.lineHeight
-            i = r.upperBound
-        }
-
-        guard let range else {
-            return .zero
-        }
-
-        let offsetInFrag = string.distance(from: range.lowerBound, to: index)
-        let x = CGFloat(offsetInFrag)*Self.charWidth
-
-        return CGPoint(x: x, y: y)
-    }
-
-    func lineRangeAndVerticalOffset(forCharacterAt index: String.Index) -> (Range<String.Index>, CGFloat) {
-        let lineStart = self.index(roundingDownToLine: index)
-        let lineEnd = self.index(afterLine: lineStart, clampedTo: string.endIndex)
-
-        var y: CGFloat = 0
-        var i = string.startIndex
-        while let r = lineFragmentRange(containing: i, affinity: .downstream) {
-            if r.contains(lineStart) {
-                break
+            if !block(offset, i, leadingEdge) {
+                return
             }
 
-            y += Self.lineHeight
-            i = r.upperBound
+            if leadingEdge {
+                offset += Self.charWidth
+            } else {
+                i = string.index(after: i)
+            }
+            leadingEdge = !leadingEdge
         }
-
-        return (lineStart..<lineEnd, y)
     }
+
+//    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: String.Index, affinity: Affinity) -> String.Index? {
+//        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
+//            return nil
+//        }
+//
+//        let offsetInFrag = Int(round(xOffset/Self.charWidth))
+//
+//        let hasHardBreak = string[fragRange].last == "\n"
+//
+//        var i = string.index(fragRange.lowerBound, offsetBy: offsetInFrag, clampedTo: fragRange.upperBound)
+//        if i == fragRange.upperBound && hasHardBreak {
+//            i = string.index(before: i)
+//        }
+//
+//        return i
+//    }
+
+//    func point(forCharacterAt index: String.Index, affinity: SimpleSelection.Affinity) -> CGPoint {
+//        if index == string.endIndex && affinity == .downstream {
+//            return .zero
+//        }
+//
+//        var (lineRange, y) = lineRangeAndVerticalOffset(forCharacterAt: index)
+//
+//        // we iterate rather than just asking for the line fragment range containing index
+//        // so that we can calculate y in text container coordinates.
+//        var range: Range<String.Index>?
+//        var i = lineRange.lowerBound
+//
+//        // i always the beginning of a line fragment, so downstream is the appropriate affinity, but if the
+//        // line fragment is empty (i.e. we're at an empty last line), we need to use upstream affinity to find
+//        // the range, which will be i..<i.
+//        while let r = lineFragmentRange(containing: i, affinity: i == string.endIndex ? .upstream : .downstream) {
+//            if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
+//                range = r
+//                break
+//            }
+//
+//            y += Self.lineHeight
+//            i = r.upperBound
+//        }
+//
+//        guard let range else {
+//            return .zero
+//        }
+//
+//        let offsetInFrag = string.distance(from: range.lowerBound, to: index)
+//        let x = CGFloat(offsetInFrag)*Self.charWidth
+//
+//        return CGPoint(x: x, y: y)
+//    }
+//
+//    func lineRangeAndVerticalOffset(forCharacterAt index: String.Index) -> (Range<String.Index>, CGFloat) {
+//        let lineStart = self.index(roundedDownToParagraph: index)
+//        let lineEnd = self.index(afterParagraph: lineStart, clampedTo: string.endIndex)
+//
+//        var y: CGFloat = 0
+//        var i = string.startIndex
+//        while let r = lineFragmentRange(containing: i, affinity: .downstream) {
+//            if r.contains(lineStart) {
+//                break
+//            }
+//
+//            y += Self.lineHeight
+//            i = r.upperBound
+//        }
+//
+//        return (lineStart..<lineEnd, y)
+//    }
 }
 
 // MARK: - Sanity checks for SimpleSelectionDataSource
@@ -344,20 +280,18 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testLineFragmentRangesEmptyBuffer() {
         let s = ""
-        let dataSource = SimpleSelectionDataSource(string: s, charsPerFrag: 10)
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
 
-        let r0 = dataSource.lineFragmentRange(containing: s.startIndex, affinity: .upstream)!
-        let r1 = dataSource.lineFragmentRange(containing: s.startIndex, affinity: .downstream)
+        let r = dataSource.lineFragmentRange(containing: s.startIndex)
 
-        XCTAssertEqual(0..<0, intRange(r0, in: s))
-        XCTAssertNil(r1)
+        XCTAssertEqual(0..<0, intRange(r, in: s))
     }
 
-    func testLineFragmentRangesStartOfFragsDownstream() {
+    func testLineFragmentRangesStartOfFrags() {
         // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
         let charsPerFrag = 10
         let s = String(repeating: "a", count: charsPerFrag*4 + 2)
-        let dataSource = SimpleSelectionDataSource(string: s, charsPerFrag: charsPerFrag)
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: charsPerFrag)
 
         let start0 = s.index(s.startIndex, offsetBy: 0*charsPerFrag)
         let start1 = s.index(s.startIndex, offsetBy: 1*charsPerFrag)
@@ -365,49 +299,27 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let start3 = s.index(s.startIndex, offsetBy: 3*charsPerFrag)
         let start4 = s.index(s.startIndex, offsetBy: 4*charsPerFrag)
 
-        let r0 = dataSource.lineFragmentRange(containing: start0, affinity: .downstream)!
-        let r1 = dataSource.lineFragmentRange(containing: start1, affinity: .downstream)!
-        let r2 = dataSource.lineFragmentRange(containing: start2, affinity: .downstream)!
-        let r3 = dataSource.lineFragmentRange(containing: start3, affinity: .downstream)!
-        let r4 = dataSource.lineFragmentRange(containing: start4, affinity: .downstream)!
+        let r0 = dataSource.lineFragmentRange(containing: start0)
+        let r1 = dataSource.lineFragmentRange(containing: start1)
+        let r2 = dataSource.lineFragmentRange(containing: start2)
+        let r3 = dataSource.lineFragmentRange(containing: start3)
+        let r4 = dataSource.lineFragmentRange(containing: start4)
+        let r5 = dataSource.lineFragmentRange(containing: s.endIndex)
 
         XCTAssertEqual(0..<10,  intRange(r0, in: s))
         XCTAssertEqual(10..<20, intRange(r1, in: s))
         XCTAssertEqual(20..<30, intRange(r2, in: s))
         XCTAssertEqual(30..<40, intRange(r3, in: s))
         XCTAssertEqual(40..<42, intRange(r4, in: s))
+        XCTAssertEqual(40..<42, intRange(r5, in: s))
     }
 
-    func testLineFragmentRangesStartOfFragsUpstream() {
-        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
-        let charsPerFrag = 10
-        let s = String(repeating: "a", count: charsPerFrag*4 + 2)
-        let dataSource = SimpleSelectionDataSource(string: s, charsPerFrag: charsPerFrag)
 
-        let start0 = s.index(s.startIndex, offsetBy: 0*charsPerFrag)
-        let start1 = s.index(s.startIndex, offsetBy: 1*charsPerFrag)
-        let start2 = s.index(s.startIndex, offsetBy: 2*charsPerFrag)
-        let start3 = s.index(s.startIndex, offsetBy: 3*charsPerFrag)
-        let start4 = s.index(s.startIndex, offsetBy: 4*charsPerFrag)
-
-        let r0 = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
-        let r1 = dataSource.lineFragmentRange(containing: start1, affinity: .upstream)!
-        let r2 = dataSource.lineFragmentRange(containing: start2, affinity: .upstream)!
-        let r3 = dataSource.lineFragmentRange(containing: start3, affinity: .upstream)!
-        let r4 = dataSource.lineFragmentRange(containing: start4, affinity: .upstream)!
-
-        XCTAssertEqual(0..<10, intRange(r0, in: s)) // beginning of line matches .upstream or .downstream
-        XCTAssertEqual(0..<10, intRange(r1, in: s))
-        XCTAssertEqual(10..<20, intRange(r2, in: s))
-        XCTAssertEqual(20..<30, intRange(r3, in: s))
-        XCTAssertEqual(30..<40, intRange(r4, in: s))
-    }
-
-    func testLineFragmentRangesMiddleOfFragsDownstream() {
+    func testLineFragmentRangesMiddleOfFrags() {
         // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
         let charsPerFrag = 10
         let string = String(repeating: "a", count: charsPerFrag*4 + 2)
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: charsPerFrag)
 
         let i0 = string.index(string.startIndex, offsetBy: 0*charsPerFrag + 1)
         let i1 = string.index(string.startIndex, offsetBy: 1*charsPerFrag + 1)
@@ -415,11 +327,11 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let i3 = string.index(string.startIndex, offsetBy: 3*charsPerFrag + 1)
         let i4 = string.index(string.startIndex, offsetBy: 4*charsPerFrag + 1)
 
-        let r0 = dataSource.lineFragmentRange(containing: i0, affinity: .downstream)!
-        let r1 = dataSource.lineFragmentRange(containing: i1, affinity: .downstream)!
-        let r2 = dataSource.lineFragmentRange(containing: i2, affinity: .downstream)!
-        let r3 = dataSource.lineFragmentRange(containing: i3, affinity: .downstream)!
-        let r4 = dataSource.lineFragmentRange(containing: i4, affinity: .downstream)!
+        let r0 = dataSource.lineFragmentRange(containing: i0)
+        let r1 = dataSource.lineFragmentRange(containing: i1)
+        let r2 = dataSource.lineFragmentRange(containing: i2)
+        let r3 = dataSource.lineFragmentRange(containing: i3)
+        let r4 = dataSource.lineFragmentRange(containing: i4)
 
         XCTAssertEqual(0..<10,  intRange(r0, in: string))
         XCTAssertEqual(10..<20, intRange(r1, in: string))
@@ -428,83 +340,6 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(40..<42, intRange(r4, in: string))
     }
 
-    func testLineFragmentRangesMiddleOfFragsUpstream() {
-        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
-        let charsPerFrag = 10
-        let string = String(repeating: "a", count: charsPerFrag*4 + 2)
-
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
-
-        let i0 = string.index(string.startIndex, offsetBy: 0*charsPerFrag + 1)
-        let i1 = string.index(string.startIndex, offsetBy: 1*charsPerFrag + 1)
-        let i2 = string.index(string.startIndex, offsetBy: 2*charsPerFrag + 1)
-        let i3 = string.index(string.startIndex, offsetBy: 3*charsPerFrag + 1)
-        let i4 = string.index(string.startIndex, offsetBy: 4*charsPerFrag + 1)
-
-        let r0 = dataSource.lineFragmentRange(containing: i0, affinity: .upstream)!
-        let r1 = dataSource.lineFragmentRange(containing: i1, affinity: .upstream)!
-        let r2 = dataSource.lineFragmentRange(containing: i2, affinity: .upstream)!
-        let r3 = dataSource.lineFragmentRange(containing: i3, affinity: .upstream)!
-        let r4 = dataSource.lineFragmentRange(containing: i4, affinity: .upstream)!
-
-        XCTAssertEqual(0..<10,  intRange(r0, in: string))
-        XCTAssertEqual(10..<20, intRange(r1, in: string))
-        XCTAssertEqual(20..<30, intRange(r2, in: string))
-        XCTAssertEqual(30..<40, intRange(r3, in: string))
-        XCTAssertEqual(40..<42, intRange(r4, in: string))
-    }
-
-    func testLineFragmentRangesEndOfFragsDownstream() {
-        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
-        let charsPerFrag = 10
-        let string = String(repeating: "a", count: charsPerFrag*4 + 2)
-
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
-
-        let end0 = string.index(string.startIndex, offsetBy: 0*charsPerFrag + 10)
-        let end1 = string.index(string.startIndex, offsetBy: 1*charsPerFrag + 10)
-        let end2 = string.index(string.startIndex, offsetBy: 2*charsPerFrag + 10)
-        let end3 = string.index(string.startIndex, offsetBy: 3*charsPerFrag + 10)
-        let end4 = string.index(string.startIndex, offsetBy: 4*charsPerFrag + 2)
-
-        let r0 = dataSource.lineFragmentRange(containing: end0, affinity: .downstream)!
-        let r1 = dataSource.lineFragmentRange(containing: end1, affinity: .downstream)!
-        let r2 = dataSource.lineFragmentRange(containing: end2, affinity: .downstream)!
-        let r3 = dataSource.lineFragmentRange(containing: end3, affinity: .downstream)!
-        let r4 = dataSource.lineFragmentRange(containing: end4, affinity: .downstream)
-
-        XCTAssertEqual(10..<20,  intRange(r0, in: string))
-        XCTAssertEqual(20..<30, intRange(r1, in: string))
-        XCTAssertEqual(30..<40, intRange(r2, in: string))
-        XCTAssertEqual(40..<42, intRange(r3, in: string))
-        XCTAssertNil(r4)
-    }
-
-    func testLineFragmentRangesEndOfFragsUpstream() {
-        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
-        let charsPerFrag = 10
-        let string = String(repeating: "a", count: charsPerFrag*4 + 2)
-
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
-
-        let end0 = string.index(string.startIndex, offsetBy: 0*charsPerFrag + 10)
-        let end1 = string.index(string.startIndex, offsetBy: 1*charsPerFrag + 10)
-        let end2 = string.index(string.startIndex, offsetBy: 2*charsPerFrag + 10)
-        let end3 = string.index(string.startIndex, offsetBy: 3*charsPerFrag + 10)
-        let end4 = string.index(string.startIndex, offsetBy: 4*charsPerFrag + 2)
-
-        let r0 = dataSource.lineFragmentRange(containing: end0, affinity: .upstream)!
-        let r1 = dataSource.lineFragmentRange(containing: end1, affinity: .upstream)!
-        let r2 = dataSource.lineFragmentRange(containing: end2, affinity: .upstream)!
-        let r3 = dataSource.lineFragmentRange(containing: end3, affinity: .upstream)!
-        let r4 = dataSource.lineFragmentRange(containing: end4, affinity: .upstream)!
-
-        XCTAssertEqual(0..<10,  intRange(r0, in: string))
-        XCTAssertEqual(10..<20, intRange(r1, in: string))
-        XCTAssertEqual(20..<30, intRange(r2, in: string))
-        XCTAssertEqual(30..<40, intRange(r3, in: string))
-        XCTAssertEqual(40..<42, intRange(r4, in: string))
-    }
 
     func testLineFragmentRangesMultipleLines() {
         // 4 lines, 5 line fragments, no trailing newline
@@ -520,39 +355,27 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(4, string.filter { $0 == "\n" }.count + 1)
         XCTAssertNotEqual("\n", string.last)
 
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: charsPerFrag)
 
         // First line: a single fragment that takes up less than the entire width.
         let start0 = string.index(string.startIndex, offsetBy: 0)
-        var r = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
-        XCTAssertEqual(0..<6, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: start0, affinity: .downstream)!
+        var r = dataSource.lineFragmentRange(containing: start0)
         XCTAssertEqual(0..<6, intRange(r, in: string))
 
         // between "o" and "\n"
         let last0 = string.index(string.startIndex, offsetBy: 5)
-        r = dataSource.lineFragmentRange(containing: last0, affinity: .upstream)!
-        XCTAssertEqual(0..<6, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: last0, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: last0)
         XCTAssertEqual(0..<6, intRange(r, in: string))
 
 
         // Second line: a fragment that takes up the entire width and ends in a newline.
         let start1 = string.index(string.startIndex, offsetBy: 6)
-        r = dataSource.lineFragmentRange(containing: start1, affinity: .upstream)!
-        XCTAssertEqual(6..<17, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: start1, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: start1)
         XCTAssertEqual(6..<17, intRange(r, in: string))
 
         // between "9" and "\n"
         let last1 = string.index(string.startIndex, offsetBy: 16)
-        r = dataSource.lineFragmentRange(containing: last1, affinity: .upstream)!
-        XCTAssertEqual(6..<17, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: last1, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: last1)
         XCTAssertEqual(6..<17, intRange(r, in: string))
 
 
@@ -560,46 +383,30 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         //
         // First fragment
         let start2 = string.index(string.startIndex, offsetBy: 17)
-        r = dataSource.lineFragmentRange(containing: start2, affinity: .upstream)!
-        XCTAssertEqual(17..<27, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: start2, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: start2)
         XCTAssertEqual(17..<27, intRange(r, in: string))
 
         // between "9" and "w"
         let boundary2 = string.index(string.startIndex, offsetBy: 27)
-        r = dataSource.lineFragmentRange(containing: boundary2, affinity: .upstream)!
-        XCTAssertEqual(17..<27, intRange(r, in: string))
-
-        // Second fragment
-        r = dataSource.lineFragmentRange(containing: boundary2, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: boundary2)
         XCTAssertEqual(27..<32, intRange(r, in: string))
 
-        // between "w" and "\n"
+        // between "p" and "\n"
         let last2 = string.index(string.startIndex, offsetBy: 31)
-        r = dataSource.lineFragmentRange(containing: last2, affinity: .upstream)!
+        r = dataSource.lineFragmentRange(containing: last2)
         XCTAssertEqual(27..<32, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: last2, affinity: .downstream)!
-        XCTAssertEqual(27..<32, intRange(r, in: string))
-
 
         // Fourth line
         let start3 = string.index(string.startIndex, offsetBy: 32)
-        r = dataSource.lineFragmentRange(containing: start3, affinity: .upstream)!
-        XCTAssertEqual(32..<37, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: start3, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: start3)
         XCTAssertEqual(32..<37, intRange(r, in: string))
 
         // At the end of the buffer
         let last3 = string.index(string.startIndex, offsetBy: 37)
         XCTAssertEqual(last3, string.endIndex)
 
-        r = dataSource.lineFragmentRange(containing: last3, affinity: .upstream)!
+        r = dataSource.lineFragmentRange(containing: last3)
         XCTAssertEqual(32..<37, intRange(r, in: string))
-
-        XCTAssertNil(dataSource.lineFragmentRange(containing: last3, affinity: .downstream))
     }
 
     func testLineFragmentRangesEndingInNewline() {
@@ -614,39 +421,28 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(2, string.filter { $0 == "\n" }.count + 1)
         XCTAssertEqual("\n", string.last)
 
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: charsPerFrag)
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: charsPerFrag)
 
         // First line: two fragments
         let start0 = string.index(string.startIndex, offsetBy: 0)
-        var r = dataSource.lineFragmentRange(containing: start0, affinity: .upstream)!
+        var r = dataSource.lineFragmentRange(containing: start0)
         XCTAssertEqual(0..<10, intRange(r, in: string))
 
-        r = dataSource.lineFragmentRange(containing: start0, affinity: .downstream)!
-        XCTAssertEqual(0..<10, intRange(r, in: string))
 
         // between "9" and "w"
         let boundary0 = string.index(string.startIndex, offsetBy: 10)
-        r = dataSource.lineFragmentRange(containing: boundary0, affinity: .upstream)!
-        XCTAssertEqual(0..<10, intRange(r, in: string))
-
-        // Second fragment
-        r = dataSource.lineFragmentRange(containing: boundary0, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: boundary0)
         XCTAssertEqual(10..<15, intRange(r, in: string))
 
-        // between "w" and "\n"
+        // between "p" and "\n"
         let last0 = string.index(string.startIndex, offsetBy: 14)
-        r = dataSource.lineFragmentRange(containing: last0, affinity: .upstream)!
-        XCTAssertEqual(10..<15, intRange(r, in: string))
-
-        r = dataSource.lineFragmentRange(containing: last0, affinity: .downstream)!
+        r = dataSource.lineFragmentRange(containing: last0)
         XCTAssertEqual(10..<15, intRange(r, in: string))
 
         // Second line, a single empty fragment
         let start1 = string.index(string.startIndex, offsetBy: 15)
-        r = dataSource.lineFragmentRange(containing: start1, affinity: .upstream)!
+        r = dataSource.lineFragmentRange(containing: start1)
         XCTAssertEqual(15..<15, intRange(r, in: string))
-
-        XCTAssertNil(dataSource.lineFragmentRange(containing: start1, affinity: .downstream))
     }
 
     func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
@@ -654,328 +450,328 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
     }
 
 
-    // MARK: index(forHorizontalOffset:inLineFragmentContaining:affinity:)
-
-    func testIndexForHorizontalOffsetEmptyBuffer() {
-        let string = ""
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        // Only upstream finds an index because the buffer is empty. No matter
-        // how far to the right we go, we always get string.startIndex.
-
-        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.startIndex, i)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertNil(i)
-
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.startIndex, i)
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertNil(i)
-
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.startIndex, i)
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertNil(i)
-
-        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.startIndex, i)
-        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertNil(i)
-    }
-
-    func testIndexForHorizontalOffsetNoTrailingNewline() {
-        let string = "abc\ndef"
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 0), i)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 0), i)
-
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 0), i)
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 0), i)
-
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 1), i)
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 1), i)
-
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 1), i)
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 1), i)
-
-        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 2), i)
-        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 2), i)
-
-        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 2), i)
-        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 2), i)
-
-        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 3), i)
-
-        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 3), i)
-
-        // can't click past the end of the "\n" in line 1
-
-        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 3), i)
-
-        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 3), i)
-
-        // next line
-
-        let line2Start = string.index(string.startIndex, offsetBy: 4)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 4), i)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 4), i)
-
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 4), i)
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 4), i)
-
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 5), i)
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 5), i)
-
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 5), i)
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 5), i)
-
-        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 6), i)
-        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 6), i)
-
-        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 6), i)
-        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 6), i)
-
-        // end of buffer
-
-        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.endIndex, i)
-        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.endIndex, i)
-
-        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.endIndex, i)
-        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.endIndex, i)
-    }
-
-    func testIndexForHorizontalOffsetTrailingNewline() {
-        let string = "abc\ndef\n"
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        // can't click past the end of the "\n" in line 2
-        let line2Start = string.index(string.startIndex, offsetBy: 4)
-        var i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 7), i)
-        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 7), i)
-
-        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 7), i)
-        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 7), i)
-
-        // end of buffer - downstream is nil because line3start == endIndex
-
-        let line3start = string.index(string.startIndex, offsetBy: 8)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .upstream)
-        XCTAssertEqual(string.endIndex, i)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .downstream)
-        XCTAssertNil(i)
-
-        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .upstream)
-        XCTAssertEqual(string.endIndex, i)
-        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .downstream)
-        XCTAssertNil(i)
-    }
-
-    func testIndexForHorizontalOffsetWithWrapping() {
-        let string = """
-        0123456789wrap
-        """
-
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        let boundary = string.index(string.startIndex, offsetBy: 10)
-
-        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 0), i)
-        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 10), i)
-
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 0), i)
-        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 10), i)
-
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 1), i)
-        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 11), i)
-
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 1), i)
-        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 11), i)
-
-        // jump forward a bit to just before the wrap
-
-        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 13), i)
-
-        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 3), i)
-        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 13), i)
-
-        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 4), i)
-        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-
-        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 4), i)
-        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-
-        // can't click past the end of the "\n" in line 2
-
-        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 5), i)
-        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-
-        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 5), i)
-        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-
-        // end of the first fragment
-
-        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 9), i)
-        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-
-        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .upstream)
-        XCTAssertEqual(string.index(at: 10), i)
-        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .downstream)
-        XCTAssertEqual(string.index(at: 14), i)
-    }
-
-
-    // MARK: point(forCharacterAt:affinity:)
-
-    func testPointForCharacterAtEmptyBuffer() {
-        let string = ""
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        // Upstream results are .zero because the fragment contains no characters.
-        // Downstream results are .zero because there's no fragment.
-
-        var p = dataSource.point(forCharacterAt: string.startIndex, affinity: .upstream)
-        XCTAssertEqual(.zero, p)
-        p = dataSource.point(forCharacterAt: string.startIndex, affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-
-        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .upstream)
-        XCTAssertEqual(.zero, p)
-        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-    }
-
-    func testPointForCharacterAtNoTrailingNewline() {
-        let string = "abc\ndef"
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        var p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .upstream)
-        XCTAssertEqual(.zero, p)
-        p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .downstream)
-        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .downstream)
-        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .downstream)
-        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-    }
-
-    func testPointForCharacterAtTrailingNewline() {
-        let string = "abc\ndef\n"
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        // let's start right before the second newline. We tested everything else above.
-
-        var p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
-        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 0, y: 28), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-    }
-
-    func testPointForCharacterAtWrappedLine() {
-        let string = """
-        0123456789wrap
-        """
-        let dataSource = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
-
-        var p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 80, y: 0), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .downstream)
-        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-
-        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .upstream)
-        XCTAssertEqual(CGPoint(x: 32, y: 14), p)
-        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .downstream)
-        XCTAssertEqual(.zero, p)
-    }
+//    // MARK: index(forHorizontalOffset:inLineFragmentContaining:affinity:)
+//
+//    func testIndexForHorizontalOffsetEmptyBuffer() {
+//        let string = ""
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        // Only upstream finds an index because the buffer is empty. No matter
+//        // how far to the right we go, we always get string.startIndex.
+//
+//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.startIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertNil(i)
+//
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.startIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertNil(i)
+//
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.startIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertNil(i)
+//
+//        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.startIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertNil(i)
+//    }
+//
+//    func testIndexForHorizontalOffsetNoTrailingNewline() {
+//        let string = "abc\ndef"
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 2), i)
+//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 2), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 2), i)
+//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 2), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//
+//        // can't click past the end of the "\n" in line 1
+//
+//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//
+//        // next line
+//
+//        let line2Start = string.index(string.startIndex, offsetBy: 4)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 6), i)
+//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 6), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 6), i)
+//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 6), i)
+//
+//        // end of buffer
+//
+//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.endIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.endIndex, i)
+//
+//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.endIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.endIndex, i)
+//    }
+//
+//    func testIndexForHorizontalOffsetTrailingNewline() {
+//        let string = "abc\ndef\n"
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        // can't click past the end of the "\n" in line 2
+//        let line2Start = string.index(string.startIndex, offsetBy: 4)
+//        var i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 7), i)
+//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 7), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 7), i)
+//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 7), i)
+//
+//        // end of buffer - downstream is nil because line3start == endIndex
+//
+//        let line3start = string.index(string.startIndex, offsetBy: 8)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .upstream)
+//        XCTAssertEqual(string.endIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .downstream)
+//        XCTAssertNil(i)
+//
+//        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .upstream)
+//        XCTAssertEqual(string.endIndex, i)
+//        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .downstream)
+//        XCTAssertNil(i)
+//    }
+//
+//    func testIndexForHorizontalOffsetWithWrapping() {
+//        let string = """
+//        0123456789wrap
+//        """
+//
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        let boundary = string.index(string.startIndex, offsetBy: 10)
+//
+//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 10), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 0), i)
+//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 10), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 11), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 1), i)
+//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 11), i)
+//
+//        // jump forward a bit to just before the wrap
+//
+//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 13), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 3), i)
+//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 13), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 4), i)
+//        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//
+//        // can't click past the end of the "\n" in line 2
+//
+//        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 5), i)
+//        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//
+//        // end of the first fragment
+//
+//        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 9), i)
+//        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//
+//        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .upstream)
+//        XCTAssertEqual(string.index(at: 10), i)
+//        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .downstream)
+//        XCTAssertEqual(string.index(at: 14), i)
+//    }
+//
+//
+//    // MARK: point(forCharacterAt:affinity:)
+//
+//    func testPointForCharacterAtEmptyBuffer() {
+//        let string = ""
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        // Upstream results are .zero because the fragment contains no characters.
+//        // Downstream results are .zero because there's no fragment.
+//
+//        var p = dataSource.point(forCharacterAt: string.startIndex, affinity: .upstream)
+//        XCTAssertEqual(.zero, p)
+//        p = dataSource.point(forCharacterAt: string.startIndex, affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//
+//        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .upstream)
+//        XCTAssertEqual(.zero, p)
+//        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//    }
+//
+//    func testPointForCharacterAtNoTrailingNewline() {
+//        let string = "abc\ndef"
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        var p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .upstream)
+//        XCTAssertEqual(.zero, p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .downstream)
+//        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .downstream)
+//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .downstream)
+//        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//    }
+//
+//    func testPointForCharacterAtTrailingNewline() {
+//        let string = "abc\ndef\n"
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        // let's start right before the second newline. We tested everything else above.
+//
+//        var p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
+//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 0, y: 28), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//    }
+//
+//    func testPointForCharacterAtWrappedLine() {
+//        let string = """
+//        0123456789wrap
+//        """
+//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+//
+//        var p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 80, y: 0), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .downstream)
+//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
+//
+//        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .upstream)
+//        XCTAssertEqual(CGPoint(x: 32, y: 14), p)
+//        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .downstream)
+//        XCTAssertEqual(.zero, p)
+//    }
 }
 
 // MARK: - Selection tests
@@ -991,7 +787,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveHorizontallyByCharacter() {
         let string = "ab\ncd\n"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
         XCTAssertEqual(string.index(at: 0), s.caret)
@@ -1018,7 +814,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveRightFromSelection() {
         let string = "foo bar baz"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
         var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
@@ -1048,7 +844,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveLeftFromSelection() {
         let string = "foo bar baz"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
         var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
@@ -1082,7 +878,7 @@ final class SelectionTests: XCTestCase {
         0123456789abcdefghijwrap
         xyz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "1"
         var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
@@ -1116,7 +912,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveHorizontallyByWord() {
         let string = "  hello, world; this is (a test) "
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
 
@@ -1158,7 +954,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveRightWordFromSelection() {
         let string = "  hello, world; this is (a test) "
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "ello, w"
         var s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 10))
@@ -1190,7 +986,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveLeftWordFromSelection() {
         let string = "  hello, world; this is (a test) "
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "lo, w"
         var s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 10))
@@ -1222,7 +1018,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveLineEmpty() {
         let string = ""
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
@@ -1231,7 +1027,7 @@ final class SelectionTests: XCTestCase {
 
     func testMoveLineSingleFragments() {
         let string = "foo bar\nbaz qux\n"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // between "a" and "r"
         var s = SimpleSelection(caretAt: string.index(at: 6), affinity: .downstream)
@@ -1277,7 +1073,7 @@ final class SelectionTests: XCTestCase {
         let string = """
         0123456789abcdefghijwrap
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // between "0" and "1"
         var s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
@@ -1329,7 +1125,7 @@ final class SelectionTests: XCTestCase {
         let string = """
         0123456789abcdefghijwrap
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // upstream between "9" and "a"
         var s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream)
@@ -1355,7 +1151,7 @@ final class SelectionTests: XCTestCase {
         0123456789abcdefghijwrap
         bar
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
         var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
@@ -1453,7 +1249,7 @@ final class SelectionTests: XCTestCase {
 
         baz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // no-ops
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
@@ -1522,7 +1318,7 @@ final class SelectionTests: XCTestCase {
 
         baz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
         var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
@@ -1580,7 +1376,7 @@ final class SelectionTests: XCTestCase {
 
         baz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // no-ops
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
@@ -1602,7 +1398,7 @@ final class SelectionTests: XCTestCase {
 
         baz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "ijwrap\nfoo\n\nb"
         var s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 31))
@@ -1619,7 +1415,7 @@ final class SelectionTests: XCTestCase {
 
     func testExtendSelectionByCharacter() {
         let string = "Hello, world!"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "!"
         var s = SimpleSelection(caretAt: string.index(at: 12), affinity: .downstream)
@@ -1644,7 +1440,7 @@ final class SelectionTests: XCTestCase {
         0123456789abcdefghijwrap
         xyz
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "b"
         var s = SimpleSelection(caretAt: string.index(at: 15), affinity: .downstream)
@@ -1665,7 +1461,7 @@ final class SelectionTests: XCTestCase {
 
     func testExtendSelectionByWord() {
         let string = "foo; (bar) qux"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "a"
         var s = SimpleSelection(caretAt: string.index(at: 7), affinity: .downstream)
@@ -1683,7 +1479,7 @@ final class SelectionTests: XCTestCase {
 
     func testExtendSelectionByLineEmpty() {
         let string = ""
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
         s = extendAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
@@ -1692,7 +1488,7 @@ final class SelectionTests: XCTestCase {
 
     func testExtendSelectionByLineSoftWrap() {
         let string = "Hello, world!"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10) // Wraps after "r"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10) // Wraps after "r"
 
         // caret at "o"
         var s = SimpleSelection(caretAt: string.index(at: 8), affinity: .downstream)
@@ -1711,7 +1507,7 @@ final class SelectionTests: XCTestCase {
 
     func testExtendSelectionByLineHardWrap() {
         let string = "foo\nbar\nqux"
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at first "a"
         var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
@@ -1734,7 +1530,7 @@ final class SelectionTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
@@ -1757,7 +1553,7 @@ final class SelectionTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerFrag: 10)
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
