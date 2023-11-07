@@ -129,6 +129,7 @@ public protocol SelectionNavigationDataSource {
 
     func index(beforeCharacter i: Index) -> Index
     func index(afterCharacter i: Index) -> Index
+    func distance(from start: Index, to end: Index) -> Int
 
     func index(beforeParagraph i: Index) -> Index
     func index(afterParagraph i: Index) -> Index
@@ -543,7 +544,7 @@ extension SelectionNavigationDataSource {
     }
 
     func isWordBoundary(_ i: Index) -> Bool {
-        isWordStart(i) || isWordEnd(i)
+        i == startIndex || i == endIndex || isWordStart(i) || isWordEnd(i)
     }
 
     func isWhitespace(_ i: Index) -> Bool {
@@ -563,6 +564,8 @@ extension SelectionNavigationDataSource {
     }
 
     func caretOffset(forCharacterAt target: Index, inLineFragmentWithRange fragRange: Range<Index>) -> CGFloat {
+        assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
+        
         // if the fragment ends in a newline, we are not allowed to ask for the caret offset
         // at the upper bound of the frag range.
         assert(lastCharacter(inRange: fragRange) != "\n" || target != fragRange.upperBound)
@@ -589,17 +592,40 @@ extension SelectionNavigationDataSource {
 
     // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
     func index(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> Index {
+        assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
+
+        let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
+
         var res: Index?
         var prev: (offset: CGFloat, i: Index)?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
+            // Enumerating over the first line fragment of each string:
+            // ""    -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading)]
+            // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
+            // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+            // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 2, trailing)]
+
+            let nleft = distance(from: i, to: fragRange.upperBound)
+            if !leadingEdge && !(nleft == 1 || (endsInNewline && nleft == 2)) {
+                // skip trailing edges we're at the final trailing edge
+                return true
+            }
+
             if offset < targetOffset {
                 prev = (offset, i)
                 return true
             }
 
             if let prev {
-                if abs(offset - targetOffset) < abs(prev.offset - targetOffset) {
+                if abs(offset - targetOffset) > abs(prev.offset - targetOffset) {
                     res = prev.i
+                } else if !leadingEdge {
+                    // Unless the frag is "" or "\n", the final caret offset is a trailing edge
+                    // of the last non-newline character. But we always want to return the index
+                    // of the leading edge, so we increment.
+                    assert(endsInNewline && nleft == 2 || nleft == 1)
+                    res = index(afterCharacter: i)
                 } else {
                     res = i
                 }

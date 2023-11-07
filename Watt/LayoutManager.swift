@@ -774,6 +774,10 @@ extension LayoutManager: SelectionNavigationDataSource {
         buffer.index(after: i)
     }
 
+    func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {
+        buffer.characters.distance(from: start, to: end)
+    }
+
     func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
         buffer.lines.index(before: i)
     }
@@ -810,10 +814,9 @@ extension LayoutManager: SelectionNavigationDataSource {
     // 2. (1*charWidth, 0, leadingEdge=false)
     // 3. (1*charWidth, 1, leadingEdge=true)
     // 4. (2*charWidth, 1, leadingEdge=false)
-    // 5. (2*charWidth, 2, leadingEdge=true)
 
     // Make sure to take into account the possibility of a syntehsized empty last line (LineFragment.utf16Count == 0). In that
-    // case, there's a single offset at (0, 0, leadingEdge=false). Note that 0 there is in line fragment coordinates, and
+    // case, there's a single offset at (0, 0, leadingEdge=true). Note that 0 there is in line fragment coordinates, and
     // must be adjusted to be in text container coordinates
     func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ leadingEdge: Bool) -> Bool) {
         let line = line(containing: index)
@@ -827,7 +830,7 @@ extension LayoutManager: SelectionNavigationDataSource {
             let fragPos = CGPoint(x: 0, y: 0)
             let linePos = convert(fragPos, from: frag)
             let pos = convert(linePos, from: line)
-            _ = block(pos.x, frag.range.lowerBound, false)
+            _ = block(pos.x, frag.range.lowerBound, true)
             return
         }
 

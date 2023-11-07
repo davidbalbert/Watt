@@ -135,6 +135,10 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         string.index(after: i)
     }
 
+    func distance(from start: String.Index, to end: String.Index) -> Int {
+        string.distance(from: start, to: end)
+    }
+
     subscript(index: String.Index) -> Character {
         string[index]
     }
@@ -174,17 +178,18 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let fragRange = lineFragmentRange(containing: index)
 
         let endsInNewline = string[fragRange].last == "\n"
+        let count = string.distance(from: fragRange.lowerBound, to: fragRange.upperBound)
+
+        if fragRange.isEmpty || endsInNewline && count == 1 {
+            _ = block(0, fragRange.lowerBound, true)
+            return
+        }
+
 
         var i = fragRange.lowerBound
         var offset: CGFloat = 0
-        var leadingEdge = false
-        while true {
-            // increment offset when we are on the trailing edge
-            // increment i when we're on the leading edge
-            // call block on both edges
-            //
-            // don't call block with a index pointing to a trailing newline
-
+        var leadingEdge = true
+        while i < fragRange.upperBound {
             if endsInNewline && i == string.index(before: fragRange.upperBound) {
                 return
             }
@@ -201,76 +206,31 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
             leadingEdge = !leadingEdge
         }
     }
+}
 
-//    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining index: String.Index, affinity: Affinity) -> String.Index? {
-//        guard let fragRange = lineFragmentRange(containing: index, affinity: affinity) else {
-//            return nil
-//        }
-//
-//        let offsetInFrag = Int(round(xOffset/Self.charWidth))
-//
-//        let hasHardBreak = string[fragRange].last == "\n"
-//
-//        var i = string.index(fragRange.lowerBound, offsetBy: offsetInFrag, clampedTo: fragRange.upperBound)
-//        if i == fragRange.upperBound && hasHardBreak {
-//            i = string.index(before: i)
-//        }
-//
-//        return i
-//    }
+// Helpers
 
-//    func point(forCharacterAt index: String.Index, affinity: SimpleSelection.Affinity) -> CGPoint {
-//        if index == string.endIndex && affinity == .downstream {
-//            return .zero
-//        }
-//
-//        var (lineRange, y) = lineRangeAndVerticalOffset(forCharacterAt: index)
-//
-//        // we iterate rather than just asking for the line fragment range containing index
-//        // so that we can calculate y in text container coordinates.
-//        var range: Range<String.Index>?
-//        var i = lineRange.lowerBound
-//
-//        // i always the beginning of a line fragment, so downstream is the appropriate affinity, but if the
-//        // line fragment is empty (i.e. we're at an empty last line), we need to use upstream affinity to find
-//        // the range, which will be i..<i.
-//        while let r = lineFragmentRange(containing: i, affinity: i == string.endIndex ? .upstream : .downstream) {
-//            if r.contains(index) || (r.upperBound == index && affinity == .upstream) {
-//                range = r
-//                break
-//            }
-//
-//            y += Self.lineHeight
-//            i = r.upperBound
-//        }
-//
-//        guard let range else {
-//            return .zero
-//        }
-//
-//        let offsetInFrag = string.distance(from: range.lowerBound, to: index)
-//        let x = CGFloat(offsetInFrag)*Self.charWidth
-//
-//        return CGPoint(x: x, y: y)
-//    }
-//
-//    func lineRangeAndVerticalOffset(forCharacterAt index: String.Index) -> (Range<String.Index>, CGFloat) {
-//        let lineStart = self.index(roundedDownToParagraph: index)
-//        let lineEnd = self.index(afterParagraph: lineStart, clampedTo: string.endIndex)
-//
-//        var y: CGFloat = 0
-//        var i = string.startIndex
-//        while let r = lineFragmentRange(containing: i, affinity: .downstream) {
-//            if r.contains(lineStart) {
-//                break
-//            }
-//
-//            y += Self.lineHeight
-//            i = r.upperBound
-//        }
-//
-//        return (lineStart..<lineEnd, y)
-//    }
+struct CaretOffset: Equatable {
+    var offset: CGFloat
+    var index: String.Index
+    var leadingEdge: Bool
+
+    init(_ offset: CGFloat, _ index: String.Index, _ leadingEdge: Bool) {
+        self.offset = offset
+        self.index = index
+        self.leadingEdge = leadingEdge
+    }
+}
+
+extension SimpleSelectionDataSource {
+    func carretOffsetsInLineFragment(containing index: String.Index) -> [CaretOffset] {
+        var offsets: [CaretOffset] = []
+        enumerateCaretOffsetsInLineFragment(containing: index) { offset, i, leadingEdge in
+            offsets.append(CaretOffset(offset, i, leadingEdge))
+            return true
+        }
+        return offsets
+    }
 }
 
 // MARK: - Sanity checks for SimpleSelectionDataSource
@@ -445,333 +405,327 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(15..<15, intRange(r, in: string))
     }
 
+    func testLineFragmentRangeEndIndex() {
+        let string = "abc"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // End index returns the last line
+        let r = dataSource.lineFragmentRange(containing: string.index(at: 3))
+        XCTAssertEqual(0..<3, intRange(r, in: string))
+    }
+
     func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
         string.utf8.distance(from: string.startIndex, to: r.lowerBound)..<string.utf8.distance(from: string.startIndex, to: r.upperBound)
     }
 
+    // MARK: enumerateCaretOffsetsInLineFragment(containing:using:)
 
-//    // MARK: index(forHorizontalOffset:inLineFragmentContaining:affinity:)
-//
-//    func testIndexForHorizontalOffsetEmptyBuffer() {
-//        let string = ""
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        // Only upstream finds an index because the buffer is empty. No matter
-//        // how far to the right we go, we always get string.startIndex.
-//
-//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.startIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertNil(i)
-//
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.startIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertNil(i)
-//
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.startIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertNil(i)
-//
-//        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.startIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 4.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertNil(i)
-//    }
-//
-//    func testIndexForHorizontalOffsetNoTrailingNewline() {
-//        let string = "abc\ndef"
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 2), i)
-//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 2), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 2), i)
-//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 2), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//
-//        // can't click past the end of the "\n" in line 1
-//
-//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 28.001, inLineFragmentContaining: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//
-//        // next line
-//
-//        let line2Start = string.index(string.startIndex, offsetBy: 4)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 6), i)
-//        i = dataSource.index(forHorizontalOffset: 12, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 6), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 6), i)
-//        i = dataSource.index(forHorizontalOffset: 19.999, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 6), i)
-//
-//        // end of buffer
-//
-//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.endIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.endIndex, i)
-//
-//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.endIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.endIndex, i)
-//    }
-//
-//    func testIndexForHorizontalOffsetTrailingNewline() {
-//        let string = "abc\ndef\n"
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        // can't click past the end of the "\n" in line 2
-//        let line2Start = string.index(string.startIndex, offsetBy: 4)
-//        var i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 7), i)
-//        i = dataSource.index(forHorizontalOffset: 24, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 7), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 7), i)
-//        i = dataSource.index(forHorizontalOffset: 24.001, inLineFragmentContaining: line2Start, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 7), i)
-//
-//        // end of buffer - downstream is nil because line3start == endIndex
-//
-//        let line3start = string.index(string.startIndex, offsetBy: 8)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .upstream)
-//        XCTAssertEqual(string.endIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: line3start, affinity: .downstream)
-//        XCTAssertNil(i)
-//
-//        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .upstream)
-//        XCTAssertEqual(string.endIndex, i)
-//        i = dataSource.index(forHorizontalOffset: 50, inLineFragmentContaining: line3start, affinity: .downstream)
-//        XCTAssertNil(i)
-//    }
-//
-//    func testIndexForHorizontalOffsetWithWrapping() {
-//        let string = """
-//        0123456789wrap
-//        """
-//
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        let boundary = string.index(string.startIndex, offsetBy: 10)
-//
-//        var i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//        i = dataSource.index(forHorizontalOffset: 0, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 10), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 0), i)
-//        i = dataSource.index(forHorizontalOffset: 3.999, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 10), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//        i = dataSource.index(forHorizontalOffset: 4, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 11), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 1), i)
-//        i = dataSource.index(forHorizontalOffset: 11.999, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 11), i)
-//
-//        // jump forward a bit to just before the wrap
-//
-//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 20, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 13), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 3), i)
-//        i = dataSource.index(forHorizontalOffset: 27.999, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 13), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//        i = dataSource.index(forHorizontalOffset: 28, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 4), i)
-//        i = dataSource.index(forHorizontalOffset: 35.999, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//
-//        // can't click past the end of the "\n" in line 2
-//
-//        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//        i = dataSource.index(forHorizontalOffset: 36, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 5), i)
-//        i = dataSource.index(forHorizontalOffset: 36.001, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//
-//        // end of the first fragment
-//
-//        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 9), i)
-//        i = dataSource.index(forHorizontalOffset: 75.999, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//
-//        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .upstream)
-//        XCTAssertEqual(string.index(at: 10), i)
-//        i = dataSource.index(forHorizontalOffset: 76, inLineFragmentContaining: boundary, affinity: .downstream)
-//        XCTAssertEqual(string.index(at: 14), i)
-//    }
-//
-//
-//    // MARK: point(forCharacterAt:affinity:)
-//
-//    func testPointForCharacterAtEmptyBuffer() {
-//        let string = ""
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        // Upstream results are .zero because the fragment contains no characters.
-//        // Downstream results are .zero because there's no fragment.
-//
-//        var p = dataSource.point(forCharacterAt: string.startIndex, affinity: .upstream)
-//        XCTAssertEqual(.zero, p)
-//        p = dataSource.point(forCharacterAt: string.startIndex, affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//
-//        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .upstream)
-//        XCTAssertEqual(.zero, p)
-//        p = dataSource.point(forCharacterAt: string.endIndex, affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//    }
-//
-//    func testPointForCharacterAtNoTrailingNewline() {
-//        let string = "abc\ndef"
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        var p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .upstream)
-//        XCTAssertEqual(.zero, p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 0), affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 3), affinity: .downstream)
-//        XCTAssertEqual(CGPoint(x: 24, y: 0), p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 4), affinity: .downstream)
-//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 6), affinity: .downstream)
-//        XCTAssertEqual(CGPoint(x: 16, y: 14), p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//    }
-//
-//    func testPointForCharacterAtTrailingNewline() {
-//        let string = "abc\ndef\n"
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        // let's start right before the second newline. We tested everything else above.
-//
-//        var p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 7), affinity: .downstream)
-//        XCTAssertEqual(CGPoint(x: 24, y: 14), p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 0, y: 28), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 8), affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//    }
-//
-//    func testPointForCharacterAtWrappedLine() {
-//        let string = """
-//        0123456789wrap
-//        """
-//        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-//
-//        var p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 80, y: 0), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 10), affinity: .downstream)
-//        XCTAssertEqual(CGPoint(x: 0, y: 14), p)
-//
-//        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .upstream)
-//        XCTAssertEqual(CGPoint(x: 32, y: 14), p)
-//        p = dataSource.point(forCharacterAt: string.index(at: 14), affinity: .downstream)
-//        XCTAssertEqual(.zero, p)
-//    }
+    typealias O = CaretOffset
+
+    func testEnumerateCaretOffsetsEmptyLine() {
+        let string = ""
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        let offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
+
+        XCTAssertEqual(1, offsets.count)
+
+        XCTAssertEqual(O(0, string.startIndex, true), offsets[0])
+    }
+
+    func testEnumerateCaretOffsetsOnlyNewline() {
+        let string = "\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
+
+        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+
+        offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
+
+        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(O(0, string.index(at: 1), true), offsets[0])
+    }
+
+    func testEnumerateCaretOffsetOneLine() {
+        let string = "abc"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        let offsets = dataSource.carretOffsetsInLineFragment(containing: string.startIndex)
+
+        XCTAssertEqual(6, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+    }
+
+    func testEnumerateCaretOffsetWithNewline() {
+        let string = "abc\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
+
+        XCTAssertEqual(6, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+
+        offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 4))
+
+        XCTAssertEqual(1, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 4), true), offsets[0])
+    }
+
+    func testEnumerateCaretOffsetsWithWrap() {
+        let string = "0123456789wrap"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
+
+        XCTAssertEqual(20, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 3), true), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 3), false), offsets[7])
+        XCTAssertEqual(O(32, string.index(at: 4), true), offsets[8])
+        XCTAssertEqual(O(40, string.index(at: 4), false), offsets[9])
+        XCTAssertEqual(O(40, string.index(at: 5), true), offsets[10])
+        XCTAssertEqual(O(48, string.index(at: 5), false), offsets[11])
+        XCTAssertEqual(O(48, string.index(at: 6), true), offsets[12])
+        XCTAssertEqual(O(56, string.index(at: 6), false), offsets[13])
+        XCTAssertEqual(O(56, string.index(at: 7), true), offsets[14])
+        XCTAssertEqual(O(64, string.index(at: 7), false), offsets[15])
+        XCTAssertEqual(O(64, string.index(at: 8), true), offsets[16])
+        XCTAssertEqual(O(72, string.index(at: 8), false), offsets[17])
+        XCTAssertEqual(O(72, string.index(at: 9), true), offsets[18])
+        XCTAssertEqual(O(80, string.index(at: 9), false), offsets[19])
+
+        offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 10))
+
+        XCTAssertEqual(8, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 10), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 10), false), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 11), true), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 11), false), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 12), true), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 12), false), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 13), true), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 13), false), offsets[7])
+    }
+
+    func testEnumerateCaretOffsetFullLineFragmentPlusNewline() {
+        let string = "0123456789\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
+
+        XCTAssertEqual(20, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 3), true), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 3), false), offsets[7])
+        XCTAssertEqual(O(32, string.index(at: 4), true), offsets[8])
+        XCTAssertEqual(O(40, string.index(at: 4), false), offsets[9])
+        XCTAssertEqual(O(40, string.index(at: 5), true), offsets[10])
+        XCTAssertEqual(O(48, string.index(at: 5), false), offsets[11])
+        XCTAssertEqual(O(48, string.index(at: 6), true), offsets[12])
+        XCTAssertEqual(O(56, string.index(at: 6), false), offsets[13])
+        XCTAssertEqual(O(56, string.index(at: 7), true), offsets[14])
+        XCTAssertEqual(O(64, string.index(at: 7), false), offsets[15])
+        XCTAssertEqual(O(64, string.index(at: 8), true), offsets[16])
+        XCTAssertEqual(O(72, string.index(at: 8), false), offsets[17])
+        XCTAssertEqual(O(72, string.index(at: 9), true), offsets[18])
+        XCTAssertEqual(O(80, string.index(at: 9), false), offsets[19])
+
+        offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 11))
+
+        XCTAssertEqual(1, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 11), true), offsets[0])
+    }
+
+    func testEnumerateCaretOffsetsUpperBound() {
+        let string = "a"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        let offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
+
+        // endIndex returns the last line
+        XCTAssertEqual(2, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+    }
+
+    func testEnumerateCaretOffsetsUpperBoundOfEmptyLine() {
+        let string = "\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        let offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
+
+        XCTAssertEqual(1, offsets.count)
+
+        XCTAssertEqual(O(0, string.index(at: 1), true), offsets[0])
+    }
+}
+
+// MARK: - SelectionNavigationDataSource extension tests
+final class SelectionNavigationDataSourceTests: XCTestCase {
+    func testIndexForCaretOffsetEmpty() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 0)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetOnlyNewline() {
+        let s = "\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 1)
+
+        // can't go past newline
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetSingleCharacter() {
+        let s = "a"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 1)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetSingleCharacterWithNewline() {
+        let s = "a\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 2)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        // can't go past the newline
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetSingleLine() {
+        let s = "abc"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 3)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 24, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetWrap() {
+        let s = "0123456789wrap"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 10)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 35.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 36, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 43.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 44, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 51.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 52, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 59.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 60, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 67.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 68, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 75.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+
+        r = s.index(at: 10)..<s.index(at: 14)
+
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 14), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 14), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForCaretOffsetFullFragWithNewline() {
+        let s = "0123456789\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 11)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 35.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 36, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 43.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 44, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 51.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 52, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 59.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 60, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 67.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 68, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 75.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
 }
 
 // MARK: - Selection tests
@@ -810,6 +764,15 @@ final class SelectionTests: XCTestCase {
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
         // going left at the beginning doesn't move the caret
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
+    }
+
+    func testMoveRightToEndOfFrag() {
+        let string = "a"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+
+        s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
     }
 
     func testMoveRightFromSelection() {
