@@ -744,6 +744,12 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 75.999, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 76, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+
+        r = s.index(at: 11)..<s.index(at: 11)
+
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
 }
 
