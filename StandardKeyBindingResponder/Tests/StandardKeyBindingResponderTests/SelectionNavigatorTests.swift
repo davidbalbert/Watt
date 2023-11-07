@@ -149,13 +149,15 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let paraLen = string.distance(from: paraStart, to: paraEnd)
         let offsetInParagraph = string.distance(from: paraStart, to: i)
 
-        // A trailing "\n", which is present in all but the last paragraph, doesn't
-        // contribute to the number of fragments a paragraph takes up.
-        let visualParaLen = paraEnd == string.endIndex ? paraLen : paraLen - 1
+        let endsWithNewline = string[paraStart..<paraEnd].last == "\n"
+
+        // A trailing "\n", doesn't contribute to the number of fragments a
+        // paragraph takes up.
+        let visualParaLen = endsWithNewline ? paraLen - 1 : paraLen
         let nfrags = max(1, Int(ceil(Double(visualParaLen) / Double(charsPerLine))))
 
         let onTrailingBoundary = offsetInParagraph > 0 && offsetInParagraph % charsPerLine == 0
-        let beforeTrailingNewline = paraEnd < string.endIndex && offsetInParagraph == paraLen - 1
+        let beforeTrailingNewline = endsWithNewline && offsetInParagraph == paraLen - 1
 
         let fragIndex: Int
         if onTrailingBoundary && beforeTrailingNewline {
@@ -403,6 +405,23 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let start1 = string.index(string.startIndex, offsetBy: 15)
         r = dataSource.lineFragmentRange(containing: start1)
         XCTAssertEqual(15..<15, intRange(r, in: string))
+    }
+
+    func testLineFragmentRangeFullFragAndNewline() {
+        let string = "0123456789\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        var r = dataSource.lineFragmentRange(containing: string.index(at: 0))
+        XCTAssertEqual(0..<11, intRange(r, in: string))
+
+        r = dataSource.lineFragmentRange(containing: string.index(at: 5))
+        XCTAssertEqual(0..<11, intRange(r, in: string))
+
+        r = dataSource.lineFragmentRange(containing: string.index(at: 10))
+        XCTAssertEqual(0..<11, intRange(r, in: string))
+
+        r = dataSource.lineFragmentRange(containing: string.index(at: 11))
+        XCTAssertEqual(11..<11, intRange(r, in: string))
     }
 
     func testLineFragmentRangeEndIndex() {
