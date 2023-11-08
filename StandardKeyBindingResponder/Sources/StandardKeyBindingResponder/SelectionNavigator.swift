@@ -569,10 +569,6 @@ extension SelectionNavigationDataSource {
 
         let count = distance(from: fragRange.lowerBound, to: fragRange.upperBound)
         let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
-
-        // Searching the offset after a trailing "\n" is the same as searching
-        let adjustedTarget = endsInNewline && target == fragRange.upperBound ? index(beforeCharacter: target) : target
-
         let targetIsAfterNewline = endsInNewline && target == fragRange.upperBound
 
         var caretOffset: CGFloat?
