@@ -1222,6 +1222,20 @@ final class SelectionTests: XCTestCase {
         s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
     }
 
+    func testMoveVerticallyWithEmptyLastLine() {
+        let string = "abc\n"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // after "\n"
+        var s = SimpleSelection(caretAt: string.endIndex, affinity: .upstream)
+        s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
+
+        // after "c"
+        s = SimpleSelection(caretAt: string.index(at: 3), affinity: .downstream)
+        s = moveAndAssert(s, direction: .down, caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+        s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
+    }
+
     func testMoveHorizontallyByWord() {
         let string = "  hello, world; this is (a test) "
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)

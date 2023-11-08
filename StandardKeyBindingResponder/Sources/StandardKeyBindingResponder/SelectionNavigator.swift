@@ -102,25 +102,6 @@ extension NavigableSelection {
     }
 }
 
-// TODO: consider bringing this design more in line with NSTextSelectionNavigation
-// but in a more Swifty way.
-//
-// Specifically:
-// - lineFragmentRange(containing:affinity:), as well as the line and word index functions
-//   can be replaced with range(for granularity:, enclosing index:).
-// - index(forHorizontalOffset:inLineFragmentContaining) could be replaced with
-//   a) enumerateCaretOffsetsInLineFragment(at:using:) for the case where we need to know
-//      the horizontal offset.
-//   b) lineFragmentRange(for point:, at index:) for handling mouse clicks when we need
-//      the equivalent of indexAndAffinity(interactingAt:).
-//
-// To implement verticalDestination(movingUp:extending:dataSource:), do the following:
-// - find the range of the current frag with range(for granularity:, enclosing index:) -- how to deal with affinity?
-// - get the xOffset of the current point using enumerateCaretOffsetsInLineFragment(at:using:)
-// - get targetFragRange using range(for:enclosing:)
-// - get head using enumerateCaretOffsetsInLineFragment(at:using:)
-//
-// I'm not sure if this is a good idea. It seems like the interface might be harder to implement? I'm not sure.
 public protocol SelectionNavigationDataSource {
     // MARK: Storage
     associatedtype Index: Comparable
@@ -130,13 +111,9 @@ public protocol SelectionNavigationDataSource {
     func index(_ i: Index, offsetBy offset: Int) -> Index
     func distance(from start: Index, to end: Index) -> Int
 
-    func index(beforeParagraph i: Index) -> Index
-    func index(afterParagraph i: Index) -> Index
-
     subscript(index: Index) -> Character { get }
 
     // MARK: Layout
-
     func lineFragmentRange(containing index: Index) -> Range<Index>
 
     // Enumerating over the first line fragment of each string:
@@ -147,8 +124,12 @@ public protocol SelectionNavigationDataSource {
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ leadingEdge: Bool) -> Bool)
 
+    // MARK: Methods with default implementations
     func isWordStart(_ i: Index) -> Bool
     func isWordEnd(_ i: Index) -> Bool
+
+    func index(beforeParagraph i: Index) -> Index
+    func index(afterParagraph i: Index) -> Index
 }
 
 
@@ -301,9 +282,8 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
     func verticalDestination(movingUp: Bool, extending: Bool, dataSource: DataSource) -> (Selection.Index, Selection.Affinity, xOffset: CGFloat?) {
         assert(!dataSource.isEmpty)
 
-        // Moving up when we're already at the front or moving down when we're already
-        // isn't quite a no-op – if we're starting at a range, we'll end up with a
-        // caret – but it's close.
+        // If we're already at the start or end of the document, the destination
+        // is the start or the end of the document.
         if movingUp && selection.lowerBound == dataSource.startIndex {
             return (selection.lowerBound, selection.affinity, selection.xOffset)
         }
@@ -311,26 +291,16 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return (selection.upperBound, selection.affinity, selection.xOffset)
         }
 
-        let i = selection.isRange && extending ? selection.head : selection.lowerBound
-//        let affinity: Selection.Affinity
-//        if i == dataSource.endIndex {
-//            affinity = .upstream
-//        } else if selection.isCaret {
-//            affinity = selection.affinity
-//        } else if movingUp {
-//            affinity = .downstream
-//        } else {
-//            affinity = .upstream
-//        }
-
-        var fragRange = dataSource.range(for: .line, enclosing: i)
-        if fragRange.lowerBound == i && selection.isCaret && selection.affinity == .upstream {
-            assert(i != dataSource.startIndex)
-            // If we have a caret at the end of a line fragment, we need to ask the data source
-            // for the previous fragment.
-            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: i))
+        let start = selection.isRange && extending ? selection.head : selection.lowerBound
+        var fragRange = dataSource.range(for: .line, enclosing: start)
+        if !fragRange.isEmpty && fragRange.lowerBound == start && selection.isCaret && selection.affinity == .upstream {
+            assert(start != dataSource.startIndex)
+            // we're actually in the previous frag
+            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
         }
-        // TODO: there's still the !movingUp use upstream affinity case, but I don't remember why that's there.
+
+        let endsInNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
+        let visualFragEnd = endsInNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
 
         // Moving up when we're in the first frag, moves left to the beginning. Moving
         // down when we're in the last frag moves right to the end.
@@ -341,12 +311,12 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             let xOffset = extending ? selection.xOffset : nil
             return (dataSource.startIndex, dataSource.isEmpty ? .upstream : .downstream, xOffset)
         }
-        if !movingUp && fragRange.upperBound == dataSource.endIndex {
+        if !movingUp && visualFragEnd == dataSource.endIndex {
             let xOffset = extending ? selection.xOffset : nil
             return (dataSource.endIndex, .upstream, xOffset)
         }
 
-        let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: i, inLineFragmentWithRange: fragRange)
+        let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: start, inLineFragmentWithRange: fragRange)
 
         let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
         let targetFragRange = dataSource.range(for: .line, enclosing: target)
@@ -702,15 +672,6 @@ extension SelectionNavigationDataSource {
         }
 
         return j
-    }
-
-    func hasWordBoundary(at i: Index) -> Bool {
-        if i == startIndex || i == endIndex {
-            return true
-        }
-
-        let prev = index(before: i)
-        return isWordCharacter(self[prev]) != isWordCharacter(self[i])
     }
 
     func isWordStart(_ i: Index) -> Bool {
