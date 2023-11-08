@@ -622,15 +622,19 @@ extension SelectionNavigationDataSource {
 
             let nleft = distance(from: i, to: fragRange.upperBound)
             let isFinalOffset = !leadingEdge && (nleft == 1 || endsInNewline && nleft == 2)
+
+            // skip all but the last trailing edge
             if !leadingEdge && !isFinalOffset {
                 return true
             }
 
-            if offset < targetOffset {
+            if targetOffset > offset {
                 prev = (offset, i)
                 return true
             }
 
+            // If we've gotten to our target offset and we're at the first offset in the fragment
+            // (regardless of whether it's leading or trailing), we've found our index.
             guard let prev else {
                 res = i
                 return false
@@ -642,6 +646,9 @@ extension SelectionNavigationDataSource {
             if prevDistance < thisDistance {
                 res = prev.i
             } else if isFinalOffset {
+                assert(!leadingEdge)
+                // the current offset is closer, because the final offset is the trailing edge of the
+                // second to last index, we need to move forward to the next index.
                 res = index(afterCharacter: i)
                 return false
             } else {
