@@ -53,7 +53,6 @@ extension SimpleSelection: NavigableSelection {
 
 // Simple monospaced grid-of-characters layout:
 // - All characters are 8 points wide
-// - All lines are 14 points high
 // - No line fragment padding
 // - Does not do any word breaking. A word that extends beyond
 //   a line fragment is not moved down to the next line. It stays
@@ -72,10 +71,6 @@ struct SimpleSelectionDataSource {
 
     static var charWidth: CGFloat {
         8
-    }
-
-    static var lineHeight: CGFloat {
-        14
     }
 }
 
