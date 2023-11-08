@@ -56,13 +56,13 @@ public protocol NavigableSelection {
 
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
 
-    // TODO: I think this might be wrong? Can't we just get the xOffset when we move vertically? Also, I think this may not be a behavior we care to keep.
-    // You might think that a non-caret Selection doesn't need an xOffset, but we still
-    // need to maintain it for a specific special case: If we're moving up from within
-    // the first fragment to the beginning of the document or moving down from the within
-    // the last fragment to the end of the document, we want to maintain our xOffset so that
-    // when we move back in the opposite vertical direction, we move by one line fragment and
-    // also jump horizontally to our xOffset
+    // xOffset will be non-nil when we extend a selection so that if
+    // we extend the selection vertically up to startIndex and then
+    // move down, or extend the selection vertically down to endIndex
+    // and then move up, the caret will jump horizontally back to the
+    // xOffset that was set following the first vertical move. This is
+    // what Xcode does. I think it's of doubious value, and confusing,
+    // so I might remove it.
     init(anchor: Index, head: Index, xOffset: CGFloat?)
 
     var range: Range<Index> { get }
