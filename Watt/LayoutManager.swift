@@ -751,11 +751,11 @@ extension LayoutManager: BufferDelegate {
 // MARK: - Selection navigation
 
 extension LayoutManager {
-    func moveSelection(_ movement: SelectionMovement) {
+    func moveSelection(_ movement: Movement) {
         selection = SelectionNavigator(selection: selection).move(movement, dataSource: self)
     }
 
-    func extendSelection(_ movement: SelectionMovement) {
+    func extendSelection(_ movement: Movement) {
         selection = SelectionNavigator(selection: selection).extend(movement, dataSource: self)
     }
 }
@@ -896,7 +896,7 @@ extension LayoutManager: SelectionNavigationDataSource {
 //        return convert(linePos, from: line)
 //    }
 
-    func range(for granularity: SelectionGranularity, enclosing index: Buffer.Index) -> Range<Buffer.Index> {
+    func range(for granularity: Granularity, enclosing index: Buffer.Index) -> Range<Buffer.Index> {
         if buffer.isEmpty {
             return buffer.startIndex..<buffer.startIndex
         }

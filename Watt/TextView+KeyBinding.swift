@@ -117,14 +117,14 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
-
-        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+//        let viewport = convertToTextContainer(visibleRect)
+//        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
+//
+//        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
+//
+//        selectionLayer.setNeedsLayout()
+//        insertionPointLayer.setNeedsLayout()
+//        updateInsertionPointTimer()
     }
 
 

@@ -7,19 +7,19 @@
 
 import Foundation
 
-public enum SelectionAffinity {
+public enum Affinity {
     case upstream
     case downstream
 }
 
-public enum SelectionGranularity {
+public enum Granularity {
     case character
     case word
     case line
     case paragraph
 }
 
-public enum SelectionMovement: Equatable {
+public enum Movement: Equatable {
     case left
     case right
     case leftWord
@@ -34,20 +34,20 @@ public enum SelectionMovement: Equatable {
     case endOfDocument
 }
 
-public protocol InitializableFromSelectionAffinity {
-    init(_ affinity: SelectionAffinity)
+public protocol InitializableFromAffinity {
+    init(_ affinity: Affinity)
 }
 
 // fileprivate so there's no ambiguity in SelectionNavigatorTests when
 // we import StandardKeyBindingResponder as @testable.
-fileprivate extension InitializableFromSelectionAffinity {
+fileprivate extension InitializableFromAffinity {
     static var upstream: Self { Self(.upstream) }
     static var downstream: Self { Self(.downstream) }
 }
 
 public protocol NavigableSelection {
     associatedtype Index: Comparable
-    associatedtype Affinity: InitializableFromSelectionAffinity & Equatable
+    associatedtype Affinity: InitializableFromAffinity & Equatable
 
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
 
@@ -140,15 +140,15 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         self.selection = selection
     }
 
-    public func move(_ movement: SelectionMovement, dataSource: DataSource) -> Selection {
+    public func move(_ movement: Movement, dataSource: DataSource) -> Selection {
         makeSelection(movement: movement, extending: false, dataSource: dataSource)
     }
 
-    public func extend(_ movement: SelectionMovement, dataSource: DataSource) -> Selection {
+    public func extend(_ movement: Movement, dataSource: DataSource) -> Selection {
         makeSelection(movement: movement, extending: true, dataSource: dataSource)
     }
 
-    func makeSelection(movement: SelectionMovement, extending: Bool, dataSource: DataSource) -> Selection {
+    func makeSelection(movement: Movement, extending: Bool, dataSource: DataSource) -> Selection {
         if dataSource.isEmpty {
             return Selection(caretAt: dataSource.startIndex, affinity: .upstream, xOffset: nil)
         }
@@ -348,7 +348,7 @@ extension SelectionNavigationDataSource {
         index(i, offsetBy: 1)
     }
 
-    func range(for granularity: SelectionGranularity, enclosing i: Index) -> Range<Index> {
+    func range(for granularity: Granularity, enclosing i: Index) -> Range<Index> {
         if isEmpty {
             return startIndex..<startIndex
         }

@@ -90,8 +90,8 @@ struct Selection {
     }
 }
 
-extension Affinity: InitializableFromSelectionAffinity {
-    init(_ affinity: SelectionAffinity) {
+extension Affinity: InitializableFromAffinity {
+    init(_ affinity: StandardKeyBindingResponder.Affinity) {
         switch affinity {
         case .upstream: self = .upstream
         case .downstream: self = .downstream
