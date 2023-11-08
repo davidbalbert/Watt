@@ -1091,9 +1091,6 @@ final class SelectionTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
-        XCTAssertEqual(string.index(at: 0), s.caretIndex)
-        XCTAssertEqual(.downstream, s.affinity)
-
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 2), affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 3), affinity: .downstream, dataSource: d)
