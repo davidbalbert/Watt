@@ -202,43 +202,20 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         case .down:
             (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
         case .leftWord:
-            var i = extending ? selection.head : selection.lowerBound
-            if i > dataSource.startIndex {
-                i = dataSource.index(beforeCharacter: i)
-            }
-            var range = dataSource.range(for: .word, enclosing: i)
+            let start = extending ? selection.head : selection.lowerBound
+            let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
+            let shrinking = extending && selection.isRange && selection.affinity == .downstream
 
-            assert(!range.isEmpty)
-            // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
-            // beginning of the document, we need to move left one more time.
-            if dataSource.startIndex < range.lowerBound && dataSource.isWordEnd(range.lowerBound) {
-                range = dataSource.range(for: .word, enclosing: dataSource.index(beforeCharacter: range.lowerBound))
-            }
-
-            if extending && selection.isRange && selection.affinity == .downstream {
-                // if we're shrinking the selection to the left, don't move past the anchor
-                head = max(range.lowerBound, selection.anchor)
-            } else {
-                head = range.lowerBound
-            }
-            // dataSource can't be empty, so moving left can't cause an affinity of .upstream
+            // if we're shrinking the selection, don't move past the anchor
+            head = shrinking ? max(wordStart, selection.anchor) : wordStart
             affinity = .downstream
         case .rightWord:
-            var range = dataSource.range(for: .word, enclosing: extending ? selection.head : selection.upperBound)
-            assert(!range.isEmpty)
+            let start = extending ? selection.head : selection.upperBound
+            let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
+            let shrinking = extending && selection.isRange && selection.affinity == .upstream
 
-            // range could be either pointing to whitespace, or pointing to a word. If it's the former, and we're not at the
-            // end of the document, we need to move right one more time.
-            if range.upperBound < dataSource.endIndex && dataSource.isWordStart(range.upperBound) {
-                range = dataSource.range(for: .word, enclosing: range.upperBound)
-            }
-
-            if extending && selection.isRange && selection.affinity == .upstream {
-                // if we're shrinking the selection to the right, don't move past the anchor
-                head = min(selection.anchor, range.upperBound)
-            } else {
-                head = range.upperBound
-            }
+            // if we're shrinking the selection, don't move past the anchor
+            head = shrinking ? min(selection.anchor, wordEnd) : wordEnd
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfLine:
             let target = selection.lowerBound
@@ -431,18 +408,48 @@ extension SelectionNavigationDataSource {
         return index(afterCharacter: i)
     }
 
-    func index(beforeWord i: Index, clampedTo limit: Index) -> Index {
-        if i <= limit {
-            return limit
+    func index(beginningOfWordBefore i: Index) -> Index? {
+        if i == startIndex {
+            return nil
         }
-        return index(beforeWord: i)
+
+        var i = i
+        if isWordStart(i) {
+            i = index(beforeCharacter: i)
+        }
+
+        var r = range(for: .word, enclosing: i)
+        if r.lowerBound == startIndex && !isWordStart(r.lowerBound) {
+            // we're at the beginning of the document, but it starts
+            // with whitespace.
+            return nil
+        } else if !isWordStart(r.lowerBound) {
+            r = range(for: .word, enclosing: index(beforeCharacter: r.lowerBound))
+        }
+
+        return r.lowerBound
     }
 
-    func index(afterWord i: Index, clampedTo limit: Index) -> Index {
-        if i >= limit {
-            return limit
+    func index(endOfWordAfter i: Index) -> Index? {
+        if i == endIndex {
+            return nil
         }
-        return index(afterWord: i)
+
+        // no need to check if we're at the end of a word because,
+        // range(for:enclosing:) on a boundary, will return the range
+        // on the right.
+
+        var r = range(for: .word, enclosing: i)
+        if r.upperBound == endIndex && !isWordEnd(r.upperBound) {
+            // we're at the end of the document, but it ends
+            // with whitespace.
+            return nil
+        } else if !isWordEnd(r.upperBound) {
+            // r is whitespace, move forward to get a word
+            r = range(for: .word, enclosing: r.upperBound)
+        }
+
+        return r.upperBound
     }
 
     func index(afterParagraph i: Index, clampedTo limit: Index) -> Index {
@@ -714,29 +721,6 @@ extension SelectionNavigationDataSource {
         return j
     }
 
-    func index(beforeWord i: Index) -> Index {
-        var i = i
-        while i > startIndex && !isWordCharacter(self[index(beforeCharacter: i)]) {
-            i = index(beforeCharacter: i)
-        }
-        while i > startIndex && isWordCharacter(self[index(beforeCharacter: i)]) {
-            i = index(beforeCharacter: i)
-        }
-        return i
-    }
-
-    func index(afterWord i: Index) -> Index {
-        var i = i
-        while i < endIndex && !isWordCharacter(self[i]) {
-            i = index(afterCharacter: i)
-        }
-        while i < endIndex && isWordCharacter(self[i]) {
-            i = index(afterCharacter: i)
-        }
-
-        return i
-    }
-
     func hasWordBoundary(at i: Index) -> Bool {
         if i == startIndex || i == endIndex {
             return true
@@ -747,8 +731,7 @@ extension SelectionNavigationDataSource {
     }
 
     func isWordStart(_ i: Index) -> Bool {
-        assert(!isEmpty)
-        if i == endIndex {
+        if isEmpty || i == endIndex {
             return false
         }
 
@@ -760,8 +743,7 @@ extension SelectionNavigationDataSource {
     }
 
     func isWordEnd(_ i: Index) -> Bool {
-        assert(!isEmpty)
-        if i == startIndex {
+        if isEmpty || i == startIndex {
             return false
         }
 
