@@ -611,6 +611,30 @@ extension SelectionNavigationDataSource {
 
 // MARK: Default implementations
 extension SelectionNavigationDataSource {
+    func isWordStart(_ i: Index) -> Bool {
+        if isEmpty || i == endIndex {
+            return false
+        }
+
+        if i == startIndex {
+            return !isWhitespace(i)
+        }
+        let prev = index(before: i)
+        return isWhitespace(prev) && !isWhitespace(i)
+    }
+
+    func isWordEnd(_ i: Index) -> Bool {
+        if isEmpty || i == startIndex {
+            return false
+        }
+
+        let prev = index(before: i)
+        if i == endIndex {
+            return !isWhitespace(prev)
+        }
+        return !isWhitespace(prev) && isWhitespace(i)
+    }
+
     func index(beforeParagraph i: Index) -> Index {
         precondition(i > startIndex)
 
@@ -639,30 +663,6 @@ extension SelectionNavigationDataSource {
         }
 
         return j
-    }
-
-    func isWordStart(_ i: Index) -> Bool {
-        if isEmpty || i == endIndex {
-            return false
-        }
-
-        if i == startIndex {
-            return !isWhitespace(i)
-        }
-        let prev = index(before: i)
-        return isWhitespace(prev) && !isWhitespace(i)
-    }
-
-    func isWordEnd(_ i: Index) -> Bool {
-        if isEmpty || i == startIndex {
-            return false
-        }
-
-        let prev = index(before: i)
-        if i == endIndex {
-            return !isWhitespace(prev)
-        }
-        return !isWhitespace(prev) && isWhitespace(i)
     }
 }
 
