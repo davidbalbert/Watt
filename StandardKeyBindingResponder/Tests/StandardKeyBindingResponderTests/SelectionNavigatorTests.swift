@@ -141,7 +141,7 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
 
     func lineFragmentRange(containing i: String.Index) -> Range<String.Index> {
         let paraStart = index(roundedDownToParagraph: i)
-        let paraEnd = index(afterParagraph: paraStart, clampedTo: string.endIndex)
+        let paraEnd = paraStart == string.endIndex ? paraStart : index(afterParagraph: paraStart)
         let paraLen = string.distance(from: paraStart, to: paraEnd)
         let offsetInParagraph = string.distance(from: paraStart, to: i)
 

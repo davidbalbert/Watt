@@ -163,14 +163,14 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         switch movement {
         case .left:
             if selection.isCaret || extending {
-                head = dataSource.index(beforeCharacter: selection.head, clampedTo: dataSource.startIndex)
+                head = selection.head == dataSource.startIndex ? selection.head : dataSource.index(before: selection.head)
             } else {
                 head = selection.lowerBound
             }
             affinity = .downstream
         case .right:
             if selection.isCaret || extending {
-                head = dataSource.index(afterCharacter: selection.head, clampedTo: dataSource.endIndex)
+                head = selection.head == dataSource.endIndex ? selection.head : dataSource.index(after: selection.head)
             } else {
                 head = selection.upperBound
             }
@@ -348,20 +348,6 @@ extension SelectionNavigationDataSource {
         index(i, offsetBy: 1)
     }
 
-    func index(beforeCharacter i: Index, clampedTo limit: Index) -> Index {
-        if i <= limit {
-            return limit
-        }
-        return index(before: i)
-    }
-
-    func index(afterCharacter i: Index, clampedTo limit: Index) -> Index {
-        if i >= limit {
-            return limit
-        }
-        return index(after: i)
-    }
-
     func index(beginningOfWordBefore i: Index) -> Index? {
         if i == startIndex {
             return nil
@@ -406,17 +392,6 @@ extension SelectionNavigationDataSource {
         return r.upperBound
     }
 
-    func index(afterParagraph i: Index, clampedTo limit: Index) -> Index {
-        if i >= limit {
-            return limit
-        }
-        return index(afterParagraph: i)
-    }
-
-    func isWordCharacter(_ c: Character) -> Bool {
-        !c.isWhitespace && !c.isPunctuation
-    }
-
     func lastCharacter(inRange range: Range<Index>) -> Character? {
         if range.isEmpty {
             return nil
@@ -458,7 +433,7 @@ extension SelectionNavigationDataSource {
             return lineFragmentRange(containing: i)
         case .paragraph:
             let start = index(roundedDownToParagraph: i)
-            let end = index(afterParagraph: i, clampedTo: endIndex)
+            let end = i == endIndex ? endIndex : index(afterParagraph: i)
             return start..<end
         }
     }
@@ -637,15 +612,7 @@ extension SelectionNavigationDataSource {
 // MARK: Default implementations
 extension SelectionNavigationDataSource {
     func index(beforeParagraph i: Index) -> Index {
-        // i is at a paragraph boundary if i == startIndex or self[i-1] == "\n"
-        // if we're in the middle of a paragraph, we need to move down to the beginning
-        // of that paragraph. If we're at the beginning of a paragraph, we need to move
-        // down to the beginning of the previous paragraph.
-        
         precondition(i > startIndex)
-
-        // deal with the possibility that we're already at the beginning of a paragraph.
-        // in this case, we have to go to the beginning of the previous paragraph
 
         var j = i
         if self[index(before: j)] == "\n" {
