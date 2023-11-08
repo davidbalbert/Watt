@@ -89,6 +89,11 @@ final class SelectionNavigatorTests: XCTestCase {
         s = SimpleSelection(anchor: string.index(at: 8), head: string.index(at: 11))
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)
 
+        // select "bar ba" - upperBound is at the end of the line fragment, so moving right should set our affinity
+        // to upstream
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 10))
+        s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
+
         // reverse
         s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 8))
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)

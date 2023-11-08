@@ -147,10 +147,20 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         case .right:
             if selection.isCaret || extending {
                 head = selection.head == dataSource.endIndex ? selection.head : dataSource.index(after: selection.head)
+                affinity = head == dataSource.endIndex ? .upstream : .downstream
             } else {
+                // moving right from a range
                 head = selection.upperBound
+
+                // if a selection ends at the end of a line fragment, and we move right
+                // we want the caret to appear where the end of the selection was.
+                let fragRange = dataSource.range(for: .line, enclosing: head)
+                if fragRange.lowerBound == head {
+                    affinity = .upstream
+                } else {
+                    affinity = head == dataSource.endIndex ? .upstream : .downstream
+                }
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .up:
             (head, affinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
         case .down:
