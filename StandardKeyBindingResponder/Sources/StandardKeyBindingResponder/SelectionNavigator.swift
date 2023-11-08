@@ -616,7 +616,7 @@ extension SelectionNavigationDataSource {
 }
 
 // MARK: Default implementations
-extension SelectionNavigationDataSource {
+public extension SelectionNavigationDataSource {
     func isWordStart(_ i: Index) -> Bool {
         if isEmpty || i == endIndex {
             return false

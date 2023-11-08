@@ -774,21 +774,8 @@ extension LayoutManager: SelectionNavigationDataSource {
         buffer.characters.distance(from: start, to: end)
     }
 
-    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.lines.index(before: i)
-    }
-
-    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.lines.index(after: i)
-    }
-
     subscript(index: Buffer.Index) -> Character {
         buffer[index]
-    }
-
-    func lineFragmentRange(containing index: Buffer.Index, affinity: Affinity) -> Range<Buffer.Index>? {
-        let line = line(containing: index)
-        return line.fragment(containing: index, affinity: affinity)?.range
     }
 
     func lineFragmentRange(containing index: Buffer.Index) -> Range<Buffer.Index> {
@@ -865,105 +852,11 @@ extension LayoutManager: SelectionNavigationDataSource {
         }
     }
 
-//    func index(forHorizontalOffset xOffset: CGFloat, inLineFragmentContaining i: Buffer.Index, affinity: Affinity) -> Buffer.Index? {
-//        let line = line(containing: i)
-//        guard let frag = line.fragment(containing: i, affinity: affinity) else {
-//            assertionFailure("no frag")
-//            return nil
-//        }
-//
-//        let pointInLine = CGPoint(x: xOffset, y: frag.alignmentFrame.minY)
-//        let pointInLineFragment = convert(pointInLine, to: frag)
-//
-//        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
-//            assertionFailure("no index")
-//            return nil
-//        }
-//
-//        return i
-//    }
-//
-//    func point(forCharacterAt index: Buffer.Index, affinity: Affinity) -> CGPoint {
-//        let line = line(containing: index)
-//        guard let frag = line.fragment(containing: index, affinity: affinity) else {
-//            assertionFailure("no frag")
-//            return .zero
-//        }
-//
-//        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: index)
-//        let fragPos = frag.pointForCharacter(atUTF16OffsetInLine: offsetInLine)
-//        let linePos = convert(fragPos, from: frag)
-//        return convert(linePos, from: line)
-//    }
-
-    func range(for granularity: Granularity, enclosing index: Buffer.Index) -> Range<Buffer.Index> {
-        if buffer.isEmpty {
-            return buffer.startIndex..<buffer.startIndex
-        }
-
-        switch granularity {
-        case .character:
-            var start = index
-            if index == buffer.endIndex {
-                start = buffer.index(before: start)
-            }
-
-            return start..<buffer.index(after: start)
-        case .word:
-            let start: Buffer.Index
-            let end: Buffer.Index
-            if index == buffer.endIndex {
-                start = buffer.words.index(ofBoundaryBefore: index)
-                end = buffer.endIndex
-            } else if buffer.words.isBoundary(index) {
-                start = index
-                end = buffer.words.index(ofBoundaryAfter: index)
-            } else {
-                start = buffer.words.index(roundedDownToBoundary: index)
-                end = buffer.words.index(roundedUpToBoundary: index)
-            }
-
-            return start..<end
-        case .line:
-            let line = line(containing: index)
-            return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
-        case .paragraph:
-            let start = buffer.lines.index(roundingDown: index)
-            let end = buffer.lines.index(index, offsetBy: 1, limitedBy: buffer.endIndex) ?? buffer.endIndex
-            return start..<end
-        }
+    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
+        buffer.lines.index(before: i)
     }
 
-    func isWhitespaceCharacter(_ c: Character) -> Bool {
-        !buffer.language.isWordCharacter(c)
-    }
-}
-
-// TODO: Why in the wolrd is this necessary? What's going on?
-extension LayoutManager {
-    func isWordStart(_ i: Buffer.Index) -> Bool {
-        assert(!buffer.isEmpty)
-        if i == buffer.endIndex {
-            return false
-        }
-
-        if i == buffer.startIndex {
-            return !isWhitespaceCharacter(self[i])
-        }
-        let prev = buffer.index(before: i)
-        return isWhitespaceCharacter(self[prev]) && !isWhitespaceCharacter(self[i])
-    }
-
-    func isWordEnd(_ i: Buffer.Index) -> Bool {
-        assert(!buffer.isEmpty)
-        if i == buffer.startIndex {
-            return false
-        }
-
-        let prev = buffer.index(before: i)
-        if i == buffer.endIndex {
-            return !isWhitespaceCharacter(self[prev])
-        }
-        return !isWhitespaceCharacter(self[prev]) && isWhitespaceCharacter(self[i])
+    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
+        buffer.lines.index(after: i)
     }
 }
