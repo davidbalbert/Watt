@@ -283,6 +283,12 @@ extension Range where Bound == Buffer.Index {
     }
 }
 
+extension Range where Bound == Int {
+    init(_ range: Range<Buffer.Index>, in buffer: Buffer) {
+        self.init(range, in: buffer.contents)
+    }
+}
+
 extension NSRange {
     init<R>(_ region: R, in buffer: Buffer) where R : RangeExpression, R.Bound == Buffer.Index {
         self.init(region, in: buffer.text)

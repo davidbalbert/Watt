@@ -1396,6 +1396,15 @@ extension Range where Bound == Rope.Index {
     }
 }
 
+extension Range where Bound == Int {
+    init(_ range: Range<Rope.Index> , in rope: Rope) {
+        let start = rope.utf8.distance(from: rope.utf8.startIndex, to: range.lowerBound)
+        let end = rope.utf8.distance(from: rope.utf8.startIndex, to: range.upperBound)
+
+        self.init(uncheckedBounds: (start, end))
+    }
+}
+
 extension NSRange {
     init<R>(_ region: R, in rope: Rope) where R : RangeExpression, R.Bound == Rope.Index {
         let range = region.relative(to: rope)

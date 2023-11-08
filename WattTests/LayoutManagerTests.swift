@@ -38,6 +38,7 @@ extension LayoutManager {
 final class LayoutManagerTests: XCTestCase {
     typealias O = CaretOffset
 
+    let charsPerFrag = 10
     let charWidth = 7.41796875
     var w: Double {
         charWidth
@@ -50,7 +51,7 @@ final class LayoutManagerTests: XCTestCase {
 
         let layoutManager = LayoutManager()
         layoutManager.buffer = buffer
-        layoutManager.textContainer.size = CGSize(width: charWidth * 10, height: 0)
+        layoutManager.textContainer.size = CGSize(width: charWidth * Double(charsPerFrag), height: 0)
         layoutManager.textContainer.lineFragmentPadding = 0
 
         return layoutManager
@@ -61,6 +62,198 @@ final class LayoutManagerTests: XCTestCase {
         let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         XCTAssertEqual(charWidth, font.maximumAdvancement.width)
     }
+
+    // MARK: lineFragmentRange(containing:)
+
+    func testLineFragmentRangesEmptyBuffer() {
+        let string = ""
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        let r = l.lineFragmentRange(containing: b.startIndex)
+
+        XCTAssertEqual(0..<0, Range(r, in: b))
+    }
+
+    func testLineFragmentRangesStartOfFrags() {
+        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
+        let string = String(repeating: "a", count: charsPerFrag*4 + 2)
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        let start0 = b.index(b.startIndex, offsetBy: 0*charsPerFrag)
+        let start1 = b.index(b.startIndex, offsetBy: 1*charsPerFrag)
+        let start2 = b.index(b.startIndex, offsetBy: 2*charsPerFrag)
+        let start3 = b.index(b.startIndex, offsetBy: 3*charsPerFrag)
+        let start4 = b.index(b.startIndex, offsetBy: 4*charsPerFrag)
+
+        let r0 = l.lineFragmentRange(containing: start0)
+        let r1 = l.lineFragmentRange(containing: start1)
+        let r2 = l.lineFragmentRange(containing: start2)
+        let r3 = l.lineFragmentRange(containing: start3)
+        let r4 = l.lineFragmentRange(containing: start4)
+        let r5 = l.lineFragmentRange(containing: b.endIndex)
+
+        XCTAssertEqual(0..<10,  Range(r0, in: b))
+        XCTAssertEqual(10..<20, Range(r1, in: b))
+        XCTAssertEqual(20..<30, Range(r2, in: b))
+        XCTAssertEqual(30..<40, Range(r3, in: b))
+        XCTAssertEqual(40..<42, Range(r4, in: b))
+        XCTAssertEqual(40..<42, Range(r5, in: b))
+    }
+
+
+    func testLineFragmentRangesMiddleOfFrags() {
+        // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
+        let string = String(repeating: "a", count: charsPerFrag*4 + 2)
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        let i0 = b.index(b.startIndex, offsetBy: 0*charsPerFrag + 1)
+        let i1 = b.index(b.startIndex, offsetBy: 1*charsPerFrag + 1)
+        let i2 = b.index(b.startIndex, offsetBy: 2*charsPerFrag + 1)
+        let i3 = b.index(b.startIndex, offsetBy: 3*charsPerFrag + 1)
+        let i4 = b.index(b.startIndex, offsetBy: 4*charsPerFrag + 1)
+
+        let r0 = l.lineFragmentRange(containing: i0)
+        let r1 = l.lineFragmentRange(containing: i1)
+        let r2 = l.lineFragmentRange(containing: i2)
+        let r3 = l.lineFragmentRange(containing: i3)
+        let r4 = l.lineFragmentRange(containing: i4)
+
+        XCTAssertEqual(0..<10,  Range(r0, in: b))
+        XCTAssertEqual(10..<20, Range(r1, in: b))
+        XCTAssertEqual(20..<30, Range(r2, in: b))
+        XCTAssertEqual(30..<40, Range(r3, in: b))
+        XCTAssertEqual(40..<42, Range(r4, in: b))
+    }
+
+
+    func testLineFragmentRangesMultipleLines() {
+        // 4 lines, 5 line fragments, no trailing newline
+
+        let string = """
+        hello
+        0123456789
+        0123456789wrap
+        world
+        """
+
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        // First line: a single fragment that takes up less than the entire width.
+        let start0 = b.index(b.startIndex, offsetBy: 0)
+        var r = l.lineFragmentRange(containing: start0)
+        XCTAssertEqual(0..<6, Range(r, in: b))
+
+        // between "o" and "\n"
+        let last0 = b.index(b.startIndex, offsetBy: 5)
+        r = l.lineFragmentRange(containing: last0)
+        XCTAssertEqual(0..<6, Range(r, in: b))
+
+
+        // Second line: a fragment that takes up the entire width and ends in a newline.
+        let start1 = b.index(b.startIndex, offsetBy: 6)
+        r = l.lineFragmentRange(containing: start1)
+        XCTAssertEqual(6..<17, Range(r, in: b))
+
+        // between "9" and "\n"
+        let last1 = b.index(b.startIndex, offsetBy: 16)
+        r = l.lineFragmentRange(containing: last1)
+        XCTAssertEqual(6..<17, Range(r, in: b))
+
+
+        // Third line wraps, with two fragments
+        //
+        // First fragment
+        let start2 = b.index(b.startIndex, offsetBy: 17)
+        r = l.lineFragmentRange(containing: start2)
+        XCTAssertEqual(17..<27, Range(r, in: b))
+
+        // between "9" and "w"
+        let boundary2 = b.index(b.startIndex, offsetBy: 27)
+        r = l.lineFragmentRange(containing: boundary2)
+        XCTAssertEqual(27..<32, Range(r, in: b))
+
+        // between "p" and "\n"
+        let last2 = b.index(b.startIndex, offsetBy: 31)
+        r = l.lineFragmentRange(containing: last2)
+        XCTAssertEqual(27..<32, Range(r, in: b))
+
+        // Fourth line
+        let start3 = b.index(b.startIndex, offsetBy: 32)
+        r = l.lineFragmentRange(containing: start3)
+        XCTAssertEqual(32..<37, Range(r, in: b))
+
+        // At the end of the buffer
+        let last3 = b.index(b.startIndex, offsetBy: 37)
+        XCTAssertEqual(last3, b.endIndex)
+
+        r = l.lineFragmentRange(containing: last3)
+        XCTAssertEqual(32..<37, Range(r, in: b))
+    }
+
+    func testLineFragmentRangesEndingInNewline() {
+        // 2 lines, 3 line fragments
+        let string = """
+        0123456789wrap
+
+        """
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+
+        // First line: two fragments
+        let start0 = b.index(b.startIndex, offsetBy: 0)
+        var r = l.lineFragmentRange(containing: start0)
+        XCTAssertEqual(0..<10, Range(r, in: b))
+
+
+        // between "9" and "w"
+        let boundary0 = b.index(b.startIndex, offsetBy: 10)
+        r = l.lineFragmentRange(containing: boundary0)
+        XCTAssertEqual(10..<15, Range(r, in: b))
+
+        // between "p" and "\n"
+        let last0 = b.index(b.startIndex, offsetBy: 14)
+        r = l.lineFragmentRange(containing: last0)
+        XCTAssertEqual(10..<15, Range(r, in: b))
+
+        // Second line, a single empty fragment
+        let start1 = b.index(b.startIndex, offsetBy: 15)
+        r = l.lineFragmentRange(containing: start1)
+        XCTAssertEqual(15..<15, Range(r, in: b))
+    }
+
+    func testLineFragmentRangeFullFragAndNewline() {
+        let string = "0123456789\n"
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        var r = l.lineFragmentRange(containing: b.index(at: 0))
+        XCTAssertEqual(0..<11, Range(r, in: b))
+
+        r = l.lineFragmentRange(containing: b.index(at: 5))
+        XCTAssertEqual(0..<11, Range(r, in: b))
+
+        r = l.lineFragmentRange(containing: b.index(at: 10))
+        XCTAssertEqual(0..<11, Range(r, in: b))
+
+        r = l.lineFragmentRange(containing: b.index(at: 11))
+        XCTAssertEqual(11..<11, Range(r, in: b))
+    }
+
+    func testLineFragmentRangeEndIndex() {
+        let string = "abc"
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        // End index returns the last line
+        let r = l.lineFragmentRange(containing: b.index(at: 3))
+        XCTAssertEqual(0..<3, Range(r, in: b))
+    }
+
 
     // MARK: enumerateCaretOffsetsInLineFragment(containing:using:)
 

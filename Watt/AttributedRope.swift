@@ -1039,3 +1039,9 @@ extension Range where Bound == AttributedRope.Index {
         self.init(range, in: attributedRope.text)
     }
 }
+
+extension Range where Bound == Int {
+    init(_ range: Range<AttributedRope.Index>, in attributedRope: AttributedRope) {
+        self.init(range, in: attributedRope.text)
+    }
+}
