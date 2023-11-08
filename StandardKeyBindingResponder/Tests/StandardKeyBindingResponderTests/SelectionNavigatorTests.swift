@@ -1066,9 +1066,23 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(.upstream, s.affinity)
     }
 
-    // TODO: creating ranges – make sure affinity gets set correctly
+    func testCreateDownstreamSelection() {
+        let string = "Hello, world!"
+        let s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
+        XCTAssert(s.isRange)
+        XCTAssertEqual(string.index(at: 1), s.lowerBound)
+        XCTAssertEqual(string.index(at: 5), s.upperBound)
+        XCTAssertEqual(.downstream, s.affinity)
+    }
 
-
+    func createUpstreamSelection() {
+        let string = "Hello, world!"
+        let s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1))
+        XCTAssert(s.isRange)
+        XCTAssertEqual(string.index(at: 1), s.lowerBound)
+        XCTAssertEqual(string.index(at: 5), s.upperBound)
+        XCTAssertEqual(.upstream, s.affinity)
+    }
 
     // MARK: Selection navigation
 
