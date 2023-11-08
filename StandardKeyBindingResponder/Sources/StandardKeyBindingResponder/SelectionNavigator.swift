@@ -348,58 +348,6 @@ extension SelectionNavigationDataSource {
         index(i, offsetBy: 1)
     }
 
-    func index(beginningOfWordBefore i: Index) -> Index? {
-        if i == startIndex {
-            return nil
-        }
-
-        var i = i
-        if isWordStart(i) {
-            i = index(before: i)
-        }
-
-        var r = range(for: .word, enclosing: i)
-        if r.lowerBound == startIndex && !isWordStart(r.lowerBound) {
-            // we're at the beginning of the document, but it starts
-            // with whitespace.
-            return nil
-        } else if !isWordStart(r.lowerBound) {
-            r = range(for: .word, enclosing: index(before: r.lowerBound))
-        }
-
-        return r.lowerBound
-    }
-
-    func index(endOfWordAfter i: Index) -> Index? {
-        if i == endIndex {
-            return nil
-        }
-
-        // no need to check if we're at the end of a word because,
-        // range(for:enclosing:) on a boundary, will return the range
-        // on the right.
-
-        var r = range(for: .word, enclosing: i)
-        if r.upperBound == endIndex && !isWordEnd(r.upperBound) {
-            // we're at the end of the document, but it ends
-            // with whitespace.
-            return nil
-        } else if !isWordEnd(r.upperBound) {
-            // r is whitespace, move forward to get a word
-            r = range(for: .word, enclosing: r.upperBound)
-        }
-
-        return r.upperBound
-    }
-
-    func lastCharacter(inRange range: Range<Index>) -> Character? {
-        if range.isEmpty {
-            return nil
-        }
-
-        return self[index(before: range.upperBound)]
-    }
-
     func range(for granularity: SelectionGranularity, enclosing i: Index) -> Range<Index> {
         if isEmpty {
             return startIndex..<startIndex
@@ -436,64 +384,6 @@ extension SelectionNavigationDataSource {
             let end = i == endIndex ? endIndex : index(afterParagraph: i)
             return start..<end
         }
-    }
-
-    func index(ofWordBoundaryBefore i: Index) -> Index {
-        precondition(i > startIndex)
-        var j = i
-        while i > startIndex {
-            j = index(before: j)
-            if isWordBoundary(j) {
-                break
-            }
-        }
-        return j
-    }
-
-    func index(ofWordBoundaryAfter i: Index) -> Index {
-        precondition(i < endIndex)
-        var j = i
-        while j < endIndex {
-            j = index(after: j)
-            if isWordBoundary(j) {
-                break
-            }
-        }
-        return j
-    }
-
-    func index(roundedDownToWordBoundary i: Index) -> Index {
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryBefore: i)
-    }
-
-    func index(roundedUpToWordBoundary i: Index) -> Index {
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryAfter: i)
-    }
-
-    func isWordBoundary(_ i: Index) -> Bool {
-        i == startIndex || i == endIndex || isWordStart(i) || isWordEnd(i)
-    }
-
-    func isWhitespace(_ i: Index) -> Bool {
-        let c = self[i]
-        return c.isWhitespace || c.isPunctuation
-    }
-
-    func index(roundedDownToParagraph i: Index) -> Index {
-        if isParagraphBoundary(i) {
-            return i
-        }
-        return index(beforeParagraph: i)
-    }
-
-    func isParagraphBoundary(_ i: Index) -> Bool {
-        i == startIndex || self[index(before: i)] == "\n"
     }
 
     func caretOffset(forCharacterAt target: Index, inLineFragmentWithRange fragRange: Range<Index>) -> CGFloat {
@@ -606,6 +496,116 @@ extension SelectionNavigationDataSource {
         } else {
             return fragRange.upperBound
         }
+    }
+
+    func lastCharacter(inRange range: Range<Index>) -> Character? {
+        if range.isEmpty {
+            return nil
+        }
+
+        return self[index(before: range.upperBound)]
+    }
+
+    func index(beginningOfWordBefore i: Index) -> Index? {
+        if i == startIndex {
+            return nil
+        }
+
+        var i = i
+        if isWordStart(i) {
+            i = index(before: i)
+        }
+
+        var r = range(for: .word, enclosing: i)
+        if r.lowerBound == startIndex && !isWordStart(r.lowerBound) {
+            // we're at the beginning of the document, but it starts
+            // with whitespace.
+            return nil
+        } else if !isWordStart(r.lowerBound) {
+            r = range(for: .word, enclosing: index(before: r.lowerBound))
+        }
+
+        return r.lowerBound
+    }
+
+    func index(endOfWordAfter i: Index) -> Index? {
+        if i == endIndex {
+            return nil
+        }
+
+        // no need to check if we're at the end of a word because,
+        // range(for:enclosing:) on a boundary, will return the range
+        // on the right.
+
+        var r = range(for: .word, enclosing: i)
+        if r.upperBound == endIndex && !isWordEnd(r.upperBound) {
+            // we're at the end of the document, but it ends
+            // with whitespace.
+            return nil
+        } else if !isWordEnd(r.upperBound) {
+            // r is whitespace, move forward to get a word
+            r = range(for: .word, enclosing: r.upperBound)
+        }
+
+        return r.upperBound
+    }
+
+    func index(ofWordBoundaryBefore i: Index) -> Index {
+        precondition(i > startIndex)
+        var j = i
+        while i > startIndex {
+            j = index(before: j)
+            if isWordBoundary(j) {
+                break
+            }
+        }
+        return j
+    }
+
+    func index(ofWordBoundaryAfter i: Index) -> Index {
+        precondition(i < endIndex)
+        var j = i
+        while j < endIndex {
+            j = index(after: j)
+            if isWordBoundary(j) {
+                break
+            }
+        }
+        return j
+    }
+
+    func index(roundedDownToWordBoundary i: Index) -> Index {
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryBefore: i)
+    }
+
+    func index(roundedUpToWordBoundary i: Index) -> Index {
+        if isWordBoundary(i) {
+            return i
+        }
+        return index(ofWordBoundaryAfter: i)
+    }
+
+    func isWordBoundary(_ i: Index) -> Bool {
+        i == startIndex || i == endIndex || isWordStart(i) || isWordEnd(i)
+    }
+
+    func index(roundedDownToParagraph i: Index) -> Index {
+        if isParagraphBoundary(i) {
+            return i
+        }
+        return index(beforeParagraph: i)
+    }
+
+    func isParagraphBoundary(_ i: Index) -> Bool {
+        i == startIndex || self[index(before: i)] == "\n"
+    }
+
+    func isWhitespace(_ i: Index) -> Bool {
+        let c = self[i]
+        return c.isWhitespace || c.isPunctuation
     }
 }
 
