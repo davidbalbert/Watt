@@ -751,6 +751,54 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 0, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
+
+    // MARK: caretOffset(forCharacterAt:inLineFragmentWithRange)
+
+    func testCaretOffsetForCharacterAtEmpty() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 0)
+
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 0), inLineFragmentWithRange: r))
+    }
+
+    func testCaretOffsetForCharacterAtNewline() {
+        let s = "\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 1)
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 0), inLineFragmentWithRange: r))
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 1), inLineFragmentWithRange: r))
+
+        r = s.index(at: 1)..<s.index(at: 1)
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 1), inLineFragmentWithRange: r))
+    }
+
+    func testCaretOffsetForCharacterAtSingleCharacter() {
+        let s = "a"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 1)
+
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 0), inLineFragmentWithRange: r))
+        XCTAssertEqual(8, dataSource.caretOffset(forCharacterAt: s.index(at: 1), inLineFragmentWithRange: r))
+    }
+
+    func testCaretOffsetForCharacterAtNonEmptyWithNewline() {
+        let s = "a\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 2)
+
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 0), inLineFragmentWithRange: r))
+        XCTAssertEqual(8, dataSource.caretOffset(forCharacterAt: s.index(at: 1), inLineFragmentWithRange: r))
+        XCTAssertEqual(8, dataSource.caretOffset(forCharacterAt: s.index(at: 2), inLineFragmentWithRange: r))
+
+        r = s.index(at: 2)..<s.index(at: 2)
+
+        XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 2), inLineFragmentWithRange: r))
+    }
 }
 
 // MARK: - Selection tests

@@ -564,22 +564,56 @@ extension SelectionNavigationDataSource {
     }
 
     func caretOffset(forCharacterAt target: Index, inLineFragmentWithRange fragRange: Range<Index>) -> CGFloat {
+        precondition(fragRange.contains(target) || fragRange.upperBound == target)
         assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
-        
-        // if the fragment ends in a newline, we are not allowed to ask for the caret offset
-        // at the upper bound of the frag range.
-        assert(lastCharacter(inRange: fragRange) != "\n" || target != fragRange.upperBound)
+
+        let count = distance(from: fragRange.lowerBound, to: fragRange.upperBound)
+        let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
+
+        // Searching the offset after a trailing "\n" is the same as searching
+        let adjustedTarget = endsInNewline && target == fragRange.upperBound ? index(beforeCharacter: target) : target
+
+        let targetIsAfterNewline = endsInNewline && target == fragRange.upperBound
 
         var caretOffset: CGFloat?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
-            if target == i && leadingEdge {
+            // Enumerating over the first line fragment of each string:
+            // ""    -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading)]
+            // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
+            // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+            // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 2, trailing)]
+
+            // The common case. Also handles "".
+            if leadingEdge && target == i {
                 caretOffset = offset
                 return false
             }
 
-            // If our target is fragRange.upperBound, that means we're at the "upstream" position
-            // at the end of this line fragment.
-            if target == fragRange.upperBound && i == index(beforeCharacter: fragRange.upperBound) && !leadingEdge {
+            // upperBound of "\n"
+            if targetIsAfterNewline && count == 1 {
+                // there's only one caretOffset for the string "\n": (0.0, 0, leading)
+                assert(i == fragRange.lowerBound && leadingEdge)
+                caretOffset = offset
+                return false
+            }
+
+            let nleft = distance(from: i, to: fragRange.upperBound)
+
+            // searching for the end of a frag matching /[^\n]+\n/
+            if !leadingEdge && targetIsAfterNewline && nleft == 2 {
+                caretOffset = offset
+                return false
+            }
+
+            // searching for before the newline in /[^\n]+\n/
+            if !leadingEdge && endsInNewline && target == index(beforeCharacter: fragRange.upperBound) && nleft == 2 {
+                caretOffset = offset
+                return false
+            }
+
+            // searching for the end of a frag matching /[^\n]+/
+            if !leadingEdge && nleft == 1 {
                 caretOffset = offset
                 return false
             }
