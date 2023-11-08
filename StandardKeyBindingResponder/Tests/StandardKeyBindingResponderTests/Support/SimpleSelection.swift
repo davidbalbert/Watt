@@ -187,3 +187,6 @@ extension SimpleSelectionDataSource {
     }
 }
 
+func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
+    string.utf8.distance(from: string.startIndex, to: r.lowerBound)..<string.utf8.distance(from: string.startIndex, to: r.upperBound)
+}
