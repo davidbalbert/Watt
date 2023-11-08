@@ -187,8 +187,6 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             } else {
                 head = selection.lowerBound
             }
-            // dataSource can't be empty, and we're moving left, so we're never at endIndex, so
-            // affinity can't be .upstream.
             affinity = .downstream
         case .right:
             if selection.isCaret || extending {
@@ -218,37 +216,37 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             head = shrinking ? min(selection.anchor, wordEnd) : wordEnd
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfLine:
-            let target = selection.lowerBound
-            let targetAffinity = selection.isCaret ? selection.affinity : .downstream
+            let start = selection.lowerBound
+            let fragRange = dataSource.range(for: .line, enclosing: start)
 
-            let lineRange = dataSource.range(for: .paragraph, enclosing: target)
-            if target == lineRange.lowerBound {
-                head = lineRange.lowerBound
+            if fragRange.isEmpty {
+                // Empty last line. Includes empty document.
+                head = start
+            } else if start == fragRange.lowerBound && selection.isCaret && selection.affinity == .upstream {
+                // we're actually on the previous frag
+                let prevFrag = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: start))
+                head = prevFrag.lowerBound
             } else {
-                var fragRange = dataSource.range(for: .line, enclosing: target)
-
-                if targetAffinity == .upstream && target == fragRange.lowerBound && dataSource.startIndex < fragRange.lowerBound {
-                    fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: target))
-                }
                 head = fragRange.lowerBound
             }
-
-            // Even though we're moving left, if the line is the empty last line, we could be
-            // at endIndex and need an upstream affinity.
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
-            let target = selection.upperBound
-            let targetAffinity = selection.isCaret ? selection.affinity : .upstream
+            let start = selection.upperBound
+            let fragRange = dataSource.range(for: .line, enclosing: start)
 
-            let lineRange = dataSource.range(for: .paragraph, enclosing: target)
-            var fragRange = dataSource.range(for: .line, enclosing: target)
-            if targetAffinity == .upstream && target == fragRange.lowerBound && lineRange.lowerBound < fragRange.lowerBound {
-                fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: target))
+            if fragRange.isEmpty {
+                // Empty last line. Includes empty document.
+                head = start
+                affinity = .upstream
+            } else if start == fragRange.lowerBound && (selection.isRange || selection.affinity == .upstream) {
+                // we're actually on the previous frag
+                head = fragRange.lowerBound
+                affinity = .upstream
+            } else {
+                let endsWithNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
+                head = endsWithNewline ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
+                affinity = endsWithNewline ? .downstream : .upstream
             }
-
-            let hardBreak = dataSource.lastCharacter(inRange: fragRange) == "\n"
-            head = hardBreak ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
-            affinity = hardBreak ? .downstream : .upstream
         case .beginningOfParagraph:
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
             affinity = .downstream
