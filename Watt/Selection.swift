@@ -57,10 +57,6 @@ struct Selection {
         !isCaret
     }
 
-    var caret: Buffer.Index? {
-        isCaret ? head : nil
-    }
-
     var anchor: Buffer.Index {
         if affinity == .upstream {
             range.upperBound

@@ -52,14 +52,6 @@ struct SimpleSelection: Equatable {
         self.affinity = affinity
         self.xOffset = xOffset
     }
-
-    var caret: String.Index? {
-        if isCaret {
-            range.lowerBound
-        } else {
-            nil
-        }
-    }
 }
 
 extension SimpleSelection: NavigableSelection {
@@ -75,22 +67,6 @@ extension SimpleSelection: NavigableSelection {
         let affinity: Affinity = anchor < head ? .downstream : .upstream
 
         self.init(range: i..<j, affinity: affinity, xOffset: xOffset)
-    }
-    
-    var anchor: String.Index {
-        if affinity == .upstream {
-            range.upperBound
-        } else {
-            range.lowerBound
-        }
-    }
-
-    var head: String.Index {
-        if affinity == .upstream {
-            range.lowerBound
-        } else {
-            range.upperBound
-        }
     }
 }
 
@@ -1082,8 +1058,16 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 final class SelectionTests: XCTestCase {
     // MARK: Creating selections
 
-    // TODO: creating carets
+    func testCreateCaret() {
+        let string = "Hello, world!"
+        let s = SimpleSelection(caretAt: string.index(at: 1), affinity: .upstream)
+        XCTAssert(s.isCaret)
+        XCTAssertEqual(string.index(at: 1), s.lowerBound)
+        XCTAssertEqual(.upstream, s.affinity)
+    }
+
     // TODO: creating ranges – make sure affinity gets set correctly
+
 
 
     // MARK: Selection navigation
@@ -1093,7 +1077,7 @@ final class SelectionTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
-        XCTAssertEqual(string.index(at: 0), s.caret)
+        XCTAssertEqual(string.index(at: 0), s.caretIndex)
         XCTAssertEqual(.downstream, s.affinity)
 
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
@@ -1957,8 +1941,9 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: SimpleSelection, hasCaretAt caret: String.Index, andSelectionAffinity affinity: SimpleSelection.Affinity, file: StaticString = #file, line: UInt = #line) {
-        XCTAssertEqual(selection.caret, caret, file: file, line: line)
+    func assert(selection: SimpleSelection, hasCaretAt caretIndex: String.Index, andSelectionAffinity affinity: SimpleSelection.Affinity, file: StaticString = #file, line: UInt = #line) {
+        XCTAssert(selection.isCaret)
+        XCTAssertEqual(selection.lowerBound, caretIndex, file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 }
