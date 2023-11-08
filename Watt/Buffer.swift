@@ -35,8 +35,12 @@ class Buffer {
         self.init("", language: .plainText)
     }
 
-    init(_ string: String, language: Language) {
-        self.contents = AttributedRope(string)
+    convenience init(_ string: String, language: Language) {
+        self.init(AttributedRope(string), language: language)
+    }
+
+    init(_ attrRope: AttributedRope, language: Language) {
+        self.contents = attrRope
         self.language = language
         self.delegates = WeakSet<BufferDelegate>()
 

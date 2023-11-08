@@ -128,9 +128,8 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let fragRange = lineFragmentRange(containing: index)
 
         let endsInNewline = string[fragRange].last == "\n"
-        let count = string.distance(from: fragRange.lowerBound, to: fragRange.upperBound)
 
-        if fragRange.isEmpty || endsInNewline && count == 1 {
+        if fragRange.isEmpty || (endsInNewline && string.count == 1) {
             _ = block(0, fragRange.lowerBound, .trailing)
             return
         }

@@ -783,24 +783,12 @@ extension LayoutManager: SelectionNavigationDataSource {
         return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
     }
 
-    // Yields the caret offsets in text container coordinates.
-    // If a fragment has 3 characters before wrapping, we'll yield (assuming a monospaced font for simplicity):
-    // 1. (0*charWidth, 0, leadingEdge=true)
-    // 2. (1*charWidth, 0, leadingEdge=false)
-    // 3. (1*charWidth, 1, leadingEdge=true)
-    // 4. (2*charWidth, 1, leadingEdge=false)
-    // 5. (2*charWidth, 2, leadingEdge=true)
-    // 6. (3*charWidth, 2, leadingEdge=false)
-
-    // if a fragment ends in a newline (e.g. "ab\n"), we stop after the trailing edge of the "b"
-    // 1. (0*charWidth, 0, leadingEdge=true)
-    // 2. (1*charWidth, 0, leadingEdge=false)
-    // 3. (1*charWidth, 1, leadingEdge=true)
-    // 4. (2*charWidth, 1, leadingEdge=false)
-
-    // Make sure to take into account the possibility of a syntehsized empty last line (LineFragment.utf16Count == 0). In that
-    // case, there's a single offset at (0, 0, leadingEdge=true). Note that 0 there is in line fragment coordinates, and
-    // must be adjusted to be in text container coordinates
+    // Enumerating over the first line fragment of each string:
+    // ""    -> [(0.0, 0, trailing)]
+    // "\n"  -> [(0.0, 0, trailing)]
+    // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
+    // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+    // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
         guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
@@ -808,16 +796,16 @@ extension LayoutManager: SelectionNavigationDataSource {
             return
         }
 
+        let endsInNewline = buffer[frag.range].characters.last == "\n"
+
         // hardcode empty last line because it was created from a dummy non-empty CTLine
-        if frag.range.isEmpty {
+        if frag.range.isEmpty || (endsInNewline && buffer.count == 1) {
             let fragPos = CGPoint(x: 0, y: 0)
             let linePos = convert(fragPos, from: frag)
             let pos = convert(linePos, from: line)
-            _ = block(pos.x, frag.range.lowerBound, .leading)
+            _ = block(pos.x, frag.range.lowerBound, .trailing)
             return
         }
-
-        let endsInNewline = buffer[frag.range].characters.last == "\n"
 
         var i = frag.range.lowerBound
         var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
@@ -829,14 +817,16 @@ extension LayoutManager: SelectionNavigationDataSource {
                     return
                 }
 
-                let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
+                let edge: Edge = leadingEdge ? .leading : .trailing
+
+                let isTrailingSurrogate = edge == .trailing && prevOffsetInLine != offsetInLine
                 if !isTrailingSurrogate {
                     i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
                     prevOffsetInLine = offsetInLine
                 }
 
-                // Don't include trailing newlines
                 if endsInNewline && i == buffer.index(before: frag.range.upperBound) {
+                    stop.pointee = true
                     return
                 }
 
@@ -844,7 +834,7 @@ extension LayoutManager: SelectionNavigationDataSource {
                 let linePos = convert(fragPos, from: frag)
                 let pos = convert(linePos, from: line)
 
-                if !block(pos.x, i, leadingEdge ? .leading : .trailing) {
+                if !block(pos.x, i, edge) {
                     stop.pointee = true
                     return
                 }
