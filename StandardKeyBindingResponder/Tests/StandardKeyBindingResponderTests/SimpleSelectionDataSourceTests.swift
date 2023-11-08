@@ -19,7 +19,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         let r = dataSource.lineFragmentRange(containing: s.startIndex)
 
-        XCTAssertEqual(0..<0, intRange(r, in: s))
+        XCTAssertEqual(0..<0, Range(r, in: s))
     }
 
     func testLineFragmentRangesStartOfFrags() {
@@ -41,12 +41,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let r4 = dataSource.lineFragmentRange(containing: start4)
         let r5 = dataSource.lineFragmentRange(containing: s.endIndex)
 
-        XCTAssertEqual(0..<10,  intRange(r0, in: s))
-        XCTAssertEqual(10..<20, intRange(r1, in: s))
-        XCTAssertEqual(20..<30, intRange(r2, in: s))
-        XCTAssertEqual(30..<40, intRange(r3, in: s))
-        XCTAssertEqual(40..<42, intRange(r4, in: s))
-        XCTAssertEqual(40..<42, intRange(r5, in: s))
+        XCTAssertEqual(0..<10,  Range(r0, in: s))
+        XCTAssertEqual(10..<20, Range(r1, in: s))
+        XCTAssertEqual(20..<30, Range(r2, in: s))
+        XCTAssertEqual(30..<40, Range(r3, in: s))
+        XCTAssertEqual(40..<42, Range(r4, in: s))
+        XCTAssertEqual(40..<42, Range(r5, in: s))
     }
 
 
@@ -68,11 +68,11 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let r3 = dataSource.lineFragmentRange(containing: i3)
         let r4 = dataSource.lineFragmentRange(containing: i4)
 
-        XCTAssertEqual(0..<10,  intRange(r0, in: string))
-        XCTAssertEqual(10..<20, intRange(r1, in: string))
-        XCTAssertEqual(20..<30, intRange(r2, in: string))
-        XCTAssertEqual(30..<40, intRange(r3, in: string))
-        XCTAssertEqual(40..<42, intRange(r4, in: string))
+        XCTAssertEqual(0..<10,  Range(r0, in: string))
+        XCTAssertEqual(10..<20, Range(r1, in: string))
+        XCTAssertEqual(20..<30, Range(r2, in: string))
+        XCTAssertEqual(30..<40, Range(r3, in: string))
+        XCTAssertEqual(40..<42, Range(r4, in: string))
     }
 
 
@@ -95,23 +95,23 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // First line: a single fragment that takes up less than the entire width.
         let start0 = string.index(string.startIndex, offsetBy: 0)
         var r = dataSource.lineFragmentRange(containing: start0)
-        XCTAssertEqual(0..<6, intRange(r, in: string))
+        XCTAssertEqual(0..<6, Range(r, in: string))
 
         // between "o" and "\n"
         let last0 = string.index(string.startIndex, offsetBy: 5)
         r = dataSource.lineFragmentRange(containing: last0)
-        XCTAssertEqual(0..<6, intRange(r, in: string))
+        XCTAssertEqual(0..<6, Range(r, in: string))
 
 
         // Second line: a fragment that takes up the entire width and ends in a newline.
         let start1 = string.index(string.startIndex, offsetBy: 6)
         r = dataSource.lineFragmentRange(containing: start1)
-        XCTAssertEqual(6..<17, intRange(r, in: string))
+        XCTAssertEqual(6..<17, Range(r, in: string))
 
         // between "9" and "\n"
         let last1 = string.index(string.startIndex, offsetBy: 16)
         r = dataSource.lineFragmentRange(containing: last1)
-        XCTAssertEqual(6..<17, intRange(r, in: string))
+        XCTAssertEqual(6..<17, Range(r, in: string))
 
 
         // Third line wraps, with two fragments
@@ -119,29 +119,29 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // First fragment
         let start2 = string.index(string.startIndex, offsetBy: 17)
         r = dataSource.lineFragmentRange(containing: start2)
-        XCTAssertEqual(17..<27, intRange(r, in: string))
+        XCTAssertEqual(17..<27, Range(r, in: string))
 
         // between "9" and "w"
         let boundary2 = string.index(string.startIndex, offsetBy: 27)
         r = dataSource.lineFragmentRange(containing: boundary2)
-        XCTAssertEqual(27..<32, intRange(r, in: string))
+        XCTAssertEqual(27..<32, Range(r, in: string))
 
         // between "p" and "\n"
         let last2 = string.index(string.startIndex, offsetBy: 31)
         r = dataSource.lineFragmentRange(containing: last2)
-        XCTAssertEqual(27..<32, intRange(r, in: string))
+        XCTAssertEqual(27..<32, Range(r, in: string))
 
         // Fourth line
         let start3 = string.index(string.startIndex, offsetBy: 32)
         r = dataSource.lineFragmentRange(containing: start3)
-        XCTAssertEqual(32..<37, intRange(r, in: string))
+        XCTAssertEqual(32..<37, Range(r, in: string))
 
         // At the end of the buffer
         let last3 = string.index(string.startIndex, offsetBy: 37)
         XCTAssertEqual(last3, string.endIndex)
 
         r = dataSource.lineFragmentRange(containing: last3)
-        XCTAssertEqual(32..<37, intRange(r, in: string))
+        XCTAssertEqual(32..<37, Range(r, in: string))
     }
 
     func testLineFragmentRangesEndingInNewline() {
@@ -161,23 +161,23 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // First line: two fragments
         let start0 = string.index(string.startIndex, offsetBy: 0)
         var r = dataSource.lineFragmentRange(containing: start0)
-        XCTAssertEqual(0..<10, intRange(r, in: string))
+        XCTAssertEqual(0..<10, Range(r, in: string))
 
 
         // between "9" and "w"
         let boundary0 = string.index(string.startIndex, offsetBy: 10)
         r = dataSource.lineFragmentRange(containing: boundary0)
-        XCTAssertEqual(10..<15, intRange(r, in: string))
+        XCTAssertEqual(10..<15, Range(r, in: string))
 
         // between "p" and "\n"
         let last0 = string.index(string.startIndex, offsetBy: 14)
         r = dataSource.lineFragmentRange(containing: last0)
-        XCTAssertEqual(10..<15, intRange(r, in: string))
+        XCTAssertEqual(10..<15, Range(r, in: string))
 
         // Second line, a single empty fragment
         let start1 = string.index(string.startIndex, offsetBy: 15)
         r = dataSource.lineFragmentRange(containing: start1)
-        XCTAssertEqual(15..<15, intRange(r, in: string))
+        XCTAssertEqual(15..<15, Range(r, in: string))
     }
 
     func testLineFragmentRangeFullFragAndNewline() {
@@ -185,16 +185,16 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         var r = dataSource.lineFragmentRange(containing: string.index(at: 0))
-        XCTAssertEqual(0..<11, intRange(r, in: string))
+        XCTAssertEqual(0..<11, Range(r, in: string))
 
         r = dataSource.lineFragmentRange(containing: string.index(at: 5))
-        XCTAssertEqual(0..<11, intRange(r, in: string))
+        XCTAssertEqual(0..<11, Range(r, in: string))
 
         r = dataSource.lineFragmentRange(containing: string.index(at: 10))
-        XCTAssertEqual(0..<11, intRange(r, in: string))
+        XCTAssertEqual(0..<11, Range(r, in: string))
 
         r = dataSource.lineFragmentRange(containing: string.index(at: 11))
-        XCTAssertEqual(11..<11, intRange(r, in: string))
+        XCTAssertEqual(11..<11, Range(r, in: string))
     }
 
     func testLineFragmentRangeEndIndex() {
@@ -203,7 +203,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         // End index returns the last line
         let r = dataSource.lineFragmentRange(containing: string.index(at: 3))
-        XCTAssertEqual(0..<3, intRange(r, in: string))
+        XCTAssertEqual(0..<3, Range(r, in: string))
     }
 
     // MARK: enumerateCaretOffsetsInLineFragment(containing:using:)

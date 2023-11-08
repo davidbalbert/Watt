@@ -181,6 +181,11 @@ extension SimpleSelectionDataSource {
     }
 }
 
-func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
-    string.utf8.distance(from: string.startIndex, to: r.lowerBound)..<string.utf8.distance(from: string.startIndex, to: r.upperBound)
+extension Range where Bound == Int {
+    init(_ range: Range<String.Index> , in string: String) {
+        let start = string.utf8.distance(from: string.utf8.startIndex, to: range.lowerBound)
+        let end = string.utf8.distance(from: string.utf8.startIndex, to: range.upperBound)
+
+        self.init(uncheckedBounds: (start, end))
+    }
 }
