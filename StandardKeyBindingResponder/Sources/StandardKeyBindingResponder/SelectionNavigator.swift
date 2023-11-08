@@ -7,9 +7,25 @@
 
 import Foundation
 
+public enum Edge {
+    case leading
+    case trailing
+}
+
 public enum Affinity {
     case upstream
     case downstream
+}
+
+public protocol InitializableFromAffinity {
+    init(_ affinity: Affinity)
+}
+
+// fileprivate so there's no ambiguity in SelectionNavigatorTests when
+// we import StandardKeyBindingResponder as @testable.
+fileprivate extension InitializableFromAffinity {
+    static var upstream: Self { Self(.upstream) }
+    static var downstream: Self { Self(.downstream) }
 }
 
 public enum Granularity {
@@ -34,23 +50,13 @@ public enum Movement: Equatable {
     case endOfDocument
 }
 
-public protocol InitializableFromAffinity {
-    init(_ affinity: Affinity)
-}
-
-// fileprivate so there's no ambiguity in SelectionNavigatorTests when
-// we import StandardKeyBindingResponder as @testable.
-fileprivate extension InitializableFromAffinity {
-    static var upstream: Self { Self(.upstream) }
-    static var downstream: Self { Self(.downstream) }
-}
-
 public protocol NavigableSelection {
     associatedtype Index: Comparable
     associatedtype Affinity: InitializableFromAffinity & Equatable
 
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
 
+    // TODO: I think this might be wrong? Can't we just get the xOffset when we move vertically? Also, I think this may not be a behavior we care to keep.
     // You might think that a non-caret Selection doesn't need an xOffset, but we still
     // need to maintain it for a specific special case: If we're moving up from within
     // the first fragment to the beginning of the document or moving down from the within
@@ -122,7 +128,7 @@ public protocol SelectionNavigationDataSource {
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
-    func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ leadingEdge: Bool) -> Bool)
+    func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ edge: Edge) -> Bool)
 
     // MARK: Methods with default implementations
     func isWordStart(_ i: Index) -> Bool
@@ -404,7 +410,7 @@ extension SelectionNavigationDataSource {
         }
 
         var caretOffset: CGFloat?
-        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
+        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
             // ""    -> [(0.0, 0, trailing)]
             // "\n"  -> [(0.0, 0, trailing)]
@@ -413,12 +419,12 @@ extension SelectionNavigationDataSource {
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             // The common case.
-            if leadingEdge && target == i {
+            if edge == .leading && target == i {
                 caretOffset = offset
                 return false
             }
 
-            if !leadingEdge && trailingTarget == i {
+            if edge == .trailing && trailingTarget == i {
                 caretOffset = offset
                 return false
             }
@@ -437,7 +443,7 @@ extension SelectionNavigationDataSource {
 
         var res: Index?
         var prev: (offset: CGFloat, i: Index)?
-        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, leadingEdge in
+        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
             // ""    -> [(0.0, 0, trailing)]
             // "\n"  -> [(0.0, 0, trailing)]
@@ -446,10 +452,10 @@ extension SelectionNavigationDataSource {
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             let nleft = distance(from: i, to: fragRange.upperBound)
-            let isFinalOffset = !leadingEdge && (nleft == 1 || endsInNewline && nleft == 2)
+            let isFinalOffset = edge == .trailing && (nleft == 1 || endsInNewline && nleft == 2)
 
             // skip all but the last trailing edge
-            if !leadingEdge && !isFinalOffset {
+            if edge == .trailing && !isFinalOffset {
                 return true
             }
 
@@ -471,7 +477,7 @@ extension SelectionNavigationDataSource {
             if prevDistance < thisDistance {
                 res = prev.i
             } else if isFinalOffset {
-                assert(!leadingEdge)
+                assert(edge == .trailing)
                 // the current offset is closer, because the final offset is the trailing edge of the
                 // second to last index, we need to move forward to the next index.
                 res = index(after: i)

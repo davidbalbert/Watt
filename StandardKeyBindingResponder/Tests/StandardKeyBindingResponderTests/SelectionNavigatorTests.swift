@@ -172,35 +172,35 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         return fragStart..<fragEnd
     }
 
-    func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Bool) -> Bool) {
+    func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Edge) -> Bool) {
         let fragRange = lineFragmentRange(containing: index)
 
         let endsInNewline = string[fragRange].last == "\n"
         let count = string.distance(from: fragRange.lowerBound, to: fragRange.upperBound)
 
         if fragRange.isEmpty || endsInNewline && count == 1 {
-            _ = block(0, fragRange.lowerBound, false)
+            _ = block(0, fragRange.lowerBound, .trailing)
             return
         }
 
         var i = fragRange.lowerBound
         var offset: CGFloat = 0
-        var leadingEdge = true
+        var edge: Edge = .leading
         while i < fragRange.upperBound {
             if endsInNewline && i == string.index(before: fragRange.upperBound) {
                 return
             }
 
-            if !block(offset, i, leadingEdge) {
+            if !block(offset, i, edge) {
                 return
             }
 
-            if leadingEdge {
+            if edge == .leading {
                 offset += Self.charWidth
             } else {
                 i = string.index(after: i)
             }
-            leadingEdge = !leadingEdge
+            edge = edge == .leading ? .trailing : .leading
         }
     }
 }
@@ -210,20 +210,20 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
 struct CaretOffset: Equatable {
     var offset: CGFloat
     var index: String.Index
-    var leadingEdge: Bool
+    var edge: Edge
 
-    init(_ offset: CGFloat, _ index: String.Index, _ leadingEdge: Bool) {
+    init(_ offset: CGFloat, _ index: String.Index, _ edge: Edge) {
         self.offset = offset
         self.index = index
-        self.leadingEdge = leadingEdge
+        self.edge = edge
     }
 }
 
 extension SimpleSelectionDataSource {
     func carretOffsetsInLineFragment(containing index: String.Index) -> [CaretOffset] {
         var offsets: [CaretOffset] = []
-        enumerateCaretOffsetsInLineFragment(containing: index) { offset, i, leadingEdge in
-            offsets.append(CaretOffset(offset, i, leadingEdge))
+        enumerateCaretOffsetsInLineFragment(containing: index) { offset, i, edge in
+            offsets.append(CaretOffset(offset, i, edge))
             return true
         }
         return offsets
@@ -439,7 +439,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         XCTAssertEqual(1, offsets.count)
 
-        XCTAssertEqual(O(0, string.startIndex, false), offsets[0])
+        XCTAssertEqual(O(0, string.startIndex, .trailing), offsets[0])
     }
 
     func testEnumerateCaretOffsetsOnlyNewline() {
@@ -448,12 +448,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(1, offsets.count)
-        XCTAssertEqual(O(0, string.index(at: 0), false), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 0), .trailing), offsets[0])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
 
         XCTAssertEqual(1, offsets.count)
-        XCTAssertEqual(O(0, string.index(at: 1), false), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 1), .trailing), offsets[0])
     }
 
     func testEnumerateCaretOffsetOneLine() {
@@ -463,12 +463,12 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         XCTAssertEqual(6, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
-        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
-        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
-        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
-        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+        XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), .leading), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), .trailing), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), .leading), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), .trailing), offsets[5])
     }
 
     func testEnumerateCaretOffsetWithNewline() {
@@ -478,18 +478,18 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         XCTAssertEqual(6, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
-        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
-        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
-        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
-        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
+        XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), .leading), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), .trailing), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), .leading), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), .trailing), offsets[5])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 4))
 
         XCTAssertEqual(1, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 4), false), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 4), .trailing), offsets[0])
     }
 
     func testEnumerateCaretOffsetsWithWrap() {
@@ -499,39 +499,39 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         XCTAssertEqual(20, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
-        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
-        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
-        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
-        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
-        XCTAssertEqual(O(24, string.index(at: 3), true), offsets[6])
-        XCTAssertEqual(O(32, string.index(at: 3), false), offsets[7])
-        XCTAssertEqual(O(32, string.index(at: 4), true), offsets[8])
-        XCTAssertEqual(O(40, string.index(at: 4), false), offsets[9])
-        XCTAssertEqual(O(40, string.index(at: 5), true), offsets[10])
-        XCTAssertEqual(O(48, string.index(at: 5), false), offsets[11])
-        XCTAssertEqual(O(48, string.index(at: 6), true), offsets[12])
-        XCTAssertEqual(O(56, string.index(at: 6), false), offsets[13])
-        XCTAssertEqual(O(56, string.index(at: 7), true), offsets[14])
-        XCTAssertEqual(O(64, string.index(at: 7), false), offsets[15])
-        XCTAssertEqual(O(64, string.index(at: 8), true), offsets[16])
-        XCTAssertEqual(O(72, string.index(at: 8), false), offsets[17])
-        XCTAssertEqual(O(72, string.index(at: 9), true), offsets[18])
-        XCTAssertEqual(O(80, string.index(at: 9), false), offsets[19])
+        XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), .leading), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), .trailing), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), .leading), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), .trailing), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 3), .leading), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 3), .trailing), offsets[7])
+        XCTAssertEqual(O(32, string.index(at: 4), .leading), offsets[8])
+        XCTAssertEqual(O(40, string.index(at: 4), .trailing), offsets[9])
+        XCTAssertEqual(O(40, string.index(at: 5), .leading), offsets[10])
+        XCTAssertEqual(O(48, string.index(at: 5), .trailing), offsets[11])
+        XCTAssertEqual(O(48, string.index(at: 6), .leading), offsets[12])
+        XCTAssertEqual(O(56, string.index(at: 6), .trailing), offsets[13])
+        XCTAssertEqual(O(56, string.index(at: 7), .leading), offsets[14])
+        XCTAssertEqual(O(64, string.index(at: 7), .trailing), offsets[15])
+        XCTAssertEqual(O(64, string.index(at: 8), .leading), offsets[16])
+        XCTAssertEqual(O(72, string.index(at: 8), .trailing), offsets[17])
+        XCTAssertEqual(O(72, string.index(at: 9), .leading), offsets[18])
+        XCTAssertEqual(O(80, string.index(at: 9), .trailing), offsets[19])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 10))
 
         XCTAssertEqual(8, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 10), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 10), false), offsets[1])
-        XCTAssertEqual(O(8, string.index(at: 11), true), offsets[2])
-        XCTAssertEqual(O(16, string.index(at: 11), false), offsets[3])
-        XCTAssertEqual(O(16, string.index(at: 12), true), offsets[4])
-        XCTAssertEqual(O(24, string.index(at: 12), false), offsets[5])
-        XCTAssertEqual(O(24, string.index(at: 13), true), offsets[6])
-        XCTAssertEqual(O(32, string.index(at: 13), false), offsets[7])
+        XCTAssertEqual(O(0, string.index(at: 10), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 10), .trailing), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 11), .leading), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 11), .trailing), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 12), .leading), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 12), .trailing), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 13), .leading), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 13), .trailing), offsets[7])
     }
 
     func testEnumerateCaretOffsetFullLineFragmentPlusNewline() {
@@ -541,32 +541,32 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         XCTAssertEqual(20, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
-        XCTAssertEqual(O(8, string.index(at: 1), true), offsets[2])
-        XCTAssertEqual(O(16, string.index(at: 1), false), offsets[3])
-        XCTAssertEqual(O(16, string.index(at: 2), true), offsets[4])
-        XCTAssertEqual(O(24, string.index(at: 2), false), offsets[5])
-        XCTAssertEqual(O(24, string.index(at: 3), true), offsets[6])
-        XCTAssertEqual(O(32, string.index(at: 3), false), offsets[7])
-        XCTAssertEqual(O(32, string.index(at: 4), true), offsets[8])
-        XCTAssertEqual(O(40, string.index(at: 4), false), offsets[9])
-        XCTAssertEqual(O(40, string.index(at: 5), true), offsets[10])
-        XCTAssertEqual(O(48, string.index(at: 5), false), offsets[11])
-        XCTAssertEqual(O(48, string.index(at: 6), true), offsets[12])
-        XCTAssertEqual(O(56, string.index(at: 6), false), offsets[13])
-        XCTAssertEqual(O(56, string.index(at: 7), true), offsets[14])
-        XCTAssertEqual(O(64, string.index(at: 7), false), offsets[15])
-        XCTAssertEqual(O(64, string.index(at: 8), true), offsets[16])
-        XCTAssertEqual(O(72, string.index(at: 8), false), offsets[17])
-        XCTAssertEqual(O(72, string.index(at: 9), true), offsets[18])
-        XCTAssertEqual(O(80, string.index(at: 9), false), offsets[19])
+        XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
+        XCTAssertEqual(O(8, string.index(at: 1), .leading), offsets[2])
+        XCTAssertEqual(O(16, string.index(at: 1), .trailing), offsets[3])
+        XCTAssertEqual(O(16, string.index(at: 2), .leading), offsets[4])
+        XCTAssertEqual(O(24, string.index(at: 2), .trailing), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 3), .leading), offsets[6])
+        XCTAssertEqual(O(32, string.index(at: 3), .trailing), offsets[7])
+        XCTAssertEqual(O(32, string.index(at: 4), .leading), offsets[8])
+        XCTAssertEqual(O(40, string.index(at: 4), .trailing), offsets[9])
+        XCTAssertEqual(O(40, string.index(at: 5), .leading), offsets[10])
+        XCTAssertEqual(O(48, string.index(at: 5), .trailing), offsets[11])
+        XCTAssertEqual(O(48, string.index(at: 6), .leading), offsets[12])
+        XCTAssertEqual(O(56, string.index(at: 6), .trailing), offsets[13])
+        XCTAssertEqual(O(56, string.index(at: 7), .leading), offsets[14])
+        XCTAssertEqual(O(64, string.index(at: 7), .trailing), offsets[15])
+        XCTAssertEqual(O(64, string.index(at: 8), .leading), offsets[16])
+        XCTAssertEqual(O(72, string.index(at: 8), .trailing), offsets[17])
+        XCTAssertEqual(O(72, string.index(at: 9), .leading), offsets[18])
+        XCTAssertEqual(O(80, string.index(at: 9), .trailing), offsets[19])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 11))
 
         XCTAssertEqual(1, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 11), false), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 11), .trailing), offsets[0])
     }
 
     func testEnumerateCaretOffsetsUpperBound() {
@@ -577,8 +577,8 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // endIndex returns the last line
         XCTAssertEqual(2, offsets.count)
 
-        XCTAssertEqual(O(0, string.index(at: 0), true), offsets[0])
-        XCTAssertEqual(O(8, string.index(at: 0), false), offsets[1])
+        XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
     }
 }
 

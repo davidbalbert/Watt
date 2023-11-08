@@ -814,7 +814,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     // Make sure to take into account the possibility of a syntehsized empty last line (LineFragment.utf16Count == 0). In that
     // case, there's a single offset at (0, 0, leadingEdge=true). Note that 0 there is in line fragment coordinates, and
     // must be adjusted to be in text container coordinates
-    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ leadingEdge: Bool) -> Bool) {
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
         guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
             assertionFailure("no frag")
@@ -826,7 +826,7 @@ extension LayoutManager: SelectionNavigationDataSource {
             let fragPos = CGPoint(x: 0, y: 0)
             let linePos = convert(fragPos, from: frag)
             let pos = convert(linePos, from: line)
-            _ = block(pos.x, frag.range.lowerBound, true)
+            _ = block(pos.x, frag.range.lowerBound, .leading)
             return
         }
 
@@ -857,7 +857,7 @@ extension LayoutManager: SelectionNavigationDataSource {
                 let linePos = convert(fragPos, from: frag)
                 let pos = convert(linePos, from: line)
 
-                if !block(pos.x, i, leadingEdge) {
+                if !block(pos.x, i, leadingEdge ? .leading : .trailing) {
                     stop.pointee = true
                     return
                 }
