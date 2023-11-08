@@ -160,7 +160,7 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let beforeTrailingNewline = endsWithNewline && offsetInParagraph == paraLen - 1
 
         let fragIndex: Int
-        if onTrailingBoundary && beforeTrailingNewline {
+        if onTrailingBoundary && (beforeTrailingNewline || i == string.endIndex) {
             fragIndex = (offsetInParagraph/charsPerLine) - 1
         } else {
             fragIndex = offsetInParagraph/charsPerLine
@@ -433,10 +433,6 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(0..<3, intRange(r, in: string))
     }
 
-    func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
-        string.utf8.distance(from: string.startIndex, to: r.lowerBound)..<string.utf8.distance(from: string.startIndex, to: r.upperBound)
-    }
-
     // MARK: enumerateCaretOffsetsInLineFragment(containing:using:)
 
     typealias O = CaretOffset
@@ -603,6 +599,8 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
 // MARK: - SelectionNavigationDataSource extension tests
 final class SelectionNavigationDataSourceTests: XCTestCase {
+    // MARK: index(forCaretOffset:inLineFragmentWithRange:)
+
     func testIndexForCaretOffsetEmpty() {
         let s = ""
         let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
@@ -798,6 +796,299 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         r = s.index(at: 2)..<s.index(at: 2)
 
         XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 2), inLineFragmentWithRange: r))
+    }
+
+    // MARK: range(for:enclosing:)
+
+    func testRangeForCharacterEmptyString() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = dataSource.range(for: .character, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<0, intRange(r, in: s))
+    }
+
+    func testRangeForWordEmptyString() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = dataSource.range(for: .word, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<0, intRange(r, in: s))
+    }
+
+    func testRangeForLineEmptyString() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<0, intRange(r, in: s))
+    }
+
+    func testRangeForParagraphEmptyString() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<0, intRange(r, in: s))
+    }
+
+    func testRangeForCharacter() {
+        let s = "abc"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .character, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<1, intRange(r, in: s))
+
+        r = dataSource.range(for: .character, enclosing: s.index(at: 1))
+        XCTAssertEqual(1..<2, intRange(r, in: s))
+
+        r = dataSource.range(for: .character, enclosing: s.index(at: 2))
+        XCTAssertEqual(2..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .character, enclosing: s.index(at: 3))
+        XCTAssertEqual(2..<3, intRange(r, in: s))
+    }
+
+    func testRangeForWordCharactersAtEdges() {
+        let s = "abc   def"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 1))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 2))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 3))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 4))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 5))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 6))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 7))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 8))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 9))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+    }
+
+    func testRangeForWordWhitespaceAtEdges() {
+        let s = "   abc   "
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 1))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 2))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 3))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 4))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 5))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 6))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 7))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 8))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 9))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+    }
+
+    func testRangeForWordWithNewline() {
+        let s = "abc \n def"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 1))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 2))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 3))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 4))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 5))
+        XCTAssertEqual(3..<6, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 6))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 7))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 8))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 9))
+        XCTAssertEqual(6..<9, intRange(r, in: s))
+    }
+
+    func testRangeForLineSingleFragment() {
+        let s = "abc"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 1))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 2))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 3))
+        XCTAssertEqual(0..<3, intRange(r, in: s))
+    }
+
+    func testRangeForLineWithNewline() {
+        let s = "abc\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+        
+        r = dataSource.range(for: .line, enclosing: s.index(at: 1))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 2))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 3))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 4))
+        XCTAssertEqual(4..<4, intRange(r, in: s))
+    }
+
+    func testRangeForFullLine() {
+        let s = "0123456789"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 5))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 9))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 10))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+    }
+
+    func testRangeForFullLineWithTrailingNewline() {
+        let s = "0123456789\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<11, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 5))
+        XCTAssertEqual(0..<11, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 9))
+        XCTAssertEqual(0..<11, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 10))
+        XCTAssertEqual(0..<11, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 11))
+        XCTAssertEqual(11..<11, intRange(r, in: s))
+    }
+
+    func testRangeForWrappedLine() {
+        let s = "0123456789wrap"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 5))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 9))
+        XCTAssertEqual(0..<10, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 10))
+        XCTAssertEqual(10..<14, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 11))
+        XCTAssertEqual(10..<14, intRange(r, in: s))
+
+        r = dataSource.range(for: .line, enclosing: s.index(at: 14))
+        XCTAssertEqual(10..<14, intRange(r, in: s))    
+    }
+
+    func testRangeForParagraph() {
+        let s = "0123456789wrap\n0123456789wrap"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<15, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 14))
+        XCTAssertEqual(0..<15, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 15))
+        XCTAssertEqual(15..<29, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 28))
+        XCTAssertEqual(15..<29, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 29))
+        XCTAssertEqual(15..<29, intRange(r, in: s))
+    }
+
+    func testRangeForParagraphWithTrailingNewline() {
+        let s = "foo\nbar\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 3))
+        XCTAssertEqual(0..<4, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 4))
+        XCTAssertEqual(4..<8, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 7))
+        XCTAssertEqual(4..<8, intRange(r, in: s))
+
+        r = dataSource.range(for: .paragraph, enclosing: s.index(at: 8))
+        XCTAssertEqual(8..<8, intRange(r, in: s))
     }
 }
 
@@ -1671,4 +1962,8 @@ final class SelectionTests: XCTestCase {
         XCTAssertEqual(selection.caret, caret, file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
+}
+
+fileprivate func intRange(_ r: Range<String.Index>, in string: String) -> Range<Int> {
+    string.utf8.distance(from: string.startIndex, to: r.lowerBound)..<string.utf8.distance(from: string.startIndex, to: r.upperBound)
 }
