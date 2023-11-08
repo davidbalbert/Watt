@@ -127,12 +127,8 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         string.startIndex..<string.endIndex
     }
 
-    func index(beforeCharacter i: String.Index) -> String.Index {
-        string.index(before: i)
-    }
-
-    func index(afterCharacter i: String.Index) -> String.Index {
-        string.index(after: i)
+    func index(_ i: Index, offsetBy offset: Int) -> Index {
+        string.index(i, offsetBy: offset)
     }
 
     func distance(from start: String.Index, to end: String.Index) -> Int {

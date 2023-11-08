@@ -766,12 +766,8 @@ extension LayoutManager: SelectionNavigationDataSource {
         buffer.documentRange
     }
 
-    func index(beforeCharacter i: Buffer.Index) -> Buffer.Index {
-        buffer.index(before: i)
-    }
-
-    func index(afterCharacter i: Buffer.Index) -> Buffer.Index {
-        buffer.index(after: i)
+    func index(_ i: Buffer.Index, offsetBy offset: Int) -> Buffer.Index {
+        buffer.index(i, offsetBy: offset)
     }
 
     func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {
@@ -954,7 +950,7 @@ extension LayoutManager {
         if i == buffer.startIndex {
             return !isWhitespaceCharacter(self[i])
         }
-        let prev = index(beforeCharacter: i)
+        let prev = buffer.index(before: i)
         return isWhitespaceCharacter(self[prev]) && !isWhitespaceCharacter(self[i])
     }
 
@@ -964,7 +960,7 @@ extension LayoutManager {
             return false
         }
 
-        let prev = index(beforeCharacter: i)
+        let prev = buffer.index(before: i)
         if i == buffer.endIndex {
             return !isWhitespaceCharacter(self[prev])
         }

@@ -127,8 +127,7 @@ public protocol SelectionNavigationDataSource {
 
     var documentRange: Range<Index> { get }
 
-    func index(beforeCharacter i: Index) -> Index
-    func index(afterCharacter i: Index) -> Index
+    func index(_ i: Index, offsetBy offset: Int) -> Index
     func distance(from start: Index, to end: Index) -> Int
 
     func index(beforeParagraph i: Index) -> Index
@@ -224,7 +223,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
                 head = start
             } else if start == fragRange.lowerBound && selection.isCaret && selection.affinity == .upstream {
                 // we're actually on the previous frag
-                let prevFrag = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: start))
+                let prevFrag = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
                 head = prevFrag.lowerBound
             } else {
                 head = fragRange.lowerBound
@@ -244,7 +243,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
                 affinity = .upstream
             } else {
                 let endsWithNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
-                head = endsWithNewline ? dataSource.index(beforeCharacter: fragRange.upperBound) : fragRange.upperBound
+                head = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
                 affinity = endsWithNewline ? .downstream : .upstream
             }
         case .beginningOfParagraph:
@@ -253,7 +252,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         case .endOfParagraph:
             let range = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
             if dataSource.lastCharacter(inRange: range) == "\n" {
-                head = dataSource.index(beforeCharacter: range.upperBound)
+                head = dataSource.index(before: range.upperBound)
             } else {
                 head = range.upperBound
             }
@@ -329,7 +328,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             assert(i != dataSource.startIndex)
             // If we have a caret at the end of a line fragment, we need to ask the data source
             // for the previous fragment.
-            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(beforeCharacter: i))
+            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: i))
         }
         // TODO: there's still the !movingUp use upstream affinity case, but I don't remember why that's there.
 
@@ -349,7 +348,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
 
         let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: i, inLineFragmentWithRange: fragRange)
 
-        let target = movingUp ? dataSource.index(beforeCharacter: fragRange.lowerBound) : fragRange.upperBound
+        let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
         let targetFragRange = dataSource.range(for: .line, enclosing: target)
         let head = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
@@ -371,18 +370,26 @@ extension SelectionNavigationDataSource {
         documentRange.upperBound
     }
 
+    func index(before i: Index) -> Index {
+        index(i, offsetBy: -1)
+    }
+
+    func index(after i: Index) -> Index {
+        index(i, offsetBy: 1)
+    }
+
     func index(beforeCharacter i: Index, clampedTo limit: Index) -> Index {
         if i <= limit {
             return limit
         }
-        return index(beforeCharacter: i)
+        return index(before: i)
     }
 
     func index(afterCharacter i: Index, clampedTo limit: Index) -> Index {
         if i >= limit {
             return limit
         }
-        return index(afterCharacter: i)
+        return index(after: i)
     }
 
     func index(beginningOfWordBefore i: Index) -> Index? {
@@ -392,7 +399,7 @@ extension SelectionNavigationDataSource {
 
         var i = i
         if isWordStart(i) {
-            i = index(beforeCharacter: i)
+            i = index(before: i)
         }
 
         var r = range(for: .word, enclosing: i)
@@ -401,7 +408,7 @@ extension SelectionNavigationDataSource {
             // with whitespace.
             return nil
         } else if !isWordStart(r.lowerBound) {
-            r = range(for: .word, enclosing: index(beforeCharacter: r.lowerBound))
+            r = range(for: .word, enclosing: index(before: r.lowerBound))
         }
 
         return r.lowerBound
@@ -445,7 +452,7 @@ extension SelectionNavigationDataSource {
             return nil
         }
 
-        return self[index(beforeCharacter: range.upperBound)]
+        return self[index(before: range.upperBound)]
     }
 
     func range(for granularity: SelectionGranularity, enclosing i: Index) -> Range<Index> {
@@ -457,10 +464,10 @@ extension SelectionNavigationDataSource {
         case .character:
             var start = i
             if i == endIndex {
-                start = index(beforeCharacter: start)
+                start = index(before: start)
             }
 
-            return start..<index(afterCharacter: start)
+            return start..<index(after: start)
         case .word:
             let start: Index
             let end: Index
@@ -490,7 +497,7 @@ extension SelectionNavigationDataSource {
         precondition(i > startIndex)
         var j = i
         while i > startIndex {
-            j = index(beforeCharacter: j)
+            j = index(before: j)
             if isWordBoundary(j) {
                 break
             }
@@ -502,7 +509,7 @@ extension SelectionNavigationDataSource {
         precondition(i < endIndex)
         var j = i
         while j < endIndex {
-            j = index(afterCharacter: j)
+            j = index(after: j)
             if isWordBoundary(j) {
                 break
             }
@@ -541,7 +548,7 @@ extension SelectionNavigationDataSource {
     }
 
     func isParagraphBoundary(_ i: Index) -> Bool {
-        i == startIndex || self[index(beforeCharacter: i)] == "\n"
+        i == startIndex || self[index(before: i)] == "\n"
     }
 
     func caretOffset(forCharacterAt target: Index, inLineFragmentWithRange fragRange: Range<Index>) -> CGFloat {
@@ -554,10 +561,9 @@ extension SelectionNavigationDataSource {
 
         let trailingTarget: Index
         if targetIsAfterNewline && count > 1 {
-            // TODO: change the protocol so that we have index(_:offsetBy:)
-            trailingTarget = index(beforeCharacter: index(beforeCharacter: fragRange.upperBound))
-        } else if target > fragRange.lowerBound && (target == fragRange.upperBound || (endsInNewline && target == index(beforeCharacter: fragRange.upperBound))) {
-            trailingTarget = index(beforeCharacter: target)
+            trailingTarget = index(fragRange.upperBound, offsetBy: -2)
+        } else if target > fragRange.lowerBound && (target == fragRange.upperBound || (endsInNewline && target == index(before: fragRange.upperBound))) {
+            trailingTarget = index(before: target)
         } else {
             trailingTarget = target
         }
@@ -633,7 +639,7 @@ extension SelectionNavigationDataSource {
                 assert(!leadingEdge)
                 // the current offset is closer, because the final offset is the trailing edge of the
                 // second to last index, we need to move forward to the next index.
-                res = index(afterCharacter: i)
+                res = index(after: i)
                 return false
             } else {
                 res = i
@@ -651,7 +657,7 @@ extension SelectionNavigationDataSource {
         // fragment ends in a newline, return the index of the newline – it's impossible
         // to be on the leading edge of a newline character.
         if lastCharacter(inRange: fragRange) == "\n" {
-            return index(beforeCharacter: fragRange.upperBound)
+            return index(before: fragRange.upperBound)
         } else {
             return fragRange.upperBound
         }
@@ -672,12 +678,12 @@ extension SelectionNavigationDataSource {
         // in this case, we have to go to the beginning of the previous paragraph
 
         var j = i
-        if self[index(beforeCharacter: j)] == "\n" {
-            j = index(beforeCharacter: j)
+        if self[index(before: j)] == "\n" {
+            j = index(before: j)
         }
 
-        while j > startIndex && self[index(beforeCharacter: j)] != "\n" {
-            j = index(beforeCharacter: j)
+        while j > startIndex && self[index(before: j)] != "\n" {
+            j = index(before: j)
         }
 
         return j
@@ -688,11 +694,11 @@ extension SelectionNavigationDataSource {
 
         var j = i
         while j < endIndex && self[j] != "\n" {
-            j = index(afterCharacter: j)
+            j = index(after: j)
         }
 
         if j < endIndex {
-            j = index(afterCharacter: j)
+            j = index(after: j)
         }
 
         return j
@@ -703,7 +709,7 @@ extension SelectionNavigationDataSource {
             return true
         }
 
-        let prev = index(beforeCharacter: i)
+        let prev = index(before: i)
         return isWordCharacter(self[prev]) != isWordCharacter(self[i])
     }
 
@@ -715,7 +721,7 @@ extension SelectionNavigationDataSource {
         if i == startIndex {
             return !isWhitespace(i)
         }
-        let prev = index(beforeCharacter: i)
+        let prev = index(before: i)
         return isWhitespace(prev) && !isWhitespace(i)
     }
 
@@ -724,7 +730,7 @@ extension SelectionNavigationDataSource {
             return false
         }
 
-        let prev = index(beforeCharacter: i)
+        let prev = index(before: i)
         if i == endIndex {
             return !isWhitespace(prev)
         }
