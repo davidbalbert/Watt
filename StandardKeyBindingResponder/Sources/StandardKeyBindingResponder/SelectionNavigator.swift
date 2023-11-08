@@ -177,7 +177,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         // can never yield an upstream affinity.
 
         let head: Selection.Index
-        var affinity: Selection.Affinity? = nil
+        var affinity: Selection.Affinity
         var xOffset: CGFloat? = nil
 
         switch movement {
@@ -251,28 +251,12 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
             affinity = .downstream
         case .endOfParagraph:
-            let i = dataSource.range(for: .paragraph, enclosing: selection.upperBound).upperBound
-            if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
-                head = i
+            let range = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            if dataSource.lastCharacter(inRange: range) == "\n" {
+                head = dataSource.index(beforeCharacter: range.upperBound)
             } else {
-                head = dataSource.index(beforeCharacter: i)
+                head = range.upperBound
             }
-
-
-            // end of document is end of last paragraph. This is
-            // necessary so that we can distingush this case from
-            // moving to the end of the second to last paragraph
-            // when the last paragraph is an empty last line.
-            // if selection.upperBound == dataSource.endIndex {
-            //     head = dataSource.endIndex
-            // } else {
-            //     let i = dataSource.index(afterLine: selection.upperBound, clampedTo: dataSource.endIndex)
-            //     if i == dataSource.endIndex && dataSource.lastCharacter(inRange: dataSource.documentRange) != "\n" {
-            //         head = i
-            //     } else {
-            //         head = dataSource.index(beforeCharacter: i)
-            //     }
-            // }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
             head = dataSource.startIndex
@@ -295,12 +279,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return Selection(anchor: selection.anchor, head: head, xOffset: xOffset)
         } else {
             // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
-            if let affinity {
-                return Selection(caretAt: head, affinity: affinity, xOffset: xOffset)
-            } else {
-                assertionFailure("missing affinity")
-                return selection
-            }
+            return Selection(caretAt: head, affinity: affinity, xOffset: xOffset)
         }
     }
 
