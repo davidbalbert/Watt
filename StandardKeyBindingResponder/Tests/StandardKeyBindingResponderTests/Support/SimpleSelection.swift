@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import StandardKeyBindingResponder
+import StandardKeyBindingResponder
 
 // Implementations of NavigableSelection, SelectionNavigationDataSource, and InitializableFromAffinity
 // used for testing.
@@ -178,6 +178,13 @@ extension SimpleSelectionDataSource {
             return true
         }
         return offsets
+    }
+
+    func index(roundedDownToParagraph i: Index) -> Index {
+        if i == string.startIndex || self[string.index(before: i)] == "\n" {
+            return i
+        }
+        return index(beforeParagraph: i)
     }
 }
 

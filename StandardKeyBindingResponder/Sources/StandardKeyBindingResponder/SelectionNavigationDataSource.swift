@@ -362,14 +362,10 @@ extension SelectionNavigationDataSource {
     }
 
     func index(roundedDownToParagraph i: Index) -> Index {
-        if isParagraphBoundary(i) {
+        if i == startIndex || self[index(before: i)] == "\n" {
             return i
         }
         return index(beforeParagraph: i)
-    }
-
-    func isParagraphBoundary(_ i: Index) -> Bool {
-        i == startIndex || self[index(before: i)] == "\n"
     }
 
     func isWhitespace(_ i: Index) -> Bool {
