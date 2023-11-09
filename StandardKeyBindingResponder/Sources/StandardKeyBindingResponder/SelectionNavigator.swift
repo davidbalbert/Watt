@@ -226,7 +226,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .beginningOfDocument:
             head = dataSource.startIndex
-            affinity = dataSource.isEmpty ? .upstream : .downstream
+            affinity = .downstream
         case .endOfDocument:
             head = dataSource.endIndex
             affinity = .upstream
