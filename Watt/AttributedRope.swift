@@ -601,6 +601,10 @@ extension AttributedRope {
         text.index(i, offsetBy: distance)
     }
 
+    func index(_ i: Index, offsetByCharacters distance: Int, limitedBy limit: Index) -> Index? {
+        text.index(i, offsetBy: distance, limitedBy: limit)
+    }
+
     mutating func replaceSubrange<R>(_ range: R, with s: AttributedSubrope) where R: RangeExpression<Index> {
         replaceSubrange(range.relative(to: text), with: AttributedRope(s))
     }

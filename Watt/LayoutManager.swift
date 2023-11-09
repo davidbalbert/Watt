@@ -167,108 +167,27 @@ class LayoutManager {
             return
         }
 
+        let downstreamCaretIndex = selection.lowerBound
+        let upstreamCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
+
         var rect: CGRect?
-        var i = frag.range.lowerBound
-        var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
-        CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
-            guard let self else {
-                stop.pointee = true
-                return
-            }
-
-            // Normally, CTLineEnumerateCaretOffsets calls block in like
-            // this (note: caretOffsets have been fudged for simplicity):
-            //
-            // s = "ab"
-            //
-            //   caretOffset=0  offsetInLine=0 leadingEdge=true
-            //   caretOffset=7  offsetInLine=0 leadingEdge=false
-            //   caretOffset=7  offsetInLine=1 leadingEdge=true
-            //   caretOffset=14 offsetInLine=1 leadingEdge=false
-            //
-            // For each UTF-16 offsetInLine, the block is called first
-            // for the leadingEdge of the glyph, and then for the trailing
-            // edge. The trailing edge of one glyph is at the same location
-            // as the leading edge of the following glyph.
-            //
-            // If the a glyph is represented by a surrogate pair however,
-            // the block is called like this:
-            //
-            // s = "🙂b"
-            //
-            //   caretOffset=0  offsetInLine=0 leadingEdge=true
-            //   caretOffset=17 offsetInLine=1 leadingEdge=false
-            //   caretOffset=17 offsetInLine=2 leadingEdge=true
-            //   caretOffset=31 offsetInLine=2 leadingEdge=false
-            //
-            // The difference is that the trailing edge of the emoji is
-            // called with offsetInLine pointing to its trailing surrogate.
-            // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
-            //
-            // For multi-scalar grapheme clusters like "👨‍👩‍👧‍👦", offsetInLine
-            // for the trailing edge will point to the trailing surrogate
-            // of the last unicode scalar.
-            //
-            //   caretOffset=0  offsetInLine=0  leadingEdge=true
-            //   caretOffset=17 offsetInLine=10 leadingEdge=false
-            //
-            // The above grapheme cluster is made up of 4 emoji, each
-            // represented by a surrogate pair, and three zero-width
-            // joiners, each represented by a single UTF-16 code unit,
-            // for 11 code units in all (4*2 + 3). The last unicode
-            // scalar is a surrogate pair, so the trailing edge of the
-            // glyph has offset in line == 10, which is the offset of
-            // the final trailing surrogate (11 - 1).
-            //
-            // Rope.Index can't represent trailing surrogate indices, so
-            // we need a way to detect that we're looking at a trailing
-            // surrogate.
-            //
-            // We know we're looking at a trailing surrogate when we're
-            // looking at a trailing edge of a glyph and the previous
-            // offsetInLine is not equal to the current offsetInLine.
-            //
-            // We only set prevOffsetInLine when we know we're not at
-            // a trailing surrogate. If we didn't do this, i would stop
-            // incrementing once we saw the first surrogate pair.
-            //
-            // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
-            // will no longer round down. We'd need to find another way
-            // to handle surrogate pairs, likely relying on the fact
-            // that a proper UTF-16 view implies that Rope.Index supports
-            // surrogate pairs.
-
-            let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
-            if !isTrailingSurrogate {
-                i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
-                prevOffsetInLine = offsetInLine
-            }
-
-            let next: Buffer.Index
-            if i == buffer.endIndex {
-                // empty last line
-                next = i
-            } else {
-                next = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine + 1)
-            }
-
-            let downstreamMatch = i == selection.lowerBound && leadingEdge && selection.affinity == .downstream
-            let upstreamMatch = next == selection.lowerBound && !leadingEdge && selection.affinity == .upstream
+        enumerateCaretOffsets(inLineFragment: frag, withinLine: line) { xOffset, i, edge in
+            let downstreamMatch = i == downstreamCaretIndex && edge == .leading
+            let upstreamMatch = i == upstreamCaretIndex && edge == .trailing
 
             guard downstreamMatch || upstreamMatch else {
-                return
+                return true
             }
 
-            // in line fragment coordinates
-            let caretRect = CGRect(
-                x: round(min(caretOffset, textContainer.lineFragmentWidth)) - 0.5,
-                y: 0,
+            // xOffset is already in text container coordinates, but
+            // frag.alignmentFrame is in line coordinates.
+            rect = CGRect(
+                x: round(min(xOffset, textContainer.lineFragmentWidth)) - 0.5,
+                y: convert(frag.alignmentFrame.origin, from: line).y,
                 width: 1,
                 height: frag.alignmentFrame.height
             )
-            rect = convert(convert(caretRect, from: frag), from: line)
-
-            stop.pointee = true
+            return false
         }
 
         guard let rect else {
@@ -783,18 +702,25 @@ extension LayoutManager: SelectionNavigationDataSource {
         return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
     }
 
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+            assertionFailure("no frag")
+            return
+        }
+
+        enumerateCaretOffsets(inLineFragment: frag, withinLine: line, using: block)
+    }
+
     // Enumerating over the first line fragment of each string:
     // ""    -> [(0.0, 0, trailing)]
     // "\n"  -> [(0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
-    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
-        let line = line(containing: index)
-        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            assertionFailure("no frag")
-            return
-        }
+    private func enumerateCaretOffsets(inLineFragment frag: LineFragment, withinLine line: Line, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+        assert(line.lineFragments.contains { $0.range == frag.range })
 
         let endsInNewline = buffer[frag.range].characters.last == "\n"
 
@@ -806,6 +732,68 @@ extension LayoutManager: SelectionNavigationDataSource {
             _ = block(pos.x, frag.range.lowerBound, .trailing)
             return
         }
+
+        // Normally, CTLineEnumerateCaretOffsets calls block in like
+        // this (note: caretOffsets have been fudged for simplicity):
+        //
+        // s = "ab"
+        //
+        //   caretOffset=0  offsetInLine=0 leadingEdge=true
+        //   caretOffset=7  offsetInLine=0 leadingEdge=false
+        //   caretOffset=7  offsetInLine=1 leadingEdge=true
+        //   caretOffset=14 offsetInLine=1 leadingEdge=false
+        //
+        // For each UTF-16 offsetInLine, the block is called first
+        // for the leadingEdge of the glyph, and then for the trailing
+        // edge. The trailing edge of one glyph is at the same location
+        // as the leading edge of the following glyph.
+        //
+        // If the a glyph is represented by a surrogate pair however,
+        // the block is called like this:
+        //
+        // s = "🙂b"
+        //
+        //   caretOffset=0  offsetInLine=0 leadingEdge=true
+        //   caretOffset=17 offsetInLine=1 leadingEdge=false
+        //   caretOffset=17 offsetInLine=2 leadingEdge=true
+        //   caretOffset=31 offsetInLine=2 leadingEdge=false
+        //
+        // The difference is that the trailing edge of the emoji is
+        // called with offsetInLine pointing to its trailing surrogate.
+        // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
+        //
+        // For multi-scalar grapheme clusters like "👨‍👩‍👧‍👦", offsetInLine
+        // for the trailing edge will point to the trailing surrogate
+        // of the last unicode scalar.
+        //
+        //   caretOffset=0  offsetInLine=0  leadingEdge=true
+        //   caretOffset=17 offsetInLine=10 leadingEdge=false
+        //
+        // The above grapheme cluster is made up of 4 emoji, each
+        // represented by a surrogate pair, and three zero-width
+        // joiners, each represented by a single UTF-16 code unit,
+        // for 11 code units in all (4*2 + 3). The last unicode
+        // scalar is a surrogate pair, so the trailing edge of the
+        // glyph has offset in line == 10, which is the offset of
+        // the final trailing surrogate (11 - 1).
+        //
+        // Rope.Index can't represent trailing surrogate indices, so
+        // we need a way to detect that we're looking at a trailing
+        // surrogate.
+        //
+        // We know we're looking at a trailing surrogate when we're
+        // looking at a trailing edge of a glyph and the previous
+        // offsetInLine is not equal to the current offsetInLine.
+        //
+        // We only set prevOffsetInLine when we know we're not at
+        // a trailing surrogate. If we didn't do this, i would stop
+        // incrementing once we saw the first surrogate pair.
+        //
+        // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
+        // will no longer round down. We'd need to find another way
+        // to handle surrogate pairs, likely relying on the fact
+        // that a proper UTF-16 view implies that Rope.Index supports
+        // surrogate pairs.
 
         var i = frag.range.lowerBound
         var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
