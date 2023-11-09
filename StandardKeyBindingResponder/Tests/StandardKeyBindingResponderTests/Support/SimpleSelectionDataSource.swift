@@ -29,6 +29,10 @@ struct SimpleSelectionDataSource {
     static var charWidth: CGFloat {
         8
     }
+
+    static var lineHeight: CGFloat {
+        14
+    }
 }
 
 extension SimpleSelectionDataSource: SelectionNavigationDataSource {
@@ -79,6 +83,32 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let fragEnd = string.index(fragStart, offsetBy: fragLen)
 
         return fragStart..<fragEnd
+    }
+
+    func lineFragmentRange(for point: CGPoint) -> Range<String.Index>? {
+        if point.y < 0 {
+            return nil
+        }
+
+        var y: CGFloat = 0
+        var i = string.startIndex
+        while i < string.endIndex {
+            let fragRange = lineFragmentRange(containing: i)
+            if y <= point.y && point.y < y + Self.lineHeight {
+                return fragRange
+            }
+            y += Self.lineHeight
+            i = fragRange.upperBound
+        }
+
+        assert(i == string.endIndex)
+        let fragRange = lineFragmentRange(containing: i)
+        // empty last line
+        if fragRange.isEmpty && y <= point.y && point.y < y + Self.lineHeight {
+            return fragRange
+        }
+
+        return nil
     }
 
     func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Edge) -> Bool) {

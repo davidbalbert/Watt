@@ -11,7 +11,7 @@ import XCTest
 // for use in the rest of our tests.
 
 final class SimpleSelectionDataSourceTests: XCTestCase {
-    // MARK: lineFragmentRange(containing:affinity:)
+    // MARK: lineFragmentRange(containing:)
 
     func testLineFragmentRangesEmptyBuffer() {
         let s = ""
@@ -204,6 +204,92 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // End index returns the last line
         let r = dataSource.lineFragmentRange(containing: string.index(at: 3))
         XCTAssertEqual(0..<3, Range(r, in: string))
+    }
+
+    // MARK: lineFragmentRange(for:)
+    func testLineFragmentRangeForEmpty() {
+        let string = ""
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
+        XCTAssertNil(r)
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 0))
+        XCTAssertEqual(0..<0, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 13.999))
+        XCTAssertEqual(0..<0, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 14))
+        XCTAssertNil(r)
+    }
+
+    func testLineFragmentRangeForNewline() {
+        let string = "\n"
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
+        XCTAssertNil(r)
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 0))
+        XCTAssertEqual(0..<1, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 13.999))
+        XCTAssertEqual(0..<1, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 14))
+        XCTAssertEqual(1..<1, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 27.999))
+        XCTAssertEqual(1..<1, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 28))
+        XCTAssertNil(r)
+    }
+
+    func testLineFragmentRangeNonEmpty() {
+        let string = """
+        0123456789wrap
+        hello
+        
+        """
+        let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // before document
+        var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
+        XCTAssertNil(r)
+
+        // "0123456789"
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 0))
+        XCTAssertEqual(0..<10, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 13.999))
+        XCTAssertEqual(0..<10, Range(r!, in: string))
+
+        // "wrap\n"
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 14))
+        XCTAssertEqual(10..<15, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 27.999))
+        XCTAssertEqual(10..<15, Range(r!, in: string))
+
+        // "hello\n"
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 28))
+        XCTAssertEqual(15..<21, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 41.999))
+        XCTAssertEqual(15..<21, Range(r!, in: string))
+
+        // ""
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 42))
+        XCTAssertEqual(21..<21, Range(r!, in: string))
+
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 55.999))
+        XCTAssertEqual(21..<21, Range(r!, in: string))
+
+        // after document
+        r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: 56))
+        XCTAssertNil(r)
     }
 
     // MARK: enumerateCaretOffsetsInLineFragment(containing:using:)
