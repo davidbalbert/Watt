@@ -306,7 +306,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         // gets cleared.
         if movingUp && fragRange.lowerBound == dataSource.startIndex {
             let xOffset = extending ? selection.xOffset : nil
-            return (dataSource.startIndex, dataSource.isEmpty ? .upstream : .downstream, xOffset)
+            return (dataSource.startIndex, .downstream, xOffset)
         }
         if !movingUp && visualFragEnd == dataSource.endIndex {
             let xOffset = extending ? selection.xOffset : nil
