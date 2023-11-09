@@ -20,6 +20,7 @@ public protocol SelectionNavigationDataSource {
 
     // MARK: Layout info
     func lineFragmentRange(containing index: Index) -> Range<Index>
+    func lineFragmentRange(for point: CGPoint) -> Range<Index>?
 
     // Enumerating over the first line fragment of each string:
     // ""    -> [(0.0, 0, trailing)]

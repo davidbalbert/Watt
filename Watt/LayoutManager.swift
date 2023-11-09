@@ -171,6 +171,9 @@ class LayoutManager {
         let upstreamCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
         var rect: CGRect?
+        // TODO: maybe get rid of the inLineFragment:withinLine: variant, and implement
+        // enumerateCaretOffsetsInLineFragment(containing:) in terms of a
+        // new enumerateCaretRects method.
         enumerateCaretOffsets(inLineFragment: frag, withinLine: line) { xOffset, i, edge in
             let downstreamMatch = i == downstreamCaretIndex && edge == .leading
             let upstreamMatch = i == upstreamCaretIndex && edge == .trailing
@@ -702,8 +705,12 @@ extension LayoutManager: SelectionNavigationDataSource {
         return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
     }
 
-    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+    func lineFragmentRange(for point: CGPoint) -> Range<AttributedRope.Index>? {
+        let line = line(forVerticalOffset: point.y)
+        return line.fragment(forVerticalOffset: point.y)?.range
+    }
 
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
         guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
             assertionFailure("no frag")

@@ -115,7 +115,11 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
     public init(selection: Selection) {
         self.selection = selection
     }
+}
 
+// MARK: - Keyboard navigation
+
+extension SelectionNavigator {
     public func move(_ movement: Movement, dataSource: DataSource) -> Selection {
         makeSelection(movement: movement, extending: false, dataSource: dataSource)
     }
@@ -327,5 +331,25 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         let head = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
+    }
+}
+
+// MARK: - Mouse navigation
+
+public extension SelectionNavigator {
+    static func selection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+        let fragRange = dataSource.lineFragmentRange(for: point)
+
+        guard let fragRange else {
+            if point.x < 0 {
+                return Selection(caretAt: dataSource.startIndex, affinity: dataSource.isEmpty ? .upstream : .downstream, xOffset: nil)
+            } else {
+                return Selection(caretAt: dataSource.endIndex, affinity: .upstream, xOffset: nil)
+            }
+        }
+
+        let index = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        let affinity: Selection.Affinity = index == fragRange.upperBound ? .upstream : .downstream
+        return Selection(caretAt: index, affinity: affinity, xOffset: nil)
     }
 }

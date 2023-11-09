@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import StandardKeyBindingResponder
 
 extension TextView {
     // MARK: - First responder
@@ -67,11 +68,8 @@ extension TextView {
         discardMarkedText()
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        startSelection(at: locationInView)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        let point = convertToTextContainer(locationInView)
+        layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
     }
 
     override func mouseDragged(with event: NSEvent) {
