@@ -275,6 +275,7 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         }
         if !movingUp && selection.upperBound == dataSource.endIndex {
             return (selection.upperBound, selection.affinity, selection.xOffset)
+        }
 
         let start: Selection.Index
         let horizAnchor: Selection.Index
