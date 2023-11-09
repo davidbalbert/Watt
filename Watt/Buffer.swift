@@ -29,7 +29,7 @@ class Buffer {
         }
     }
 
-    var delegates: WeakSet<BufferDelegate>
+    var delegates: WeakHashSet<BufferDelegate>
 
     convenience init() {
         self.init("", language: .plainText)
@@ -42,7 +42,7 @@ class Buffer {
     init(_ attrRope: AttributedRope, language: Language) {
         self.contents = attrRope
         self.language = language
-        self.delegates = WeakSet<BufferDelegate>()
+        self.delegates = WeakHashSet<BufferDelegate>()
 
         self.highlighter = language.highlighter
         highlighter?.delegate = self
