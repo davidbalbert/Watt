@@ -184,7 +184,7 @@ class LayoutManager {
             }
 
             rect = CGRect(
-                x: round(min(caretRect.minX, textContainer.lineFragmentWidth)) - 0.5,
+                x: round(min(caretRect.minX, textContainer.width - textContainer.lineFragmentPadding)) - 0.5,
                 y: caretRect.minY,
                 width: caretRect.width,
                 height: caretRect.height
