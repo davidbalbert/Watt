@@ -28,3 +28,12 @@ extension BidirectionalCollection {
         index(i, offsetBy: -1, limitedBy: lowerBound) ?? lowerBound
     }
 }
+
+extension Range where Bound == Int {
+    init(_ range: Range<String.Index> , in string: String) {
+        let start = string.utf8.distance(from: string.utf8.startIndex, to: range.lowerBound)
+        let end = string.utf8.distance(from: string.utf8.startIndex, to: range.upperBound)
+
+        self.init(uncheckedBounds: (start, end))
+    }
+}

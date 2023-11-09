@@ -685,8 +685,8 @@ extension LayoutManager: SelectionNavigationDataSource {
         buffer.documentRange
     }
 
-    func index(_ i: Buffer.Index, offsetBy offset: Int) -> Buffer.Index {
-        buffer.index(i, offsetBy: offset)
+    func index(_ i: Buffer.Index, offsetBy distance: Int) -> Buffer.Index {
+        buffer.index(i, offsetBy: distance)
     }
 
     func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {

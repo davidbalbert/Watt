@@ -13,7 +13,7 @@ public protocol SelectionNavigationDataSource {
 
     var documentRange: Range<Index> { get }
 
-    func index(_ i: Index, offsetBy offset: Int) -> Index
+    func index(_ i: Index, offsetBy distance: Int) -> Index
     func distance(from start: Index, to end: Index) -> Int
 
     subscript(index: Index) -> Character { get }
