@@ -900,73 +900,57 @@ final class SelectionNavigatorTests: XCTestCase {
     func testSelectionInteractingAtEmptyString() {
         let string = ""
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-        var s: SimpleSelection
         
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: -0.001), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: -0.001), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: -0.001), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: -0.001), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
         
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 0), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 0), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 0), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 0), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
         
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 13.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 13.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 13.999), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 13.999), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
         
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 14), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 14), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 14), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 14), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
         
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 100), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 100), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 100), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
     }
 
     func testSelectionInteractingAtNewline() {
         let string = "\n"
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
-        var s: SimpleSelection
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: -0.001), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: -0.001), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
+        clickAndAssert(CGPoint(x: 0, y: -0.001), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: -0.001), caret: "\n", affinity: .downstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 0), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 0), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
+        clickAndAssert(CGPoint(x: 0, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 13.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 13.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 0), affinity: .downstream)
+        clickAndAssert(CGPoint(x: 0, y: 13.999), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 13.999), caret: "\n", affinity: .downstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 14), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 14), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 14), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 14), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 27.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 27.999), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 27.999), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 27.999), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 28), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 28), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 28), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 28), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
 
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 0, y: 100), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
-        s = SelectionNavigator.selection(interactingAt: CGPoint(x: 100, y: 100), dataSource: d)
-        assert(selection: s, hasCaretAt: string.index(at: 1), affinity: .upstream)
+        clickAndAssert(CGPoint(x: 0, y: 100), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
+    }
+
+    func clickAndAssert(_ point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+        let s: SimpleSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
+        assert(selection: s, hasCaretBefore: caret, affinity: affinity, dataSource: dataSource, file: file, line: line)
+    }
+
+    func clickAndAssert(_ point: CGPoint, caretAt: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+        let s: SimpleSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
+        assert(selection: s, hasCaretAt: caretAt, affinity: affinity, file: file, line: line)
     }
 
     func assert(selection: SimpleSelection, hasCaretBefore c: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
