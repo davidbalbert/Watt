@@ -120,6 +120,10 @@ class Buffer {
         contents.index(i, offsetByCharacters: distance, limitedBy: limit)
     }
 
+    func distance(from start: Index, to end: Index) -> Int {
+        contents.text.distance(from: start, to: end)
+    }
+
     func index(at offset: Int) -> Index {
         contents.index(startIndex, offsetByCharacters: offset)
     }

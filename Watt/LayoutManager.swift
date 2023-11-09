@@ -75,7 +75,7 @@ class LayoutManager {
         self.textContainer = TextContainer()
         self.lineCache = IntervalCache(upperBound: 0)
         self.buffer = Buffer()
-        
+
         let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
         selection = Selection(caretAt: buffer.startIndex, affinity: affinity, xOffset: nil)
     }
@@ -307,47 +307,18 @@ class LayoutManager {
         }
     }
 
-    // Point is in text container coordinates.
-    func index(interactingAt point: CGPoint) -> Buffer.Index {
-        let (location, _) = indexAndAffinity(interactingAt: point)
-        return location
-    }
-
-    // Point is in text container coordinates.
-    func indexAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Affinity) {
-        // Rules:
-        //   1. You cannot click to the right of a "\n". No matter how far
-        //      far right you go, you will always be before the newline until
-        //      you move down to the next line.
-        //   2. The last location of any fragment that doesn't end in a "\n"
-        //      is upstream. This means the last location in the document is
-        //      always upstream.
-        //   3. All other locations are downstream.
-
-        if point.y <= 0 {
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
-        }
-        
-        // If we click past the end of the document, select the last character
-        if point.y >= contentHeight {
-            return (buffer.endIndex, .upstream)
-        }
-
+    func index(for point: CGPoint) -> Buffer.Index {
         let line = line(forVerticalOffset: point.y)
         guard let frag = line.fragment(forVerticalOffset: point.y) else {
-            assertionFailure("no frag")
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+            return buffer.startIndex
         }
 
-        let pointInLine = convert(point, to: line)
-        let pointInLineFragment = convert(pointInLine, to: frag)
-
-        guard let i = index(for: pointInLineFragment, inLineFragment: frag) else {
-            assertionFailure("no index")
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+        let fragPoint = convert(convert(point, to: line), to: frag)
+        guard let i = index(for: fragPoint, inLineFragment: frag) else {
+            return buffer.startIndex
         }
 
-        return (i, i == frag.range.upperBound ? .upstream : .downstream)
+        return i
     }
 
     func index(for pointInLineFragment: CGPoint, inLineFragment frag: LineFragment) -> Buffer.Index? {
