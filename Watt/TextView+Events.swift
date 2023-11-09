@@ -78,11 +78,8 @@ extension TextView {
         }
 
         let locationInView = convert(event.locationInWindow, from: nil)
-        extendSelection(to: locationInView)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
+        let point = convertToTextContainer(locationInView)
+        layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(interactingAt: point, dataSource: layoutManager)
     }
 
     override func mouseUp(with event: NSEvent) {

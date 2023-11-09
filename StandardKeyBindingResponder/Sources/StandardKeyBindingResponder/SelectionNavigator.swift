@@ -340,16 +340,36 @@ public extension SelectionNavigator {
     static func selection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
-        guard let fragRange else {
-            if point.x < 0 {
-                return Selection(caretAt: dataSource.startIndex, affinity: dataSource.isEmpty ? .upstream : .downstream, xOffset: nil)
-            } else {
-                return Selection(caretAt: dataSource.endIndex, affinity: .upstream, xOffset: nil)
-            }
+        let index: Selection.Index
+        let affinity: Selection.Affinity
+        if let fragRange {
+            index = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            affinity = index == fragRange.upperBound ? .upstream : .downstream
+        } else {
+            index = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            affinity = index == dataSource.endIndex ? .upstream : .downstream
         }
 
-        let index = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-        let affinity: Selection.Affinity = index == fragRange.upperBound ? .upstream : .downstream
         return Selection(caretAt: index, affinity: affinity, xOffset: nil)
+    }
+
+    func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+        let fragRange = dataSource.lineFragmentRange(for: point)
+
+        let head: Selection.Index
+        let affinity: Selection.Affinity
+        if let fragRange {
+            head = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            affinity = head == fragRange.upperBound ? .upstream : .downstream
+        } else {
+            head = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
+        }
+
+        if head == selection.anchor {
+            return Selection(caretAt: head, affinity: affinity, xOffset: nil)
+        } else {
+            return Selection(anchor: selection.anchor, head: head, xOffset: nil)
+        }
     }
 }

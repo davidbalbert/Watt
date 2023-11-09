@@ -8,17 +8,6 @@
 import Cocoa
 
 extension TextView {
-    func extendSelection(to locationInView: CGPoint) {
-        let point = convertToTextContainer(locationInView)
-        let (i, affinity) = layoutManager.indexAndAffinity(interactingAt: point)
-
-        if i == selection.anchor {
-            layoutManager.selection = Selection(caretAt: i, affinity: affinity)
-        } else {
-            layoutManager.selection = Selection(anchor: selection.anchor, head: i)
-        }
-    }
-
     func setTypingAttributes() {
         if buffer.isEmpty {
             typingAttributes = defaultAttributes
