@@ -165,7 +165,7 @@ class LayoutManager {
         let upstreamCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
         var rect: CGRect?
-        enumerateCaretRects(containing: selection.lowerBound) { caretRect, i, edge, fragRange in
+        enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge, fragRange in
             // A bit annoying to calculate these every time, and in general this interface is
             // a bit annoying. But I liked it better than an interface where you had to pass
             // both a Line and LineFragment into enumerateCaretRects. That had more possibility
@@ -307,9 +307,9 @@ class LayoutManager {
     }
 
     // Rects are in text container coordinates
-    func enumerateCaretRects(containing index: Buffer.Index, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge, _ fragRange: Range<Buffer.Index>) -> Bool) {
+    func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge, _ fragRange: Range<Buffer.Index>) -> Bool) {
         let line = line(containing: index)
-        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+        guard let frag = line.fragment(containing: index, affinity: affinity) else {
             assertionFailure("no frag")
             return
         }
@@ -806,7 +806,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
-        enumerateCaretRects(containing: index) { rect, i, edge, _ in
+        enumerateCaretRects(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) { rect, i, edge, _ in
             block(rect.minX, i, edge)
         }
     }
