@@ -275,11 +275,22 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         }
         if !movingUp && selection.upperBound == dataSource.endIndex {
             return (selection.upperBound, selection.affinity, selection.xOffset)
+
+        let start: Selection.Index
+        let horizAnchor: Selection.Index
+        if selection.isRange && extending {
+            start = selection.head
+            horizAnchor = start
+        } else if selection.isRange {
+            start = movingUp ? selection.lowerBound : selection.upperBound
+            horizAnchor = selection.lowerBound
+        } else {
+            start = selection.lowerBound
+            horizAnchor = start
         }
 
-        let start = selection.isRange && extending ? selection.head : selection.lowerBound
         var fragRange = dataSource.range(for: .line, enclosing: start)
-        if !fragRange.isEmpty && fragRange.lowerBound == start && selection.isCaret && selection.affinity == .upstream {
+        if selection.isCaret && !fragRange.isEmpty && fragRange.lowerBound == start && selection.affinity == .upstream {
             assert(start != dataSource.startIndex)
             // we're actually in the previous frag
             fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
@@ -302,7 +313,13 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
             return (dataSource.endIndex, .upstream, xOffset)
         }
 
-        let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: start, inLineFragmentWithRange: fragRange)
+        var horizAnchorFrag = fragRange
+        if !fragRange.contains(horizAnchor) && fragRange.upperBound != horizAnchor {
+            // we need the frag that contains horizAnchor
+            horizAnchorFrag = dataSource.range(for: .line, enclosing: horizAnchor)
+        }
+
+        let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: horizAnchor, inLineFragmentWithRange: horizAnchorFrag)
 
         let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
         let targetFragRange = dataSource.range(for: .line, enclosing: target)
