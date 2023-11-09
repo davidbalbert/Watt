@@ -943,6 +943,109 @@ final class SelectionNavigatorTests: XCTestCase {
         clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
     }
 
+    func testSelectionInteractingAt() {
+        let string = """
+        0123456789wrap
+        hello
+
+        """
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // first fragment
+
+        // before the document
+        clickAndAssert(CGPoint(x: 0, y: -0.001), caret: "0", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: -0.001), caret: "0", affinity: .downstream, dataSource: d)
+
+        // first half of "0"
+        clickAndAssert(CGPoint(x: 0, y: 0), caret: "0", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 0, y: 13.999), caret: "0", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 3.999, y: 0), caret: "0", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 3.999, y: 13.999), caret: "0", affinity: .downstream, dataSource: d)
+
+        // second half of "0"
+        clickAndAssert(CGPoint(x: 4, y: 0), caret: "1", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 4, y: 13.999), caret: "1", affinity: .downstream, dataSource: d)
+
+        // first half of "1"
+        clickAndAssert(CGPoint(x: 11.999, y: 0), caret: "1", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 11.999, y: 13.999), caret: "1", affinity: .downstream, dataSource: d)
+
+        // second half of "4"
+        clickAndAssert(CGPoint(x: 36, y: 0), caret: "5", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 36, y: 13.999), caret: "5", affinity: .downstream, dataSource: d)
+
+        // first half of "5"
+        clickAndAssert(CGPoint(x: 43.999, y: 0), caret: "5", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 43.999, y: 13.999), caret: "5", affinity: .downstream, dataSource: d)
+
+        // second half of "5"
+        clickAndAssert(CGPoint(x: 44, y: 0), caret: "6", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 44, y: 13.999), caret: "6", affinity: .downstream, dataSource: d)
+
+        // first half of "9"
+        clickAndAssert(CGPoint(x: 75.999, y: 0), caret: "9", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 75.999, y: 13.999), caret: "9", affinity: .downstream, dataSource: d)
+
+        // second half of "9"
+        clickAndAssert(CGPoint(x: 76, y: 0), caret: "w", affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 76, y: 13.999), caret: "w", affinity: .upstream, dataSource: d)
+
+        // all the way to the right
+        clickAndAssert(CGPoint(x: 100, y: 0), caret: "w", affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 13.999), caret: "w", affinity: .upstream, dataSource: d)
+
+        // second fragment
+
+        // first half of "w"
+        clickAndAssert(CGPoint(x: 0, y: 14), caret: "w", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 0, y: 27.999), caret: "w", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 3.999, y: 14), caret: "w", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 3.999, y: 27.999), caret: "w", affinity: .downstream, dataSource: d)
+
+        // first half of "p"
+        clickAndAssert(CGPoint(x: 27.999, y: 14), caret: "p", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 27.999, y: 27.999), caret: "p", affinity: .downstream, dataSource: d)
+
+        // second half of "p"
+        clickAndAssert(CGPoint(x: 28, y: 14), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 28, y: 27.999), caret: "\n", affinity: .downstream, dataSource: d)
+
+        // all the way to the right – you can't click to the right of a newline
+        clickAndAssert(CGPoint(x: 100, y: 14), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 27.999), caret: "\n", affinity: .downstream, dataSource: d)
+
+        // third fragment
+
+        // first half of "h"
+        clickAndAssert(CGPoint(x: 0, y: 28), caret: "h", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 0, y: 41.999), caret: "h", affinity: .downstream, dataSource: d)
+
+        // second half of "h"
+        clickAndAssert(CGPoint(x: 4, y: 28), caret: "e", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 4, y: 41.999), caret: "e", affinity: .downstream, dataSource: d)
+
+        // first half of "o"
+        clickAndAssert(CGPoint(x: 35.999, y: 28), caret: "o", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 35.999, y: 41.999), caret: "o", affinity: .downstream, dataSource: d)
+
+        // second half of "o"
+        clickAndAssert(CGPoint(x: 36, y: 28), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 36, y: 41.999), caret: "\n", affinity: .downstream, dataSource: d)
+
+        // all the way to the right – you can't click to the right of a newline
+        clickAndAssert(CGPoint(x: 100, y: 28), caret: "\n", affinity: .downstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 41.999), caret: "\n", affinity: .downstream, dataSource: d)
+
+        // fourth fragment
+
+        // you're always upstream of the end
+        clickAndAssert(CGPoint(x: 0, y: 42), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 0, y: 100), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 42), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+        clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+    }
+    
     func clickAndAssert(_ point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         let s: SimpleSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
         assert(selection: s, hasCaretBefore: caret, affinity: affinity, dataSource: dataSource, file: file, line: line)
