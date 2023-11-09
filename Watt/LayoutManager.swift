@@ -174,10 +174,7 @@ class LayoutManager {
         let count = buffer.distance(from: frag.range.lowerBound, to: frag.range.upperBound)
 
         var rect: CGRect?
-        // TODO: maybe get rid of the inLineFragment:withinLine: variant, and implement
-        // enumerateCaretOffsetsInLineFragment(containing:) in terms of a
-        // new enumerateCaretRects method.
-        enumerateCaretOffsets(inLineFragment: frag, withinLine: line) { xOffset, i, edge in
+        enumerateCaretRects(containing: selection.lowerBound) { caretRect, i, edge in
             // fragments which are "\n" and "" (empty last line) have a single, .trailing caret offset even
             // though i == 0[utf8] for both of them. This makes SelectionNavigator easier to write, at the
             // expense of having this logic be a bit more confusing.
@@ -188,13 +185,11 @@ class LayoutManager {
                 return true
             }
 
-            // xOffset is already in text container coordinates, but
-            // frag.alignmentFrame is in line coordinates.
             rect = CGRect(
-                x: round(min(xOffset, textContainer.lineFragmentWidth)) - 0.5,
-                y: convert(frag.alignmentFrame.origin, from: line).y,
-                width: 1,
-                height: frag.alignmentFrame.height
+                x: round(min(caretRect.minX, textContainer.lineFragmentWidth)) - 0.5,
+                y: caretRect.minY,
+                width: caretRect.width,
+                height: caretRect.height
             )
             return false
         }
@@ -687,23 +682,26 @@ extension LayoutManager: SelectionNavigationDataSource {
         return line.fragment(forVerticalOffset: point.y)?.range
     }
 
-    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
-        let line = line(containing: index)
-        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            assertionFailure("no frag")
-            return
-        }
-
-        enumerateCaretOffsets(inLineFragment: frag, withinLine: line, using: block)
-    }
-
     // Enumerating over the first line fragment of each string:
     // ""    -> [(0.0, 0, trailing)]
     // "\n"  -> [(0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
-    private func enumerateCaretOffsets(inLineFragment frag: LineFragment, withinLine line: Line, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+        enumerateCaretRects(containing: index) { rect, i, edge in
+            block(rect.minX, i, edge)
+        }
+    }
+
+    // Rects are in text container coordinates
+    func enumerateCaretRects(containing index: Buffer.Index, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+            assertionFailure("no frag")
+            return
+        }
+
         assert(line.lineFragments.contains { $0.range == frag.range })
 
         let endsInNewline = buffer[frag.range].characters.last == "\n"
@@ -711,10 +709,10 @@ extension LayoutManager: SelectionNavigationDataSource {
 
         // hardcode empty last line because it was created from a dummy non-empty CTLine
         if frag.range.isEmpty || (endsInNewline && count == 1) {
-            let fragPos = CGPoint(x: 0, y: 0)
-            let linePos = convert(fragPos, from: frag)
-            let pos = convert(linePos, from: line)
-            _ = block(pos.x, frag.range.lowerBound, .trailing)
+            let fragRect = CGRect(x: 0, y: 0, width: 1, height: frag.alignmentFrame.height)
+            let lineRect = convert(fragRect, from: frag)
+            let rect = convert(lineRect, from: line)
+            _ = block(rect, frag.range.lowerBound, .trailing)
             return
         }
 
@@ -802,12 +800,12 @@ extension LayoutManager: SelectionNavigationDataSource {
                     stop.pointee = true
                     return
                 }
+                
+                let fragRect = CGRect(x: caretOffset, y: 0, width: 1, height: frag.alignmentFrame.height)
+                let lineRect = convert(fragRect, from: frag)
+                let rect = convert(lineRect, from: line)
 
-                let fragPos = CGPoint(x: caretOffset, y: 0)
-                let linePos = convert(fragPos, from: frag)
-                let pos = convert(linePos, from: line)
-
-                if !block(pos.x, i, edge) {
+                if !block(rect, i, edge) {
                     stop.pointee = true
                     return
                 }
