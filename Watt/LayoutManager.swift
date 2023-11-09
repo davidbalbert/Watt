@@ -170,12 +170,18 @@ class LayoutManager {
         let downstreamCaretIndex = selection.lowerBound
         let upstreamCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
+        let endsInNewline = buffer[frag.range].characters.last == "\n"
+        let count = buffer.distance(from: frag.range.lowerBound, to: frag.range.upperBound)
+
         var rect: CGRect?
         // TODO: maybe get rid of the inLineFragment:withinLine: variant, and implement
         // enumerateCaretOffsetsInLineFragment(containing:) in terms of a
         // new enumerateCaretRects method.
         enumerateCaretOffsets(inLineFragment: frag, withinLine: line) { xOffset, i, edge in
-            let downstreamMatch = i == downstreamCaretIndex && edge == .leading
+            // fragments which are "\n" and "" (empty last line) have a single, .trailing caret offset even
+            // though i == 0[utf8] for both of them. This makes SelectionNavigator easier to write, at the
+            // expense of having this logic be a bit more confusing.
+            let downstreamMatch = i == downstreamCaretIndex && (edge == .leading || frag.range.isEmpty || (endsInNewline && count == 1))
             let upstreamMatch = i == upstreamCaretIndex && edge == .trailing
 
             guard downstreamMatch || upstreamMatch else {
@@ -701,9 +707,10 @@ extension LayoutManager: SelectionNavigationDataSource {
         assert(line.lineFragments.contains { $0.range == frag.range })
 
         let endsInNewline = buffer[frag.range].characters.last == "\n"
+        let count = buffer.distance(from: frag.range.lowerBound, to: frag.range.upperBound)
 
         // hardcode empty last line because it was created from a dummy non-empty CTLine
-        if frag.range.isEmpty || (endsInNewline && buffer.count == 1) {
+        if frag.range.isEmpty || (endsInNewline && count == 1) {
             let fragPos = CGPoint(x: 0, y: 0)
             let linePos = convert(fragPos, from: frag)
             let pos = convert(linePos, from: line)
