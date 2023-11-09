@@ -29,6 +29,8 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
         256
     }
 
+    // TODO: this has bad behavior once there are more than `limit` non-nil
+    // values in the dictionary.
     subscript(key: Key) -> Value? {
         mutating get {
             if storage.count > limit {
