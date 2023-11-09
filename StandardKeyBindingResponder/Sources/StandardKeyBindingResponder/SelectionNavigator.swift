@@ -271,10 +271,10 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
         // If we're already at the start or end of the document, the destination
         // is the start or the end of the document.
         if movingUp && selection.lowerBound == dataSource.startIndex {
-            return (selection.lowerBound, selection.affinity, selection.xOffset)
+            return (selection.lowerBound, .downstream, selection.xOffset)
         }
         if !movingUp && selection.upperBound == dataSource.endIndex {
-            return (selection.upperBound, selection.affinity, selection.xOffset)
+            return (selection.upperBound, .upstream, selection.xOffset)
         }
 
         let start: Selection.Index

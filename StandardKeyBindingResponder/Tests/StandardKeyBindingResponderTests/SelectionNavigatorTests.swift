@@ -207,6 +207,11 @@ final class SelectionNavigatorTests: XCTestCase {
         s = SimpleSelection(anchor: string.index(at: 6), head: string.index(at: 13))
         // at "n"
         s = moveAndAssert(s, direction: .down, caretAt: string.index(at: 16), affinity: .downstream, dataSource: d)
+
+        // "a" through "d" (upstream)
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        // at "a"
+        s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
     func testMoveHorizontallyByWord() {
