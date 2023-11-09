@@ -77,6 +77,7 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
     }
 }
 
+// Note: a class, not thread safe.
 class WeakHashSet<Element> {
     private var storage: NSHashTable<AnyObject>
 
