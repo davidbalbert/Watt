@@ -18,7 +18,12 @@ extension TextView {
 
         let locationInView = convert(event.locationInWindow, from: nil)
         let point = convertToTextContainer(locationInView)
-        layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
+
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift {
+            layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(interactingAt: point, dataSource: layoutManager)
+        } else {
+            layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
+        }
     }
 
     override func mouseDragged(with event: NSEvent) {
