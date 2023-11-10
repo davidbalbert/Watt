@@ -35,6 +35,17 @@ public enum Granularity {
     case paragraph
 }
 
+public protocol InitializableFromGranularity {
+    init(_ granularity: Granularity)
+}
+
+fileprivate extension InitializableFromGranularity {
+    static var character: Self { Self(.character) }
+    static var word: Self { Self(.word) }
+    static var line: Self { Self(.line) }
+    static var paragraph: Self { Self(.paragraph) }
+}
+
 public enum Movement: Equatable {
     case left
     case right
@@ -351,6 +362,16 @@ public extension SelectionNavigator {
         }
 
         return Selection(caretAt: index, affinity: affinity, xOffset: nil)
+    }
+
+    func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
+        let range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
+        if range.isEmpty {
+            let affinity: Selection.Affinity = range.lowerBound == dataSource.endIndex ? .upstream : .downstream
+            return Selection(caretAt: range.lowerBound, affinity: affinity, xOffset: nil)
+        }
+
+        return Selection(anchor: range.lowerBound, head: range.upperBound, xOffset: nil)
     }
 
     func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {

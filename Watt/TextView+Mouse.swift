@@ -19,10 +19,19 @@ extension TextView {
         let locationInView = convert(event.locationInWindow, from: nil)
         let point = convertToTextContainer(locationInView)
 
-        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift {
-            layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(interactingAt: point, dataSource: layoutManager)
-        } else {
-            layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
+        switch event.clickCount {
+        case 1:
+            if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift {
+                layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(interactingAt: point, dataSource: layoutManager)
+            } else {
+                layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
+            }
+        case 2:
+            layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(to: .word, dataSource: layoutManager)
+        case 3:
+            layoutManager.selection = SelectionNavigator(selection: selection).extendSelection(to: .paragraph, dataSource: layoutManager)
+        default:
+            break
         }
     }
 
