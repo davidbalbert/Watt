@@ -123,7 +123,7 @@ extension NavigableSelection {
 public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: SelectionNavigationDataSource, Selection.Index == DataSource.Index {
     public let selection: Selection
 
-    public init(selection: Selection) {
+    public init(_ selection: Selection) {
         self.selection = selection
     }
 }
