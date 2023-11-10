@@ -63,7 +63,7 @@ extension TextView: NSTextInputClient {
         if anchor == head {
             layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, xOffset: nil, markedRange: markedRange)
         } else {
-            layoutManager.selection = Selection(anchor: anchor, head: head, xOffset: nil, markedRange: markedRange)
+            layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
         }
     }
 

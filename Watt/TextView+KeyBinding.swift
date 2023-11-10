@@ -379,7 +379,7 @@ extension TextView {
 
         let anchor = buffer.index(fromOldIndex: i)
         let head = buffer.index(anchor, offsetBy: 2)
-        layoutManager.selection = Selection(anchor: anchor, head: head)
+        layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
 
     // Swap two words, and select them at the end. If there's
@@ -424,7 +424,7 @@ extension TextView {
         let anchor = buffer.index(fromOldIndex: word1.lowerBound)
         let head = buffer.index(fromOldIndex: word2.upperBound)
 
-        layoutManager.selection = Selection(anchor: anchor, head: head)
+        layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()
@@ -441,7 +441,7 @@ extension TextView {
             return
         }
 
-        layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex)
+        layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
 
         selectionLayer.setNeedsLayout()
         insertionPointLayer.setNeedsLayout()

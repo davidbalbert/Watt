@@ -13,40 +13,62 @@ enum Affinity {
     case downstream
 }
 
-struct Selection {
-    enum Granularity {
-        case character
-        case word
-        case line  
-        case paragraph      
+extension Affinity: InitializableFromAffinity {
+    init(_ affinity: StandardKeyBindingResponder.Affinity) {
+        switch affinity {
+        case .upstream: self = .upstream
+        case .downstream: self = .downstream
+        }
     }
+}
 
+enum Granularity {
+    case character
+    case word
+    case line
+    case paragraph
+}
+
+extension Granularity: InitializableFromGranularity {
+    init(_ granularity: StandardKeyBindingResponder.Granularity) {
+        switch granularity {
+        case .character: self = .character
+        case .word: self = .word
+        case .line: self = .line
+        case .paragraph: self = .paragraph
+        }
+    }
+}
+
+struct Selection {
     let range: Range<Buffer.Index>
     // For caret, determines which side of a line wrap the caret is on.
     // For range, determins which the end is head, and which end is the anchor.
     let affinity: Affinity
+    let granularity: Granularity
     let xOffset: CGFloat? // in text container coordinates
     let markedRange: Range<Buffer.Index>?
 
-    init(range: Range<Buffer.Index>, affinity: Affinity, xOffset: CGFloat?, markedRange: Range<Buffer.Index>?) {
+    init(range: Range<Buffer.Index>, affinity: Affinity, granularity: Granularity, xOffset: CGFloat?, markedRange: Range<Buffer.Index>?) {
         self.range = range
         self.affinity = affinity
+        self.granularity = granularity
         self.xOffset = xOffset
         self.markedRange = markedRange
     }
 
     init(caretAt index: Buffer.Index, affinity: Affinity, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
-        self.init(range: index..<index, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
+        self.init(range: index..<index, affinity: affinity, granularity: .character, xOffset: xOffset, markedRange: markedRange)
     }
 
-    init(anchor: Buffer.Index, head: Buffer.Index, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
+    init(anchor: Buffer.Index, head: Buffer.Index, granularity: Granularity, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
         assert(anchor != head, "anchor and head must be different")
 
         let i = min(anchor, head)
         let j = max(anchor, head)
         let affinity: Affinity = anchor < head ? .downstream : .upstream
 
-        self.init(range: i..<j, affinity: affinity, xOffset: xOffset, markedRange: markedRange)
+        self.init(range: i..<j, affinity: affinity, granularity: granularity, xOffset: xOffset, markedRange: markedRange)
     }
 
     var isCaret: Bool {
@@ -82,16 +104,7 @@ struct Selection {
     }
 
     var unmarked: Selection {
-        Selection(range: range, affinity: affinity, xOffset: xOffset, markedRange: nil)
-    }
-}
-
-extension Affinity: InitializableFromAffinity {
-    init(_ affinity: StandardKeyBindingResponder.Affinity) {
-        switch affinity {
-        case .upstream: self = .upstream
-        case .downstream: self = .downstream
-        }
+        Selection(range: range, affinity: affinity, granularity: granularity, xOffset: xOffset, markedRange: nil)
     }
 }
 
@@ -100,7 +113,7 @@ extension Selection: NavigableSelection {
         self.init(caretAt: index, affinity: affinity, xOffset: xOffset, markedRange: nil)
     }
 
-    init(anchor: Buffer.Index, head: Buffer.Index, xOffset: CGFloat?) {
-        self.init(anchor: anchor, head: head, xOffset: xOffset, markedRange: nil)
+    init(anchor: Buffer.Index, head: Buffer.Index, granularity: Granularity, xOffset: CGFloat?) {
+        self.init(anchor: anchor, head: head, granularity: granularity, xOffset: xOffset, markedRange: nil)
     }
 }

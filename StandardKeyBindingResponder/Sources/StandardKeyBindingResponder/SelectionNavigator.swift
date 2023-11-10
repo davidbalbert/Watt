@@ -64,7 +64,9 @@ public enum Movement: Equatable {
 public protocol NavigableSelection {
     associatedtype Index: Comparable
     associatedtype Affinity: InitializableFromAffinity & Equatable
+    associatedtype Granularity: InitializableFromGranularity
 
+    // Should always set granularity to .character
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
 
     // xOffset will be non-nil when we extend a selection so that if
@@ -74,10 +76,11 @@ public protocol NavigableSelection {
     // xOffset that was set following the first vertical move. This is
     // what Xcode does. I think it's of doubious value, and confusing,
     // so I might remove it.
-    init(anchor: Index, head: Index, xOffset: CGFloat?)
+    init(anchor: Index, head: Index, granularity: Granularity, xOffset: CGFloat?)
 
     var range: Range<Index> { get }
     var affinity: Affinity { get }
+    var granularity: Granularity { get }
     var xOffset: CGFloat? { get }
 }
 
@@ -148,7 +151,7 @@ extension SelectionNavigator {
         // can never yield an upstream affinity.
 
         let head: Selection.Index
-        var affinity: Selection.Affinity
+        let affinity: Selection.Affinity
         var xOffset: CGFloat? = nil
 
         switch movement {
@@ -247,17 +250,20 @@ extension SelectionNavigator {
             affinity = .upstream
         }
 
+        // Granularity is always character because when selecting to the beginning or end of a
+        // word, line, or paragraph, we may not have selected the entire word or paragraph.
+
         if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
             assert(head != selection.upperBound)
             // Swap anchor and head so that if the next movement is endOf*, we end
             // up selecting the entire line, paragraph, or document.
-            return Selection(anchor: head, head: selection.upperBound, xOffset: nil)
+            return Selection(anchor: head, head: selection.upperBound, granularity: .character, xOffset: nil)
         } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             assert(head != selection.lowerBound)
             // ditto
-            return Selection(anchor: head, head: selection.lowerBound, xOffset: nil)
+            return Selection(anchor: head, head: selection.lowerBound, granularity: .character, xOffset: nil)
         } else if extending && head != selection.anchor {
-            return Selection(anchor: selection.anchor, head: head, xOffset: xOffset)
+            return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: xOffset)
         } else {
             // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
             return Selection(caretAt: head, affinity: affinity, xOffset: xOffset)
@@ -371,7 +377,7 @@ public extension SelectionNavigator {
             return Selection(caretAt: range.lowerBound, affinity: affinity, xOffset: nil)
         }
 
-        return Selection(anchor: range.lowerBound, head: range.upperBound, xOffset: nil)
+        return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
     func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
@@ -390,7 +396,7 @@ public extension SelectionNavigator {
         if head == selection.anchor {
             return Selection(caretAt: head, affinity: affinity, xOffset: nil)
         } else {
-            return Selection(anchor: selection.anchor, head: head, xOffset: nil)
+            return Selection(anchor: selection.anchor, head: head, granularity: selection.granularity, xOffset: nil)
         }
     }
 }
