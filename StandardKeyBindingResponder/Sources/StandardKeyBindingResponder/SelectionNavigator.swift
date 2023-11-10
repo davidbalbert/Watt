@@ -28,7 +28,7 @@ fileprivate extension InitializableFromAffinity {
     static var downstream: Self { Self(.downstream) }
 }
 
-public enum Granularity {
+public enum Granularity: Equatable {
     case character
     case word
     case line
@@ -44,6 +44,17 @@ fileprivate extension InitializableFromGranularity {
     static var word: Self { Self(.word) }
     static var line: Self { Self(.line) }
     static var paragraph: Self { Self(.paragraph) }
+}
+
+extension Granularity {
+    init<G>(_ granularity: G) where G: InitializableFromGranularity & Equatable {
+        switch granularity {
+        case .word: self = .word
+        case .line: self = .line
+        case .paragraph: self = .paragraph
+        default: self = .character
+        }
+    }
 }
 
 public enum Movement: Equatable {
@@ -64,7 +75,7 @@ public enum Movement: Equatable {
 public protocol NavigableSelection {
     associatedtype Index: Comparable
     associatedtype Affinity: InitializableFromAffinity & Equatable
-    associatedtype Granularity: InitializableFromGranularity
+    associatedtype Granularity: InitializableFromGranularity & Equatable
 
     // Should always set granularity to .character
     init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
@@ -383,20 +394,32 @@ public extension SelectionNavigator {
     func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
-        let head: Selection.Index
+        let i: Selection.Index
         let affinity: Selection.Affinity
         if let fragRange {
-            head = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-            affinity = head == fragRange.upperBound ? .upstream : .downstream
+            i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            affinity = i == fragRange.upperBound ? .upstream : .downstream
         } else {
-            head = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            i = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            affinity = i == dataSource.endIndex ? .upstream : .downstream
         }
 
-        if head == selection.anchor {
+        let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
+
+        let anchor: Selection.Index
+        let head: Selection.Index
+        if i < selection.anchor {
+            anchor = selection.upperBound
+            head = range.lowerBound
+        } else {
+            anchor = selection.lowerBound
+            head = range.upperBound
+        }
+
+        if head == anchor {
             return Selection(caretAt: head, affinity: affinity, xOffset: nil)
         } else {
-            return Selection(anchor: selection.anchor, head: head, granularity: selection.granularity, xOffset: nil)
+            return Selection(anchor: anchor, head: head, granularity: selection.granularity, xOffset: nil)
         }
     }
 }
