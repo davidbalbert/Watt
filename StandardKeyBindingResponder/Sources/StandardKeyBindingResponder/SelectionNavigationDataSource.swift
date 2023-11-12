@@ -30,10 +30,6 @@ public protocol SelectionNavigationDataSource {
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ edge: Edge) -> Bool)
 
-    // MARK: Word navigation
-    func isWordStart(_ i: Index) -> Bool
-    func isWordEnd(_ i: Index) -> Bool
-
     // MARK: Paragraph navigation
     func index(beforeParagraph i: Index) -> Index
     func index(afterParagraph i: Index) -> Index
@@ -41,30 +37,6 @@ public protocol SelectionNavigationDataSource {
 
 // MARK: - Default implementations
 public extension SelectionNavigationDataSource {
-    func isWordStart(_ i: Index) -> Bool {
-        if isEmpty || i == endIndex {
-            return false
-        }
-
-        if i == startIndex {
-            return !isWhitespace(i)
-        }
-        let prev = index(before: i)
-        return isWhitespace(prev) && !isWhitespace(i)
-    }
-
-    func isWordEnd(_ i: Index) -> Bool {
-        if isEmpty || i == startIndex {
-            return false
-        }
-
-        let prev = index(before: i)
-        if i == endIndex {
-            return !isWhitespace(prev)
-        }
-        return !isWhitespace(prev) && isWhitespace(i)
-    }
-
     func index(beforeParagraph i: Index) -> Index {
         precondition(i > startIndex)
 
@@ -358,8 +330,37 @@ extension SelectionNavigationDataSource {
         return index(ofWordBoundaryAfter: i)
     }
 
+    func isWordStart(_ i: Index) -> Bool {
+        if isEmpty || i == endIndex {
+            return false
+        }
+
+        if i == startIndex {
+            return !isWhitespace(i)
+        }
+        let prev = index(before: i)
+        return isWhitespace(prev) && !isWhitespace(i)
+    }
+
+    func isWordEnd(_ i: Index) -> Bool {
+        if isEmpty || i == startIndex {
+            return false
+        }
+
+        let prev = index(before: i)
+        if i == endIndex {
+            return !isWhitespace(prev)
+        }
+        return !isWhitespace(prev) && isWhitespace(i)
+    }
+
     func isWordBoundary(_ i: Index) -> Bool {
         i == startIndex || i == endIndex || isWordStart(i) || isWordEnd(i)
+    }
+
+    func isWhitespace(_ i: Index) -> Bool {
+        let c = self[i]
+        return c.isWhitespace || c.isPunctuation
     }
 
     func index(roundedDownToParagraph i: Index) -> Index {
@@ -369,8 +370,10 @@ extension SelectionNavigationDataSource {
         return index(beforeParagraph: i)
     }
 
-    func isWhitespace(_ i: Index) -> Bool {
-        let c = self[i]
-        return c.isWhitespace || c.isPunctuation
+    func index(roundedUpToParagraph i: Index) -> Index {
+        if i == endIndex || self[index(before: i)] == "\n" {
+            return i
+        }
+        return index(afterParagraph: i)
     }
 }
