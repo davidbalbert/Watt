@@ -104,21 +104,7 @@ extension SelectionNavigationDataSource {
 
             return start..<index(after: start)
         case .word:
-            let start: Index
-            let end: Index
-
-            if i == endIndex {
-                start = index(ofWordBoundaryBefore: i)
-                end = endIndex
-            } else if isWordBoundary(i) {
-                start = i
-                end = index(ofWordBoundaryAfter: i)
-            } else {
-                start = index(roundedDownToWordBoundary: i)
-                end = index(roundedUpToWordBoundary: i)
-            }
-
-            return start..<end
+            return wordRange(containing: i)
         case .line:
             return lineFragmentRange(containing: i)
         case .paragraph:
@@ -248,6 +234,45 @@ extension SelectionNavigationDataSource {
         return self[index(before: range.upperBound)]
     }
 
+    func wordRange(containing i: Index) -> Range<Index> {
+        assert(!isEmpty)
+
+        var i = i
+        if i == endIndex {
+            i = index(before: i)
+        }
+
+        if self[i] == " " {
+            var start = i
+            var end = index(after: i)
+
+            while start > startIndex && self[index(before: start)] == " " {
+                start = index(before: start)
+            }
+
+            while end < endIndex && self[end] == " " {
+                end = index(after: end)
+            }
+
+            return start..<end
+        } else if isWordCharacter(i) {
+            var start = i
+            var end = index(after: i)
+
+            while start > startIndex && isWordCharacter(index(before: start)) {
+                start = index(before: start)
+            }
+
+            while end < endIndex && isWordCharacter(end) {
+                end = index(after: end)
+            }
+
+            return start..<end
+        } else {
+            return i..<index(after: i)
+        }
+    }
+
     func index(beginningOfWordBefore i: Index) -> Index? {
         if i == startIndex {
             return nil
@@ -258,16 +283,17 @@ extension SelectionNavigationDataSource {
             i = index(before: i)
         }
 
-        var r = range(for: .word, enclosing: i)
-        if r.lowerBound == startIndex && !isWordStart(r.lowerBound) {
-            // we're at the beginning of the document, but it starts
-            // with whitespace.
-            return nil
-        } else if !isWordStart(r.lowerBound) {
-            r = range(for: .word, enclosing: index(before: r.lowerBound))
+        while i > startIndex && !isWordStart(i) {
+            i = index(before: i)
         }
 
-        return r.lowerBound
+        // we got to startIndex but the first character
+        // is whitespace.
+        if !isWordStart(i) {
+            return nil
+        }
+
+        return i
     }
 
     func index(endOfWordAfter i: Index) -> Index? {
@@ -275,59 +301,22 @@ extension SelectionNavigationDataSource {
             return nil
         }
 
-        // no need to check if we're at the end of a word because,
-        // range(for:enclosing:) on a boundary, will return the range
-        // on the right.
+        var i = i
+        if isWordEnd(i) {
+            i = index(after: i)
+        }
 
-        var r = range(for: .word, enclosing: i)
-        if r.upperBound == endIndex && !isWordEnd(r.upperBound) {
-            // we're at the end of the document, but it ends
-            // with whitespace.
+        while i < endIndex && !isWordEnd(i) {
+            i = index(after: i)
+        }
+
+        // we got to endIndex, but the last character
+        // is whitespace.
+        if !isWordEnd(i) {
             return nil
-        } else if !isWordEnd(r.upperBound) {
-            // r is whitespace, move forward to get a word
-            r = range(for: .word, enclosing: r.upperBound)
         }
 
-        return r.upperBound
-    }
-
-    func index(ofWordBoundaryBefore i: Index) -> Index {
-        precondition(i > startIndex)
-        var j = i
-        while i > startIndex {
-            j = index(before: j)
-            if isWordBoundary(j) {
-                break
-            }
-        }
-        return j
-    }
-
-    func index(ofWordBoundaryAfter i: Index) -> Index {
-        precondition(i < endIndex)
-        var j = i
-        while j < endIndex {
-            j = index(after: j)
-            if isWordBoundary(j) {
-                break
-            }
-        }
-        return j
-    }
-
-    func index(roundedDownToWordBoundary i: Index) -> Index {
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryBefore: i)
-    }
-
-    func index(roundedUpToWordBoundary i: Index) -> Index {
-        if isWordBoundary(i) {
-            return i
-        }
-        return index(ofWordBoundaryAfter: i)
+        return i
     }
 
     func isWordStart(_ i: Index) -> Bool {
@@ -336,10 +325,10 @@ extension SelectionNavigationDataSource {
         }
 
         if i == startIndex {
-            return !isWhitespace(i)
+            return isWordCharacter(i)
         }
         let prev = index(before: i)
-        return isWhitespace(prev) && !isWhitespace(i)
+        return !isWordCharacter(prev) && isWordCharacter(i)
     }
 
     func isWordEnd(_ i: Index) -> Bool {
@@ -349,18 +338,14 @@ extension SelectionNavigationDataSource {
 
         let prev = index(before: i)
         if i == endIndex {
-            return !isWhitespace(prev)
+            return isWordCharacter(prev)
         }
-        return !isWhitespace(prev) && isWhitespace(i)
+        return isWordCharacter(prev) && !isWordCharacter(i)
     }
 
-    func isWordBoundary(_ i: Index) -> Bool {
-        i == startIndex || i == endIndex || isWordStart(i) || isWordEnd(i)
-    }
-
-    func isWhitespace(_ i: Index) -> Bool {
+    func isWordCharacter(_ i: Index) -> Bool {
         let c = self[i]
-        return c.isWhitespace || c.isPunctuation
+        return !c.isWhitespace && !c.isPunctuation
     }
 
     func index(roundedDownToParagraph i: Index) -> Index {
