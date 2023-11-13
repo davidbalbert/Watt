@@ -382,10 +382,22 @@ public extension SelectionNavigator {
     }
 
     func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
-        let range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
+        var range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
         if range.isEmpty {
             let affinity: Selection.Affinity = range.lowerBound == dataSource.endIndex ? .upstream : .downstream
             return Selection(caretAt: range.lowerBound, affinity: affinity, xOffset: nil)
+        }
+
+        // In general, if our selection starts at "\n", we want to expand to the previous
+        // range, rather than expanding to cover the "\n". The only exception is when
+        // the entire paragraph consists of "\n" – i.e. double clicking on an empty
+        // line – we should select the newline.
+        if granularity == .character || granularity == .word {
+            let paragraph = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            if dataSource[paragraph.lowerBound] != "\n" {
+                assert(dataSource.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
+                range = dataSource.range(for: granularity, enclosing: dataSource.index(before: selection.lowerBound))
+            }
         }
 
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
