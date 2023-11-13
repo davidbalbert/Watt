@@ -363,8 +363,8 @@ extension SelectionNavigator {
 
 // MARK: - Mouse navigation
 
-public extension SelectionNavigator {
-    static func selection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+extension SelectionNavigator {
+    public static func selection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
         let index: Selection.Index
@@ -380,7 +380,7 @@ public extension SelectionNavigator {
         return Selection(caretAt: index, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
-    func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
+    public func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
         var range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
         if range.isEmpty {
             let affinity: Selection.Affinity = range.lowerBound == dataSource.endIndex ? .upstream : .downstream
@@ -402,32 +402,59 @@ public extension SelectionNavigator {
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
-    func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+    public func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
+        // TODO: change this so we always have a fragRange
         let i: Selection.Index
-        let affinity: Selection.Affinity
         if let fragRange {
             i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-            affinity = i == fragRange.upperBound ? .upstream : .downstream
         } else {
             i = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
-            affinity = i == dataSource.endIndex ? .upstream : .downstream
         }
 
+        if selection.granularity == .character && i == selection.anchor {
+            if i == selection.anchor {
+                let affinity: Selection.Affinity
+                if let fragRange {
+                    affinity = i == fragRange.upperBound ? .upstream : .downstream
+                } else {
+                    affinity = i == dataSource.endIndex ? .upstream : .downstream
+                }
+                return Selection(caretAt: i, affinity: affinity, granularity: .character, xOffset: nil)
+            } else {
+                return Selection(anchor: selection.anchor, head: i, granularity: .character, xOffset: nil)
+            }
+        }
+
+        let anchor: Selection.Index
         let head: Selection.Index
+
+        // If we're moving by a granularity larger than a character, and we're
+        // not on the empty last line, we should never have a caret.
+        assert(selection.isRange)
+
         let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
 
-        if i > selection.anchor && i > range.lowerBound {
+        if i >= selection.anchor /*&& i >= range.lowerBound*/ {
             head = range.upperBound
         } else {
             head = range.lowerBound
         }
 
-        if head == selection.anchor {
-            return Selection(caretAt: head, affinity: affinity, granularity: selection.granularity, xOffset: nil)
+        if selection.affinity == .downstream && i < selection.lowerBound {
+            // switching from downstream to upstream
+            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: selection.lowerBound)
+            anchor = originalRange.upperBound
+        } else if selection.affinity == .upstream && i >= selection.upperBound {
+            // switching from upstream to downstream
+            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: dataSource.index(before: selection.anchor))
+            anchor = originalRange.lowerBound
         } else {
-            return Selection(anchor: selection.anchor, head: head, granularity: selection.granularity, xOffset: nil)
+            anchor = selection.anchor
         }
+
+        assert(head != anchor)
+        return Selection(anchor: anchor, head: head, granularity: selection.granularity, xOffset: nil)
     }
 }
