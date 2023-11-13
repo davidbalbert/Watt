@@ -57,8 +57,8 @@ struct Selection {
         self.markedRange = markedRange
     }
 
-    init(caretAt index: Buffer.Index, affinity: Affinity, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
-        self.init(range: index..<index, affinity: affinity, granularity: .character, xOffset: xOffset, markedRange: markedRange)
+    init(caretAt index: Buffer.Index, affinity: Affinity, granularity: Granularity, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
+        self.init(range: index..<index, affinity: affinity, granularity: granularity, xOffset: xOffset, markedRange: markedRange)
     }
 
     init(anchor: Buffer.Index, head: Buffer.Index, granularity: Granularity, xOffset: CGFloat? = nil, markedRange: Range<Buffer.Index>? = nil) {
@@ -109,8 +109,8 @@ struct Selection {
 }
 
 extension Selection: NavigableSelection {
-    init(caretAt index: Buffer.Index, affinity: Affinity, xOffset: CGFloat?) {
-        self.init(caretAt: index, affinity: affinity, xOffset: xOffset, markedRange: nil)
+    init(caretAt index: Buffer.Index, affinity: Affinity, granularity: Granularity, xOffset: CGFloat?) {
+        self.init(caretAt: index, affinity: affinity, granularity: granularity, xOffset: xOffset, markedRange: nil)
     }
 
     init(anchor: Buffer.Index, head: Buffer.Index, granularity: Granularity, xOffset: CGFloat?) {

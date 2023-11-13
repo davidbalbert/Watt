@@ -61,7 +61,7 @@ extension TextView: NSTextInputClient {
         }
 
         if anchor == head {
-            layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, xOffset: nil, markedRange: markedRange)
+            layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
         } else {
             layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
         }
@@ -188,7 +188,7 @@ extension TextView {
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         let affinity: Affinity = head == buffer.endIndex ? .upstream : .downstream
-        layoutManager.selection = Selection(caretAt: head, affinity: affinity, xOffset: nil, markedRange: nil)
+        layoutManager.selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
 
         guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
             return

@@ -48,7 +48,7 @@ class LayoutManager {
             delegate?.didInvalidateLayout(for: self)
 
             let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
-            selection = Selection(caretAt: buffer.startIndex, affinity: affinity, xOffset: nil)
+            selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
         }
     }
 
@@ -77,7 +77,7 @@ class LayoutManager {
         self.buffer = Buffer()
 
         let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
-        selection = Selection(caretAt: buffer.startIndex, affinity: affinity, xOffset: nil)
+        selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
     var contentHeight: CGFloat {

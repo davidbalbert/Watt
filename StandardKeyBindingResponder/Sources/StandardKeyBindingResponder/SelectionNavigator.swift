@@ -77,8 +77,7 @@ public protocol NavigableSelection {
     associatedtype Affinity: InitializableFromAffinity & Equatable
     associatedtype Granularity: InitializableFromGranularity & Equatable
 
-    // Should always set granularity to .character
-    init(caretAt index: Index, affinity: Affinity, xOffset: CGFloat?)
+    init(caretAt index: Index, affinity: Affinity, granularity: Granularity, xOffset: CGFloat?)
 
     // xOffset will be non-nil when we extend a selection so that if
     // we extend the selection vertically up to startIndex and then
@@ -155,7 +154,7 @@ extension SelectionNavigator {
 
     func makeSelection(movement: Movement, extending: Bool, dataSource: DataSource) -> Selection {
         if dataSource.isEmpty {
-            return Selection(caretAt: dataSource.startIndex, affinity: .upstream, xOffset: nil)
+            return Selection(caretAt: dataSource.startIndex, affinity: .upstream, granularity: .character, xOffset: nil)
         }
 
         // after this point, dataSource can't be empty, which means that moving to startIndex
@@ -277,7 +276,7 @@ extension SelectionNavigator {
             return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: xOffset)
         } else {
             // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
-            return Selection(caretAt: head, affinity: affinity, xOffset: xOffset)
+            return Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: xOffset)
         }
     }
 
@@ -378,14 +377,14 @@ public extension SelectionNavigator {
             affinity = index == dataSource.endIndex ? .upstream : .downstream
         }
 
-        return Selection(caretAt: index, affinity: affinity, xOffset: nil)
+        return Selection(caretAt: index, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
     func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
         var range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
         if range.isEmpty {
             let affinity: Selection.Affinity = range.lowerBound == dataSource.endIndex ? .upstream : .downstream
-            return Selection(caretAt: range.lowerBound, affinity: affinity, xOffset: nil)
+            return Selection(caretAt: range.lowerBound, affinity: affinity, granularity: Selection.Granularity(granularity), xOffset: nil)
         }
 
         // In general, if our selection starts at "\n", we want to expand to the previous
@@ -400,24 +399,35 @@ public extension SelectionNavigator {
             }
         }
 
+        print(granularity)
+
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
     func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
-        let head: Selection.Index
+        let i: Selection.Index
         let affinity: Selection.Affinity
         if let fragRange {
-            head = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-            affinity = head == fragRange.upperBound ? .upstream : .downstream
+            i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            affinity = i == fragRange.upperBound ? .upstream : .downstream
         } else {
-            head = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            i = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            affinity = i == dataSource.endIndex ? .upstream : .downstream
+        }
+
+        let head: Selection.Index
+        let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
+
+        if i > selection.anchor && i > range.lowerBound {
+            head = range.upperBound
+        } else {
+            head = range.lowerBound
         }
 
         if head == selection.anchor {
-            return Selection(caretAt: head, affinity: affinity, xOffset: nil)
+            return Selection(caretAt: head, affinity: affinity, granularity: selection.granularity, xOffset: nil)
         } else {
             return Selection(anchor: selection.anchor, head: head, granularity: selection.granularity, xOffset: nil)
         }
