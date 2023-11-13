@@ -15,7 +15,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = "ab\ncd\n"
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 2), affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 3), affinity: .downstream, dataSource: d)
@@ -39,7 +39,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = "a"
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
 
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
     }
@@ -49,33 +49,33 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
-        var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
+        var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
         // the caret moves to the end of the selection
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 5), affinity: .downstream, dataSource: d)
 
         // it doesn't matter if the selection is reversed
-        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1))
+        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 5), affinity: .downstream, dataSource: d)
 
         // select "baz"
-        s = SimpleSelection(anchor: string.index(at: 8), head: string.index(at: 11))
+        s = SimpleSelection(anchor: string.index(at: 8), head: string.index(at: 11), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)
 
         // select "bar ba" - upperBound is at the end of the line fragment, so moving right should set our affinity
         // to upstream
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 10))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 10), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // reverse
-        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 8))
+        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 8), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)
 
         // select all
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 11))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 11), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)
 
         // reverse
-        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 11), affinity: .upstream, dataSource: d)
     }
 
@@ -84,28 +84,28 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
-        var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
+        var s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
         // the caret moves to the beginning of the selection
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1))
+        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1), granularity: .character)
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
 
         // select "foo"
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 3))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 3), granularity: .character)
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse
-        s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // select all
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 11))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 11), granularity: .character)
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse
-        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 11), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .left, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
@@ -118,14 +118,14 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "1"
-        var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .up, caret: "u", affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .up, caret: "q", affinity: .downstream, dataSource: d)
         s = moveAndAssertNoop(s, direction: .up, dataSource: d)
         s = moveAndAssert(s, direction: .down, caret: "0", affinity: .downstream, dataSource: d)
 
         // caret at "1"
-        s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .down, caret: "b", affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .down, caret: "r", affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .down, caret: "y", affinity: .downstream, dataSource: d)
@@ -135,7 +135,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
 
         // caret at "5"
-        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
         // after "qux"
         s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
         s = moveAndAssert(s, direction: .down, caret: "5", affinity: .downstream, dataSource: d)
@@ -152,11 +152,11 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // after "\n"
-        var s = SimpleSelection(caretAt: string.endIndex, affinity: .upstream)
+        var s = SimpleSelection(caretAt: string.endIndex, affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // after "c"
-        s = SimpleSelection(caretAt: string.index(at: 3), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 3), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .down, caretAt: string.endIndex, affinity: .upstream, dataSource: d)
         s = moveAndAssert(s, direction: .up, caret: "\n", affinity: .downstream, dataSource: d)
     }
@@ -171,17 +171,17 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // "f" through "k"
-        var s = SimpleSelection(anchor: string.index(at: 6), head: string.index(at: 13))
+        var s = SimpleSelection(anchor: string.index(at: 6), head: string.index(at: 13), granularity: .character)
         // at "b"
         s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
 
         // "f" through "k"
-        s = SimpleSelection(anchor: string.index(at: 6), head: string.index(at: 13))
+        s = SimpleSelection(anchor: string.index(at: 6), head: string.index(at: 13), granularity: .character)
         // at "n"
         s = moveAndAssert(s, direction: .down, caretAt: string.index(at: 16), affinity: .downstream, dataSource: d)
 
         // "a" through "d" (upstream)
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         // at "a"
         s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
@@ -190,7 +190,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = "  hello, world; this is (a test) "
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
 
         // between "o" and ","
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 7), affinity: .downstream, dataSource: d)
@@ -233,30 +233,30 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "ello, w"
-        var s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 10))
+        var s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 10), granularity: .character)
         // the caret moves to the end of "world"
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 14), affinity: .downstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 10), head: string.index(at: 3))
+        s = SimpleSelection(anchor: string.index(at: 10), head: string.index(at: 3), granularity: .character)
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 14), affinity: .downstream, dataSource: d)
 
         // select "(a test"
-        s = SimpleSelection(anchor: string.index(at: 24), head: string.index(at: 31))
+        s = SimpleSelection(anchor: string.index(at: 24), head: string.index(at: 31), granularity: .character)
         // the caret moves to the end of the buffer
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 24))
+        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 24), granularity: .character)
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // select all
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 33))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 33), granularity: .character)
         // the caret moves to the end of the buffer
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 33), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 33), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
@@ -265,30 +265,30 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "lo, w"
-        var s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 10))
+        var s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 10), granularity: .character)
         // the caret moves to the beginning of "hello"
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 2), affinity: .downstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 10), head: string.index(at: 5))
+        s = SimpleSelection(anchor: string.index(at: 10), head: string.index(at: 5), granularity: .character)
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 2), affinity: .downstream, dataSource: d)
 
         // select "(a test"
-        s = SimpleSelection(anchor: string.index(at: 24), head: string.index(at: 31))
+        s = SimpleSelection(anchor: string.index(at: 24), head: string.index(at: 31), granularity: .character)
         // the caret moves to the beginning of "is"
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 21), affinity: .downstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 24))
+        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 24), granularity: .character)
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 21), affinity: .downstream, dataSource: d)
 
         // select all
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 33))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 33), granularity: .character)
         // the caret moves to the beginning of the buffer
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // reverse the selection
-        s = SimpleSelection(anchor: string.index(at: 33), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 33), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
@@ -296,7 +296,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = ""
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
+        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
     }
@@ -306,7 +306,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // between "a" and "r"
-        var s = SimpleSelection(caretAt: string.index(at: 6), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 6), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
         // moving again is a no-op
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
@@ -319,17 +319,17 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // between "o" and "o"
-        s = SimpleSelection(caretAt: string.index(at: 2), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 2), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 7), affinity: .downstream, dataSource: d)
 
 
 
         // between "r" and "\n"
-        s = SimpleSelection(caretAt: string.index(at: 7), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 7), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
         // between "z" and " "
-        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 8), affinity: .downstream, dataSource: d)
         // no-op
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 8), affinity: .downstream, dataSource: d)
@@ -340,7 +340,7 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 15), affinity: .downstream, dataSource: d)
 
         // end of buffer
-        s = SimpleSelection(caretAt: string.index(at: 16), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 16), affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 16), affinity: .upstream, dataSource: d)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 16), affinity: .upstream, dataSource: d)
     }
@@ -352,12 +352,12 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // between "0" and "1"
-        var s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         // end of line
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // reset
-        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         // beginning of line
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
 
@@ -367,12 +367,12 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // between "a" and "b"
-        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream, granularity: .character)
         // end of line
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 20), affinity: .upstream, dataSource: d)
 
         // reset
-        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream, granularity: .character)
         // beginning of line
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 10), affinity: .downstream, dataSource: d)
 
@@ -382,12 +382,12 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 20), affinity: .upstream, dataSource: d)
 
         // between "w" and "r"
-        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream, granularity: .character)
         // end of line
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 24), affinity: .upstream, dataSource: d)
 
         // reset
-        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream, granularity: .character)
         // beginning of line
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 20), affinity: .downstream, dataSource: d)
 
@@ -404,20 +404,20 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // upstream between "9" and "a"
-        var s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream)
+        var s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream, granularity: .character)
         // left
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
         // reset
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream, granularity: .character)
         // moving right is a no-op
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // downstream between "9" and "a"
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream, granularity: .character)
         // right
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 20), affinity: .upstream, dataSource: d)
         // reset
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream, granularity: .character)
         // moving left is a no-op
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 10), affinity: .downstream, dataSource: d)
     }
@@ -430,91 +430,91 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
-        var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
+        var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // select "1234"
-        s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
+        s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5))
+        s = SimpleSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1))
+        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1))
+        s = SimpleSelection(anchor: string.index(at: 5), head: string.index(at: 1), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 10), affinity: .upstream, dataSource: d)
 
         // select "9abc"
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 13))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 13), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 13))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 13), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 20), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 13), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 13), head: string.index(at: 9), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 13), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 13), head: string.index(at: 9), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 20), affinity: .upstream, dataSource: d)
 
         // select "9abcdefghijw"
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 21))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 21), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 21))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 21), granularity: .character)
         // downstream because we're before a hard line break
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 9), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 9), granularity: .character)
         // ditto
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "ijwr"
-        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22))
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 10), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22))
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22), granularity: .character)
         // ditto
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18))
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 10), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18))
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18), granularity: .character)
         // ditto
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "ap\nba"
-        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 20), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 28), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 22))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 22), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 20), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 22))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 22), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 28), affinity: .upstream, dataSource: d)
 
         // select "a"
-        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 25), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 28), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 26))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 26), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.index(at: 25), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 26))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 26), granularity: .character)
         s = moveAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 28), affinity: .upstream, dataSource: d)
     }
 
@@ -528,62 +528,62 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // no-ops
-        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 24), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 24), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // no-op around "baz"
-        s = SimpleSelection(caretAt: string.index(at: 30), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 30), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 30), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 33), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 33), affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // no-op in blank line
-        s = SimpleSelection(caretAt: string.index(at: 29), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 29), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 29), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 29), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 29), affinity: .downstream, granularity: .character)
 
         // between "0" and "1"
-        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "9" and "a" upstream
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "9" and "a" downstream
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 10), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "a" and "b"
-        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 11), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "w" and "r"
-        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 21), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // between "o" and "o"
-        s = SimpleSelection(caretAt: string.index(at: 27), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 27), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 25), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 27), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 27), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 28), affinity: .downstream, dataSource: d)
 
         // between "a" and "z"
-        s = SimpleSelection(caretAt: string.index(at: 32), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 32), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 30), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 32), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 32), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
@@ -597,51 +597,51 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
-        var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
+        var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4))
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0))
+        s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "9abcdefghi"
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 19))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 19), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 19))
+        s = SimpleSelection(anchor: string.index(at: 9), head: string.index(at: 19), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 9), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 9))
+        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 9), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 24), affinity: .downstream, dataSource: d)
 
         // select "rap\nfo"
-        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 27))
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 27), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 28), affinity: .downstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 21))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 21), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 21))
+        s = SimpleSelection(anchor: string.index(at: 27), head: string.index(at: 21), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 28), affinity: .downstream, dataSource: d)
 
         // select "o\n\nba"
-        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 32))
+        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 32), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 25), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 32))
+        s = SimpleSelection(anchor: string.index(at: 26), head: string.index(at: 32), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 32), head: string.index(at: 26))
+        s = SimpleSelection(anchor: string.index(at: 32), head: string.index(at: 26), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 25), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 32), head: string.index(at: 26))
+        s = SimpleSelection(anchor: string.index(at: 32), head: string.index(at: 26), granularity: .character)
         s = moveAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
@@ -655,15 +655,15 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // no-ops
-        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 33), affinity: .upstream)
+        s = SimpleSelection(caretAt: string.index(at: 33), affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // between "f" and "o"
-        s = SimpleSelection(caretAt: string.index(at: 26), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 26), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(caretAt: string.index(at: 26), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 26), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
@@ -677,15 +677,15 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // select "ijwrap\nfoo\n\nb"
-        var s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 31))
+        var s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 31), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 31))
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 31), granularity: .character)
         s = moveAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
 
         // swap anchor and head
-        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 18))
+        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 18), granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfDocument, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
-        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 18))
+        s = SimpleSelection(anchor: string.index(at: 31), head: string.index(at: 18), granularity: .character)
         s = moveAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
@@ -694,7 +694,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "!"
-        var s = SimpleSelection(caretAt: string.index(at: 12), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 12), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .right, selected: "!", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .right, dataSource: d)
         s = extendAndAssert(s, direction: .left, caret: "!", affinity: .downstream, dataSource: d)
@@ -702,7 +702,7 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssert(s, direction: .right, caret: "!", affinity: .downstream, dataSource: d)
 
         // caret at "e"
-        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .left, selected: "H", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .left, dataSource: d)
         s = extendAndAssert(s, direction: .right, caret: "e", affinity: .downstream, dataSource: d)
@@ -719,7 +719,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "b"
-        var s = SimpleSelection(caretAt: string.index(at: 15), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 15), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .up, selected: "123456789a", affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .up, selected: "ux\n0123456789a", affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .up, selected: "qux\n0123456789a", affinity: .upstream, dataSource: d)
@@ -740,7 +740,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "a"
-        var s = SimpleSelection(caretAt: string.index(at: 7), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 7), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .rightWord, selected: "ar", affinity: .downstream, dataSource: d)
         s = extendAndAssert(s, direction: .rightWord, selected: "ar) qux", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .rightWord, dataSource: d)
@@ -757,7 +757,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = ""
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream)
+        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
     }
@@ -767,14 +767,14 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10) // Wraps after "r"
 
         // caret at "o"
-        var s = SimpleSelection(caretAt: string.index(at: 8), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 8), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfLine, selected: "or", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, wor", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
 
         // caret at "o"
-        s = SimpleSelection(caretAt: string.index(at: 8), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 8), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "Hello, w", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
@@ -786,14 +786,14 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at first "a"
-        var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfLine, selected: "ar", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "bar", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
 
         // caret at first "a"
-        s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .beginningOfLine, selected: "b", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .endOfLine, selected: "bar", affinity: .upstream, dataSource: d)
@@ -809,14 +809,14 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
-        var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfParagraph, selected: "56789wrap", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfParagraph, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfParagraph, selected: "0123456789wrap", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfParagraph, dataSource: d)
 
         // caret at "5"
-        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .beginningOfParagraph, selected: "01234", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfParagraph, dataSource: d)
         s = extendAndAssert(s, direction: .endOfParagraph, selected: "0123456789wrap", affinity: .upstream, dataSource: d)
@@ -832,14 +832,14 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
-        var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
+        var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfDocument, selected: "56789wrap\nbar", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfDocument, dataSource: d)
         s = extendAndAssert(s, direction: .beginningOfDocument, selected: "foo\n0123456789wrap\nbar", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfDocument, dataSource: d)
 
         // caret at "5"
-        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream)
+        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .beginningOfDocument, selected: "foo\n01234", affinity: .downstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .beginningOfDocument, dataSource: d)
         s = extendAndAssert(s, direction: .endOfDocument, selected: "foo\n0123456789wrap\nbar", affinity: .upstream, dataSource: d)
@@ -847,49 +847,49 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func extendAndAssertNoop(_ s: SimpleSelection, direction: Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func moveAndAssertNoop(_ s: SimpleSelection, direction: Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, file: file, line: line)
         return s2
     }
@@ -1118,21 +1118,21 @@ final class SelectionNavigatorTests: XCTestCase {
     
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: caret, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, caretAt: String.Index, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caretAt, affinity: affinity, file: file, line: line)
         return s2
     }
 
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(_ selection: s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2
     }

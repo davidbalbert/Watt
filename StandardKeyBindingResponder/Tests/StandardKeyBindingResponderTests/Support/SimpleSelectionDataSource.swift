@@ -117,7 +117,7 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let endsInNewline = string[fragRange].last == "\n"
 
         if fragRange.isEmpty || (endsInNewline && string.count == 1) {
-            _ = block(0, fragRange.lowerBound, .trailing)
+            _ = block(0, fragRange.lowerBound, .leading)
             return
         }
 

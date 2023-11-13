@@ -23,8 +23,8 @@ public protocol SelectionNavigationDataSource {
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
 
     // Enumerating over the first line fragment of each string:
-    // ""    -> [(0.0, 0, trailing)]
-    // "\n"  -> [(0.0, 0, trailing)]
+    // ""    -> [(0.0, 0, leading)]
+    // "\n"  -> [(0.0, 0, leading)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
@@ -122,6 +122,16 @@ extension SelectionNavigationDataSource {
         let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
         let targetIsAfterNewline = endsInNewline && target == fragRange.upperBound
 
+        let leadingTarget: Index
+        if count == 1 && endsInNewline {
+            // Special case for frag == "\n" && target == 1. We won't get
+            // a trailing target for a "\n" character, so we need to
+            // adjust the leading target down by 1.
+            leadingTarget = fragRange.lowerBound
+        } else {
+            leadingTarget = target
+        }
+
         let trailingTarget: Index
         if targetIsAfterNewline && count > 1 {
             trailingTarget = index(fragRange.upperBound, offsetBy: -2)
@@ -134,14 +144,14 @@ extension SelectionNavigationDataSource {
         var caretOffset: CGFloat?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
-            // ""    -> [(0.0, 0, trailing)]
-            // "\n"  -> [(0.0, 0, trailing)]
+            // ""    -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
             // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             // The common case.
-            if edge == .leading && target == i {
+            if edge == .leading && leadingTarget == i {
                 caretOffset = offset
                 return false
             }
@@ -157,39 +167,47 @@ extension SelectionNavigationDataSource {
         return caretOffset!
     }
 
-    // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
     func index(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> Index {
+        let (index, _) = indexAndOffset(forCaretOffset: targetOffset, inLineFragmentWithRange: fragRange)
+        return index
+    }
+
+    // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
+    func indexAndOffset(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> (Index, CGFloat) {
         assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
 
         let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
 
-        var res: Index?
-        var prev: (offset: CGFloat, i: Index)?
+        var res: (i: Index, offset: CGFloat)?
+        var prev: (i: Index, offset: CGFloat)?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
-            // ""    -> [(0.0, 0, trailing)]
-            // "\n"  -> [(0.0, 0, trailing)]
+            // ""    -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
             // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             let nleft = distance(from: i, to: fragRange.upperBound)
-            let isFinalOffset = edge == .trailing && (nleft == 1 || endsInNewline && nleft == 2)
+            let isFinalTrailing = edge == .trailing && (nleft == 1 || endsInNewline && nleft == 2)
 
             // skip all but the last trailing edge
-            if edge == .trailing && !isFinalOffset {
+            if edge == .trailing && !isFinalTrailing {
                 return true
             }
 
-            if targetOffset > offset {
-                prev = (offset, i)
+            if targetOffset > offset && isFinalTrailing {
+                prev = (index(after: i), offset)
+            } else if targetOffset > offset {
+                prev = (i, offset)
                 return true
             }
 
+            // TODO: fix this comment
             // If we've gotten to our target offset and we're at the first offset in the fragment
             // (regardless of whether it's leading or trailing), we've found our index.
             guard let prev else {
-                res = i
+                res = (i, offset)
                 return false
             }
 
@@ -197,15 +215,14 @@ extension SelectionNavigationDataSource {
             let thisDistance = abs(offset - targetOffset)
 
             if prevDistance < thisDistance {
-                res = prev.i
-            } else if isFinalOffset {
-                assert(edge == .trailing)
+                res = prev
+            } else if isFinalTrailing {
                 // the current offset is closer, because the final offset is the trailing edge of the
                 // second to last index, we need to move forward to the next index.
-                res = index(after: i)
+                res = (index(after: i), offset)
                 return false
             } else {
-                res = i
+                res = (i, offset)
             }
 
             return false
@@ -215,15 +232,10 @@ extension SelectionNavigationDataSource {
             return res
         }
 
-        // If we didn't find an index, it's because we're past the end of the line fragment.
-        // In that case, return the upper bound of fragRange, with one exception: if the
-        // fragment ends in a newline, return the index of the newline – it's impossible
-        // to be on the leading edge of a newline character.
-        if lastCharacter(inRange: fragRange) == "\n" {
-            return index(before: fragRange.upperBound)
-        } else {
-            return fragRange.upperBound
-        }
+        // If res is nil, it means we clicked to the right of the line fragment. Because
+        // all line fragments have at least one leading edge, so prev is guaranteed to
+        // be non-nil.
+        return prev!
     }
 
     func lastCharacter(inRange range: Range<Index>) -> Character? {

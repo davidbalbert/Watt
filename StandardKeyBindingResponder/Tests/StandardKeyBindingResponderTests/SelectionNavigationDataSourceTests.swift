@@ -330,7 +330,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
     }
 
     func testRangeForWordWithNewline() {
-        let s = "abc \n def"
+        let s = "abc  \n def"
         let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
@@ -343,25 +343,28 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         XCTAssertEqual(0..<3, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 3))
-        XCTAssertEqual(3..<6, Range(r, in: s))
+        XCTAssertEqual(3..<5, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 4))
-        XCTAssertEqual(3..<6, Range(r, in: s))
+        XCTAssertEqual(3..<5, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 5))
-        XCTAssertEqual(3..<6, Range(r, in: s))
+        XCTAssertEqual(5..<6, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 6))
-        XCTAssertEqual(6..<9, Range(r, in: s))
+        XCTAssertEqual(6..<7, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 7))
-        XCTAssertEqual(6..<9, Range(r, in: s))
+        XCTAssertEqual(7..<10, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 8))
-        XCTAssertEqual(6..<9, Range(r, in: s))
+        XCTAssertEqual(7..<10, Range(r, in: s))
 
         r = dataSource.range(for: .word, enclosing: s.index(at: 9))
-        XCTAssertEqual(6..<9, Range(r, in: s))
+        XCTAssertEqual(7..<10, Range(r, in: s))
+
+        r = dataSource.range(for: .word, enclosing: s.index(at: 10))
+        XCTAssertEqual(7..<10, Range(r, in: s))
     }
 
     func testRangeForLineSingleFragment() {
