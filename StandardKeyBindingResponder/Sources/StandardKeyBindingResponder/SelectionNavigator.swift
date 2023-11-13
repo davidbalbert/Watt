@@ -406,32 +406,20 @@ public extension SelectionNavigator {
     func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange = dataSource.lineFragmentRange(for: point)
 
-        let i: Selection.Index
+        let head: Selection.Index
         let affinity: Selection.Affinity
         if let fragRange {
-            i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-            affinity = i == fragRange.upperBound ? .upstream : .downstream
+            head = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            affinity = head == fragRange.upperBound ? .upstream : .downstream
         } else {
-            i = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
-            affinity = i == dataSource.endIndex ? .upstream : .downstream
+            head = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         }
 
-        let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
-
-        let anchor: Selection.Index
-        let head: Selection.Index
-        if i < selection.anchor {
-            anchor = selection.upperBound
-            head = range.lowerBound
-        } else {
-            anchor = selection.lowerBound
-            head = range.upperBound
-        }
-
-        if head == anchor {
+        if head == selection.anchor {
             return Selection(caretAt: head, affinity: affinity, xOffset: nil)
         } else {
-            return Selection(anchor: anchor, head: head, granularity: selection.granularity, xOffset: nil)
+            return Selection(anchor: selection.anchor, head: head, granularity: selection.granularity, xOffset: nil)
         }
     }
 }
