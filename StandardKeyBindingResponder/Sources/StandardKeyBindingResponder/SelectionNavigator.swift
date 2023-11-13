@@ -403,36 +403,32 @@ extension SelectionNavigator {
     }
 
     public func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
-        let fragRange = dataSource.lineFragmentRange(for: point)
-
-        // TODO: change this so we always have a fragRange
-        let i: Selection.Index
-        if let fragRange {
-            i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        let fragRange: Range<Selection.Index>
+        if let r = dataSource.lineFragmentRange(for: point) {
+            fragRange = r
+        } else if point.y < 0 {
+            fragRange = dataSource.lineFragmentRange(containing: dataSource.startIndex)
         } else {
-            i = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
+            fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
         }
 
-        if selection.granularity == .character && i == selection.anchor {
+        let i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+
+        if selection.granularity == .character {
             if i == selection.anchor {
-                let affinity: Selection.Affinity
-                if let fragRange {
-                    affinity = i == fragRange.upperBound ? .upstream : .downstream
-                } else {
-                    affinity = i == dataSource.endIndex ? .upstream : .downstream
-                }
+                let affinity: Selection.Affinity = i == fragRange.upperBound ? .upstream : .downstream
                 return Selection(caretAt: i, affinity: affinity, granularity: .character, xOffset: nil)
             } else {
                 return Selection(anchor: selection.anchor, head: i, granularity: .character, xOffset: nil)
             }
         }
 
-        let anchor: Selection.Index
-        let head: Selection.Index
-
         // If we're moving by a granularity larger than a character, and we're
         // not on the empty last line, we should never have a caret.
         assert(selection.isRange)
+
+        let anchor: Selection.Index
+        let head: Selection.Index
 
         let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
 
