@@ -275,8 +275,9 @@ final class LayoutManagerTests: XCTestCase {
 
         var offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 0))
 
-        XCTAssertEqual(1, offsets.count)
-        XCTAssertEqual(O(0, b.index(at: 0), .trailing), offsets[0])
+        XCTAssertEqual(2, offsets.count)
+        XCTAssertEqual(O(0, b.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 0), .trailing), offsets[1])
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 1))
 
@@ -308,7 +309,7 @@ final class LayoutManagerTests: XCTestCase {
 
         var offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 0))
 
-        XCTAssertEqual(6, offsets.count)
+        XCTAssertEqual(8, offsets.count)
 
         XCTAssertEqual(O(w*0, b.index(at: 0), .leading), offsets[0])
         XCTAssertEqual(O(w*1, b.index(at: 0), .trailing), offsets[1])
@@ -316,6 +317,9 @@ final class LayoutManagerTests: XCTestCase {
         XCTAssertEqual(O(w*2, b.index(at: 1), .trailing), offsets[3])
         XCTAssertEqual(O(w*2, b.index(at: 2), .leading), offsets[4])
         XCTAssertEqual(O(w*3, b.index(at: 2), .trailing), offsets[5])
+        XCTAssertEqual(O(w*3, b.index(at: 3), .leading), offsets[6])
+        XCTAssertEqual(O(w*3, b.index(at: 3), .trailing), offsets[7])
+
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 4))
 
@@ -375,7 +379,7 @@ final class LayoutManagerTests: XCTestCase {
 
         var offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 0))
 
-        XCTAssertEqual(20, offsets.count)
+        XCTAssertEqual(22, offsets.count)
 
         XCTAssertEqual(O(w*0, b.index(at: 0), .leading), offsets[0])
         XCTAssertEqual(O(w*1, b.index(at: 0), .trailing), offsets[1])
@@ -397,6 +401,8 @@ final class LayoutManagerTests: XCTestCase {
         XCTAssertEqual(O(w*9, b.index(at: 8), .trailing), offsets[17])
         XCTAssertEqual(O(w*9, b.index(at: 9), .leading), offsets[18])
         XCTAssertEqual(O(w*10, b.index(at: 9), .trailing), offsets[19])
+        XCTAssertEqual(O(w*10, b.index(at: 10), .leading), offsets[20])
+        XCTAssertEqual(O(w*10, b.index(at: 10), .trailing), offsets[21])
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 11))
 

@@ -24,10 +24,15 @@ public protocol SelectionNavigationDataSource {
 
     // Enumerating over the first line fragment of each string:
     // ""    -> [(0.0, 0, leading)]
-    // "\n"  -> [(0.0, 0, leading)]
+    // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
-    // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+    // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
+    //
+    // This is the same behavior as CTLineEnumerateCaretOffsets, except "" has only a single offset.
+    // For reference, here's what CTLineEnumerateCaretOffsets reports for "":
+    // ""    -> [(0.0, 0, leadingEdge=true), (0.0, -1, leadingEdge=false)]
+    //
     func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ edge: Edge) -> Bool)
 
     // MARK: Paragraph navigation
@@ -145,7 +150,7 @@ extension SelectionNavigationDataSource {
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
             // ""    -> [(0.0, 0, leading)]
-            // "\n"  -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
             // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
@@ -183,29 +188,30 @@ extension SelectionNavigationDataSource {
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
             // ""    -> [(0.0, 0, leading)]
-            // "\n"  -> [(0.0, 0, leading)]
+            // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
-            // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+            // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             let nleft = distance(from: i, to: fragRange.upperBound)
-            let isFinalTrailing = edge == .trailing && (nleft == 1 || endsInNewline && nleft == 2)
+            let isFinal = fragRange.isEmpty || (edge == .trailing && nleft == 1)
 
             // skip all but the last trailing edge
-            if edge == .trailing && !isFinalTrailing {
+            if edge == .trailing && !isFinal {
                 return true
             }
 
-            if targetOffset > offset && isFinalTrailing {
-                prev = (index(after: i), offset)
-            } else if targetOffset > offset {
+            // We haven't reached our goal yet, so just keep going.
+            //
+            // An exception: if this is the last caretOffset, we to use it whether or
+            // not we've reached our goal so we can handle the case where targetOffset
+            // is beyond the end of the fragment.
+            if targetOffset > offset && !isFinal {
                 prev = (i, offset)
                 return true
             }
 
-            // TODO: fix this comment
-            // If we've gotten to our target offset and we're at the first offset in the fragment
-            // (regardless of whether it's leading or trailing), we've found our index.
+            // If the offset we were looking for is the first one, just use it.
             guard let prev else {
                 res = (i, offset)
                 return false
@@ -215,27 +221,21 @@ extension SelectionNavigationDataSource {
             let thisDistance = abs(offset - targetOffset)
 
             if prevDistance < thisDistance {
+                // The previous offset is closer.
                 res = prev
-            } else if isFinalTrailing {
-                // the current offset is closer, because the final offset is the trailing edge of the
-                // second to last index, we need to move forward to the next index.
-                res = (index(after: i), offset)
-                return false
-            } else {
+            } else if edge == .leading || endsInNewline {
                 res = (i, offset)
+            } else {
+                assert(isFinal)
+                // We're on a trailing edge, which means our target index is the one
+                // after the current one.
+                res = (index(after: i), offset)
             }
 
             return false
         }
 
-        if let res {
-            return res
-        }
-
-        // If res is nil, it means we clicked to the right of the line fragment. Because
-        // all line fragments have at least one leading edge, so prev is guaranteed to
-        // be non-nil.
-        return prev!
+        return res!
     }
 
     func lastCharacter(inRange range: Range<Index>) -> Character? {

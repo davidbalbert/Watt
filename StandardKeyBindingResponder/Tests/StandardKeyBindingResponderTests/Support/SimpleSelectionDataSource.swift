@@ -114,28 +114,27 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
     func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Edge) -> Bool) {
         let fragRange = lineFragmentRange(containing: index)
 
-        let endsInNewline = string[fragRange].last == "\n"
-
-        if fragRange.isEmpty || (endsInNewline && string.count == 1) {
+        if fragRange.isEmpty {
             _ = block(0, fragRange.lowerBound, .leading)
             return
         }
+
+        let endsInNewline = string[fragRange].last == "\n"
 
         var i = fragRange.lowerBound
         var offset: CGFloat = 0
         var edge: Edge = .leading
         while i < fragRange.upperBound {
-            if endsInNewline && i == string.index(before: fragRange.upperBound) {
-                return
-            }
-
             if !block(offset, i, edge) {
                 return
             }
 
-            if edge == .leading {
+            let isNewline = endsInNewline && i == string.index(before: fragRange.upperBound)
+
+            if edge == .leading && !isNewline {
                 offset += Self.charWidth
-            } else {
+            }
+            if edge == .trailing {
                 i = string.index(after: i)
             }
             edge = edge == .leading ? .trailing : .leading

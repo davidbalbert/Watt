@@ -161,25 +161,15 @@ class LayoutManager {
             return
         }
 
-        let downstreamCaretIndex = selection.lowerBound
-        let upstreamCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
+        let leadingCaretIndex = selection.lowerBound
+        let trailingCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
         var rect: CGRect?
-        enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge, fragRange in
-            // A bit annoying to calculate these every time, and in general this interface is
-            // a bit annoying. But I liked it better than an interface where you had to pass
-            // both a Line and LineFragment into enumerateCaretRects. That had more possibility
-            // of making a mistake.
-            let endsInNewline = buffer[fragRange].characters.last == "\n"
-            let count = buffer.distance(from: fragRange.lowerBound, to: fragRange.upperBound)
+        enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge in
+            let leadingMatch = edge == .leading && i == leadingCaretIndex
+            let trailingMatch = edge == .trailing && i == trailingCaretIndex
 
-            // fragments which are "\n" and "" (empty last line) have a single, .trailing caret offset even
-            // though i == 0[utf8] for both of them. This makes SelectionNavigator easier to write, at the
-            // expense of having this logic be a bit more confusing.
-            let downstreamMatch = i == downstreamCaretIndex && (edge == .leading || fragRange.isEmpty || (endsInNewline && count == 1))
-            let upstreamMatch = i == upstreamCaretIndex && edge == .trailing
-
-            guard downstreamMatch || upstreamMatch else {
+            guard leadingMatch || trailingMatch else {
                 return true
             }
 
@@ -307,7 +297,7 @@ class LayoutManager {
     }
 
     // Rects are in text container coordinates
-    func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge, _ fragRange: Range<Buffer.Index>) -> Bool) {
+    func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
         guard let frag = line.fragment(containing: index, affinity: affinity) else {
             assertionFailure("no frag")
@@ -316,15 +306,12 @@ class LayoutManager {
 
         assert(line.lineFragments.contains { $0.range == frag.range })
 
-        let endsInNewline = buffer[frag.range].characters.last == "\n"
-        let count = buffer.distance(from: frag.range.lowerBound, to: frag.range.upperBound)
-
         // hardcode empty last line because it was created from a dummy non-empty CTLine
-        if frag.range.isEmpty || (endsInNewline && count == 1) {
+        if frag.range.isEmpty {
             let fragRect = CGRect(x: 0, y: 0, width: 1, height: frag.alignmentFrame.height)
             let lineRect = convert(fragRect, from: frag)
             let rect = convert(lineRect, from: line)
-            _ = block(rect, frag.range.lowerBound, .trailing, frag.range)
+            _ = block(rect, frag.range.lowerBound, .trailing)
             return
         }
 
@@ -408,16 +395,11 @@ class LayoutManager {
                     prevOffsetInLine = offsetInLine
                 }
 
-                if endsInNewline && i == buffer.index(before: frag.range.upperBound) {
-                    stop.pointee = true
-                    return
-                }
-
                 let fragRect = CGRect(x: caretOffset, y: 0, width: 1, height: frag.alignmentFrame.height)
                 let lineRect = convert(fragRect, from: frag)
                 let rect = convert(lineRect, from: line)
 
-                if !block(rect, i, edge, frag.range) {
+                if !block(rect, i, edge) {
                     stop.pointee = true
                     return
                 }
@@ -800,13 +782,13 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     // Enumerating over the first line fragment of each string:
-    // ""    -> [(0.0, 0, trailing)]
-    // "\n"  -> [(0.0, 0, trailing)]
+    // ""    -> [(0.0, 0, leading)]
+    // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
-    // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+    // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
-        enumerateCaretRects(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) { rect, i, edge, _ in
+        enumerateCaretRects(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) { rect, i, edge in
             block(rect.minX, i, edge)
         }
     }

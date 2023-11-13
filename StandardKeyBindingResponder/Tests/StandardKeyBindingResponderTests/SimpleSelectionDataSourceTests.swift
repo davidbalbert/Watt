@@ -311,8 +311,9 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
         XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 0), .trailing), offsets[1])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
 
@@ -340,7 +341,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
-        XCTAssertEqual(6, offsets.count)
+        XCTAssertEqual(8, offsets.count)
 
         XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
         XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
@@ -348,6 +349,8 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(O(16, string.index(at: 1), .trailing), offsets[3])
         XCTAssertEqual(O(16, string.index(at: 2), .leading), offsets[4])
         XCTAssertEqual(O(24, string.index(at: 2), .trailing), offsets[5])
+        XCTAssertEqual(O(24, string.index(at: 3), .leading), offsets[6])
+        XCTAssertEqual(O(24, string.index(at: 3), .trailing), offsets[7])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 4))
 
@@ -403,7 +406,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
-        XCTAssertEqual(20, offsets.count)
+        XCTAssertEqual(22, offsets.count)
 
         XCTAssertEqual(O(0, string.index(at: 0), .leading), offsets[0])
         XCTAssertEqual(O(8, string.index(at: 0), .trailing), offsets[1])
@@ -425,6 +428,8 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(O(72, string.index(at: 8), .trailing), offsets[17])
         XCTAssertEqual(O(72, string.index(at: 9), .leading), offsets[18])
         XCTAssertEqual(O(80, string.index(at: 9), .trailing), offsets[19])
+        XCTAssertEqual(O(80, string.index(at: 10), .leading), offsets[20])
+        XCTAssertEqual(O(80, string.index(at: 10), .trailing), offsets[21])
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 11))
 
