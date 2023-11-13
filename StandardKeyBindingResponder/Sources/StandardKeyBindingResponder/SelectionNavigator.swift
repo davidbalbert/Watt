@@ -394,7 +394,7 @@ public extension SelectionNavigator {
         // line – we should select the newline.
         if granularity == .character || granularity == .word {
             let paragraph = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            if dataSource[paragraph.lowerBound] != "\n" {
+            if dataSource[paragraph.lowerBound] != "\n" && dataSource[range.lowerBound] == "\n" {
                 assert(dataSource.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
                 range = dataSource.range(for: granularity, enclosing: dataSource.index(before: selection.lowerBound))
             }
