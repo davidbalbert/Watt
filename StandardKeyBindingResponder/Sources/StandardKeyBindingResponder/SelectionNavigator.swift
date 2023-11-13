@@ -399,8 +399,6 @@ public extension SelectionNavigator {
             }
         }
 
-        print(granularity)
-
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
