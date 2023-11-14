@@ -432,7 +432,29 @@ extension SelectionNavigator {
 
         let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
 
-        if i >= selection.anchor /*&& i >= range.lowerBound*/ {
+        // Rules for extending selections of words, lines, or paragraphs:
+        // 1. The initially selected granule always stays selected. I.e. no carets.
+        // 2. A new granule is selected only when the cursor has moved passed the
+        //    first character (downstream) or the last character (upstream).
+        //    Note: Rule 2 does not apply to the initial granule.
+        //
+        // Concretely consider the string "foo   bar" and a selection of word granularity
+        // covering "   " (anchor=3, head=6).
+        //
+        // Rule 1 says that "   " must always be selected.
+        // Rule 2 implies that "bar" is not selected until mouse.x is halfway through "b". When
+        // that happens, the mouse's index is 7 and the selection is (anchor=3, head=9).
+        // Rule 1 implies that when moving to the left of "   ", the anchor must switch from 3 to
+        // 6 so that "   " remains selected. This happens when mouse.x is half way through the
+        // second "o" in "foo". At that point, the selection would be (anchor=6, head=0).
+        //
+        // When deciding whether to use range.upperBound for head:
+        // * `i >= selection.anchor` makes sure we're going to the right.
+        // * `range.lowerBound == selection.anchor` enforces rule 1 by forcing
+        //   us to always select the initial granule.
+        // * `i > range.lowerBound` enforces rule 2 by only selecting a subsequent
+        //   granule if we're past the first character in the granule.
+        if i >= selection.anchor && (range.lowerBound == selection.anchor || i > range.lowerBound) {
             head = range.upperBound
         } else {
             head = range.lowerBound
