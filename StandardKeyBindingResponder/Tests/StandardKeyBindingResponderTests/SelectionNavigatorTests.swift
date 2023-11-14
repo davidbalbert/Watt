@@ -847,49 +847,49 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, selected string: String, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func extendAndAssertNoop(_ s: SimpleSelection, direction: Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extend(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, selected string: String, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func moveAndAssertNoop(_ s: SimpleSelection, direction: Movement, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
     func moveAndAssert(_ s: SimpleSelection, direction: Movement, caretAt caret: String.Index, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).move(direction, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
     }
@@ -897,7 +897,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     // MARK: - Mouse navigation
 
-    func testSelectionInteractingAtEmptyString() {
+    func testClickingOnEmptyString() {
         let string = ""
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         
@@ -917,7 +917,7 @@ final class SelectionNavigatorTests: XCTestCase {
         clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
     }
 
-    func testSelectionInteractingAtNewline() {
+    func testClickingOnNewline() {
         let string = "\n"
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
@@ -943,7 +943,7 @@ final class SelectionNavigatorTests: XCTestCase {
         clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.index(at: 1), affinity: .upstream, dataSource: d)
     }
 
-    func testSelectionInteractingAt() {
+    func testClicking() {
         let string = """
         0123456789wrap
         hello
@@ -1046,7 +1046,10 @@ final class SelectionNavigatorTests: XCTestCase {
         clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
     }
 
-    func testExtendSelectionInteractingAt() {
+    // TODO: testDraggingOnEmptyString
+    // TODO: testDraggingOnNewline
+
+    func testDragging() {
         let string = """
         0123456789wrap
         hello
@@ -1108,13 +1111,13 @@ final class SelectionNavigatorTests: XCTestCase {
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         
         var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
-        s = SelectionNavigator(s).extendSelection(to: .word, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        s = SelectionNavigator(s).selection(for: .word, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
         assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .word)
 
-        s = SelectionNavigator(s).extendSelection(to: .line, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        s = SelectionNavigator(s).selection(for: .line, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
         assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .line)
 
-        s = SelectionNavigator(s).extendSelection(to: .paragraph, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        s = SelectionNavigator(s).selection(for: .paragraph, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
         assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .paragraph)
     }
 
@@ -1284,27 +1287,27 @@ final class SelectionNavigatorTests: XCTestCase {
     
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: caret, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, caretAt: String.Index, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caretAt, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
     }
 
     @discardableResult
     func dragAndAssert(_ s: SimpleSelection, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     func encloseAndAssert(_ s: SimpleSelection, enclosing granularity: SimpleSelection.Granularity, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
-        let s2 = SelectionNavigator(s).extendSelection(to: Granularity(granularity), enclosing: point, dataSource: dataSource)
+        let s2 = SelectionNavigator(s).selection(for: Granularity(granularity), enclosing: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }

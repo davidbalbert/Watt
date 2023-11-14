@@ -745,11 +745,11 @@ extension LayoutManager: BufferDelegate {
 
 extension LayoutManager {
     func moveSelection(_ movement: Movement) {
-        selection = SelectionNavigator(selection).move(movement, dataSource: self)
+        selection = SelectionNavigator(selection).selection(moving: movement, dataSource: self)
     }
 
     func extendSelection(_ movement: Movement) {
-        selection = SelectionNavigator(selection).extend(movement, dataSource: self)
+        selection = SelectionNavigator(selection).selection(extending: movement, dataSource: self)
     }
 }
 

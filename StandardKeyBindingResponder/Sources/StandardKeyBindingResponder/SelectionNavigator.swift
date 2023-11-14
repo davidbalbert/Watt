@@ -144,11 +144,11 @@ public struct SelectionNavigator<Selection, DataSource> where Selection: Navigab
 // MARK: - Keyboard navigation
 
 extension SelectionNavigator {
-    public func move(_ movement: Movement, dataSource: DataSource) -> Selection {
+    public func selection(moving movement: Movement, dataSource: DataSource) -> Selection {
         makeSelection(movement: movement, extending: false, dataSource: dataSource)
     }
 
-    public func extend(_ movement: Movement, dataSource: DataSource) -> Selection {
+    public func selection(extending movement: Movement, dataSource: DataSource) -> Selection {
         makeSelection(movement: movement, extending: true, dataSource: dataSource)
     }
 
@@ -380,7 +380,7 @@ extension SelectionNavigator {
         return Selection(caretAt: index, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
-    public func extendSelection(to granularity: Granularity, enclosing point: CGPoint, dataSource: DataSource) -> Selection {
+    public func selection(for granularity: Granularity, enclosing point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange: Range<Selection.Index>
         if let r = dataSource.lineFragmentRange(for: point) {
             fragRange = r
@@ -415,7 +415,7 @@ extension SelectionNavigator {
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
-    public func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+    public func selection(extendingTo point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange: Range<Selection.Index>
         if let r = dataSource.lineFragmentRange(for: point) {
             fragRange = r
