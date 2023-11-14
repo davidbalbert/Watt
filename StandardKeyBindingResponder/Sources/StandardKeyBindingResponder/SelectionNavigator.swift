@@ -415,28 +415,6 @@ extension SelectionNavigator {
         return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
     }
 
-    public func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
-        var range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
-        if range.isEmpty {
-            let affinity: Selection.Affinity = range.lowerBound == dataSource.endIndex ? .upstream : .downstream
-            return Selection(caretAt: range.lowerBound, affinity: affinity, granularity: Selection.Granularity(granularity), xOffset: nil)
-        }
-
-        // In general, if our selection starts at "\n", we want to expand to the previous
-        // range, rather than expanding to cover the "\n". The only exception is when
-        // the entire paragraph consists of "\n" – i.e. double clicking on an empty
-        // line – we should select the newline.
-        if granularity == .character || granularity == .word {
-            let paragraph = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            if dataSource[paragraph.lowerBound] != "\n" && dataSource[range.lowerBound] == "\n" {
-                assert(dataSource.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
-                range = dataSource.range(for: granularity, enclosing: dataSource.index(before: selection.lowerBound))
-            }
-        }
-
-        return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
-    }
-
     public func extendSelection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
         let fragRange: Range<Selection.Index>
         if let r = dataSource.lineFragmentRange(for: point) {
