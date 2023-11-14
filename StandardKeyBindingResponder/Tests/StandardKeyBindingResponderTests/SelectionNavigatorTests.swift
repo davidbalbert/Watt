@@ -9,7 +9,7 @@ import XCTest
 @testable import StandardKeyBindingResponder
 
 final class SelectionNavigatorTests: XCTestCase {
-    // MARK: Keyboard navigation
+    // MARK: - Keyboard navigation
 
     func testMoveHorizontallyByCharacter() {
         let string = "ab\ncd\n"
@@ -895,7 +895,7 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
 
-    // MARK: Mouse navigation
+    // MARK: - Mouse navigation
 
     func testSelectionInteractingAtEmptyString() {
         let string = ""
@@ -1101,6 +1101,82 @@ final class SelectionNavigatorTests: XCTestCase {
         s = dragAndAssert(s, point: CGPoint(x: 76, y: 13.999), caret: "w", affinity: .upstream, dataSource: d)
     }
 
+    // MARK: Granularity
+
+    func testExtendSelectionToEnclosingEmpty() {
+        let string = ""
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        
+        var s = SimpleSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
+        s = SelectionNavigator(s).extendSelection(to: .word, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .word)
+
+        s = SelectionNavigator(s).extendSelection(to: .line, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .line)
+
+        s = SelectionNavigator(s).extendSelection(to: .paragraph, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
+        assert(selection: s, hasCaretAt: string.startIndex, affinity: .upstream, granularity: .paragraph)
+    }
+
+    func testExtendSelectionToEnclosing() {
+        let string = """
+        01234 6789wrap
+        hello
+        """
+
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // before "0"
+        var s = clickAndAssert(CGPoint(x: -1, y: 0), caret: "0", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: -1, y: 0), selected: "01234", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: -1, y: 0), selected: "01234 6789", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: -1, y: 0), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+
+        // before " "
+        s = clickAndAssert(CGPoint(x: 39.999, y: 0), caret: " ", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 39.999, y: 0), selected: "01234", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 39.999, y: 0), selected: "01234 6789", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 39.999, y: 0), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+
+        // caret at " "
+        s = clickAndAssert(CGPoint(x: 40, y: 0), caret: " ", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 40, y: 0), selected: " ", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 40, y: 0), selected: "01234 6789", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 40, y: 0), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+        // after "9"
+        s = clickAndAssert(CGPoint(x: 100, y: 0), caret: "w", affinity: .upstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 100, y: 0), selected: "6789wrap", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 100, y: 0), selected: "01234 6789", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 100, y: 0), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+        // before "w"
+        s = clickAndAssert(CGPoint(x: -11, y: 14), caret: "w", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: -1, y: 14), selected: "6789wrap", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: -1, y: 14), selected: "wrap\n", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: -1, y: 14), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+        // after "p"
+        s = clickAndAssert(CGPoint(x: 100, y: 14), caret: "\n", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 100, y: 14), selected: "6789wrap", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 100, y: 14), selected: "wrap\n", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 100, y: 14), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
+
+        // before "h"
+        s = clickAndAssert(CGPoint(x: -1, y: 28), caret: "h", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: -1, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: -1, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: -1, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+
+        // after "o"
+        s = clickAndAssert(CGPoint(x: 100, y: 28), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+    }
+
     
     @discardableResult
     func clickAndAssert(_ point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
@@ -1137,22 +1213,30 @@ final class SelectionNavigatorTests: XCTestCase {
         return s2
     }
 
+    func encloseAndAssert(_ s: SimpleSelection, enclosing granularity: Granularity, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
+        let s2 = SelectionNavigator(s).extendSelection(to: granularity, enclosing: point, dataSource: dataSource)
+        XCTAssertEqual(s2.granularity, SimpleSelection.Granularity(granularity), file: file, line: line)
+        assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
+        return s2
+    }
+
     func assert(selection: SimpleSelection, hasCaretBefore c: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
         XCTAssertEqual(dataSource.string[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: SimpleSelection, hasRangeCovering string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: SimpleSelection, hasRangeCovering string: String, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
         let range = selection.range
         XCTAssert(selection.isRange, "selection is not a range", file: file, line: line)
         XCTAssertEqual(String(dataSource.string[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
     }
 
-    func assert(selection: SimpleSelection, hasCaretAt caretIndex: String.Index, affinity: SimpleSelection.Affinity, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: SimpleSelection, hasCaretAt caretIndex: String.Index, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret)
         XCTAssertEqual(selection.lowerBound, caretIndex, file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
+        XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
     }
 }

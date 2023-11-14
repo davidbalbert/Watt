@@ -396,7 +396,7 @@ extension SelectionNavigator {
         }
 
         let i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
-        var range = dataSource.range(for: granularity, enclosing: i)
+        var range = dataSource.range(for: granularity, enclosing: i == fragRange.upperBound ? dataSource.index(before: i) : i)
         // if fragRange isn't empty, range shouldn't be either
         assert(!range.isEmpty)
 

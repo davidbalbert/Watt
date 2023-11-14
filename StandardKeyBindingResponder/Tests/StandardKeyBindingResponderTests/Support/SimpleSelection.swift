@@ -11,35 +11,35 @@ import StandardKeyBindingResponder
 // Implementations of NavigableSelection, SelectionNavigationDataSource, and InitializableFromAffinity
 // used for testing.
 
-enum Affinity: InitializableFromAffinity {
-    case upstream
-    case downstream
+struct SimpleSelection: Equatable {
+    enum Affinity: InitializableFromAffinity {
+        case upstream
+        case downstream
 
-    init(_ affinity: StandardKeyBindingResponder.Affinity) {
-       switch affinity {
-       case .upstream: self = .upstream
-       case .downstream: self = .downstream
-       }
-    }
-}
-
-enum Granularity: InitializableFromGranularity {
-    case character
-    case word
-    case line
-    case paragraph
-
-    init(_ granularity: StandardKeyBindingResponder.Granularity) {
-        switch granularity {
-        case .character: self = .character
-        case .word: self = .word
-        case .line: self = .line
-        case .paragraph: self = .paragraph
+        init(_ affinity: StandardKeyBindingResponder.Affinity) {
+           switch affinity {
+           case .upstream: self = .upstream
+           case .downstream: self = .downstream
+           }
         }
     }
-}
 
-struct SimpleSelection: Equatable {
+    enum Granularity: InitializableFromGranularity {
+        case character
+        case word
+        case line
+        case paragraph
+
+        init(_ granularity: StandardKeyBindingResponder.Granularity) {
+            switch granularity {
+            case .character: self = .character
+            case .word: self = .word
+            case .line: self = .line
+            case .paragraph: self = .paragraph
+            }
+        }
+    }
+
     let range: Range<String.Index>
     let affinity: Affinity
     let granularity: Granularity
