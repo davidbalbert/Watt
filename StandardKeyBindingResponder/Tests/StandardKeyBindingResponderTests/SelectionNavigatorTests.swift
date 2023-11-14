@@ -1135,7 +1135,7 @@ final class SelectionNavigatorTests: XCTestCase {
         s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: -1, y: 0), selected: "01234 6789", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: -1, y: 0), selected: "01234 6789wrap\n", affinity: .downstream, dataSource: d)
 
-
+        
         // before " "
         s = clickAndAssert(CGPoint(x: 39.999, y: 0), caret: " ", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 39.999, y: 0), selected: "01234", affinity: .downstream, dataSource: d)

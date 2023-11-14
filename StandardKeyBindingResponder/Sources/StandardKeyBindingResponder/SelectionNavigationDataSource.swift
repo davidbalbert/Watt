@@ -172,55 +172,14 @@ extension SelectionNavigationDataSource {
         return caretOffset!
     }
 
-    func index(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> Index {
+    // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character) as well
+    // as the actual caret offset of the glyph.
+    func index(forCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> (index: Index, offset: CGFloat) {
         assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
 
         let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
 
-        var res: Index?
-        var prev: Index?
-        enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
-            let nleft = distance(from: i, to: fragRange.upperBound)
-            let isFinal = fragRange.isEmpty || (edge == .trailing && nleft == 1)
-
-            if edge == .trailing && !isFinal {
-                return true
-            }
-
-            // We haven't reached our goal yet.
-            // TODO: document >=
-            if targetOffset >= offset && !isFinal {
-                prev = i
-                return true
-            }
-
-            guard let prev else {
-                res = i
-                return false
-            }
-
-            if targetOffset < offset {
-                res = prev
-            } else if edge == .leading || endsInNewline {
-                res = i
-            } else {
-                assert(isFinal)
-                res = index(after: i)
-            }
-
-            return false
-        }
-
-        return res!
-    }
-
-    // returns the index that's closest to xOffset (i.e. xOffset gets rounded to the nearest character)
-    func index(forRoundedCaretOffset targetOffset: CGFloat, inLineFragmentWithRange fragRange: Range<Index>) -> Index {
-        assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
-
-        let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
-
-        var res: Index?
+        var res: (index: Index, offset: CGFloat)?
         var prev: (index: Index, offset: CGFloat)?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
@@ -250,7 +209,7 @@ extension SelectionNavigationDataSource {
 
             // If the offset we were looking for is the first one, just use it.
             guard let prev else {
-                res = i
+                res = (i, offset)
                 return false
             }
 
@@ -259,14 +218,14 @@ extension SelectionNavigationDataSource {
 
             if prevDistance < thisDistance {
                 // The previous offset is closer.
-                res = prev.index
+                res = prev
             } else if edge == .leading || endsInNewline {
-                res = i
+                res = (i, offset)
             } else {
                 assert(isFinal)
                 // We're on a trailing edge, which means our target index is the one
                 // after the current one.
-                res = index(after: i)
+                res = (index(after: i), offset)
             }
 
             return false

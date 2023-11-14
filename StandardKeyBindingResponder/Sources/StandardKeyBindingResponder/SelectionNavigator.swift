@@ -355,7 +355,7 @@ extension SelectionNavigator {
 
         let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
         let targetFragRange = dataSource.range(for: .line, enclosing: target)
-        let head = dataSource.index(forRoundedCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
+        let (head, _) = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
     }
@@ -370,7 +370,7 @@ extension SelectionNavigator {
         let index: Selection.Index
         let affinity: Selection.Affinity
         if let fragRange {
-            index = dataSource.index(forRoundedCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            (index, _) = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
             affinity = index == fragRange.upperBound ? .upstream : .downstream
         } else {
             index = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
@@ -395,7 +395,20 @@ extension SelectionNavigator {
             return Selection(caretAt: fragRange.lowerBound, affinity: .upstream, granularity: Selection.Granularity(granularity), xOffset: nil)
         }
 
-        let i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        var (i, offset) = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+
+        // index(forCaretOffset:inLineFragmentWithRange:) rounds to the closest caret offset. This means
+        // for the string "a" with a character width of 8, anything in -inf..<4 will return index 0,
+        // and 4...inf will return index 1.
+        //
+        // This behavior is good when clicking to create a caret – it places the caret at the closest
+        // glyph boundary – but it's not what we want when double clicking to expand to a selection
+        // to word granularity. For the string "   foo" if you double click directly on f's caret offset
+        // we want to select "foo", but if you double click one point to the left, we want to select "   ".
+        if point.x < offset && point.x >= 0 && i > dataSource.startIndex {
+            i = dataSource.index(before: i)
+        }
+
         var range = dataSource.range(for: granularity, enclosing: i == fragRange.upperBound ? dataSource.index(before: i) : i)
         // if fragRange isn't empty, range shouldn't be either
         assert(!range.isEmpty)
@@ -425,7 +438,7 @@ extension SelectionNavigator {
             fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
         }
 
-        let i = dataSource.index(forRoundedCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        let (i, _) = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
 
         if selection.granularity == .character {
             if i == selection.anchor {
