@@ -228,6 +228,27 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
 
+    func testMoveByWordApostrophe() {
+        let string = "foo bar's  '' baz"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        var s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
+
+        // end of "foo"
+        s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 3), affinity: .downstream, dataSource: d)
+        // end of "bar's"
+        s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 9), affinity: .downstream, dataSource: d)
+        // end of "baz"
+        s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 17), affinity: .downstream, dataSource: d)
+
+        // beginning of "baz"
+        s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 14), affinity: .downstream, dataSource: d)
+        // beginning of "bar's"
+        s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 9), affinity: .downstream, dataSource: d)
+        // beginning of "foo"
+        s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
+    }
+
     func testMoveRightWordFromSelection() {
         let string = "  hello, world; this is (a test) "
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
@@ -1178,6 +1199,27 @@ final class SelectionNavigatorTests: XCTestCase {
         s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .line, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
+    }
+
+    func testExtendingSelectionToWordApostrophe() {
+        let string = "foo bar's qux"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // just before "bar"
+        var s = clickAndAssert(CGPoint(x: 31.999, y: 0), caret: "b", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 31.999, y: 0), selected: " ", affinity: .downstream, dataSource: d)
+
+        // at "bar"
+        s = clickAndAssert(CGPoint(x: 32, y: 0), caret: "b", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 32, y: 0), selected: "bar's", affinity: .downstream, dataSource: d)
+
+        // just before " " after "bar's"
+        s = clickAndAssert(CGPoint(x: 71.999, y: 0), caret: " ", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 71.999, y: 0), selected: "bar's", affinity: .downstream, dataSource: d)
+
+        // at " "
+        s = clickAndAssert(CGPoint(x: 72, y: 0), caret: " ", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 72, y: 0), selected: " ", affinity: .downstream, dataSource: d)        
     }
 
     func testExtendSelectionInteractingAtWordGranularity() {
