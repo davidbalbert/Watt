@@ -27,9 +27,9 @@ extension TextView {
                 layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
             }
         case 2:
-            layoutManager.selection = SelectionNavigator(selection).extendSelection(to: .word, dataSource: layoutManager)
+            layoutManager.selection = SelectionNavigator(selection).extendSelection(to: .word, enclosing: point, dataSource: layoutManager)
         case 3:
-            layoutManager.selection = SelectionNavigator(selection).extendSelection(to: .paragraph, dataSource: layoutManager)
+            layoutManager.selection = SelectionNavigator(selection).extendSelection(to: .paragraph, enclosing: point, dataSource: layoutManager)
         default:
             break
         }

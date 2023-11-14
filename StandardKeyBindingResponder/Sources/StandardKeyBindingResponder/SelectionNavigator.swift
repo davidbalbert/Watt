@@ -380,6 +380,41 @@ extension SelectionNavigator {
         return Selection(caretAt: index, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
+    public func extendSelection(to granularity: Granularity, enclosing point: CGPoint, dataSource: DataSource) -> Selection {
+        let fragRange: Range<Selection.Index>
+        if let r = dataSource.lineFragmentRange(for: point) {
+            fragRange = r
+        } else if point.y < 0 {
+            fragRange = dataSource.lineFragmentRange(containing: dataSource.startIndex)
+        } else {
+            fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
+        }
+
+        if fragRange.isEmpty {
+            // empty last line (includes empty document)
+            return Selection(caretAt: fragRange.lowerBound, affinity: .upstream, granularity: Selection.Granularity(granularity), xOffset: nil)
+        }
+
+        let i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        var range = dataSource.range(for: granularity, enclosing: i)
+        // if fragRange isn't empty, range shouldn't be either
+        assert(!range.isEmpty)
+
+        // In general, if our selection starts at "\n", we want to expand to the previous
+        // range, rather than expanding to cover the "\n". The only exception is when
+        // the entire paragraph consists of "\n" – i.e. double clicking on an empty
+        // line – we should select the newline.
+        if granularity == .character || granularity == .word {
+            let paragraph = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            if dataSource[paragraph.lowerBound] != "\n" && dataSource[range.lowerBound] == "\n" {
+                assert(dataSource.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
+                range = dataSource.range(for: granularity, enclosing: dataSource.index(before: selection.lowerBound))
+            }
+        }
+
+        return Selection(anchor: range.lowerBound, head: range.upperBound, granularity: Selection.Granularity(granularity), xOffset: nil)
+    }
+
     public func extendSelection(to granularity: Granularity, dataSource: DataSource) -> Selection {
         var range = dataSource.range(for: granularity, enclosing: selection.lowerBound)
         if range.isEmpty {
