@@ -257,34 +257,37 @@ extension SelectionNavigationDataSource {
         }
 
         if self[i] == " " {
-            var start = i
-            var end = index(after: i)
+            var j = index(after: i)
 
-            while start > startIndex && self[index(before: start)] == " " {
-                start = index(before: start)
+            while i > startIndex && self[index(before: i)] == " " {
+                i = index(before: i)
             }
 
-            while end < endIndex && self[end] == " " {
-                end = index(after: end)
+            while j < endIndex && self[j] == " " {
+                j = index(after: j)
             }
 
-            return start..<end
-        } else if isWordCharacter(i) {
-            var start = i
-            var end = index(after: i)
-
-            while start > startIndex && isWordCharacter(index(before: start)) {
-                start = index(before: start)
-            }
-
-            while end < endIndex && isWordCharacter(end) {
-                end = index(after: end)
-            }
-
-            return start..<end
-        } else {
-            return i..<index(after: i)
+            return i..<j
         }
+
+        let nextIsWordChar = i < index(before: endIndex) && isWordCharacter(index(after: i))
+        let prevIsWordChar = i > startIndex && isWordCharacter(index(before: i))
+
+        if isWordCharacter(i) || (nextIsWordChar && prevIsWordChar && (self[i] == "'" || self[i] == "’")) {
+            var j = index(after: i)
+
+            while i > startIndex && !isWordStart(i) {
+                i = index(before: i)
+            }
+
+            while j < endIndex && !isWordEnd(j) {
+                j = index(after: j)
+            }
+
+            return i..<j
+        }
+
+        return i..<index(after: i)
     }
 
     func index(beginningOfWordBefore i: Index) -> Index? {
@@ -342,6 +345,12 @@ extension SelectionNavigationDataSource {
             return isWordCharacter(i)
         }
         let prev = index(before: i)
+
+        // a single apostrophy surrounded by word characters is not a word boundary
+        if prev > startIndex && (self[prev] == "'" || self[prev] == "’") && isWordCharacter(index(before: prev)) {
+            return false
+        }
+
         return !isWordCharacter(prev) && isWordCharacter(i)
     }
 
@@ -354,6 +363,12 @@ extension SelectionNavigationDataSource {
         if i == endIndex {
             return isWordCharacter(prev)
         }
+
+        // a single apostrophy surrounded by word characters is not a word boundary
+        if (self[i] == "'" || self[i] == "’") && isWordCharacter(prev) && isWordCharacter(index(after: i)) {
+            return false
+        }
+
         return isWordCharacter(prev) && !isWordCharacter(i)
     }
 

@@ -239,12 +239,12 @@ final class SelectionNavigatorTests: XCTestCase {
         // end of "bar's"
         s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 9), affinity: .downstream, dataSource: d)
         // end of "baz"
-        s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 17), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .rightWord, caretAt: string.index(at: 17), affinity: .upstream, dataSource: d)
 
         // beginning of "baz"
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 14), affinity: .downstream, dataSource: d)
         // beginning of "bar's"
-        s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 9), affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 4), affinity: .downstream, dataSource: d)
         // beginning of "foo"
         s = moveAndAssert(s, direction: .leftWord, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
     }
@@ -1202,16 +1202,20 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     func testExtendingSelectionToWordApostrophe() {
-        let string = "foo bar's qux"
+        let string = "foo bar's baz’s 'qux' a’'b"
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
-        // just before "bar"
+        // just before "bar's"
         var s = clickAndAssert(CGPoint(x: 31.999, y: 0), caret: "b", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 31.999, y: 0), selected: " ", affinity: .downstream, dataSource: d)
 
-        // at "bar"
+        // at "bar's"
         s = clickAndAssert(CGPoint(x: 32, y: 0), caret: "b", affinity: .downstream, dataSource: d)
         s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 32, y: 0), selected: "bar's", affinity: .downstream, dataSource: d)
+
+        // at "'" in "bar's"
+        s = clickAndAssert(CGPoint(x: 56, y: 0), caret: "'", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 56, y: 0), selected: "bar's", affinity: .downstream, dataSource: d)
 
         // just before " " after "bar's"
         s = clickAndAssert(CGPoint(x: 71.999, y: 0), caret: " ", affinity: .downstream, dataSource: d)
@@ -1219,7 +1223,39 @@ final class SelectionNavigatorTests: XCTestCase {
 
         // at " "
         s = clickAndAssert(CGPoint(x: 72, y: 0), caret: " ", affinity: .downstream, dataSource: d)
-        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 72, y: 0), selected: " ", affinity: .downstream, dataSource: d)        
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 72, y: 0), selected: " ", affinity: .downstream, dataSource: d)
+
+        // at "baz’s"
+        s = clickAndAssert(CGPoint(x: 0, y: 14), caret: "b", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 0, y: 14), selected: "baz’s", affinity: .downstream, dataSource: d)
+
+        // at "'" before qux
+        s = clickAndAssert(CGPoint(x: 48, y: 14), caret: "'", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 48, y: 14), selected: "'", affinity: .downstream, dataSource: d)
+
+        // at "qux"
+        s = clickAndAssert(CGPoint(x: 56, y: 14), caret: "q", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 56, y: 14), selected: "qux", affinity: .downstream, dataSource: d)
+
+        // at "'" after qux
+        s = clickAndAssert(CGPoint(x: 0, y: 28), caret: "'", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 0, y: 28), selected: "'", affinity: .downstream, dataSource: d)
+
+        // at "a"
+        s = clickAndAssert(CGPoint(x: 16, y: 28), caret: "a", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 16, y: 28), selected: "a", affinity: .downstream, dataSource: d)
+
+        // at "’"
+        s = clickAndAssert(CGPoint(x: 24, y: 28), caret: "’", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 24, y: 28), selected: "’", affinity: .downstream, dataSource: d)
+
+        // at "'"
+        s = clickAndAssert(CGPoint(x: 32, y: 28), caret: "'", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 32, y: 28), selected: "'", affinity: .downstream, dataSource: d)
+
+        // at "b"
+        s = clickAndAssert(CGPoint(x: 40, y: 28), caret: "b", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 40, y: 28), selected: "b", affinity: .downstream, dataSource: d)
     }
 
     func testExtendSelectionInteractingAtWordGranularity() {
