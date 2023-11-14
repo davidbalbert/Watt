@@ -23,13 +23,14 @@ public protocol SelectionNavigationDataSource {
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
 
     // Enumerating over the first line fragment of each string:
-    // ""    -> [(0.0, 0, leading)]
+    // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
     // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
     //
-    // This is the same behavior as CTLineEnumerateCaretOffsets, except "" has only a single offset.
+    // This is the same behavior as CTLineEnumerateCaretOffsets, except the trailing
+    // offset of "" has an index of startIndex, rather than -1.
     // For reference, here's what CTLineEnumerateCaretOffsets reports for "":
     // ""    -> [(0.0, 0, leadingEdge=true), (0.0, -1, leadingEdge=false)]
     //
@@ -149,10 +150,10 @@ extension SelectionNavigationDataSource {
         var caretOffset: CGFloat?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
-            // ""    -> [(0.0, 0, leading)]
+            // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
-            // "a\n" -> [[0.0, 0, leading), (8.0, 0, trailing)]
+            // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             // The common case.
@@ -183,14 +184,14 @@ extension SelectionNavigationDataSource {
         var prev: (index: Index, offset: CGFloat)?
         enumerateCaretOffsetsInLineFragment(containing: fragRange.lowerBound) { offset, i, edge in
             // Enumerating over the first line fragment of each string:
-            // ""    -> [(0.0, 0, leading)]
+            // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
             // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
             // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
             let nleft = distance(from: i, to: fragRange.upperBound)
-            let isFinal = fragRange.isEmpty || (edge == .trailing && nleft == 1)
+            let isFinal = edge == .trailing && (fragRange.isEmpty || nleft == 1)
 
             // skip all but the last trailing edge
             if edge == .trailing && !isFinal {
@@ -199,7 +200,7 @@ extension SelectionNavigationDataSource {
 
             // We haven't reached our goal yet, so just keep going.
             //
-            // An exception: if this is the last caretOffset, we to use it whether or
+            // An exception: if this is the last caretOffset, we use it whether or
             // not we've reached our goal so we can handle the case where targetOffset
             // is beyond the end of the fragment.
             if targetOffset > offset && !isFinal {
@@ -219,7 +220,12 @@ extension SelectionNavigationDataSource {
             if prevDistance < thisDistance {
                 // The previous offset is closer.
                 res = prev
-            } else if edge == .leading || endsInNewline {
+            } else if edge == .leading {
+                res = (i, offset)
+            } else if fragRange.isEmpty || endsInNewline {
+                assert(isFinal && (i == fragRange.lowerBound || self[i] == "\n"))
+                // Even though we're on a trailing edge, you can't click to the
+                // right of "" or "\n", so we don't increment i.
                 res = (i, offset)
             } else {
                 assert(isFinal)

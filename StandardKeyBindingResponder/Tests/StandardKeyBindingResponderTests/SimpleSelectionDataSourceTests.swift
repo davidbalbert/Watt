@@ -301,9 +301,10 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         let dataSource = SimpleSelectionDataSource(string: string, charsPerLine: 10)
         let offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
 
         XCTAssertEqual(O(0, string.startIndex, .leading), offsets[0])
+        XCTAssertEqual(O(0, string.startIndex, .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetsOnlyNewline() {
@@ -317,8 +318,9 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 1))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
         XCTAssertEqual(O(0, string.index(at: 1), .leading), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 1), .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetOneLine() {
@@ -354,9 +356,10 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 4))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
 
         XCTAssertEqual(O(0, string.index(at: 4), .leading), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 4), .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetsWithWrap() {
@@ -433,9 +436,10 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
         offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 11))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
 
         XCTAssertEqual(O(0, string.index(at: 11), .leading), offsets[0])
+        XCTAssertEqual(O(0, string.index(at: 11), .trailing), offsets[1])
     }
 }
 

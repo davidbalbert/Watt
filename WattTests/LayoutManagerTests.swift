@@ -264,8 +264,9 @@ final class LayoutManagerTests: XCTestCase {
 
         let offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 0))
 
-        XCTAssertEqual(1, offsets.count)
-        XCTAssertEqual(O(0, b.index(at: 0), .trailing), offsets[0])
+        XCTAssertEqual(2, offsets.count)
+        XCTAssertEqual(O(0, b.index(at: 0), .leading), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 0), .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetsOnlyNewline() {
@@ -281,8 +282,9 @@ final class LayoutManagerTests: XCTestCase {
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 1))
 
-        XCTAssertEqual(1, offsets.count)
-        XCTAssertEqual(O(0, b.index(at: 1), .trailing), offsets[0])
+        XCTAssertEqual(2, offsets.count)
+        XCTAssertEqual(O(0, b.index(at: 1), .leading), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 1), .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetOneLine() {
@@ -323,9 +325,10 @@ final class LayoutManagerTests: XCTestCase {
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 4))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
 
-        XCTAssertEqual(O(0, b.index(at: 4), .trailing), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 4), .leading), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 4), .trailing), offsets[1])
     }
 
     func testEnumerateCaretOffsetsWithWrap() {
@@ -406,8 +409,9 @@ final class LayoutManagerTests: XCTestCase {
 
         offsets = l.carretOffsetsInLineFragment(containing: b.index(at: 11))
 
-        XCTAssertEqual(1, offsets.count)
+        XCTAssertEqual(2, offsets.count)
 
-        XCTAssertEqual(O(0, b.index(at: 11), .trailing), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 11), .leading), offsets[0])
+        XCTAssertEqual(O(0, b.index(at: 11), .trailing), offsets[1])
     }
 }

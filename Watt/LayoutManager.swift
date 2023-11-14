@@ -311,6 +311,9 @@ class LayoutManager {
             let fragRect = CGRect(x: 0, y: 0, width: 1, height: frag.alignmentFrame.height)
             let lineRect = convert(fragRect, from: frag)
             let rect = convert(lineRect, from: line)
+            if !block(rect, frag.range.lowerBound, .leading) {
+                return
+            }
             _ = block(rect, frag.range.lowerBound, .trailing)
             return
         }

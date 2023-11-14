@@ -115,7 +115,10 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         let fragRange = lineFragmentRange(containing: index)
 
         if fragRange.isEmpty {
-            _ = block(0, fragRange.lowerBound, .leading)
+            if !block(0, fragRange.lowerBound, .leading) {
+                return
+            }
+            _ = block(0, fragRange.lowerBound, .trailing)
             return
         }
 
