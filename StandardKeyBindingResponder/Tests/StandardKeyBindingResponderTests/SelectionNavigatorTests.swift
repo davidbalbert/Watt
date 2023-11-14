@@ -1067,8 +1067,29 @@ final class SelectionNavigatorTests: XCTestCase {
         clickAndAssert(CGPoint(x: 100, y: 100), caretAt: string.endIndex, affinity: .upstream, dataSource: d)
     }
 
-    // TODO: testDraggingOnEmptyString
-    // TODO: testDraggingOnNewline
+    func testDraggingEmptyString() {
+        let string = ""
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // click
+        var s = clickAndAssert(CGPoint(x: 0, y: 0), caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+        // drag right
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 0), caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+        // drag left
+        s = dragAndAssert(s, point: CGPoint(x: -100, y: 0), caretAt: string.startIndex, affinity: .upstream, dataSource: d)
+    }
+
+    func testDraggingNewline() {
+        let string = "\n"
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // click
+        var s = clickAndAssert(CGPoint(x: 0, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
+        // drag right
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
+        // drag left
+        s = dragAndAssert(s, point: CGPoint(x: -100, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
+    }
 
     func testDragging() {
         let string = """
