@@ -1247,10 +1247,27 @@ final class SelectionNavigatorTests: XCTestCase {
 
         // drag down to "e"
         s = dragAndAssert(s, point: CGPoint(x: 4, y: 28), selected: "wrap\nhello", affinity: .downstream, granularity: .line, dataSource: d)
-
     }
 
-    
+    func testExendSelectionInteractingAtParagraphGranularity() {
+        let string = """
+        foo bar quwrap
+        hello
+        """
+
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // at "r"
+        var s = clickAndAssert(CGPoint(x: 4, y: 14), caret: "r", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 4, y: 14), selected: "foo bar quwrap\n", affinity: .downstream, dataSource: d)
+
+        // drag up to first "o"
+        s = dragAndAssert(s, point: CGPoint(x: 4, y: 0), selected: "foo bar quwrap\n", affinity: .downstream, granularity: .paragraph, dataSource: d)
+
+        // drag down to "e"
+        s = dragAndAssert(s, point: CGPoint(x: 4, y: 28), selected: "foo bar quwrap\nhello", affinity: .downstream, granularity: .paragraph, dataSource: d)
+    }
+
     @discardableResult
     func clickAndAssert(_ point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
         let s: SimpleSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
