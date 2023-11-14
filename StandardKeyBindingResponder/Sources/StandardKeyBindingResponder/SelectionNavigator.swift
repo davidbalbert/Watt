@@ -355,7 +355,7 @@ extension SelectionNavigator {
 
         let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
         let targetFragRange = dataSource.range(for: .line, enclosing: target)
-        let head = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
+        let head = dataSource.index(forRoundedCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
     }
@@ -370,7 +370,7 @@ extension SelectionNavigator {
         let index: Selection.Index
         let affinity: Selection.Affinity
         if let fragRange {
-            index = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+            index = dataSource.index(forRoundedCaretOffset: point.x, inLineFragmentWithRange: fragRange)
             affinity = index == fragRange.upperBound ? .upstream : .downstream
         } else {
             index = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
@@ -412,7 +412,7 @@ extension SelectionNavigator {
             fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
         }
 
-        let i = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
+        let i = dataSource.index(forRoundedCaretOffset: point.x, inLineFragmentWithRange: fragRange)
 
         if selection.granularity == .character {
             if i == selection.anchor {

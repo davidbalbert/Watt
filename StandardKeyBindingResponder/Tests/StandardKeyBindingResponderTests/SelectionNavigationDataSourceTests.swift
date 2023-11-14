@@ -41,10 +41,9 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         let r = s.index(at: 0)..<s.index(at: 1)
 
         XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
 
@@ -55,11 +54,10 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         let r = s.index(at: 0)..<s.index(at: 2)
 
         XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
         // can't go past the newline
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
@@ -71,12 +69,11 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         let r = s.index(at: 0)..<s.index(at: 3)
 
         XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 23.999, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 24, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
@@ -88,39 +85,39 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         var r = s.index(at: 0)..<s.index(at: 10)
 
         XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 35.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 36, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 43.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 44, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 51.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 52, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 59.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 60, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 67.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 68, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 75.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 23.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 24, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 31.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 32, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 39.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 40, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 47.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 48, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 55.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 56, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 63.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 64, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 71.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 72, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 79.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 80, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
 
         r = s.index(at: 10)..<s.index(at: 14)
 
         XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 14), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forCaretOffset: 23.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 24, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forCaretOffset: 31.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 14), dataSource.index(forCaretOffset: 32, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 14), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
     }
 
@@ -131,26 +128,26 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         var r = s.index(at: 0)..<s.index(at: 11)
 
         XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 3.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 4, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 11.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 12, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 19.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 20, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 27.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 28, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 35.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 36, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 43.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 44, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 51.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 52, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 59.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 60, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 67.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 68, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 75.999, inLineFragmentWithRange: r))
-        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forCaretOffset: 15.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forCaretOffset: 23.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 24, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forCaretOffset: 31.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 32, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forCaretOffset: 39.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 40, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forCaretOffset: 47.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 48, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forCaretOffset: 55.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 56, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forCaretOffset: 63.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 64, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forCaretOffset: 71.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 72, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forCaretOffset: 79.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 80, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 10), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
 
         r = s.index(at: 11)..<s.index(at: 11)
@@ -158,6 +155,157 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
         XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: -5, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 0, inLineFragmentWithRange: r))
         XCTAssertEqual(s.index(at: 11), dataSource.index(forCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    // MARK: index(forRoundedCaretOffset:inLineFragmentWithRange:)
+
+    func testIndexForRoundedCaretOffsetEmpty() {
+        let s = ""
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 0)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetOnlyNewline() {
+        let s = "\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 1)
+
+        // can't go past newline
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetSingleCharacter() {
+        let s = "a"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 1)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 7.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 8, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetSingleCharacterWithNewline() {
+        let s = "a\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 2)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 11.999, inLineFragmentWithRange: r))
+        // can't go past the newline
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 16, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetSingleLine() {
+        let s = "abc"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        let r = s.index(at: 0)..<s.index(at: 3)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 24, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetWrap() {
+        let s = "0123456789wrap"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 10)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forRoundedCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forRoundedCaretOffset: 35.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forRoundedCaretOffset: 36, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forRoundedCaretOffset: 43.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forRoundedCaretOffset: 44, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forRoundedCaretOffset: 51.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forRoundedCaretOffset: 52, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forRoundedCaretOffset: 59.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forRoundedCaretOffset: 60, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forRoundedCaretOffset: 67.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forRoundedCaretOffset: 68, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forRoundedCaretOffset: 75.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+
+        r = s.index(at: 10)..<s.index(at: 14)
+
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forRoundedCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forRoundedCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 12), dataSource.index(forRoundedCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forRoundedCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 13), dataSource.index(forRoundedCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 14), dataSource.index(forRoundedCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 14), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+    }
+
+    func testIndexForRoundedCaretOffsetFullFragWithNewline() {
+        let s = "0123456789\n"
+        let dataSource = SimpleSelectionDataSource(string: s, charsPerLine: 10)
+
+        var r = s.index(at: 0)..<s.index(at: 11)
+
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 0), dataSource.index(forRoundedCaretOffset: 3.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 4, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 1), dataSource.index(forRoundedCaretOffset: 11.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 12, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 2), dataSource.index(forRoundedCaretOffset: 19.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 20, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 3), dataSource.index(forRoundedCaretOffset: 27.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forRoundedCaretOffset: 28, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 4), dataSource.index(forRoundedCaretOffset: 35.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forRoundedCaretOffset: 36, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 5), dataSource.index(forRoundedCaretOffset: 43.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forRoundedCaretOffset: 44, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 6), dataSource.index(forRoundedCaretOffset: 51.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forRoundedCaretOffset: 52, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 7), dataSource.index(forRoundedCaretOffset: 59.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forRoundedCaretOffset: 60, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 8), dataSource.index(forRoundedCaretOffset: 67.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forRoundedCaretOffset: 68, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 9), dataSource.index(forRoundedCaretOffset: 75.999, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: 76, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 10), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
+
+        r = s.index(at: 11)..<s.index(at: 11)
+
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forRoundedCaretOffset: -5, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forRoundedCaretOffset: 0, inLineFragmentWithRange: r))
+        XCTAssertEqual(s.index(at: 11), dataSource.index(forRoundedCaretOffset: 100, inLineFragmentWithRange: r))
     }
 
     // MARK: caretOffset(forCharacterAt:inLineFragmentWithRange)
