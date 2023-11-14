@@ -1177,6 +1177,59 @@ final class SelectionNavigatorTests: XCTestCase {
         s = encloseAndAssert(s, enclosing: .paragraph, point: CGPoint(x: 100, y: 28), selected: "hello", affinity: .downstream, dataSource: d)
     }
 
+    func testExtendSelectionInteractingAtWordGranularity() {
+        let string = """
+        foo bar quwrap
+        hello
+        """
+
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // at "b"
+        var s = clickAndAssert(CGPoint(x: 32, y: 0), caret: "b", affinity: .downstream, dataSource: d)
+        s = encloseAndAssert(s, enclosing: .word, point: CGPoint(x: 32, y: 0), selected: "bar", affinity: .downstream, dataSource: d)
+
+        // drag left to " "
+        s = dragAndAssert(s, point: CGPoint(x: 28, y: 0), selected: "bar", affinity: .downstream, dataSource: d)
+        // drag left through " "
+        s = dragAndAssert(s, point: CGPoint(x: 27.999, y: 0), selected: " bar", affinity: .upstream, dataSource: d)
+        // drag left to "o"
+        s = dragAndAssert(s, point: CGPoint(x: 20, y: 0), selected: " bar", affinity: .upstream, dataSource: d)
+        // drag left through "o"
+        s = dragAndAssert(s, point: CGPoint(x: 19.999, y: 0), selected: "foo bar", affinity: .upstream, dataSource: d)
+        // all the way left
+        s = dragAndAssert(s, point: CGPoint(x: -1, y: 0), selected: "foo bar", affinity: .upstream, dataSource: d)
+
+        // drag right to " " after "bar"
+        s = dragAndAssert(s, point: CGPoint(x: 59.999, y: 0), selected: "bar", affinity: .downstream, dataSource: d)
+        // drag right through " " after "bar"
+        s = dragAndAssert(s, point: CGPoint(x: 60, y: 0), selected: "bar ", affinity: .downstream, dataSource: d)
+        // drag right to "q"
+        s = dragAndAssert(s, point: CGPoint(x: 67.999, y: 0), selected: "bar ", affinity: .downstream, dataSource: d)
+        // drag right through "q"
+        s = dragAndAssert(s, point: CGPoint(x: 68, y: 0), selected: "bar quwrap", affinity: .downstream, dataSource: d)
+        // all the way right
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 0), selected: "bar quwrap", affinity: .downstream, dataSource: d)
+
+        // down through "w"
+        s = dragAndAssert(s, point: CGPoint(x: 3.999, y: 14), selected: "bar quwrap", affinity: .downstream, dataSource: d)
+        // after p
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 14), selected: "bar quwrap", affinity: .downstream, dataSource: d)
+
+        // drag down before "h"
+        s = dragAndAssert(s, point: CGPoint(x: 3.999, y: 28), selected: "bar quwrap\n", affinity: .downstream, dataSource: d)
+        // drag down through "h"
+        s = dragAndAssert(s, point: CGPoint(x: 4, y: 28), selected: "bar quwrap\nhello", affinity: .downstream, dataSource: d)
+        // all the way right
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 28), selected: "bar quwrap\nhello", affinity: .downstream, dataSource: d)
+        // drag left through "e"
+        s = dragAndAssert(s, point: CGPoint(x: 12, y: 28), selected: "bar quwrap\nhello", affinity: .downstream, dataSource: d)
+        // drag up through "r"
+        s = dragAndAssert(s, point: CGPoint(x: 12, y: 14), selected: "bar quwrap", affinity: .downstream, dataSource: d)
+        // drag up through first "o"
+        s = dragAndAssert(s, point: CGPoint(x: 12, y: 0), selected: "foo bar", affinity: .upstream, dataSource: d)
+    }
+
     
     @discardableResult
     func clickAndAssert(_ point: CGPoint, caret: Character, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
@@ -1207,7 +1260,7 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     @discardableResult
-    func dragAndAssert(_ s: SimpleSelection, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
+    func dragAndAssert(_ s: SimpleSelection, point: CGPoint, selected string: String, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
         let s2 = SelectionNavigator(s).extendSelection(interactingAt: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, dataSource: dataSource, file: file, line: line)
         return s2

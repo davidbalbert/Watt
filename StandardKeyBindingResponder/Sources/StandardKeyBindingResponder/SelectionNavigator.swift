@@ -445,6 +445,18 @@ extension SelectionNavigator {
 
         let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
 
+        if selection.affinity == .downstream && i < selection.lowerBound {
+            // switching from downstream to upstream
+            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: selection.lowerBound)
+            anchor = originalRange.upperBound
+        } else if selection.affinity == .upstream && i >= selection.upperBound {
+            // switching from upstream to downstream
+            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: dataSource.index(before: selection.anchor))
+            anchor = originalRange.lowerBound
+        } else {
+            anchor = selection.anchor
+        }
+
         // Rules for extending selections of words, lines, or paragraphs:
         // 1. The initially selected granule always stays selected. I.e. no carets.
         // 2. A new granule is selected only when the cursor has moved passed the
@@ -467,22 +479,10 @@ extension SelectionNavigator {
         //   us to always select the initial granule.
         // * `i > range.lowerBound` enforces rule 2 by only selecting a subsequent
         //   granule if we're past the first character in the granule.
-        if i >= selection.anchor && (range.lowerBound == selection.anchor || i > range.lowerBound) {
+        if i >= anchor && (range.lowerBound == anchor || i > range.lowerBound) {
             head = range.upperBound
         } else {
             head = range.lowerBound
-        }
-
-        if selection.affinity == .downstream && i < selection.lowerBound {
-            // switching from downstream to upstream
-            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: selection.lowerBound)
-            anchor = originalRange.upperBound
-        } else if selection.affinity == .upstream && i >= selection.upperBound {
-            // switching from upstream to downstream
-            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: dataSource.index(before: selection.anchor))
-            anchor = originalRange.lowerBound
-        } else {
-            anchor = selection.anchor
         }
 
         assert(head != anchor)
