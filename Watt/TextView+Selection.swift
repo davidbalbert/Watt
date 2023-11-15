@@ -8,31 +8,6 @@
 import Cocoa
 
 extension TextView {
-    func startSelection(at locationInView: CGPoint) {
-        let point = convertToTextContainer(locationInView)
-        let (location, affinity) = layoutManager.locationAndAffinity(interactingAt: point)
-
-        let xOffset = layoutManager.position(forCharacterAt: location, affinity: affinity).x
-        layoutManager.selection = Selection(head: location, affinity: affinity, xOffset: xOffset)
-        setTypingAttributes()
-    }
-
-    func extendSelection(to locationInView: CGPoint) {
-        let point = convertToTextContainer(locationInView)
-        let location = layoutManager.location(interactingAt: point)
-
-        // We always want the xOffset to be at the beginning of the selection, because
-        // when we press up and down, we want the new caret to stay vertically aligned
-        // with the selection's lower bound (an arbitrary choice copying Xcode and Nova).
-        // So for finding the offset, we hardcode .downstream.
-        let lowerBound = location < selection.anchor ? location : selection.anchor
-        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: lowerBound == buffer.endIndex ? .upstream : .downstream).x
-
-        layoutManager.selection = Selection(head: location, anchor: selection.anchor, affinity: selection.affinity, xOffset: xOffset)
-
-        setTypingAttributes()
-    }
-
     func setTypingAttributes() {
         if buffer.isEmpty {
             typingAttributes = defaultAttributes
@@ -95,7 +70,7 @@ extension TextView {
             return
         }
 
-        if !selection.isEmpty {
+        if selection.isRange {
             return
         }
 

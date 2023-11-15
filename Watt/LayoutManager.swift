@@ -7,11 +7,13 @@
 
 import Foundation
 import CoreText
+import StandardKeyBindingResponder
 
 protocol LayoutManagerDelegate: AnyObject {
     // Should be in text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
+    func selectionDidChange(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
     // An opportunity for the delegate to return a custom AttributedRope.
@@ -45,9 +47,8 @@ class LayoutManager {
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
             delegate?.didInvalidateLayout(for: self)
 
-            let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-            let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
-            selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
+            let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
+            selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
         }
     }
 
@@ -61,7 +62,11 @@ class LayoutManager {
         }
     }
 
-    var selection: Selection
+    var selection: Selection {
+        didSet {
+            delegate?.selectionDidChange(for: self)
+        }
+    }
 
     var lineCache: IntervalCache<Line>
 
@@ -70,12 +75,9 @@ class LayoutManager {
         self.textContainer = TextContainer()
         self.lineCache = IntervalCache(upperBound: 0)
         self.buffer = Buffer()
-        
-        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
-        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: 0)
 
-        let xOffset = position(forCharacterAt: buffer.startIndex, affinity: affinity).x
-        selection = Selection(head: buffer.startIndex, affinity: affinity, xOffset: xOffset)
+        let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
+        selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
     var contentHeight: CGFloat {
@@ -148,7 +150,7 @@ class LayoutManager {
             return
         }
 
-        guard selection.isEmpty else {
+        guard selection.isCaret else {
             return
         }
 
@@ -159,114 +161,25 @@ class LayoutManager {
             return
         }
 
-        let line = line(containing: selection.lowerBound)
-        guard let frag = line.fragment(containing: selection.lowerBound, affinity: selection.affinity) else {
-            assertionFailure("couldn't find line fragment")
-            return
-        }
+        let leadingCaretIndex = selection.lowerBound
+        let trailingCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
         var rect: CGRect?
-        var i = frag.range.lowerBound
-        var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
-        CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
-            guard let self else {
-                stop.pointee = true
-                return
+        enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge in
+            let leadingMatch = edge == .leading && i == leadingCaretIndex
+            let trailingMatch = edge == .trailing && i == trailingCaretIndex
+
+            guard leadingMatch || trailingMatch else {
+                return true
             }
 
-            // Normally, CTLineEnumerateCaretOffsets calls block in like
-            // this (note: caretOffsets have been fudged for simplicity):
-            //
-            // s = "ab"
-            //
-            //   caretOffset=0  offsetInLine=0 leadingEdge=true
-            //   caretOffset=7  offsetInLine=0 leadingEdge=false
-            //   caretOffset=7  offsetInLine=1 leadingEdge=true
-            //   caretOffset=14 offsetInLine=1 leadingEdge=false
-            //
-            // For each UTF-16 offsetInLine, the block is called first
-            // for the leadingEdge of the glyph, and then for the trailing
-            // edge. The trailing edge of one glyph is at the same location
-            // as the leading edge of the following glyph.
-            //
-            // If the a glyph is represented by a surrogate pair however,
-            // the block is called like this:
-            //
-            // s = "🙂b"
-            //
-            //   caretOffset=0  offsetInLine=0 leadingEdge=true
-            //   caretOffset=17 offsetInLine=1 leadingEdge=false
-            //   caretOffset=17 offsetInLine=2 leadingEdge=true
-            //   caretOffset=31 offsetInLine=2 leadingEdge=false
-            //
-            // The difference is that the trailing edge of the emoji is
-            // called with offsetInLine pointing to its trailing surrogate.
-            // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
-            //
-            // For multi-scalar grapheme clusters like "👨‍👩‍👧‍👦", offsetInLine
-            // for the trailing edge will point to the trailing surrogate
-            // of the last unicode scalar.
-            //
-            //   caretOffset=0  offsetInLine=0  leadingEdge=true
-            //   caretOffset=17 offsetInLine=10 leadingEdge=false
-            //
-            // The above grapheme cluster is made up of 4 emoji, each
-            // represented by a surrogate pair, and three zero-width
-            // joiners, each represented by a single UTF-16 code unit,
-            // for 11 code units in all (4*2 + 3). The last unicode
-            // scalar is a surrogate pair, so the trailing edge of the
-            // glyph has offset in line == 10, which is the offset of
-            // the final trailing surrogate (11 - 1).
-            //
-            // Rope.Index can't represent trailing surrogate indices, so
-            // we need a way to detect that we're looking at a trailing
-            // surrogate.
-            //
-            // We know we're looking at a trailing surrogate when we're
-            // looking at a trailing edge of a glyph and the previous
-            // offsetInLine is not equal to the current offsetInLine.
-            //
-            // We only set prevOffsetInLine when we know we're not at
-            // a trailing surrogate. If we didn't do this, i would stop
-            // incrementing once we saw the first surrogate pair.
-            //
-            // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
-            // will no longer round down. We'd need to find another way
-            // to handle surrogate pairs, likely relying on the fact
-            // that a proper UTF-16 view implies that Rope.Index supports
-            // surrogate pairs.
-
-            let isTrailingSurrogate = !leadingEdge && prevOffsetInLine != offsetInLine
-            if !isTrailingSurrogate {
-                i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
-                prevOffsetInLine = offsetInLine
-            }
-
-            let next: Buffer.Index
-            if i == buffer.endIndex {
-                // empty last line
-                next = i
-            } else {
-                next = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine + 1)
-            }
-
-            let downstreamMatch = i == selection.lowerBound && leadingEdge && selection.affinity == .downstream
-            let upstreamMatch = next == selection.lowerBound && !leadingEdge && selection.affinity == .upstream
-
-            guard downstreamMatch || upstreamMatch else {
-                return
-            }
-
-            // in line fragment coordinates
-            let caretRect = CGRect(
-                x: round(min(caretOffset, textContainer.lineFragmentWidth)) - 0.5,
-                y: 0,
-                width: 1,
-                height: frag.alignmentFrame.height
+            rect = CGRect(
+                x: round(min(caretRect.minX, textContainer.width - textContainer.lineFragmentPadding)) - 0.5,
+                y: caretRect.minY,
+                width: caretRect.width,
+                height: caretRect.height
             )
-            rect = convert(convert(caretRect, from: frag), from: line)
-
-            stop.pointee = true
+            return false
         }
 
         guard let rect else {
@@ -306,7 +219,7 @@ class LayoutManager {
                 let rangeInFrag = range.clamped(to: frag.range)
 
                 let start = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.lowerBound)
-                let xStart = frag.positionForCharacter(atUTF16OffsetInLine: start).x
+                let xStart = frag.caretOffset(forUTF16OffsetInLine: start)
 
                 let shouldExtendSegment: Bool
                 if type == .selection && !frag.range.isEmpty {
@@ -321,7 +234,7 @@ class LayoutManager {
                     xEnd = textContainer.lineFragmentWidth
                 } else {
                     let end = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.upperBound)
-                    let x0 = frag.positionForCharacter(atUTF16OffsetInLine: end).x
+                    let x0 = frag.caretOffset(forUTF16OffsetInLine: end)
                     let x1 = textContainer.lineFragmentWidth
                     xEnd = min(x0, x1)
                 }
@@ -383,73 +296,150 @@ class LayoutManager {
         }
     }
 
-    // Point is in text container coordinates.
-    func location(interactingAt point: CGPoint) -> Buffer.Index {
-        let (location, _) = locationAndAffinity(interactingAt: point)
-        return location
+    // Rects are in text container coordinates
+    func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+        let line = line(containing: index)
+        guard let frag = line.fragment(containing: index, affinity: affinity) else {
+            assertionFailure("no frag")
+            return
+        }
+
+        assert(line.lineFragments.contains { $0.range == frag.range })
+
+        // hardcode empty last line because it was created from a dummy non-empty CTLine
+        if frag.range.isEmpty {
+            let fragRect = CGRect(x: 0, y: 0, width: 1, height: frag.alignmentFrame.height)
+            let lineRect = convert(fragRect, from: frag)
+            let rect = convert(lineRect, from: line)
+            if !block(rect, frag.range.lowerBound, .leading) {
+                return
+            }
+            _ = block(rect, frag.range.lowerBound, .trailing)
+            return
+        }
+
+        // Normally, CTLineEnumerateCaretOffsets calls block in like
+        // this (note: caretOffsets have been fudged for simplicity):
+        //
+        // s = "ab"
+        //
+        //   caretOffset=0  offsetInLine=0 leadingEdge=true
+        //   caretOffset=7  offsetInLine=0 leadingEdge=false
+        //   caretOffset=7  offsetInLine=1 leadingEdge=true
+        //   caretOffset=14 offsetInLine=1 leadingEdge=false
+        //
+        // For each UTF-16 offsetInLine, the block is called first
+        // for the leadingEdge of the glyph, and then for the trailing
+        // edge. The trailing edge of one glyph is at the same location
+        // as the leading edge of the following glyph.
+        //
+        // If the a glyph is represented by a surrogate pair however,
+        // the block is called like this:
+        //
+        // s = "🙂b"
+        //
+        //   caretOffset=0  offsetInLine=0 leadingEdge=true
+        //   caretOffset=17 offsetInLine=1 leadingEdge=false
+        //   caretOffset=17 offsetInLine=2 leadingEdge=true
+        //   caretOffset=31 offsetInLine=2 leadingEdge=false
+        //
+        // The difference is that the trailing edge of the emoji is
+        // called with offsetInLine pointing to its trailing surrogate.
+        // I.e. [0, 1, 2, 2] rather than [0, 0, 1, 1].
+        //
+        // For multi-scalar grapheme clusters like "👨‍👩‍👧‍👦", offsetInLine
+        // for the trailing edge will point to the trailing surrogate
+        // of the last unicode scalar.
+        //
+        //   caretOffset=0  offsetInLine=0  leadingEdge=true
+        //   caretOffset=17 offsetInLine=10 leadingEdge=false
+        //
+        // The above grapheme cluster is made up of 4 emoji, each
+        // represented by a surrogate pair, and three zero-width
+        // joiners, each represented by a single UTF-16 code unit,
+        // for 11 code units in all (4*2 + 3). The last unicode
+        // scalar is a surrogate pair, so the trailing edge of the
+        // glyph has offset in line == 10, which is the offset of
+        // the final trailing surrogate (11 - 1).
+        //
+        // Rope.Index can't represent trailing surrogate indices, so
+        // we need a way to detect that we're looking at a trailing
+        // surrogate.
+        //
+        // We know we're looking at a trailing surrogate when we're
+        // looking at a trailing edge of a glyph and the previous
+        // offsetInLine is not equal to the current offsetInLine.
+        //
+        // We only set prevOffsetInLine when we know we're not at
+        // a trailing surrogate. If we didn't do this, i would stop
+        // incrementing once we saw the first surrogate pair.
+        //
+        // TODO: if we ever do add a proper UTF-16 view, index(_:offsetBy:)
+        // will no longer round down. We'd need to find another way
+        // to handle surrogate pairs, likely relying on the fact
+        // that a proper UTF-16 view implies that Rope.Index supports
+        // surrogate pairs.
+
+        var i = frag.range.lowerBound
+        var prevOffsetInLine = CTLineGetStringRange(frag.ctLine).location
+
+        withoutActuallyEscaping(block) { block in
+            CTLineEnumerateCaretOffsets(frag.ctLine) { [weak self] caretOffset, offsetInLine, leadingEdge, stop in
+                guard let self else {
+                    stop.pointee = true
+                    return
+                }
+
+                let edge: Edge = leadingEdge ? .leading : .trailing
+
+                let isTrailingSurrogate = edge == .trailing && prevOffsetInLine != offsetInLine
+                if !isTrailingSurrogate {
+                    i = buffer.utf16.index(i, offsetBy: offsetInLine - prevOffsetInLine)
+                    prevOffsetInLine = offsetInLine
+                }
+
+                let fragRect = CGRect(x: caretOffset, y: 0, width: 1, height: frag.alignmentFrame.height)
+                let lineRect = convert(fragRect, from: frag)
+                let rect = convert(lineRect, from: line)
+
+                if !block(rect, i, edge) {
+                    stop.pointee = true
+                    return
+                }
+            }
+        }
     }
 
-    // Point is in text container coordinates.
-    func locationAndAffinity(interactingAt point: CGPoint) -> (Buffer.Index, Selection.Affinity) {
-        // Rules:
-        //   1. You cannot click to the right of a "\n". No matter how far
-        //      far right you go, you will always be before the newline until
-        //      you move down to the next line.
-        //   2. The last location of any fragment that doesn't end in a "\n"
-        //      is upstream. This means the last location in the document is
-        //      always upstream.
-        //   3. All other locations are downstream.
-
-        if point.y <= 0 {
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
-        }
-        
-        // If we click past the end of the document, select the last character
-        if point.y >= contentHeight {
-            return (buffer.endIndex, .upstream)
-        }
-
+    // TODO: maybe re-implement this in terms of enumerateCaretOffsets.
+    func index(for point: CGPoint) -> Buffer.Index {
         let line = line(forVerticalOffset: point.y)
-
-        // A line containing point.y should always have a fragment
-        // that contains point.y.
         guard let frag = line.fragment(forVerticalOffset: point.y) else {
-            assertionFailure("no frag")
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+            return buffer.startIndex
         }
 
-        let pointInLine = convert(point, to: line)
-        let pointInLineFragment = convert(pointInLine, to: frag)
-
-        guard let offsetInLine = frag.utf16OffsetInLine(for: pointInLineFragment) else {
-            assertionFailure("no utf16OffsetInLine")
-            return (buffer.startIndex, buffer.isEmpty ? .upstream : .downstream)
+        let fragPoint = convert(convert(point, to: line), to: frag)
+        guard let i = index(for: fragPoint, inLineFragment: frag) else {
+            return buffer.startIndex
         }
 
-        var pos = buffer.utf16.index(line.range.lowerBound, offsetBy: offsetInLine)
+        return i
+    }
+
+    func index(for pointInLineFragment: CGPoint, inLineFragment frag: LineFragment) -> Buffer.Index? {
+        guard let u16Offset = frag.utf16OffsetInLine(for: pointInLineFragment) else {
+            return nil
+        }
+
+        var i = buffer.utf16.index(frag.lineStart, offsetBy: u16Offset)
 
         // If you call CTLineGetStringIndexForPosition with an X value that's large
         // enough on a CTLine that ends in a "\n", you'll get the index after
         // the "\n", which we don't want (it's the start of the next line).
-        if pos == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
-            pos = buffer.index(before: pos)
+        if i == frag.range.upperBound && buffer[frag.range].characters.last == "\n" {
+            i = buffer.index(before: i)
         }
 
-        return (pos, pos == frag.range.upperBound ? .upstream : .downstream)
-    }
-
-    func position(forCharacterAt location: Buffer.Index, affinity: Selection.Affinity) -> CGPoint {
-        let line = line(containing: location)
-        // line should always have a fragment containing location
-        guard let frag = line.fragment(containing: location, affinity: affinity) else {
-            assertionFailure("no frag")
-            return .zero
-        }
-
-        let offsetInLine = buffer.utf16.distance(from: line.range.lowerBound, to: location)
-        let fragPos = frag.positionForCharacter(atUTF16OffsetInLine: offsetInLine)
-        let linePos = convert(fragPos, from: frag)
-        return convert(linePos, from: line)
+        return i
     }
 
     func line(forVerticalOffset verticalOffset: CGFloat) -> Line {
@@ -483,6 +473,7 @@ class LayoutManager {
             var start = range.lowerBound
             for i in 0..<line.lineFragments.count {
                 let end = buffer.utf16.index(start, offsetBy: line.lineFragments[i].utf16Count)
+                line.lineFragments[i].lineStart = line.range.lowerBound
                 line.lineFragments[i].range = start..<end
                 start = end
             }
@@ -561,6 +552,7 @@ class LayoutManager {
                 origin: origin, 
                 typographicBounds: typographicBounds,
                 glyphOrigin: glyphOrigin,
+                lineStart: range.lowerBound,
                 range: bi..<bnext,
                 utf16Count: next - i
             )
@@ -612,6 +604,7 @@ class LayoutManager {
             origin: origin, 
             typographicBounds: dummyTypographicBounds,
             glyphOrigin: dummyGlyphOrigin,
+            lineStart: buffer.endIndex,
             range: buffer.endIndex..<buffer.endIndex,
             utf16Count: 0
         )
@@ -746,8 +739,69 @@ extension LayoutManager: BufferDelegate {
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
         for r in ranges {
-            lineCache.invalidate(range: Range(intRangeFor: r))
+            lineCache.invalidate(range: Range(r))
         }
         delegate?.didInvalidateLayout(for: self)
+    }
+}
+
+// MARK: - Selection navigation
+
+extension LayoutManager {
+    func moveSelection(_ movement: Movement) {
+        selection = SelectionNavigator(selection).selection(moving: movement, dataSource: self)
+    }
+
+    func extendSelection(_ movement: Movement) {
+        selection = SelectionNavigator(selection).selection(extending: movement, dataSource: self)
+    }
+}
+
+
+extension LayoutManager: SelectionNavigationDataSource {
+    var documentRange: Range<Buffer.Index> {
+        buffer.documentRange
+    }
+
+    func index(_ i: Buffer.Index, offsetBy distance: Int) -> Buffer.Index {
+        buffer.index(i, offsetBy: distance)
+    }
+
+    func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {
+        buffer.characters.distance(from: start, to: end)
+    }
+
+    subscript(index: Buffer.Index) -> Character {
+        buffer[index]
+    }
+
+    func lineFragmentRange(containing index: Buffer.Index) -> Range<Buffer.Index> {
+        let line = line(containing: index)
+        return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
+    }
+
+    func lineFragmentRange(for point: CGPoint) -> Range<AttributedRope.Index>? {
+        let line = line(forVerticalOffset: point.y)
+        return line.fragment(forVerticalOffset: point.y)?.range
+    }
+
+    // Enumerating over the first line fragment of each string:
+    // ""    -> [(0.0, 0, leading)]
+    // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
+    // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
+    // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
+    // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
+    func enumerateCaretOffsetsInLineFragment(containing index: Buffer.Index, using block: (_ xOffset: CGFloat, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
+        enumerateCaretRects(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) { rect, i, edge in
+            block(rect.minX, i, edge)
+        }
+    }
+
+    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
+        buffer.lines.index(before: i)
+    }
+
+    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
+        buffer.lines.index(after: i)
     }
 }

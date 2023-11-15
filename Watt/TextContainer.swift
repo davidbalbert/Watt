@@ -9,7 +9,6 @@ import Foundation
 
 struct TextContainer: Equatable {
     var lineFragmentPadding: CGFloat = 5
-
     var size: CGSize = .zero
 
     var width: CGFloat {

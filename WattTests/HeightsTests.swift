@@ -1,5 +1,5 @@
 //
-//  HeightsTest.swift
+//  HeightsTests.swift
 //  WattTests
 //
 //  Created by David Albert on 7/27/23.
@@ -8,7 +8,7 @@
 import XCTest
 @testable import Watt
 
-final class HeightsTest: XCTestCase {
+final class HeightsTests: XCTestCase {
     // MARK: - Measuring y-offsts
 
     func testYOffsetEmpty() {

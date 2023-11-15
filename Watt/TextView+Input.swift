@@ -7,6 +7,19 @@
 
 import Cocoa
 
+extension TextView {
+    override func keyDown(with event: NSEvent) {
+        NSCursor.setHiddenUntilMouseMoves(true)
+
+        if inputContext?.handleEvent(event) ?? false {
+            return
+        }
+
+        // Don't know if handleEvent ever returns false here. Just want to know about it.
+        fatalError("keyDown: inputContext didn't handle this event: \(event)")
+    }
+}
+
 extension TextView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
         guard let range = getReplacementRange(for: replacementRange) else {
@@ -52,18 +65,19 @@ extension TextView: NSTextInputClient {
         let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
         let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        let lowerBound = anchor < head ? anchor : head
-        let xOffset = layoutManager.position(forCharacterAt: lowerBound, affinity: .downstream).x
-
-        let selection: Selection
+        let markedRange: Range<Buffer.Index>?
         if attrRope.count == 0 {
-            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset)
+            markedRange = nil
         } else {
             let end = buffer.index(start, offsetBy: attrRope.count)
-            selection = Selection(head: head, anchor: anchor, affinity: .downstream, xOffset: xOffset, markedRange: start..<end)
+            markedRange = start..<end
         }
 
-        layoutManager.selection = selection
+        if anchor == head {
+            layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
+        } else {
+            layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
+        }
     }
 
     func unmarkText() {
@@ -142,10 +156,9 @@ extension TextView: NSTextInputClient {
 
         let windowPoint = window.convertPoint(fromScreen: screenPoint)
         let viewPoint = convert(windowPoint, from: nil)
-        let textContainerPoint = convertToTextContainer(viewPoint)
-
-        let location = layoutManager.location(interactingAt: textContainerPoint)
-        return buffer.utf16.distance(from: buffer.startIndex, to: location)
+        let point = convertToTextContainer(viewPoint)
+        let i = layoutManager.index(for: point)
+        return buffer.distance(from: buffer.startIndex, to: i)
     }
 }
 
@@ -187,9 +200,8 @@ extension TextView {
         // TODO: Once we have multiple selections, we have to make sure to put each
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
-        let affinity: Selection.Affinity = head == buffer.endIndex ? .upstream : .downstream
-        let xOffset = layoutManager.position(forCharacterAt: head, affinity: affinity).x
-        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: xOffset)
+        let affinity: Affinity = head == buffer.endIndex ? .upstream : .downstream
+        layoutManager.selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
 
         guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
             return

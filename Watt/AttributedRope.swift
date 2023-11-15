@@ -37,7 +37,7 @@ struct AttributedRope {
 
     init(_ subrope: AttributedSubrope) {
         self.text = subrope.text[subrope.bounds]
-        self.spans = subrope.spans[Range(intRangeFor: subrope.bounds)]
+        self.spans = subrope.spans[Range(subrope.bounds)]
     }
 
     // internal
@@ -413,7 +413,7 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(intRangeFor: bounds)
+            let r = Range(bounds)
             var first = true
             var v: K.Value?
 
@@ -446,7 +446,7 @@ extension AttributedSubrope {
             var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
             var s = AttributedRope.Attributes()
             s[K.self] = newValue
-            b.add(s, covering: Range(intRangeFor: bounds))
+            b.add(s, covering: Range(bounds))
 
             spans = spans.merging(b.build()) { a, b in
                 var a = a ?? AttributedRope.Attributes()
@@ -469,7 +469,7 @@ extension AttributedSubrope {
         }
 
         var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(intRangeFor: bounds))
+        b.add(attributes, covering: Range(bounds))
 
         spans = spans.merging(b.build()) { a, b in
             b ?? a
@@ -482,7 +482,7 @@ extension AttributedSubrope {
         }
 
         var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(intRangeFor: bounds))
+        b.add(attributes, covering: Range(bounds))
 
         spans = spans.merging(b.build()) { a, b in
             if let a, let b {
@@ -506,7 +506,7 @@ extension AttributedRope {
         var value: T.Value? {
             get {
                 let span = spans.span(at: range.lowerBound.position)!
-                assert(span.range == Range(intRangeFor: range))
+                assert(span.range == Range(range))
                 return span.data[T.self]
             }
             set {
@@ -519,7 +519,7 @@ extension AttributedRope {
         }
 
         mutating func replace(with attributes: Attributes) {
-            builder.add(attributes, covering: Range(intRangeFor: range))
+            builder.add(attributes, covering: Range(range))
         }
 
         mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
@@ -601,6 +601,10 @@ extension AttributedRope {
         text.index(i, offsetBy: distance)
     }
 
+    func index(_ i: Index, offsetByCharacters distance: Int, limitedBy limit: Index) -> Index? {
+        text.index(i, offsetBy: distance, limitedBy: limit)
+    }
+
     mutating func replaceSubrange<R>(_ range: R, with s: AttributedSubrope) where R: RangeExpression<Index> {
         replaceSubrange(range.relative(to: text), with: AttributedRope(s))
     }
@@ -625,7 +629,7 @@ extension AttributedRope {
 
         text.replaceSubrange(range, with: s.text)
 
-        let replacementRange = Range(intRangeFor: range)
+        let replacementRange = Range(range)
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
         sb.push(spans, slicedBy: 0..<replacementRange.lowerBound)
@@ -799,7 +803,7 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
         precondition(subrange.lowerBound >= startIndex && subrange.upperBound <= endIndex, "index out of bounds")
 
-        let s = AttributedRope(Rope(newElements), attributes: attributes(forReplacementRange: Range(intRangeFor: subrange), in: spans))
+        let s = AttributedRope(Rope(newElements), attributes: attributes(forReplacementRange: Range(subrange), in: spans))
         var tmp = AttributedRope(text: text, spans: spans)
 
         text = Rope()
@@ -844,7 +848,7 @@ extension AttributedRope {
         }
 
         mutating func push(_ r: AttributedSubrope) {
-            let intRange = Range(intRangeFor: r.bounds)
+            let intRange = Range(r.bounds)
 
             var root = r.text.root
             rb.push(&root, slicedBy: intRange)
@@ -877,21 +881,21 @@ extension AttributedRope {
         }
 
         mutating func removeSubrange(_ bounds: Range<Index>) {
-            let r = Range(intRangeFor: bounds)
+            let r = Range(bounds)
 
             rb.removeSubrange(r)
             sb.removeSubrange(r)
         }
 
         mutating func replaceSubrange(_ subrange: Range<Index>, with s: AttributedRope) {
-            let r = Range(intRangeFor: subrange)
+            let r = Range(subrange)
 
             rb.replaceSubrange(r, with: s.text)
             sb.replaceSubrange(r, with: s.spans)
         }
 
         mutating func replaceSubrange(_ range: Range<Index>, with s: String) {
-            let r = Range(intRangeFor: range)
+            let r = Range(range)
 
             let attrs = attributes(forReplacementRange: r, in: attrRope.spans)
             var b = SpansBuilder<Attributes>(totalCount: s.utf8.count)
@@ -975,7 +979,7 @@ extension AttributedRope {
 
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         attrString.enumerateAttributes(in: NSRange(location: 0, length: attrString.length), options: []) { attrs, range, _ in
-            b.add(Attributes(attrs).merging(attributes), covering: Range(intRangeFor: Range(range, in: text)!))
+            b.add(Attributes(attrs).merging(attributes), covering: Range(Range(range, in: text)!))
         }
 
         self.text = text
@@ -1036,6 +1040,12 @@ extension NSAttributedString {
 
 extension Range where Bound == AttributedRope.Index {
     init(_ range: Range<Int>, in attributedRope: AttributedRope) {
+        self.init(range, in: attributedRope.text)
+    }
+}
+
+extension Range where Bound == Int {
+    init(_ range: Range<AttributedRope.Index>, in attributedRope: AttributedRope) {
         self.init(range, in: attributedRope.text)
     }
 }

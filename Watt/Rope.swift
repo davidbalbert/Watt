@@ -727,7 +727,7 @@ extension Rope: Collection {
         let start = index(roundingDown: bounds.lowerBound)
         let end = index(roundingDown: bounds.upperBound)
 
-        var sliced = Rope(root, slicedBy: Range(intRangeFor: start..<end))
+        var sliced = Rope(root, slicedBy: Range(start..<end))
 
         var old = GraphemeBreaker(for: self, upTo: start)
         var new = GraphemeBreaker()
@@ -769,10 +769,10 @@ extension Rope: RangeReplaceableCollection {
         var new = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
         var b = BTreeBuilder<Rope>()
-        b.push(&root, slicedBy: Range(intRangeFor: startIndex..<rangeStart))
+        b.push(&root, slicedBy: Range(startIndex..<rangeStart))
         b.push(string: newElements, breaker: &new)
 
-        var rest = Rope(root, slicedBy: Range(intRangeFor: rangeEnd..<endIndex))
+        var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
         rest.resyncBreaks(old: &old, new: &new)
         b.push(&rest.root)
 
@@ -798,12 +798,12 @@ extension Rope {
         var l = left
         var r = right
 
-        var b = BTreeBuilder<Rope>()
         var old = GraphemeBreaker()
         var new = GraphemeBreaker(for: l, upTo: l.endIndex)
 
         r.resyncBreaks(old: &old, new: &new)
 
+        var b = BTreeBuilder<Rope>()
         b.push(&l.root)
         b.push(&r.root)
         return b.build()
@@ -1393,6 +1393,15 @@ extension Range where Bound == Rope.Index {
         let j = range.upperBound
 
         self.init(uncheckedBounds: (rope.utf8.index(at: i), rope.utf8.index(at: j)))
+    }
+}
+
+extension Range where Bound == Int {
+    init(_ range: Range<Rope.Index> , in rope: Rope) {
+        let start = rope.utf8.distance(from: rope.utf8.startIndex, to: range.lowerBound)
+        let end = rope.utf8.distance(from: rope.utf8.startIndex, to: range.upperBound)
+
+        self.init(uncheckedBounds: (start, end))
     }
 }
 

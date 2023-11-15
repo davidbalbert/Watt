@@ -179,6 +179,14 @@ extension TextView: LayoutManagerDelegate {
         updateFrameHeightIfNeeded()
     }
 
+    func selectionDidChange(for layoutManager: LayoutManager) {
+        setTypingAttributes()
+
+        selectionLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+        updateInsertionPointTimer()
+    }
+
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
         defaultAttributes
     }
@@ -213,7 +221,9 @@ extension TextView: LayoutManagerDelegate {
             return attr.replace(with: attributes)
         }
     }
+}
 
+extension TextView {
     // MARK: - Text layout
 
     func layoutTextLayer() {

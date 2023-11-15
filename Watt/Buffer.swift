@@ -29,16 +29,20 @@ class Buffer {
         }
     }
 
-    var delegates: WeakSet<BufferDelegate>
+    var delegates: WeakHashSet<BufferDelegate>
 
     convenience init() {
         self.init("", language: .plainText)
     }
 
-    init(_ string: String, language: Language) {
-        self.contents = AttributedRope(string)
+    convenience init(_ string: String, language: Language) {
+        self.init(AttributedRope(string), language: language)
+    }
+
+    init(_ attrRope: AttributedRope, language: Language) {
+        self.contents = attrRope
         self.language = language
-        self.delegates = WeakSet<BufferDelegate>()
+        self.delegates = WeakHashSet<BufferDelegate>()
 
         self.highlighter = language.highlighter
         highlighter?.delegate = self
@@ -110,6 +114,14 @@ class Buffer {
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         contents.index(i, offsetByCharacters: distance)
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        contents.index(i, offsetByCharacters: distance, limitedBy: limit)
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        contents.text.distance(from: start, to: end)
     }
 
     func index(at offset: Int) -> Index {
@@ -271,9 +283,17 @@ extension Buffer: HighlighterDelegate {
     }
 }
 
+// MARK: - Ranges
+
 extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {
         self.init(range, in: buffer.text)
+    }
+}
+
+extension Range where Bound == Int {
+    init(_ range: Range<Buffer.Index>, in buffer: Buffer) {
+        self.init(range, in: buffer.contents)
     }
 }
 

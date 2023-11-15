@@ -29,6 +29,8 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
         256
     }
 
+    // TODO: this has bad behavior once there are more than `limit` non-nil
+    // values in the dictionary.
     subscript(key: Key) -> Value? {
         mutating get {
             if storage.count > limit {
@@ -75,7 +77,8 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
     }
 }
 
-struct WeakSet<Element> {
+// Note: a class, not thread safe.
+class WeakHashSet<Element> {
     private var storage: NSHashTable<AnyObject>
 
     init() {
@@ -83,12 +86,7 @@ struct WeakSet<Element> {
     }
 
     @discardableResult
-    mutating func insert(_ newMember: Element) -> (inserted: Bool, memberAfterInsert: Element) {
-        if !isKnownUniquelyReferenced(&storage) {
-            // Is this thread safe? who knows?
-            storage = NSCopyHashTableWithZone(storage, nil)
-        }
-
+    func insert(_ newMember: Element) -> (inserted: Bool, memberAfterInsert: Element) {
         if let old = storage.member(newMember as AnyObject) {
             return (false, old as! Element)
         }
@@ -98,11 +96,7 @@ struct WeakSet<Element> {
     }
 
     @discardableResult
-    mutating func remove(_ member: Element) -> Element? {
-        if !isKnownUniquelyReferenced(&storage) {
-            storage = NSCopyHashTableWithZone(storage, nil)
-        }
-
+    func remove(_ member: Element) -> Element? {
         if let old = storage.member(member as AnyObject) {
             storage.remove(old)
             return (old as! Element)
@@ -116,7 +110,7 @@ struct WeakSet<Element> {
     }
 }
 
-extension WeakSet: Sequence {
+extension WeakHashSet: Sequence {
     struct Iterator: IteratorProtocol {
         var inner: NSFastEnumerationIterator
 
