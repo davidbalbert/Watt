@@ -350,34 +350,16 @@ extension TextView {
     // MARK: - Graphical element transposition
 
     override func transpose(_ sender: Any?) {
-        if buffer.count < 2 {
+        guard let r = Transposer.rangeForTransposingCharacters(inSelectedRange: selection.range, dataSource: buffer) else {
             return
         }
 
-        guard selection.isCaret || buffer.characters.distance(from: selection.lowerBound, to: selection.upperBound) == 2 else {
-            return
-        }
+        let c1 = buffer[r.lowerBound]
+        let c2 = buffer[r.upperBound]
 
-        let i: Buffer.Index
-        let lineStart = buffer.lines.index(roundingDown: selection.lowerBound)
+        replaceSubrange(r.relative(to: buffer.text), with: String(c2) + String(c1))
 
-        if selection.isRange {
-            i = selection.lowerBound
-        } else if lineStart == selection.lowerBound {
-            i = lineStart
-        } else if selection.lowerBound == buffer.endIndex {
-            i = buffer.index(selection.lowerBound, offsetBy: -2)
-        } else {
-            i = buffer.index(before: selection.lowerBound)
-        }
-
-        let j = buffer.index(after: i)
-        let c1 = buffer[i]
-        let c2 = buffer[j]
-
-        replaceSubrange(i..<buffer.index(after: j), with: String(c2) + String(c1))
-
-        let anchor = buffer.index(fromOldIndex: i)
+        let anchor = buffer.index(fromOldIndex: r.lowerBound)
         let head = buffer.index(anchor, offsetBy: 2)
         layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
@@ -425,10 +407,6 @@ extension TextView {
         let head = buffer.index(fromOldIndex: word2.upperBound)
 
         layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
     }
 
     // MARK: - Selection
@@ -442,9 +420,6 @@ extension TextView {
         }
 
         layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
     }
 
     // MARK: - Insertion and indentation

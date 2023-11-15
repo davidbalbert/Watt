@@ -759,6 +759,10 @@ extension LayoutManager {
 
 
 extension LayoutManager: SelectionNavigationDataSource {
+    var characterCount: Int {
+        buffer.characterCount
+    }
+    
     var documentRange: Range<Buffer.Index> {
         buffer.documentRange
     }
@@ -768,7 +772,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {
-        buffer.characters.distance(from: start, to: end)
+        buffer.distance(from: start, to: end)
     }
 
     subscript(index: Buffer.Index) -> Character {
@@ -798,10 +802,10 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.lines.index(before: i)
+        buffer.index(beforeParagraph: i)
     }
 
     func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.lines.index(after: i)
+        buffer.index(afterParagraph: i)
     }
 }

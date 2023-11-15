@@ -7,18 +7,7 @@
 
 import Foundation
 
-public protocol SelectionNavigationDataSource {
-    // MARK: Storage info
-    associatedtype Index: Comparable
-
-    var documentRange: Range<Index> { get }
-
-    func index(_ i: Index, offsetBy distance: Int) -> Index
-    func distance(from start: Index, to end: Index) -> Int
-
-    subscript(index: Index) -> Character { get }
-
-    // MARK: Layout info
+public protocol SelectionNavigationDataSource: DocumentContentDataSource {
     func lineFragmentRange(containing index: Index) -> Range<Index>
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
 
@@ -35,67 +24,11 @@ public protocol SelectionNavigationDataSource {
     // ""    -> [(0.0, 0, leadingEdge=true), (0.0, -1, leadingEdge=false)]
     //
     func enumerateCaretOffsetsInLineFragment(containing index: Index, using block: (_ offset: CGFloat, _ i: Index, _ edge: Edge) -> Bool)
-
-    // MARK: Paragraph navigation
-    func index(beforeParagraph i: Index) -> Index
-    func index(afterParagraph i: Index) -> Index
 }
 
-// MARK: - Default implementations
-public extension SelectionNavigationDataSource {
-    func index(beforeParagraph i: Index) -> Index {
-        precondition(i > startIndex)
-
-        var j = i
-        if self[index(before: j)] == "\n" {
-            j = index(before: j)
-        }
-
-        while j > startIndex && self[index(before: j)] != "\n" {
-            j = index(before: j)
-        }
-
-        return j
-    }
-
-    func index(afterParagraph i: Index) -> Index {
-        precondition(i < endIndex)
-
-        var j = i
-        while j < endIndex && self[j] != "\n" {
-            j = index(after: j)
-        }
-
-        if j < endIndex {
-            j = index(after: j)
-        }
-
-        return j
-    }
-}
 
 // MARK: - Internal helpers
 extension SelectionNavigationDataSource {
-    var isEmpty: Bool {
-        documentRange.isEmpty
-    }
-
-    var startIndex: Index {
-        documentRange.lowerBound
-    }
-
-    var endIndex: Index {
-        documentRange.upperBound
-    }
-
-    func index(before i: Index) -> Index {
-        index(i, offsetBy: -1)
-    }
-
-    func index(after i: Index) -> Index {
-        index(i, offsetBy: 1)
-    }
-
     func range(for granularity: Granularity, enclosing i: Index) -> Range<Index> {
         if isEmpty {
             return startIndex..<startIndex
@@ -375,19 +308,5 @@ extension SelectionNavigationDataSource {
     func isWordCharacter(_ i: Index) -> Bool {
         let c = self[i]
         return !c.isWhitespace && !c.isPunctuation
-    }
-
-    func index(roundedDownToParagraph i: Index) -> Index {
-        if i == startIndex || self[index(before: i)] == "\n" {
-            return i
-        }
-        return index(beforeParagraph: i)
-    }
-
-    func index(roundedUpToParagraph i: Index) -> Index {
-        if i == endIndex || self[index(before: i)] == "\n" {
-            return i
-        }
-        return index(afterParagraph: i)
     }
 }
