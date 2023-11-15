@@ -410,6 +410,7 @@ class LayoutManager {
         }
     }
 
+    // TODO: maybe re-implement this in terms of enumerateCaretOffsets.
     func index(for point: CGPoint) -> Buffer.Index {
         let line = line(forVerticalOffset: point.y)
         guard let frag = line.fragment(forVerticalOffset: point.y) else {

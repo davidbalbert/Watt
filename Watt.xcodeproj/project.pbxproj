@@ -58,7 +58,6 @@
 		63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907892A795F1B00E4D7C9 /* Spans.swift */; };
 		63D546402AFC304B00C72CDE /* LayoutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */; };
 		63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */; };
-		63D546442AFD92F400C72CDE /* TextView+Keyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D546432AFD92F400C72CDE /* TextView+Keyboard.swift */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
@@ -146,7 +145,6 @@
 		63C907892A795F1B00E4D7C9 /* Spans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spans.swift; sourceTree = "<group>"; };
 		63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerTests.swift; sourceTree = "<group>"; };
 		63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+FirstResponder.swift"; sourceTree = "<group>"; };
-		63D546432AFD92F400C72CDE /* TextView+Keyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Keyboard.swift"; sourceTree = "<group>"; };
 		63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = StandardKeyBindingResponder; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
@@ -257,7 +255,6 @@
 				63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */,
 				637867822A1EC5B50039960E /* TextView+Input.swift */,
 				637867842A1EC6BB0039960E /* TextView+KeyBinding.swift */,
-				63D546432AFD92F400C72CDE /* TextView+Keyboard.swift */,
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
@@ -485,7 +482,6 @@
 				63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */,
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
-				63D546442AFD92F400C72CDE /* TextView+Keyboard.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
