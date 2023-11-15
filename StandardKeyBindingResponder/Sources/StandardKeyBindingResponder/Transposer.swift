@@ -7,8 +7,10 @@
 
 import Foundation
 
-public enum Transposer {
-    public static func rangeForTransposingCharacters<DataSource>(inSelectedRange range: Range<DataSource.Index>, dataSource: DataSource) -> ClosedRange<DataSource.Index>? where DataSource: DocumentContentDataSource {
+public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
+    public typealias Index = DataSource.Index
+
+    public static func transposeIndices(inSelectedRange range: Range<Index>, dataSource: DataSource) -> (Index, Index)? {
         if dataSource.characterCount < 2 {
             return nil
         }
@@ -30,6 +32,6 @@ public enum Transposer {
             i = dataSource.index(before: range.lowerBound)
         }
 
-        return i...dataSource.index(after: i)
+        return (i, dataSource.index(after: i))
     }
 }

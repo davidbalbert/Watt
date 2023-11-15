@@ -350,16 +350,13 @@ extension TextView {
     // MARK: - Graphical element transposition
 
     override func transpose(_ sender: Any?) {
-        guard let r = Transposer.rangeForTransposingCharacters(inSelectedRange: selection.range, dataSource: buffer) else {
+        guard let (i, j) = Transposer.transposeIndices(inSelectedRange: selection.range, dataSource: buffer) else {
             return
         }
 
-        let c1 = buffer[r.lowerBound]
-        let c2 = buffer[r.upperBound]
+        replaceSubrange((i...j).relative(to: buffer.text), with: String(buffer[j]) + String(buffer[i]))
 
-        replaceSubrange(r.relative(to: buffer.text), with: String(c2) + String(c1))
-
-        let anchor = buffer.index(fromOldIndex: r.lowerBound)
+        let anchor = buffer.index(fromOldIndex: i)
         let head = buffer.index(anchor, offsetBy: 2)
         layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
