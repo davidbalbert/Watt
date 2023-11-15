@@ -219,7 +219,7 @@ class LayoutManager {
                 let rangeInFrag = range.clamped(to: frag.range)
 
                 let start = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.lowerBound)
-                let xStart = frag.pointForCharacter(atUTF16OffsetInLine: start).x
+                let xStart = frag.caretOffset(forUTF16OffsetInLine: start)
 
                 let shouldExtendSegment: Bool
                 if type == .selection && !frag.range.isEmpty {
@@ -234,7 +234,7 @@ class LayoutManager {
                     xEnd = textContainer.lineFragmentWidth
                 } else {
                     let end = buffer.utf16.distance(from: line.range.lowerBound, to: rangeInFrag.upperBound)
-                    let x0 = frag.pointForCharacter(atUTF16OffsetInLine: end).x
+                    let x0 = frag.caretOffset(forUTF16OffsetInLine: end)
                     let x1 = textContainer.lineFragmentWidth
                     xEnd = min(x0, x1)
                 }
