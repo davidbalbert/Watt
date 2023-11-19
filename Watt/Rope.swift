@@ -185,12 +185,6 @@ struct Chunk: BTreeLeaf {
         if let first {
             // We found a new first break
             prefixCount = string.utf8.distance(from: string.startIndex, to: first)
-
-            if i < string.endIndex {
-                let j = string.unicodeScalars.index(after: i)
-                new.consume(string[j...])
-            }
-            endBreakState = new
         } else if i >= lastBreak {
             // We made it up through lastBreak without finding any breaks
             // and now we're in sync. We know there are no more breaks
@@ -206,12 +200,6 @@ struct Chunk: BTreeLeaf {
             // no breaks in the chunk, so this code is a no-op.
 
             prefixCount = string.utf8.count
-
-            if i < string.endIndex {
-                let j = string.unicodeScalars.index(after: i)
-                new.consume(string[j...])
-            }
-            endBreakState = new
         } else if i >= firstBreak {
             // We made it up through firstBreak without finding any breaks
             // but we got in sync before lastBreak. Find a new firstBreak:
@@ -221,12 +209,6 @@ struct Chunk: BTreeLeaf {
             let first = tmp.firstBreak(in: string[j...])!.lowerBound
             prefixCount = string.utf8.distance(from: string.startIndex, to: first)
 
-            if i < string.endIndex {
-                let j = string.unicodeScalars.index(after: i)
-                new.consume(string[j...])
-            }
-            endBreakState = new
-
             // If this is false, there's a bug in the code, or my assumptions are wrong.
             assert(firstBreak <= lastBreak)
         }
@@ -234,6 +216,13 @@ struct Chunk: BTreeLeaf {
         // There's an implicit else clause to the above– we're in sync, and we
         // didn't even get to the old firstBreak. This means the breaks didn't
         // change at all.
+
+        // We got to the end without getting in sync. By definition this means that
+        // our old endBreakState and our new endBreakState are not the same.
+        if i == string.endIndex {
+            assert(new != endBreakState)
+            endBreakState = new
+        }
 
         // We're done if we synced up before the end of the chunk.
         return i < string.endIndex
@@ -607,9 +596,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 // MARK: - Builder additions
 
 extension BTreeBuilder where Tree == Rope {
-    mutating func push(string: some Sequence<Character>) {
-        var breaker = Rope.GraphemeBreaker()
-
+    mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
         var string = String(string)
         string.makeContiguousUTF8()
 
@@ -625,7 +612,7 @@ extension BTreeBuilder where Tree == Rope {
                 end = boundaryForBulkInsert(string[i...])
             }
 
-            push(leaf: Chunk(string[i..<end], breaker: &breaker))
+            push(leaf: Chunk(string[i..<end], breaker: &breaker), needsFixup: false)
             i = end
         }
     }
@@ -854,8 +841,10 @@ extension Rope: RangeReplaceableCollection {
         let rangeEnd = index(roundingDown: subrange.upperBound)
 
         var b = BTreeBuilder<Rope>()
+        var br = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
+
         b.push(&root, slicedBy: Range(startIndex..<rangeStart))
-        b.push(string: newElements)
+        b.push(string: newElements, breaker: &br)
 
         var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
         b.push(&rest.root)
@@ -866,9 +855,10 @@ extension Rope: RangeReplaceableCollection {
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
         var b = BTreeBuilder<Rope>()
+        var br = GraphemeBreaker(for: self, upTo: endIndex)
 
         b.push(&root)
-        b.push(string: newElements)
+        b.push(string: newElements, breaker: &br)
         self = b.build()
     }
 }
@@ -930,6 +920,43 @@ extension Rope {
             if let s {
                 consume(s)
             }
+        }
+
+        // assumes upperBound is valid in rope
+        init(for rope: Rope, upTo upperBound: Rope.Index, withKnownNextScalar next: Unicode.Scalar? = nil) {
+            assert(upperBound.isBoundary(in: .unicodeScalars))
+
+            if rope.isEmpty || upperBound.position == 0 {
+                self.init()
+                return
+            }
+
+            if upperBound == rope.endIndex {
+                self = rope.root.leaves.last!.endBreakState
+                return
+            }
+
+            if let next {
+                let i = rope.unicodeScalars.index(before: upperBound)
+                let prev = rope.unicodeScalars[i]
+
+                if Unicode._CharacterRecognizer.quickBreak(between: prev, and: next) ?? false {
+                    self.init()
+                    return
+                }
+            }
+
+            let (chunk, offset) = upperBound.read()!
+            let i = chunk.string.utf8Index(at: offset)
+
+            if i <= chunk.firstBreak {
+                self.init(chunk.startBreakState.recognizer, consuming: chunk.string[..<i])
+                return
+            }
+
+            let prev = chunk.characters.index(before: i)
+
+            self.init(consuming: chunk.string[prev..<i])
         }
 
         mutating func hasBreak(before next: Unicode.Scalar) -> Bool {

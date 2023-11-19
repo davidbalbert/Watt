@@ -488,7 +488,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // the inner array always has at least one element
     var stack: [[PartialTree]] = []
 
-    mutating func push(_ node: inout Node) {
+    mutating func push(_ node: inout Node, needsFixupIfLeaf: Bool = true) {
         var isUnique = isKnownUniquelyReferenced(&node)
         var n = node
 
@@ -506,7 +506,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             } else if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
                     // TODO: make sure I need to do this. I believe the answer is yes.
-                    if n.isLeaf && Leaf.needsFixupOnConcat {
+                    if n.isLeaf && Leaf.needsFixupOnConcat && needsFixupIfLeaf {
                         if !isUnique {
                             n = n.clone()
                             isUnique = true
@@ -608,9 +608,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         }
     }
 
-    mutating func push(leaf: Leaf) {
+    mutating func push(leaf: Leaf, needsFixup: Bool = true) {
         var n = Node(leaf)
-        push(&n)
+        push(&n, needsFixupIfLeaf: needsFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
