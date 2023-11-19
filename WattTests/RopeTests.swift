@@ -93,6 +93,41 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(String(repeating: "a", count: 710_000), String(slice))
     }
 
+    func testSliceCombiningCharactersAtChunkBoundary() {
+        XCTAssertEqual(1023, Chunk.maxSize)
+
+        var r = Rope(String(repeating: "a", count: 1000))
+        r.append("\u{0301}" + String(repeating: "b", count: 999))
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1001, r.root.children[1].count) // "´" takes up two bytes
+
+        XCTAssertEqual(0, r.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(2, r.root.children[1].leaf.prefixCount)
+
+        // the last "a" in children[0] combine with the accent at
+        // the beginning of children[1] to form a single character.
+        XCTAssertEqual(1999, r.count)
+        XCTAssertEqual(2000, r.unicodeScalars.count)
+        XCTAssertEqual(2000, r.utf16.count)
+        XCTAssertEqual(2001, r.utf8.count)
+
+        let i = r.index(at: 999)
+        let r2 = r[i..<r.index(after: i)]
+
+        XCTAssertEqual(0, r2.root.height)
+
+        XCTAssertEqual(1, r2.count)
+        XCTAssertEqual(2, r2.unicodeScalars.count)
+        XCTAssertEqual(2, r2.utf16.count)
+        XCTAssertEqual(3, r2.utf8.count)
+
+        XCTAssertEqual("a\u{0301}", String(r2))
+    }
+
     func testReplaceSubrangeFullRange() {
         var r = Rope("abc")
         r.replaceSubrange(r.startIndex..<r.endIndex, with: "def")
@@ -1153,6 +1188,7 @@ final class RopeTests: XCTestCase {
 
         // 'combining accute accent' + "b"*999
         let r2 = Rope("\u{0301}" + String(repeating: "b", count: 999))
+
         var b = BTreeDeltaBuilder<Rope>(r.root.count)
         b.replaceSubrange(r.root.count..<r.root.count, with: r2)
         let delta = b.build()
@@ -1176,6 +1212,45 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(2001, r.utf8.count)
 
         XCTAssertEqual("a\u{0301}", r[999])
+    }
+
+    func testDeltaSliceCombiningCharactersAtChunkBoundary() {
+        XCTAssertEqual(1023, Chunk.maxSize)
+
+        var r = Rope(String(repeating: "a", count: 1000))
+        r.append("\u{0301}" + String(repeating: "b", count: 999))
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1001, r.root.children[1].count) // "´" takes up two bytes
+
+        XCTAssertEqual(0, r.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(2, r.root.children[1].leaf.prefixCount)
+
+        // the last "a" in children[0] combine with the accent at
+        // the beginning of children[1] to form a single character.
+        XCTAssertEqual(1999, r.count)
+        XCTAssertEqual(2000, r.unicodeScalars.count)
+        XCTAssertEqual(2000, r.utf16.count)
+        XCTAssertEqual(2001, r.utf8.count)
+
+        var b = BTreeDeltaBuilder<Rope>(r.root.count)
+        b.replaceSubrange(0..<999, with: "")
+        b.replaceSubrange(1002..<r.root.count, with: "")
+        let delta = b.build()
+
+        let r2 = r.applying(delta: delta)
+
+        XCTAssertEqual(0, r2.root.height)
+
+        XCTAssertEqual(1, r2.count)
+        XCTAssertEqual(2, r2.unicodeScalars.count)
+        XCTAssertEqual(2, r2.utf16.count)
+        XCTAssertEqual(3, r2.utf8.count)
+
+        XCTAssertEqual("a\u{0301}", String(r2))
     }
 
     // MARK: - Regression tests
