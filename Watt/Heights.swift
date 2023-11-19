@@ -87,8 +87,8 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
     }
 
     init() {
-        self.positions = []
-        self.heights = []
+        self.positions = [0]
+        self.heights = [14]
     }
 
     init(positions: [Int], heights: [CGFloat]) {
@@ -671,16 +671,20 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
 struct HeightsBuilder {
     var b: BTreeBuilder<Heights>
     var leaf: HeightsLeaf
+    var first: Bool
 
     init() {
         b = BTreeBuilder<Heights>()
-        leaf = HeightsLeaf()
+        leaf = HeightsLeaf(positions: [], heights: [])
+        first = true
     }
 
     mutating func addLine(withBaseCount count: Int, height: CGFloat) {
+        first = false
+
         if leaf.positions.count == HeightsLeaf.maxSize {
             b.push(leaf: leaf)
-            leaf = HeightsLeaf()
+            leaf = HeightsLeaf(positions: [], heights: [])
         }
 
         leaf.positions.append(leaf.count + count)
@@ -688,6 +692,8 @@ struct HeightsBuilder {
     }
 
     consuming func build() -> Heights {
+        precondition(!first, "addLine must be called at least once before build()")
+
         if leaf.positions.count > 0 {
             b.push(leaf: leaf)
         }
