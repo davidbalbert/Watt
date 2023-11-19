@@ -80,7 +80,10 @@ struct Chunk: BTreeLeaf {
     // a breaker ready to consume the first
     // scalar in the Chunk. Used for prefix
     // calculation in pushMaybeSplitting(other:)
-    var breaker: Rope.GraphemeBreaker
+    var startBreakState: Rope.GraphemeBreaker
+
+    // a breaker that has consumed the entirety of string.
+    var endBreakState: Rope.GraphemeBreaker
 
     var count: Int {
         string.utf8.count
@@ -109,7 +112,8 @@ struct Chunk: BTreeLeaf {
     init() {
         self.string = ""
         self.prefixCount = 0
-        self.breaker = Rope.GraphemeBreaker()
+        self.startBreakState = Rope.GraphemeBreaker()
+        self.endBreakState = Rope.GraphemeBreaker()
     }
 
     init(_ substring: Substring, breaker b: inout Rope.GraphemeBreaker) {
@@ -118,18 +122,20 @@ struct Chunk: BTreeLeaf {
         assert(s.utf8.count <= Chunk.maxSize)
 
         // save the breaker at the start of the chunk
-        self.breaker = b
+        self.startBreakState = b
 
         self.string = s
         self.prefixCount = consumeAndFindPrefixCount(in: s, using: &b)
+        self.endBreakState = b
     }
 
     mutating func pushMaybeSplitting(other: Chunk) -> Chunk? {
         string += other.string
-        var b = breaker
+        var b = startBreakState
 
         if string.utf8.count <= Chunk.maxSize {
             prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
+            endBreakState = b
             return nil
         } else {
             let i = boundaryForMerge(string[...])
@@ -138,8 +144,99 @@ struct Chunk: BTreeLeaf {
             string = String(string.unicodeScalars[..<i])
 
             prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
+            endBreakState = b
             return Chunk(rest[...], breaker: &b)
         }
+    }
+
+    static var needsFixupOnConcat: Bool {
+        true
+    }
+
+    mutating func fixup(usingPrevious prev: Chunk) -> Bool {
+        var i = string.startIndex
+        var first: String.Index?
+
+        var old = startBreakState
+        var new = prev.endBreakState
+
+        startBreakState = new
+
+        while i < string.unicodeScalars.endIndex {
+            let scalar = string.unicodeScalars[i]
+            let a = old.hasBreak(before: scalar)
+            let b = new.hasBreak(before: scalar)
+
+            if b {
+                first = first ?? i
+            }
+
+            if a && b {
+                // Found the same break. We're done
+                break
+            } else if !a && !b && old == new {
+                // GraphemeBreakers are in the same state. We're done.
+                break
+            }
+
+            i = string.unicodeScalars.index(after: i)
+        }
+
+        if let first {
+            // We found a new first break
+            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
+
+            if i < string.endIndex {
+                let j = string.unicodeScalars.index(after: i)
+                new.consume(string[j...])
+            }
+            endBreakState = new
+        } else if i >= lastBreak {
+            // We made it up through lastBreak without finding any breaks
+            // and now we're in sync. We know there are no more breaks
+            // ahead of us, which means there are no breaks in the chunk.
+
+            // N.b. there is a special case where lastBreak < firstBreak –
+            // when there were no breaks in the chunk previously. In that
+            // case lastBreak == startIndex and firstBreak == endIndex.
+
+            // But this code works for that situation too. If there were no
+            // breaks in the chunk previously, and we get in sync anywhere
+            // in the chunk without finding a break, we know there are still
+            // no breaks in the chunk, so this code is a no-op.
+
+            prefixCount = string.utf8.count
+
+            if i < string.endIndex {
+                let j = string.unicodeScalars.index(after: i)
+                new.consume(string[j...])
+            }
+            endBreakState = new
+        } else if i >= firstBreak {
+            // We made it up through firstBreak without finding any breaks
+            // but we got in sync before lastBreak. Find a new firstBreak:
+
+            let j = string.unicodeScalars.index(after: i)
+            var tmp = new
+            let first = tmp.firstBreak(in: string[j...])!.lowerBound
+            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
+
+            if i < string.endIndex {
+                let j = string.unicodeScalars.index(after: i)
+                new.consume(string[j...])
+            }
+            endBreakState = new
+
+            // If this is false, there's a bug in the code, or my assumptions are wrong.
+            assert(firstBreak <= lastBreak)
+        }
+
+        // There's an implicit else clause to the above– we're in sync, and we
+        // didn't even get to the old firstBreak. This means the breaks didn't
+        // change at all.
+
+        // We're done if we synced up before the end of the chunk.
+        return i < string.endIndex
     }
 
     subscript(bounds: Range<Int>) -> Chunk {
@@ -150,7 +247,7 @@ struct Chunk: BTreeLeaf {
             fatalError("invalid unicode scalar offsets")
         }
 
-        var b = breaker
+        var b = startBreakState
         b.consume(string[string.startIndex..<start])
         return Chunk(string[start..<end], breaker: &b)
     }
@@ -177,12 +274,6 @@ fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: ino
 
 // MARK: - Metrics
 
-// It would be better if these metrics were nested inside Rope instead
-// of BTree, but that causes problems with LLDB – I get errors like
-// "error: cannot find 'metric' in scope" in response to 'p metric'.
-//
-// Ditto for using `some BTreeMetric<Summary>` instead of introducing
-// a generic type and constrainting it to BTreeMetric<Summary>.
 extension Rope {
     // The base metric, which measures UTF-8 code units.
     struct UTF8Metric: BTreeMetric {
@@ -516,7 +607,9 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 // MARK: - Builder additions
 
 extension BTreeBuilder where Tree == Rope {
-    mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
+    mutating func push(string: some Sequence<Character>) {
+        var breaker = Rope.GraphemeBreaker()
+
         var string = String(string)
         string.makeContiguousUTF8()
 
@@ -728,11 +821,6 @@ extension Rope: Collection {
         let end = index(roundingDown: bounds.upperBound)
 
         var sliced = Rope(root, slicedBy: Range(start..<end))
-
-        var old = GraphemeBreaker(for: self, upTo: start)
-        var new = GraphemeBreaker()
-        sliced.resyncBreaks(old: &old, new: &new)
-
         return sliced
     }
 
@@ -765,15 +853,11 @@ extension Rope: RangeReplaceableCollection {
         let rangeStart = index(roundingDown: subrange.lowerBound)
         let rangeEnd = index(roundingDown: subrange.upperBound)
 
-        var old = GraphemeBreaker(for: self, upTo: rangeEnd, withKnownNextScalar: rangeEnd.position == root.count ? nil : unicodeScalars[rangeEnd])
-        var new = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
-
         var b = BTreeBuilder<Rope>()
         b.push(&root, slicedBy: Range(startIndex..<rangeStart))
-        b.push(string: newElements, breaker: &new)
+        b.push(string: newElements)
 
         var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
-        rest.resyncBreaks(old: &old, new: &new)
         b.push(&rest.root)
 
         self = b.build()
@@ -782,10 +866,9 @@ extension Rope: RangeReplaceableCollection {
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
         var b = BTreeBuilder<Rope>()
-        var br = GraphemeBreaker(for: self, upTo: endIndex)
 
         b.push(&root)
-        b.push(string: newElements, breaker: &br)
+        b.push(string: newElements)
         self = b.build()
     }
 }
@@ -797,11 +880,6 @@ extension Rope {
     static func + (_ left: Rope, _ right: Rope) -> Rope {
         var l = left
         var r = right
-
-        var old = GraphemeBreaker()
-        var new = GraphemeBreaker(for: l, upTo: l.endIndex)
-
-        r.resyncBreaks(old: &old, new: &new)
 
         var b = BTreeBuilder<Rope>()
         b.push(&l.root)
@@ -837,92 +915,6 @@ extension Rope {
 // MARK: - Grapheme breaking
 
 extension Rope {
-    mutating func resyncBreaks(old: inout GraphemeBreaker, new: inout GraphemeBreaker) {
-        var b = BTreeBuilder<Rope>()
-
-        var i = startIndex
-        while var (chunk, _) = i.read() {
-            let done = chunk.resyncBreaks(old: &old, new: &new)
-            b.push(leaf: chunk)
-            i.nextLeaf()
-
-            if done {
-                break
-            }
-        }
-
-        b.push(&root, slicedBy: i.position..<root.count)
-        self = b.build()
-    }
-}
-
-extension Chunk {
-    // Returns true if we're in sync, false if we need to sync the next Chunk.
-    mutating func resyncBreaks(old: inout Rope.GraphemeBreaker, new: inout Rope.GraphemeBreaker) -> Bool {
-        var i = string.startIndex
-        var first: String.Index?
-
-        while i < string.unicodeScalars.endIndex {
-            let scalar = string.unicodeScalars[i]
-            let a = old.hasBreak(before: scalar)
-            let b = new.hasBreak(before: scalar)
-
-            if b {
-                first = first ?? i
-            }
-
-            if a && b {
-                // Found the same break. We're done
-                break
-            } else if !a && !b && old == new {
-                // GraphemeBreakers are in the same state. We're done.
-                break
-            }
-
-            string.unicodeScalars.formIndex(after: &i)
-        }
-
-        if let first {
-            // We found a new first break
-            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
-        } else if i >= lastBreak {
-            // We made it up through lastBreak without finding any breaks
-            // and now we're in sync. We know there are no more breaks
-            // ahead of us, which means there are no breaks in the chunk.
-            
-            // N.b. there is a special case where lastBreak < firstBreak –
-            // when there were no breaks in the chunk previously. In that
-            // case lastBreak == startIndex and firstBreak == endIndex.
-
-            // But this code works for that situation too. If there were no
-            // breaks in the chunk previously, and we get in sync anywhere
-            // in the chunk without finding a break, we know there are still
-            // no breaks in the chunk, so this code is a no-op.
-
-            prefixCount = string.utf8.count
-        } else if i >= firstBreak {
-            // We made it up through firstBreak without finding any breaks
-            // but we got in sync before lastBreak. Find a new firstBreak:
-
-            let j = string.unicodeScalars.index(after: i)
-            var tmp = new
-            let first = tmp.firstBreak(in: string[j...])!.lowerBound
-            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
-
-            // If this is false, there's a bug in the code, or my assumptions are wrong.
-            assert(firstBreak <= lastBreak)
-        }
-
-        // There's an implicit else clause to the above– we're in sync, and we
-        // didn't even get to the old firstBreak. This means the breaks didn't
-        // change at all.
-
-        // We're done if we synced up before the end of the chunk.
-        return i < string.endIndex
-    }
-}
-
-extension Rope {
     struct GraphemeBreaker: Equatable {
         #if swift(<5.9)
         static func == (lhs: GraphemeBreaker, rhs: GraphemeBreaker) -> Bool {
@@ -938,38 +930,6 @@ extension Rope {
             if let s {
                 consume(s)
             }
-        }
-
-        // assumes upperBound is valid in rope
-        init(for rope: Rope, upTo upperBound: Rope.Index, withKnownNextScalar next: Unicode.Scalar? = nil) {
-            assert(upperBound.isBoundary(in: .unicodeScalars))
-
-            if rope.isEmpty || upperBound.position == 0 {
-                self.init()
-                return
-            }
-
-            if let next {
-                let i = rope.unicodeScalars.index(before: upperBound)
-                let prev = rope.unicodeScalars[i]
-
-                if Unicode._CharacterRecognizer.quickBreak(between: prev, and: next) ?? false {
-                    self.init()
-                    return
-                }
-            }
-
-            let (chunk, offset) = upperBound.read()!
-            let i = chunk.string.utf8Index(at: offset)
-
-            if i <= chunk.firstBreak {
-                self.init(chunk.breaker.recognizer, consuming: chunk.string[..<i])
-                return
-            }
-
-            let prev = chunk.characters.index(before: i)
-
-            self.init(consuming: chunk.string[prev..<i])
         }
 
         mutating func hasBreak(before next: Unicode.Scalar) -> Bool {

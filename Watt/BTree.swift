@@ -37,8 +37,24 @@ protocol BTreeLeaf {
 
     // Specified in base units from the start of self. Should be O(1).
     subscript(bounds: Range<Int>) -> Self { get }
+
+    // True if the state of a leaf depends on the state of the previous leaf.
+    // If true, fixup(prev:) is called whenever two leaves are
+    // concatenated together.
+    static var needsFixupOnConcat: Bool { get }
+    // Returns true if we're in sync. Returns false if we need to continue fixing up.
+    mutating func fixup(usingPrevious: Self) -> Bool
 }
 
+extension BTreeLeaf {
+    static var needsFixupOnConcat: Bool {
+        false
+    }
+
+    mutating func fixup(usingPrevious prev: Self) -> Bool {
+        true
+    }
+}
 
 enum BTreeMetricType {
     case leading
@@ -154,7 +170,6 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
         var count = 0
         var summary = Summary.zero
 
-
         for child in children {
             assert(child.height + 1 == height)
             assert(!child.isUndersized)
@@ -223,7 +238,17 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
     }
 
     // Mutating. Self must be unique at this point.
-    func concatenate(_ other: BTreeNode) -> BTreeNode {
+    func concat(_ other: BTreeNode) -> BTreeNode {
+        var other = other
+        if Leaf.needsFixupOnConcat {
+            other = other.clone()
+            _ = other.fixup(withPreviousLeaf: leaves.last!)
+        }
+        return reccat(other)
+    }
+
+    // Mutating. Self must be unique at this point.
+    func reccat(_ other: BTreeNode) -> BTreeNode {
         let h1 = height
         let h2 = other.height
 
@@ -234,7 +259,7 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
 
             // Concatinate mutates self, but self is already guaranteed to be
             // unique at this point.
-            let new = concatenate(other.children[0])
+            let new = reccat(other.children[0])
             if new.height == h2 - 1 {
                 return BTreeNode(children: [new], mergedWith: other.children.dropFirst())
             } else {
@@ -262,7 +287,7 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
                 children[children.count-1] = children[children.count-1].clone()
             }
 
-            let new = children[children.count - 1].concatenate(other)
+            let new = children[children.count - 1].reccat(other)
             if new.height == h1 - 1 {
                 return BTreeNode(children: children.dropLast(), mergedWith: [new])
             } else {
@@ -285,6 +310,37 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
         } else {
             return self
         }
+    }
+
+    // Mutating. Self must be unique at this point.
+    func fixup(withPreviousLeaf prev: Leaf) -> Leaf? {
+        if isLeaf {
+            let done = leaf.fixup(usingPrevious: prev)
+            summary = Summary(summarizing: leaf)
+
+            if done {
+                return nil
+            }
+            return leaf
+        }
+
+        var prev: Leaf? = prev
+        var s = Summary.zero
+        for i in 0..<children.count {
+            if let p = prev {
+                if !isKnownUniquelyReferenced(&children[i]) {
+                    mutationCount &+= 1
+                    children[i] = children[i].clone()
+                }
+
+                prev = children[i].fixup(withPreviousLeaf: p)
+            }
+
+            s += children[i].summary
+        }
+
+        summary = s
+        return prev
     }
 
     func clone() -> BTreeNode {
@@ -445,10 +501,20 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                     popped = popped.clone()
                 }
 
-                n = popped.concatenate(n)
+                n = popped.concat(n)
                 isUnique = true
             } else if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
+                    // TODO: make sure I need to do this. I believe the answer is yes.
+                    if n.isLeaf && Leaf.needsFixupOnConcat {
+                        if !isUnique {
+                            n = n.clone()
+                            isUnique = true
+                        }
+
+                        _ = n.fixup(withPreviousLeaf: lastNode.leaf)
+                    }
+
                     stack[stack.count - 1].append((n, isUnique))
                 } else if n.isLeaf { // lastNode and n are both leafs
                     // This is here (rather than in the pattern match in the else if) because
@@ -578,8 +644,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 if !isUnique {
                     popped = popped.clone()
                 }
-
-                n = popped.concatenate(n)
+                n = popped.concat(n)
             }
 
             return Tree(n)
@@ -1139,6 +1204,7 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
             ni.root!.count == ni.offsetOfLeaf + ni.leaf!.count && ni.position < ni.root!.count
         }
     }
+
     var startIndex: Index {
         Index(ni: root.startIndex)
     }
@@ -1156,7 +1222,18 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
     func index(before i: Index) -> Index {
         i.ni.validate(for: root)
         var i = i
-        _ = i.ni.prevLeaf()!
+
+        // if we're at endIndex, move back to the last valid
+        // leaf index.
+        if i.ni.position == root.count && root.count > 0 {
+            i.ni.position = i.ni.offsetOfLeaf
+            return i
+        }
+
+        guard let _ = i.ni.prevLeaf() else {
+            fatalError("Index out of bounds")
+        }
+
         return i
     }
 
