@@ -553,7 +553,7 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    // TODO: this needs a proper name. What is this?
+    // TODO: I forgot to name this. What is it doing and what's a good name?
     func testHmm() {
         var cache = makeContiguousCache(upperBound: 20, stride: 10)
         cache.set(0, forRange: 0..<10)
