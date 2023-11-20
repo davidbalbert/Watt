@@ -239,16 +239,10 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
 
     // Mutating. Self must be unique at this point.
     func concat(_ other: BTreeNode) -> BTreeNode {
-        var other = other
-        if Leaf.needsFixupOnConcat {
-            other = other.clone()
-            _ = other.fixup(withPreviousLeaf: leaves.last!)
+        if other.isEmpty {
+            return self
         }
-        return reccat(other)
-    }
 
-    // Mutating. Self must be unique at this point.
-    func reccat(_ other: BTreeNode) -> BTreeNode {
         let h1 = height
         let h2 = other.height
 
@@ -259,7 +253,7 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
 
             // Concatinate mutates self, but self is already guaranteed to be
             // unique at this point.
-            let new = reccat(other.children[0])
+            let new = self.concat(other.children[0])
             if new.height == h2 - 1 {
                 return BTreeNode(children: [new], mergedWith: other.children.dropFirst())
             } else {
@@ -287,7 +281,7 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
                 children[children.count-1] = children[children.count-1].clone()
             }
 
-            let new = children[children.count - 1].reccat(other)
+            let new = children[children.count - 1].concat(other)
             if new.height == h1 - 1 {
                 return BTreeNode(children: children.dropLast(), mergedWith: [new])
             } else {
@@ -325,7 +319,7 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
         }
 
         var prev: Leaf? = prev
-        var s = Summary.zero
+        summary = Summary.zero
         for i in 0..<children.count {
             if let p = prev {
                 if !isKnownUniquelyReferenced(&children[i]) {
@@ -336,10 +330,9 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
                 prev = children[i].fixup(withPreviousLeaf: p)
             }
 
-            s += children[i].summary
+            summary += children[i].summary
         }
 
-        summary = s
         return prev
     }
 
@@ -483,6 +476,23 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     typealias Summary = Tree.Summary
     typealias Leaf = Summary.Leaf
 
+    // isUnique is an optimization to let us clone less often. If we didn't use it
+    // and called isKnownUniquelyReferenced inside push(_:), the code would still
+    // be semantically correct, we'd just clone more often than necessary.
+    //
+    // Here are the situations where we'd make unnecessary extra clones.
+    //
+    // 1. If we check n for uniqueness, n == node, and node is unique outside push(_:),
+    //    there are two references to n: n and node, yielding an unnecssary clone. With
+    //    isUnique, we check if node is unique before assigning it to n.
+    // 2. If we're checking lastNode for uniqueness, and lastNode exists with a single
+    //    reference outside push, there are three references to lastNode – lastNode,
+    //    the stack, and the reference outside push(_:).
+    //
+    // Without this optimization, there would still be some situations where we would make
+    // the optimal number of copies. Specifically, if n is created inside the builder
+    // it should be unique during the execution of the loop, as a node is never simultaneously
+    // stored in n and on the stack.
     typealias PartialTree = (node: Node, isUnique: Bool)
 
     // the inner array always has at least one element
@@ -512,12 +522,16 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                             isUnique = true
                         }
 
+                        // because n is a leaf and lastNode is the same height as n
+                        assert(lastNode.isLeaf)
                         _ = n.fixup(withPreviousLeaf: lastNode.leaf)
                     }
 
                     stack[stack.count - 1].append((n, isUnique))
-                } else if n.isLeaf { // lastNode and n are both leafs
-                    // This is here (rather than in the pattern match in the else if) because
+                } else if n.isLeaf {
+                    assert(lastNode.isLeaf)
+
+                    // This is here (rather than in the pattern match in the else if because
                     // we can't do `if (var lastNode, let lastNodeIsUnique)`, and if they're both
                     // var, then we get a warning.
                     let lastNodeIsUnique = stack.last!.last!.isUnique
@@ -568,26 +582,27 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             return
         }
 
+        // Right now, when building new trees, all intermediate nodes are allocated anew,
+        // and only leaves are modified. That's why we can get away with passing node
+        // directly to push() if it's not a leaf. For leaves, we make a second reference
+        // to node to ensure that if the builder wants to mutate node, it will clone it first.
+        //
+        // Here's the bigger picture: isKnownUniquelyReferenced isn't actually good enough
+        // to know whether we need to clone or not. Something could have a single reference
+        // but have a parent with multiple references, which means we can't mutate it even though
+        // its refcount == 1.
+        //
+        // The upshot is that we're doing more copies than we have to – we clone a leaf every time
+        // we call pushMaybeSplitting even if that leaf is part of a tree that's uniquely referenced.
+        // The better solution would be to have a needsClone bit that starts at
+        // isKnownUniquelyReferenced and can only ever transition from false to true.
         if range == 0..<node.count {
-            // TODO: figure out and explain why we need to unconditionally clone here
-            //
-            // Here's an attempt:
-            //
-            // My first thought: we shouldn't have to clone it if it's a leaf. That
-            // node could be shared between multiple trees. Investigate this as an
-            // optimization.
-            //
-            // That means, we only have to clone if its an intermediate node. Why?
-            // Because as an intermediate node, unless the outermost range that
-            // we're slicing exactly covers a subtree, then one or two of our 
-            // descendence will have to be sliced, which means we can't share
-            // this intermediate node with the previous tree.
-            //
-            // In theory it should be possible to do much better here, but I'm 
-            // not yet sure how.
-
-            var n = node.clone()
-            push(&n)
+            if node.isLeaf {
+                var n = node
+                push(&n)
+            } else {
+                push(&node)
+            }
             return
         }
 
@@ -629,26 +644,35 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             // In general, we do still care if some nodes are unique – specifically
             // when concatinating two nodes, the rightmost branch of the left tree
             // in the concatination is being mutated during the graft, so it needs to
-            // be unique, but we take care of that in Node.concatinate.
+            // be unique, but we take care of that in Node.concat.
             return (Node(partialTrees.map(\.node)), true)
         }
     }
 
     consuming func build() -> Tree {
-        if stack.isEmpty {
-            return Tree(Node())
-        } else {
-            var (n, _) = pop()
-            while !stack.isEmpty {
-                var (popped, isUnique) = pop()
-                if !isUnique {
-                    popped = popped.clone()
-                }
-                n = popped.concat(n)
+        var n = Node()
+        while !stack.isEmpty {
+            var (popped, isUnique) = pop()
+            if !isUnique {
+                popped = popped.clone()
             }
 
-            return Tree(n)
+            if Leaf.needsFixupOnConcat {
+                let (leaf, _) = popped.endIndex.read()!
+
+                // n is guaranteed to be unique:
+                // 1. If we're in the first iteration, n was created inside build().
+                // 2. If we're in a subsequent iteration, n is the result of calling popped.concat in the
+                //    previous iteration. Concat either returns a new node (unique by definition), or returns
+                //    self. In the latter case, we know n is unique because we made sure popped was unique
+                //    in the previous iteration.
+                _ = n.fixup(withPreviousLeaf: leaf)
+            }
+
+            n = popped.concat(n)
         }
+
+        return Tree(n)
     }
 }
 
@@ -1367,7 +1391,7 @@ extension BTree {
             case let .copy(start, end):
                 b.push(&r, slicedBy: start..<end)
             case let .insert(node):
-                var n = node.clone()
+                var n = node
                 b.push(&n)
             }
         }
