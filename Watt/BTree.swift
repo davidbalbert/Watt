@@ -495,7 +495,22 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // stored in n and on the stack.
     typealias PartialTree = (node: Node, isUnique: Bool)
 
-    // the inner array always has at least one element
+    // A stack subtrees that when concatinated from left to right yield the final tree
+    // we're building.
+    //
+    // Preconditions:
+    //
+    // Let height(N) = stack[N][0].node.height
+    // 1. For all nodes in stack[N], node.height == height(N)
+    // 2. For all (A, B) where A < B, height(A) > height(B)
+    // 3. stack[N].count > 0
+    //
+    // In other words:
+    // 1.  Each inner array contains nodes of the same height.
+    // 2a. Inner arrays are sorted by decreasing node height from left
+    //     to right.
+    // 2b. You can't have two inner arrays with nodes of the same height.
+    // 3.  No empty inner arrays.
     var stack: [[PartialTree]] = []
 
     // skipLeafFixup is an optimization. If you pass true, you're telling the builder
@@ -508,27 +523,32 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var isUnique = isKnownUniquelyReferenced(&node)
         var n = node
 
-        while true {
-            if let (lastNode, _) = stack.last?.last, lastNode.height < n.height {
-                if Leaf.needsFixupOnConcat && !isUnique {
-                    n = n.clone()
-                }
+        // Ensure that n is no larger than the node at the top of the stack.
+        while let (lastNode, _) = stack.last?.last, lastNode.height < n.height {
+            if Leaf.needsFixupOnConcat && !isUnique {
+                n = n.clone()
+            }
 
-                var popped: Node
-                (popped, isUnique) = pop()
+            var popped: Node
+            (popped, isUnique) = pop()
 
-                if !isUnique {
-                    popped = popped.clone()
-                }
-
-                if Leaf.needsFixupOnConcat {
-                    let (leaf, _) = popped.endIndex.read()!
-                    _ = n.fixup(withPreviousLeaf: leaf)
-                }
-
-                n = popped.concat(n)
+            if !isUnique {
+                popped = popped.clone()
                 isUnique = true
-            } else if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
+            }
+
+            if Leaf.needsFixupOnConcat {
+                let (leaf, _) = popped.endIndex.read()!
+                _ = n.fixup(withPreviousLeaf: leaf)
+            }
+
+            n = popped.concat(n)
+        }
+
+        while true {
+            assert(stack.last?.last == nil || stack.last!.last!.node.height >= n.height)
+
+            if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
                     if n.isLeaf && Leaf.needsFixupOnConcat && !skipLeafFixup {
                         if !isUnique {
