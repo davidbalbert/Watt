@@ -786,6 +786,36 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, r2.root.leaf.prefixCount)
     }
 
+    // If you push a smaller tree followed by a bigger tree, builder concats them together
+    // until we're pushing the smaller tree onto the stack. Make sure fixup happens here too.
+    func testSmallFollowedByLargeRopeFixup() {
+        var r1 = Rope(String(repeating: "a", count: 1000))
+        var r2 = Rope("\u{0301}" + String(repeating: "b", count: 1999))
+
+        XCTAssertEqual(0, r1.root.height)
+        XCTAssertEqual(1000, r1.root.count)
+        XCTAssertEqual(0, r1.root.leaf.prefixCount)
+
+        XCTAssertEqual(1, r2.root.height)
+        XCTAssertEqual(2, r2.root.children.count)
+        XCTAssertEqual(0, r2.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(0, r2.root.children[1].leaf.prefixCount)
+
+        XCTAssertEqual(2001, r2.utf8.count) // "´" takes up two bytes
+
+        var b = BTreeBuilder<Rope>()
+        b.push(&r1.root)
+        b.push(&r2.root)
+        let r = b.build()
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(3, r.root.children.count)
+        XCTAssertEqual(0, r.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(2, r.root.children[1].leaf.prefixCount)
+        XCTAssertEqual(0, r.root.children[2].leaf.prefixCount)
+
+        XCTAssertEqual(3001, r.utf8.count) // "´" takes up two bytes
+    }
 
     // MARK: - Index tests
 

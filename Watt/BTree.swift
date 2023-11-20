@@ -498,12 +498,22 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // the inner array always has at least one element
     var stack: [[PartialTree]] = []
 
-    mutating func push(_ node: inout Node, needsFixupIfLeaf: Bool = true) {
+    // skipLeafFixup is an optimization. If you pass true, you're telling the builder
+    // promising the builder that node (which must be a leaf) is already fixed up
+    // with whatever is already on the builder's stack.
+    mutating func push(_ node: inout Node, skipLeafFixup: Bool = false) {
+        // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
+        assert(node.isLeaf || !skipLeafFixup)
+
         var isUnique = isKnownUniquelyReferenced(&node)
         var n = node
 
         while true {
             if let (lastNode, _) = stack.last?.last, lastNode.height < n.height {
+                if Leaf.needsFixupOnConcat && !isUnique {
+                    n = n.clone()
+                }
+
                 var popped: Node
                 (popped, isUnique) = pop()
 
@@ -511,12 +521,16 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                     popped = popped.clone()
                 }
 
+                if Leaf.needsFixupOnConcat {
+                    let (leaf, _) = popped.endIndex.read()!
+                    _ = n.fixup(withPreviousLeaf: leaf)
+                }
+
                 n = popped.concat(n)
                 isUnique = true
             } else if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
-                    // TODO: make sure I need to do this. I believe the answer is yes.
-                    if n.isLeaf && Leaf.needsFixupOnConcat && needsFixupIfLeaf {
+                    if n.isLeaf && Leaf.needsFixupOnConcat && !skipLeafFixup {
                         if !isUnique {
                             n = n.clone()
                             isUnique = true
@@ -623,9 +637,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         }
     }
 
-    mutating func push(leaf: Leaf, needsFixup: Bool = true) {
+    mutating func push(leaf: Leaf, skipFixup: Bool = false) {
         var n = Node(leaf)
-        push(&n, needsFixupIfLeaf: needsFixup)
+        push(&n, skipLeafFixup: skipFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {

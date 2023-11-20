@@ -612,7 +612,7 @@ extension BTreeBuilder where Tree == Rope {
                 end = boundaryForBulkInsert(string[i...])
             }
 
-            push(leaf: Chunk(string[i..<end], breaker: &breaker), needsFixup: false)
+            push(leaf: Chunk(string[i..<end], breaker: &breaker), skipFixup: true)
             i = end
         }
     }
