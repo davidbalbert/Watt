@@ -220,7 +220,7 @@ struct Chunk: BTreeLeaf {
         // We got to the end without getting in sync. By definition this means that
         // our old endBreakState and our new endBreakState are not the same.
         if i == string.endIndex {
-            assert(new != endBreakState)
+            assert(string.isEmpty || new != endBreakState)
             endBreakState = new
         }
 
@@ -806,9 +806,7 @@ extension Rope: Collection {
     subscript(bounds: Range<Index>) -> Rope {
         let start = index(roundingDown: bounds.lowerBound)
         let end = index(roundingDown: bounds.upperBound)
-
-        var sliced = Rope(root, slicedBy: Range(start..<end))
-        return sliced
+        return Rope(root, slicedBy: Range(start..<end))
     }
 
     func index(after i: Index) -> Index {
@@ -835,25 +833,40 @@ extension Rope: BidirectionalCollection {
 }
 
 extension Rope: RangeReplaceableCollection {
-    // TODO: this should smartly handle the situation where newElements is a Rope. In that situation, instead of calling push(string:breaker:), we should just push newElements and resync breaks afterwards.
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
         let rangeStart = index(roundingDown: subrange.lowerBound)
         let rangeEnd = index(roundingDown: subrange.upperBound)
+
+        if var r = newElements as? Rope {
+            var b = BTreeBuilder<Rope>()
+            b.push(&root, slicedBy: Range(startIndex..<rangeStart))
+            b.push(&r.root)
+            b.push(&root, slicedBy: Range(rangeEnd..<endIndex))
+            self = b.build()
+
+            return
+        }
 
         var b = BTreeBuilder<Rope>()
         var br = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
         b.push(&root, slicedBy: Range(startIndex..<rangeStart))
         b.push(string: newElements, breaker: &br)
-
-        var rest = Rope(root, slicedBy: Range(rangeEnd..<endIndex))
-        b.push(&rest.root)
+        b.push(&root, slicedBy: Range(rangeEnd..<endIndex))
 
         self = b.build()
     }
 
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
+        if var r = newElements as? Rope {
+            var b = BTreeBuilder<Rope>()
+            b.push(&root)
+            b.push(&r.root)
+            self = b.build()
+            return
+        }
+
         var b = BTreeBuilder<Rope>()
         var br = GraphemeBreaker(for: self, upTo: endIndex)
 
@@ -879,6 +892,10 @@ extension Rope {
 
     mutating func append(_ string: String) {
         append(contentsOf: string)
+    }
+
+    mutating func append(_ rope: Rope) {
+        append(contentsOf: rope)
     }
 
     func index(roundingDown i: Index) -> Index {
@@ -932,7 +949,9 @@ extension Rope {
             }
 
             if upperBound == rope.endIndex {
-                self = rope.root.leaves.last!.endBreakState
+                let (leaf, _) = upperBound.read()!
+
+                self = leaf.endBreakState
                 return
             }
 

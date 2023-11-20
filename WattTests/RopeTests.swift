@@ -459,6 +459,80 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("a\u{0301}", r[999])
     }
 
+    // Appending a Rope directly uses an optimized code path.
+    func testSummarizeCombiningCharactersAppendRopeAtChunkBoundary() {
+        XCTAssertEqual(1023, Chunk.maxSize)
+
+        var r = Rope(String(repeating: "a", count: 1000))
+
+        XCTAssertEqual(1000, r.count)
+        XCTAssertEqual(1000, r.unicodeScalars.count)
+        XCTAssertEqual(1000, r.utf16.count)
+        XCTAssertEqual(1000, r.utf8.count)
+
+        XCTAssertEqual(0, r.root.height)
+
+        XCTAssertEqual(0, r.root.leaf.prefixCount)
+
+        // 'combining accute accent' + "b"*999
+        r.append(Rope("\u{0301}" + String(repeating: "b", count: 999)))
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1001, r.root.children[1].count) // "´" takes up two bytes
+
+        XCTAssertEqual(0, r.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(2, r.root.children[1].leaf.prefixCount)
+
+        // the last "a" in children[0] combine with the accent at
+        // the beginning of children[1] to form a single character.
+        XCTAssertEqual(1999, r.count)
+        XCTAssertEqual(2000, r.unicodeScalars.count)
+        XCTAssertEqual(2000, r.utf16.count)
+        XCTAssertEqual(2001, r.utf8.count)
+
+        XCTAssertEqual("a\u{0301}", r[999])
+    }
+
+    func testSummarizeCombiningCharactersReplaceSubrangeAtChunkBoundary() {
+        XCTAssertEqual(1023, Chunk.maxSize)
+
+        var r = Rope(String(repeating: "a", count: 1000))
+
+        XCTAssertEqual(1000, r.count)
+        XCTAssertEqual(1000, r.unicodeScalars.count)
+        XCTAssertEqual(1000, r.utf16.count)
+        XCTAssertEqual(1000, r.utf8.count)
+
+        XCTAssertEqual(0, r.root.height)
+
+        XCTAssertEqual(0, r.root.leaf.prefixCount)
+
+        // 'combining accute accent' + "b"*999
+        r.replaceSubrange(r.endIndex..<r.endIndex, with: Rope("\u{0301}" + String(repeating: "b", count: 999)))
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1001, r.root.children[1].count) // "´" takes up two bytes
+
+        XCTAssertEqual(0, r.root.children[0].leaf.prefixCount)
+        XCTAssertEqual(2, r.root.children[1].leaf.prefixCount)
+
+        // the last "a" in children[0] combine with the accent at
+        // the beginning of children[1] to form a single character.
+        XCTAssertEqual(1999, r.count)
+        XCTAssertEqual(2000, r.unicodeScalars.count)
+        XCTAssertEqual(2000, r.utf16.count)
+        XCTAssertEqual(2001, r.utf8.count)
+
+        XCTAssertEqual("a\u{0301}", r[999])
+    }
+
+
     func testSummarizeCombiningCharactersSplit() {
         let s = "e\u{0301}\n"
         // 1024 == Chunk.maxSize + 1
