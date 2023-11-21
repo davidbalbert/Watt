@@ -546,7 +546,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 // MARK: - Mutation
 
 extension BTreeNode {
-    func mutateLeaf(containing position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) -> BTreeNode {
+    mutating func mutateLeaf(containing position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
         precondition(position >= 0 && position <= count)
 
         return mutateLeaves(startingAt: position) { offset, leaf in
@@ -555,14 +555,15 @@ extension BTreeNode {
         }
     }
 
-    func mutateLeaves(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) -> BTreeNode {
+    mutating func mutateLeaves(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) {
         precondition(position >= 0 && position <= count)
 
-        func helper(_ node: BTreeNode, _ position: Int, _ offsetOfNode: Int) -> (BTreeNode, Bool) {
+        func helper(_ node: inout BTreeNode, _ position: Int, _ offsetOfNode: Int) -> Bool {
             if node.isLeaf {
                 var leaf = node.leaf
                 let cont = block(offsetOfNode, &leaf)
-                return (BTreeNode(leaf), cont)
+                node = BTreeNode(leaf)
+                return cont
             }
 
             var children = node.children
@@ -576,19 +577,19 @@ extension BTreeNode {
                     continue
                 }
 
-                let (child, cont) = helper(children[i], position - offset, offsetOfNode + offset)
-                children[i] = child
+                let cont = helper(&children[i], position - offset, offsetOfNode + offset)
                 if !cont {
-                    return (BTreeNode(children), false)
+                    node = BTreeNode(children)
+                    return false
                 }
                 offset += children[i].count
             }
 
-            return (BTreeNode(children), true)
+            node = BTreeNode(children)
+            return true
         }
 
-        let (root, _) = helper(self, position, 0)
-        return root
+        _ = helper(&self, position, 0)
     }
 }
 
@@ -826,7 +827,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var i = b.startIndex
         var prev: Leaf? = nil
 
-        a = a.mutateLeaf(containing: a.count) { _, leaf in
+        a.mutateLeaf(containing: a.count) { _, leaf in
             // each tree has at least one leaf
             let (next, _) = i.read()!
 
@@ -837,7 +838,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             return
         }
 
-        b = b.mutateLeaves(startingAt: 0) { offset, leaf in
+        b.mutateLeaves(startingAt: 0) { offset, leaf in
             done = leaf.fixup(withPrevious: prev!)
             if done {
                 return false
