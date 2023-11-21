@@ -153,7 +153,7 @@ struct Chunk: BTreeLeaf {
         true
     }
 
-    mutating func fixup(usingPrevious prev: Chunk) -> Bool {
+    mutating func fixup(withPrevious prev: Chunk) -> Bool {
         var i = string.startIndex
         var first: String.Index?
 
@@ -226,6 +226,12 @@ struct Chunk: BTreeLeaf {
 
         // We're done if we synced up before the end of the chunk.
         return i < string.endIndex
+    }
+
+    // fixup(withPrevious:) decides whether we're done or not. fixup(withNext:) is
+    // a no-op and should always continue.
+    func fixup(withNext next: Chunk) -> Bool {
+        false
     }
 
     subscript(bounds: Range<Int>) -> Chunk {

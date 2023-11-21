@@ -43,7 +43,8 @@ protocol BTreeLeaf {
     // concatenated together.
     static var needsFixupOnConcat: Bool { get }
     // Returns true if we're in sync. Returns false if we need to continue fixing up.
-    mutating func fixup(usingPrevious: Self) -> Bool
+    mutating func fixup(withPrevious: Self) -> Bool
+    mutating func fixup(withNext: Self) -> Bool
 }
 
 extension BTreeLeaf {
@@ -51,7 +52,11 @@ extension BTreeLeaf {
         false
     }
 
-    mutating func fixup(usingPrevious prev: Self) -> Bool {
+    mutating func fixup(withPrevious prev: Self) -> Bool {
+        true
+    }
+
+    mutating func fixup(withNext next: Self) -> Bool {
         true
     }
 }
@@ -306,36 +311,6 @@ final class BTreeNode<Summary> where Summary: BTreeSummary {
         }
     }
 
-    // Mutating. Self must be unique at this point.
-    func fixup(withPreviousLeaf prev: Leaf) -> Leaf? {
-        if isLeaf {
-            let done = leaf.fixup(usingPrevious: prev)
-            summary = Summary(summarizing: leaf)
-
-            if done {
-                return nil
-            }
-            return leaf
-        }
-
-        var prev: Leaf? = prev
-        summary = Summary.zero
-        for i in 0..<children.count {
-            if let p = prev {
-                if !isKnownUniquelyReferenced(&children[i]) {
-                    mutationCount &+= 1
-                    children[i] = children[i].clone()
-                }
-
-                prev = children[i].fixup(withPreviousLeaf: p)
-            }
-
-            summary += children[i].summary
-        }
-
-        return prev
-    }
-
     func clone() -> BTreeNode {
         // All properties are value types, so it's sufficient
         // to just create a new Node instance.
@@ -469,6 +444,55 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 }
 
+// MARK: - Mutation
+
+extension BTreeNode {
+    func mutateLeaf(containing position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) -> BTreeNode {
+        precondition(position >= 0 && position <= count)
+
+        return mutateLeaves(startingAt: position) { offset, leaf in
+            block(offset, &leaf)
+            return false
+        }
+    }
+
+    func mutateLeaves(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) -> BTreeNode {
+        precondition(position >= 0 && position <= count)
+
+        func helper(_ node: BTreeNode, _ position: Int, _ offsetOfNode: Int) -> (BTreeNode, Bool) {
+            if node.isLeaf {
+                var leaf = node.leaf
+                let cont = block(offsetOfNode, &leaf)
+                return (BTreeNode(leaf), cont)
+            }
+
+            var children = node.children
+            var offset = 0
+            for i in 0..<children.count {
+                let end = offset + children[i].count                
+
+                // skip children that don't contain position, making an exception for position == count
+                if position > end || (position == end && position < node.count) {
+                    offset += children[i].count
+                    continue
+                }
+
+                let (child, cont) = helper(children[i], position - offset, offsetOfNode + offset)
+                children[i] = child
+                if !cont {
+                    return (BTreeNode(children), false)
+                }
+                offset += children[i].count
+            }
+
+            return (BTreeNode(children), true)
+        }
+
+        let (root, _) = helper(self, position, 0)
+        return root
+    }
+}
+
 // MARK: - Builder
 
 struct BTreeBuilder<Tree> where Tree: BTree {
@@ -538,8 +562,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
 
             if Leaf.needsFixupOnConcat {
-                let (leaf, _) = popped.endIndex.read()!
-                _ = n.fixup(withPreviousLeaf: leaf)
+                fixup(&popped, &n)
             }
 
             n = popped.concat(n)
@@ -551,14 +574,10 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
                     if n.isLeaf && Leaf.needsFixupOnConcat && !skipLeafFixup {
-                        if !isUnique {
-                            n = n.clone()
-                            isUnique = true
-                        }
-
                         // because n is a leaf and lastNode is the same height as n
                         assert(lastNode.isLeaf)
-                        _ = n.fixup(withPreviousLeaf: lastNode.leaf)
+
+                        fixup(&lastNode, &n)
                     }
 
                     stack[stack.count - 1].append((n, isUnique))
@@ -692,21 +711,52 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
 
             if Leaf.needsFixupOnConcat {
-                let (leaf, _) = popped.endIndex.read()!
-
-                // n is guaranteed to be unique:
-                // 1. If we're in the first iteration, n was created inside build().
-                // 2. If we're in a subsequent iteration, n is the result of calling popped.concat in the
-                //    previous iteration. Concat either returns a new node (unique by definition), or returns
-                //    self. In the latter case, we know n is unique because we made sure popped was unique
-                //    in the previous iteration.
-                _ = n.fixup(withPreviousLeaf: leaf)
+                fixup(&popped, &n)
             }
 
             n = popped.concat(n)
         }
 
         return Tree(n)
+    }
+
+    func fixup(_ a: inout Node, _ b: inout Node) {
+        // TODO: if we can, modify the nodes in place instead of cloning them.
+
+        var done = false
+        var i = b.startIndex
+        var prev: Leaf? = nil
+
+        a = a.mutateLeaf(containing: a.count) { _, leaf in
+            // each tree has at least one leaf
+            let (next, _) = i.read()!
+
+            done = leaf.fixup(withNext: next)
+            prev = leaf
+        }
+        if done {
+            return
+        }
+
+        b = b.mutateLeaves(startingAt: 0) { offset, leaf in
+            done = leaf.fixup(withPrevious: prev!)
+            if done {
+                return false
+            }
+
+            guard let (next, _) = i.nextLeaf() else {
+                // We're at the end of the tree. Even if we return true, we'd stop here.
+                return false
+            }
+
+            done = leaf.fixup(withNext: next)
+            if done {
+                return false
+            }
+
+            prev = leaf
+            return true
+        }
     }
 }
 
