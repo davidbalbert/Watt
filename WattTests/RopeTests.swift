@@ -166,7 +166,7 @@ final class RopeTests: XCTestCase {
         var r = Rope("abc")
         r.append(contentsOf: "def")
         XCTAssertEqual("abcdef", String(r))
-        XCTAssert(isKnownUniquelyReferenced(&r.root))
+        XCTAssert(r.root.isUnique())
 
         #if DEBUG
         XCTAssertEqual(0, r.root.cloneCount)
@@ -176,19 +176,19 @@ final class RopeTests: XCTestCase {
     func testAppendContentsOfCOW() {
         var r1 = Rope("abc")
 
-        XCTAssert(isKnownUniquelyReferenced(&r1.root))
+        XCTAssert(r1.root.isUnique())
 
         var r2 = r1
 
-        XCTAssertFalse(isKnownUniquelyReferenced(&r1.root))
-        XCTAssertFalse(isKnownUniquelyReferenced(&r2.root))
+        XCTAssertFalse(r1.root.isUnique())
+        XCTAssertFalse(r2.root.isUnique())
 
         r1.append(contentsOf: "def")
         XCTAssertEqual("abcdef", String(r1))
         XCTAssertEqual("abc", String(r2))
 
-        XCTAssert(isKnownUniquelyReferenced(&r1.root))
-        XCTAssert(isKnownUniquelyReferenced(&r2.root))
+        XCTAssert(r1.root.isUnique())
+        XCTAssert(r2.root.isUnique())
 
         #if DEBUG
         XCTAssertEqual(1, r1.root.cloneCount)
@@ -199,25 +199,25 @@ final class RopeTests: XCTestCase {
         var r = Rope("abc")
         r.append("def")
         XCTAssertEqual("abcdef", String(r))
-        XCTAssert(isKnownUniquelyReferenced(&r.root))
+        XCTAssert(r.root.isUnique())
     }
 
     func testAppendCOW() {
         var r1 = Rope("abc")
 
-        XCTAssert(isKnownUniquelyReferenced(&r1.root))
+        XCTAssert(r1.root.isUnique())
 
         var r2 = r1
 
-        XCTAssertFalse(isKnownUniquelyReferenced(&r1.root))
-        XCTAssertFalse(isKnownUniquelyReferenced(&r2.root))
+        XCTAssertFalse(r1.root.isUnique())
+        XCTAssertFalse(r2.root.isUnique())
 
         r1.append("def")
         XCTAssertEqual("abcdef", String(r1))
         XCTAssertEqual("abc", String(r2))
 
-        XCTAssert(isKnownUniquelyReferenced(&r1.root))
-        XCTAssert(isKnownUniquelyReferenced(&r2.root))
+        XCTAssert(r1.root.isUnique())
+        XCTAssert(r2.root.isUnique())
     }
 
     // MARK: - Summarization

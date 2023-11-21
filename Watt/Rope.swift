@@ -705,7 +705,7 @@ extension Rope.Index {
 
         var end = self
         if end.next(using: .characters) == nil {
-            end = Rope.Index(endOf: root!)
+            end = Rope.Index(endOf: BTreeNode(root!))
         }
 
         var s = ""
@@ -751,7 +751,7 @@ extension Rope.Index {
 
         end = self
         if end.next(using: .newlines) == nil {
-            end = Rope.Index(endOf: root!)
+            end = Rope.Index(endOf: BTreeNode(root!))
         }
 
         var s = ""
@@ -1305,7 +1305,7 @@ extension Rope.LinesView: BidirectionalCollection {
 
 extension Rope: Equatable {
     static func == (lhs: Rope, rhs: Rope) -> Bool {
-        if lhs.root === rhs.root {
+        if lhs.root == rhs.root {
             return true
         }
 
