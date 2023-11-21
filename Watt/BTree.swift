@@ -213,11 +213,11 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
     }
 
     mutating func concat(_ other: BTreeNode) -> BTreeNode {
-        ensureUnique()
-
         if other.isEmpty {
             return self
         }
+
+        ensureUnique()
 
         let h1 = height
         let h2 = other.height
@@ -227,9 +227,7 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
                 return BTreeNode(children: [self], mergedWith: other.children)
             }
 
-            // Concatinate mutates self, but self is already guaranteed to be
-            // unique at this point.
-            let new = self.concat(other.children[0])
+            let new = concat(other.children[0])
             if new.height == h2 - 1 {
                 return BTreeNode(children: [new], mergedWith: other.children.dropFirst())
             } else {
@@ -248,13 +246,6 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
         } else {
             if h2 == h1 - 1 && !other.isUndersized {
                 return BTreeNode(children: children, mergedWith: [other])
-            }
-
-            // Because concatinate is mutating, we need to make sure that
-            // children.last is unique before calling.
-            if !children[children.count-1].isUnique() {
-                mutationCount &+= 1
-                children[children.count-1].clone()
             }
 
             let new = children[children.count - 1].concat(other)
@@ -546,50 +537,54 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 // MARK: - Mutation
 
 extension BTreeNode {
-    mutating func mutateLeaf(containing position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
+    mutating func mutateLeaf(containing position: Int, skipCopy: Bool = false, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
         precondition(position >= 0 && position <= count)
 
-        return mutateLeaves(startingAt: position) { offset, leaf in
+        return mutateLeaves(startingAt: position, skipCopy: skipCopy) { offset, leaf in
             block(offset, &leaf)
             return false
         }
     }
 
-    mutating func mutateLeaves(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) {
+    mutating func mutateLeaves(startingAt position: Int, skipCopy: Bool = false, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) {
         precondition(position >= 0 && position <= count)
+        _ = mutateLeaves(startingAt: position, skipCopy: skipCopy, offsetOfNode: 0, using: block)
+    }
 
-        func helper(_ node: inout BTreeNode, _ position: Int, _ offsetOfNode: Int) -> Bool {
-            if node.isLeaf {
-                var leaf = node.leaf
-                let cont = block(offsetOfNode, &leaf)
-                node = BTreeNode(leaf)
-                return cont
-            }
-
-            var children = node.children
-            var offset = 0
-            for i in 0..<children.count {
-                let end = offset + children[i].count                
-
-                // skip children that don't contain position, making an exception for position == count
-                if position > end || (position == end && position < node.count) {
-                    offset += children[i].count
-                    continue
-                }
-
-                let cont = helper(&children[i], position - offset, offsetOfNode + offset)
-                if !cont {
-                    node = BTreeNode(children)
-                    return false
-                }
-                offset += children[i].count
-            }
-
-            node = BTreeNode(children)
-            return true
+    private mutating func mutateLeaves(startingAt position: Int, skipCopy: Bool, offsetOfNode: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) -> Bool {
+        if !skipCopy {
+            ensureUnique()
         }
 
-        _ = helper(&self, position, 0)
+        mutationCount &+= 1
+
+        if isLeaf {
+            let done = !block(offsetOfNode, &leaf)
+            summary = Summary(summarizing: leaf)
+            return !done
+        }
+
+        var offset = 0
+        var done = false
+        summary = .zero
+        for i in 0..<children.count {
+            let end = offset + children[i].count
+
+            // skip children that don't contain position, making an exception for position == count
+            if position > end || (position == end && position < count) {
+                summary += children[i].summary
+                offset += children[i].count
+                continue
+            }
+
+            if !done {
+                done = !children[i].mutateLeaves(startingAt: position - offset, skipCopy: false, offsetOfNode: offsetOfNode + offset, using: block)
+            }
+            summary += children[i].summary
+            offset += children[i].count
+        }
+
+        return !done
     }
 }
 
@@ -649,23 +644,18 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
         // Ensure that n is no larger than the node at the top of the stack.
         while let (lastNode, _) = stack.last?.last, lastNode.height < n.height {
-            if Leaf.needsFixupOnConcat && !isUnique {
-                n.clone()
-            }
+            let prevIsUnique = isUnique
 
             var popped: Node
             (popped, isUnique) = pop()
 
-            if !isUnique {
-                popped.clone()
-                isUnique = true
-            }
-
             if Leaf.needsFixupOnConcat {
-                fixup(&popped, &n)
+                fixup(a: &popped, aIsUnique: isUnique, b: &n, bIsUnique: prevIsUnique)
             }
 
+            // TODO: we're assuming concat always returns a unique tree. We may want to change this. Take a look.
             n = popped.concat(n)
+            isUnique = true
         }
 
         while true {
@@ -674,10 +664,12 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
                     if n.isLeaf && Leaf.needsFixupOnConcat && !skipLeafFixup {
+                        let lastNodeIsUnique = stack.last!.last!.isUnique
+
                         // because n is a leaf and lastNode is the same height as n
                         assert(lastNode.isLeaf)
 
-                        fixup(&lastNode, &n)
+                        fixup(a: &lastNode, aIsUnique: lastNodeIsUnique, b: &n, bIsUnique: isUnique)
                     }
 
                     stack[stack.count - 1].append((n, isUnique))
@@ -806,28 +798,23 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var n = Node()
         while !stack.isEmpty {
             var (popped, isUnique) = pop()
-            if !isUnique {
-                popped.clone()
-            }
-
             if Leaf.needsFixupOnConcat {
-                fixup(&popped, &n)
+                fixup(a: &popped, aIsUnique: isUnique, b: &n, bIsUnique: true)
             }
 
+            // TODO: make sure bIsUnique should always be true, and write a comment explaining why it's ok.
             n = popped.concat(n)
         }
 
         return Tree(n)
     }
 
-    func fixup(_ a: inout Node, _ b: inout Node) {
-        // TODO: if we can, modify the nodes in place instead of cloning them.
-
+    func fixup(a: inout Node, aIsUnique: Bool, b: inout Node, bIsUnique: Bool) {
         var done = false
         var i = b.startIndex
         var prev: Leaf? = nil
 
-        a.mutateLeaf(containing: a.count) { _, leaf in
+        a.mutateLeaf(containing: a.count, skipCopy: aIsUnique) { _, leaf in
             // each tree has at least one leaf
             let (next, _) = i.read()!
 
@@ -838,7 +825,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             return
         }
 
-        b.mutateLeaves(startingAt: 0) { offset, leaf in
+        b.mutateLeaves(startingAt: 0, skipCopy: bIsUnique) { offset, leaf in
             done = leaf.fixup(withPrevious: prev!)
             if done {
                 return false
