@@ -41,14 +41,14 @@ protocol BTreeLeaf {
     // True if the state of a leaf depends on the state of the previous leaf.
     // If true, fixup(prev:) is called whenever two leaves are
     // concatenated together.
-    static var needsFixupOnConcat: Bool { get }
+    static var needsFixupOnAppend: Bool { get }
     // Returns true if we're in sync. Returns false if we need to continue fixing up.
     mutating func fixup(withPrevious: Self) -> Bool
     mutating func fixup(withNext: Self) -> Bool
 }
 
 extension BTreeLeaf {
-    static var needsFixupOnConcat: Bool {
+    static var needsFixupOnAppend: Bool {
         false
     }
 
@@ -165,7 +165,10 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
         storage = storage.clone()
     }
 
-    var height: Int { storage.height }
+    var height: Int {
+        _read { yield storage.height }
+        _modify { yield &storage.height }
+    }
 
     var count: Int {
         _read { yield storage.count }
@@ -212,65 +215,120 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
         storage.convert(m1, from: from, to: to)
     }
 
-    mutating func concat(_ other: BTreeNode) -> BTreeNode {
+    mutating func append(_ other: BTreeNode) {
         if other.isEmpty {
-            return self
+            return
         }
-
-        ensureUnique()
 
         let h1 = height
         let h2 = other.height
 
         if h1 < h2 {
             if h1 == h2 - 1 && !isUndersized {
-                return BTreeNode(children: [self], mergedWith: other.children)
+                // TODO: creating a new storage here because once I call ensureUnique() before append,
+                // self will have refcount=1 here, and then when I create [self] for my new children
+                // it'll have a refcount of 2, but ensureUnique() won't get called again.
+                //
+                // I bet there's a better way to do this that will become more clear when I do the
+                // next refactor.
+                storage = Storage(children(with: [self], merging: other.children))
+                return
             }
 
-            let new = concat(other.children[0])
-            if new.height == h2 - 1 {
-                return BTreeNode(children: [new], mergedWith: other.children.dropFirst())
+            append(other.children[0])
+            // height rather than h1 becuase self.append() can increment height
+            if height == h2 - 1 {
+                // TODO: see comment above
+                storage = Storage(children(with: [self], merging: other.children.dropFirst()))
             } else {
-                return BTreeNode(children: new.children, mergedWith: other.children.dropFirst())
+                append(children: other.children.dropFirst())
             }
         } else if h1 == h2 {
             if !isUndersized && !other.isUndersized {
-                return BTreeNode([self, other])
+                // ditto
+                replaceChildren(with: [self], merging: [other])
             } else if h1 == 0 {
-                // Mutates self, but because concatinate requires a unique
-                // self, we know self is already unique at this point.
-                return merge(withLeaf: other)
+                append(leafNode: other)
             } else {
-                return BTreeNode(children: children, mergedWith: other.children)
+                append(children: other.children)
             }
         } else {
             if h2 == h1 - 1 && !other.isUndersized {
-                return BTreeNode(children: children, mergedWith: [other])
+                append(children: [other])
+                return
             }
 
-            let new = children[children.count - 1].concat(other)
-            if new.height == h1 - 1 {
-                return BTreeNode(children: children.dropLast(), mergedWith: [new])
+            ensureUnique()
+            mutationCount &+= 1
+
+            children[children.count - 1].append(other)
+            if children.last!.height == h1 - 1 {
+                replaceChildren(with: children.dropLast(), merging: [children.last!])
             } else {
-                return BTreeNode(children: children.dropLast(), mergedWith: new.children)
+                replaceChildren(with: children.dropLast(), merging: children.last!.children)
             }
+
         }
     }
 
-    mutating func merge(withLeaf other: BTreeNode) -> BTreeNode {
-        ensureUnique()
+    mutating func append<C>(children newChildren: C) where C: Collection<BTreeNode> {
+        replaceChildren(with: children, merging: newChildren)
+    }
 
-        assert(isLeaf && other.isLeaf)
+    mutating func replaceChildren<C1, C2>(with leftChildren: C1, merging rightChildren: C2) where C1: Collection<BTreeNode>, C2: Collection<BTreeNode> {
+        ensureUnique()
         mutationCount &+= 1
 
+        // hacks (for now?)
+        storage._children = children(with: leftChildren, merging: rightChildren)
+        storage._leaf = .zero
+
+        updateNonLeafMetadata()
+    }
+
+    func children<C1, C2>(with leftChildren: C1, merging rightChildren: C2) -> [BTreeNode] where C1: Collection<BTreeNode>, C2: Collection<BTreeNode> {
+
+        let count = leftChildren.count + rightChildren.count
+        assert(count <= BTreeNode.maxChild*2)
+
+        let cs = [AnySequence(leftChildren), AnySequence(rightChildren)].joined()
+
+        if count <= BTreeNode.maxChild {
+            return Array(cs)
+        } else {
+            let split = count / 2
+            let left = BTreeNode(cs.prefix(split))
+            let right = BTreeNode(cs.dropFirst(split))
+            return [left, right]
+        }
+    }
+
+    mutating func updateNonLeafMetadata() {
+        // TODO: height has to be updated first, because we could be switching from a
+        // leaf to a non-leaf node, and if height is 0 and we try to access children,
+        // we'll hit a bad assertion. This is gross and I should fix it.
+        height = storage._children[0].height + 1
+        summary = .zero
+        for c in children {
+            assert(c.height == children[0].height)
+            summary += c.summary
+        }
+        count = children.map(\.count).reduce(0, +)
+    }
+
+    mutating func append(leafNode other: BTreeNode) {
+        ensureUnique()
+        mutationCount &+= 1
+
+        assert(isLeaf && other.isLeaf)
+
         let newLeaf = leaf.pushMaybeSplitting(other: other.leaf)
-        count = leaf.count
-        summary = Summary(summarizing: leaf)
 
         if let newLeaf {
-            return BTreeNode([self, BTreeNode(newLeaf)])
+            replaceChildren(with: [self], merging: [BTreeNode(newLeaf)])
         } else {
-            return self
+            count = leaf.count
+            summary = Summary(summarizing: leaf)
         }
     }
 }
@@ -635,7 +693,11 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // skipLeafFixup is an optimization. If you pass true, you're telling the builder
     // promising the builder that node (which must be a leaf) is already fixed up
     // with whatever is already on the builder's stack.
+
+    var c = 0
+
     mutating func push(_ node: inout Node, skipLeafFixup: Bool = false) {
+        c += node.count
         // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
         assert(node.isLeaf || !skipLeafFixup)
 
@@ -649,13 +711,14 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             var popped: Node
             (popped, isUnique) = pop()
 
-            if Leaf.needsFixupOnConcat {
+            if Leaf.needsFixupOnAppend {
                 fixup(a: &popped, aIsUnique: isUnique, b: &n, bIsUnique: prevIsUnique)
             }
 
-            // TODO: we're assuming concat always returns a unique tree. We may want to change this. Take a look.
-            n = popped.concat(n)
-            isUnique = true
+            popped.append(n)
+            n = popped
+            // TODO: maybe this can just be true. I guess not if n is empty...
+            isUnique = n.isUnique()
         }
 
         while true {
@@ -663,7 +726,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
             if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
-                    if n.isLeaf && Leaf.needsFixupOnConcat && !skipLeafFixup {
+                    if n.isLeaf && Leaf.needsFixupOnAppend && !skipLeafFixup {
                         let lastNodeIsUnique = stack.last!.last!.isUnique
 
                         // because n is a leaf and lastNode is the same height as n
@@ -782,6 +845,10 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         if partialTrees.count == 1 {
             return partialTrees[0]
         } else {
+            // TODO: this explanation is out of date. It refers to concatenate,
+            // which we're no longer doing. I also don't really remember what
+            // it means.
+            //
             // We are able to throw away isUnique for all our children, because
             // inside Builder, we only care about the uniqueness of the nodes
             // directly on the stack.
@@ -798,12 +865,19 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var n = Node()
         while !stack.isEmpty {
             var (popped, isUnique) = pop()
-            if Leaf.needsFixupOnConcat {
+            if Leaf.needsFixupOnAppend {
+                // n is always unique because:
+                // 1. If we're in the first iteration, it was created in build()
+                // 2. popped.append(n) will always modify popped, which means it has to ensure
+                //    that it is unique before it does.
                 fixup(a: &popped, aIsUnique: isUnique, b: &n, bIsUnique: true)
             }
 
-            // TODO: make sure bIsUnique should always be true, and write a comment explaining why it's ok.
-            n = popped.concat(n)
+            // TODO: once we switch to `BTreeNode.read/update/unsafeUpdate` we
+            // should use unsafeUpdate here and use isUnique to decide whether
+            // to copy.
+            popped.append(n)
+            n = popped
         }
 
         return Tree(n)

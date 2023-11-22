@@ -159,7 +159,10 @@ final class RopeTests: XCTestCase {
 
         r.replaceSubrange(start..<end, with: String(repeating: "b", count: 710_000))
         XCTAssertEqual(1_000_000, r.count)
-        XCTAssertEqual(String(repeating: "a", count: 40_000) + String(repeating: "b", count: 710_000) + String(repeating: "a", count: 250_000), String(r))
+
+        // use XCTAssert rather than XCTAssertEqual because Xcode chokes on showing an error
+        // message that's ~1,000,000 characters long.
+        XCTAssert(String(repeating: "a", count: 40_000) + String(repeating: "b", count: 710_000) + String(repeating: "a", count: 250_000) == String(r), "not equal")
     }
 
     func testAppendContentsOfInPlace() {

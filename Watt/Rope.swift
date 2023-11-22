@@ -149,7 +149,7 @@ struct Chunk: BTreeLeaf {
         }
     }
 
-    static var needsFixupOnConcat: Bool {
+    static var needsFixupOnAppend: Bool {
         true
     }
 
@@ -617,7 +617,7 @@ extension BTreeBuilder where Tree == Rope {
             } else {
                 end = boundaryForBulkInsert(string[i...])
             }
-
+            
             push(leaf: Chunk(string[i..<end], breaker: &breaker), skipFixup: true)
             i = end
         }
