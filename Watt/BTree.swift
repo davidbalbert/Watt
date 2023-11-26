@@ -771,13 +771,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     //     to right.
     // 2b. You can't have two inner arrays with nodes of the same height.
     // 3.  No empty inner arrays.
-    fileprivate var stack: [[Node]] = [] /*{
-        didSet {
-            if stack.count > 1 && stack[stack.count-1].isEmpty && stack[stack.count-2].isEmpty {
-                print("!!!!!")
-            }
-        }
-    }*/
+    fileprivate var stack: [[Node]] = []
 
     var isEmpty: Bool {
         stack.isEmpty
