@@ -172,7 +172,7 @@ final class RopeTests: XCTestCase {
         XCTAssert(r.root.isUnique())
 
         #if DEBUG
-        XCTAssertEqual(0, r.root.copyCount)
+        XCTAssertEqual(0, r.rootStorage.copyCount)
         #endif
     }
 
@@ -194,7 +194,7 @@ final class RopeTests: XCTestCase {
         XCTAssert(r2.root.isUnique())
 
         #if DEBUG
-        XCTAssertEqual(1, r1.root.copyCount)
+        XCTAssertEqual(1, r1.rootStorage.copyCount)
         #endif
     }
 

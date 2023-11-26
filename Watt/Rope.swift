@@ -705,7 +705,7 @@ extension Rope.Index {
 
         var end = self
         if end.next(using: .characters) == nil {
-            end = Rope.Index(endOf: BTreeNode(root!))
+            end = Rope.Index(endOf: BTreeNode(rootStorage!))
         }
 
         var s = ""
@@ -751,7 +751,7 @@ extension Rope.Index {
 
         end = self
         if end.next(using: .newlines) == nil {
-            end = Rope.Index(endOf: BTreeNode(root!))
+            end = Rope.Index(endOf: BTreeNode(rootStorage!))
         }
 
         var s = ""

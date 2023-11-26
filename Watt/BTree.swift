@@ -120,8 +120,11 @@ extension BTree {
 
 // MARK: - Node
 
-struct BTreeNode<Summary> where Summary: BTreeSummary {
+struct BTreeNode<Summary>: NodeProtocol where Summary: BTreeSummary {
     typealias Leaf = Summary.Leaf
+
+    static var minChild: Int { 4 }
+    static var maxChild: Int { 8 }
 
     var storage: Storage
 
@@ -129,19 +132,16 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
         storage = Storage()
     }
 
-    init(_ storage: Storage) {
+    init(storage: Storage) {
         self.storage = storage
     }
 
-    static var minChild: Int { 4 }
-    static var maxChild: Int { 8 }
-
-    init(_ leaf: Leaf) {
-        storage = Storage(leaf)
+    init(leaf: Leaf) {
+        self.init(storage: Storage(leaf: leaf))
     }
 
-    init(_ children: [BTreeNode]) {
-        assert(1 <= children.count && children.count <= BTreeNode.maxChild)
+    init(children: [BTreeNode<Summary>]) {
+        assert(1 <= children.count && children.count <= BTreeNode<Summary>.maxChild)
         let height = children[0].height + 1
         var count = 0
         var summary = Summary.zero
@@ -153,38 +153,30 @@ struct BTreeNode<Summary> where Summary: BTreeSummary {
             summary += child.summary
         }
 
-        self.storage = Storage(children: children, height: height, count: count, summary: summary)
+        self.init(storage: Storage(children: children, height: height, count: count, summary: summary))
     }
 
-    init<S>(_ children: S) where S: Sequence<BTreeNode> {
-        self.init(Array(children))
+    init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
+        self.init(children: Array(children))
     }
 
-    var mutationCount: Int {
-        storage.mutationCount
+    fileprivate init<N>(_ n: N) where N: NodeProtocol<Summary> {
+        self.storage = n.storage
     }
 
-
-
-    var children: [BTreeNode] {
-        guard !isLeaf else { fatalError("children called on a leaf node") }
-        return storage.children
+    fileprivate init<N>(copying n: N) where N: NodeProtocol<Summary> {
+        self.storage = n.storage.copy()
     }
 
-    var leaf: Leaf {
-        guard isLeaf else { fatalError("leaf called on a non-leaf node") }
-        return storage.leaf
+    mutating func isUnique() -> Bool {
+        isKnownUniquelyReferenced(&storage)
     }
 
-    var summary: Summary {
-        storage.summary
+    mutating func ensureUnique() {
+        if !isKnownUniquelyReferenced(&storage) {
+            storage = storage.copy()
+        }
     }
-
-#if DEBUG
-    var copyCount: Int {
-        storage.copyCount
-    }
-#endif
 
     func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
         metric.measure(summary: summary, count: count)
@@ -252,7 +244,11 @@ extension BTreeNode {
         var copyCount: Int = 0
 #endif
 
-        init(_ leaf: Leaf) {
+        convenience init() {
+            self.init(leaf: Leaf.zero)
+        }
+
+        init(leaf: Leaf) {
             self.height = 0
             self.count = leaf.count
             self.children = []
@@ -281,14 +277,26 @@ extension BTreeNode {
 #endif
         }
 
-        convenience init() {
-            self.init(Leaf.zero)
-        }
-
         func copy() -> Storage {
             // All properties are value types, so it's sufficient
-            // to just create a new Node instance.
+            // to just create a new Storage instance.
             return Storage(copying: self)
+        }
+
+        func updateNonLeafMetadata() {
+            height = children[0].height + 1
+            count = 0
+            summary = .zero
+
+            for child in children {
+                assert(child.height + 1 == height)
+                assert(!child.isUndersized)
+                count += child.count
+                summary += child.summary
+            }
+
+            // in case we're changing from a leaf to an internal node in replaceChildren(with:merging:)
+            leaf = .zero
         }
     }
 }
@@ -380,14 +388,14 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 // MARK: - Mutation
 
 extension BTreeNode {
-    mutating func mutateLeaf(containing position: Int, skipCopy: Bool = false, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
-        precondition(position >= 0 && position <= count)
-
-        return mutateLeaves(startingAt: position, skipCopy: skipCopy) { offset, leaf in
-            block(offset, &leaf)
-            return false
-        }
-    }
+//    mutating func mutateLeaf(containing position: Int, skipCopy: Bool = false, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
+//        precondition(position >= 0 && position <= count)
+//
+//        return mutateLeaves(startingAt: position, skipCopy: skipCopy) { offset, leaf in
+//            block(offset, &leaf)
+//            return false
+//        }
+//    }
 
 //    mutating func mutateLeaves(startingAt position: Int, skipCopy: Bool = false, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) {
 //        precondition(position >= 0 && position <= count)
@@ -437,9 +445,7 @@ fileprivate protocol NodeProtocol<Summary> {
     associatedtype Summary where Summary: BTreeSummary
     typealias Storage = BTreeNode<Summary>.Storage
 
-    var storage: Storage { get set }
-
-    var isRetained: Bool { get }
+    var storage: Storage { get }
 }
 
 extension NodeProtocol {
@@ -461,6 +467,30 @@ extension NodeProtocol {
         count == 0
     }
 
+    var children: [BTreeNode<Summary>] {
+        guard !isLeaf else { fatalError("children called on a leaf node") }
+        return storage.children
+    }
+
+    var leaf: Leaf {
+        guard isLeaf else { fatalError("leaf called on a non-leaf node") }
+        return storage.leaf
+    }
+
+    var summary: Summary {
+        storage.summary
+    }
+
+    var mutationCount: Int {
+        storage.mutationCount
+    }
+
+#if DEBUG
+    var copyCount: Int {
+        storage.copyCount
+    }
+#endif
+
     var isUndersized: Bool {
         if isLeaf {
             return storage.leaf.isUndersized
@@ -469,105 +499,111 @@ extension NodeProtocol {
         }
     }
 
-    mutating func isUnique() -> Bool {
-        isKnownUniquelyReferenced(&storage)
+    var startIndex: BTreeNode<Summary>.Index {
+        BTreeNode<Summary>.Index(startOf: self)
     }
 
-    mutating func ensureUnique() {
-        if !isKnownUniquelyReferenced(&storage) {
-            storage = storage.copy()
-        }
+    var endIndex: BTreeNode<Summary>.Index {
+        BTreeNode<Summary>.Index(endOf: self)
     }
 
-    mutating func uniqueRetained() -> Self {
-
+    func index(at offset: Int) -> BTreeNode<Summary>.Index {
+        BTreeNode<Summary>.Index(offsetBy: offset, in: self)
     }
 
-    @discardableResult
-    mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
-        precondition(isLeaf, "updateLeaf called on a non-leaf node")
-        ensureUnique()
-        let r = unsafeUpdate { storage in
-            body(&storage.leaf)
-        }
-        updateLeafMetadata()
-    }
-
-
-    mutating func updateLeafMetadata() {
-        assert(isLeaf)
-        storage.count = storage.leaf.count
-        storage.summary = Summary(summarizing: storage.leaf)
-    }
-
-    @discardableResult
-    mutating func update<T>(_ body: (inout Storage) -> T) -> T {
-        ensureUnique()
-        return unsafeUpdate(body)
-        // TODO: recalculate metadata afterwards
-    }
-
-    @discardableResult
-    mutating func unsafeUpdate<T>(_ body: (inout Storage) -> T) -> T {
-        storage.mutationCount &+= 1
-        return body(&storage)
-    }
-}
-
-extension BTreeNode: NodeProtocol {
-    // TODO: move these somewhere better
-    fileprivate init<S>(retaining children: S) where S: Sequence<any NodeProtocol<Summary>> {
-        self.init(children.map { BTreeNode(retaining: $0) })
-    }
-
-    fileprivate init<N>(retaining node: N) where N: NodeProtocol<Summary> {
-        self.init(node.storage)
-    }
+//    @discardableResult
+//    mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
+//        precondition(isLeaf, "updateLeaf called on a non-leaf node")
+//        ensureUnique()
+//        let r = unsafeUpdate { storage in
+//            body(&storage.leaf)
+//        }
+//        updateLeafMetadata()
+//    }
+//
+//    mutating func updateLeafMetadata() {
+//        assert(isLeaf)
+//        storage.count = storage.leaf.count
+//        storage.summary = Summary(summarizing: storage.leaf)
+//    }
+//
+//    @discardableResult
+//    mutating func update<T>(_ body: (inout Storage) -> T) -> T {
+//        ensureUnique()
+//        return unsafeUpdate(body)
+//        // TODO: recalculate metadata afterwards
+//    }
+//
+//    @discardableResult
+//    mutating func unsafeUpdate<T>(_ body: (inout Storage) -> T) -> T {
+//        storage.mutationCount &+= 1
+//        return body(&storage)
+//    }
 }
 
 fileprivate struct UnownedNode<Summary>: NodeProtocol where Summary: BTreeSummary {
     typealias Storage = BTreeNode<Summary>.Storage
 
     unowned var storage: Storage
+
+    init(_ n: BTreeNode<Summary>) {
+        self.storage = n.storage
+    }
+
+    init(storage: BTreeNode<Summary>.Storage) {
+        self.storage = storage
+    }
+
+    mutating func isUnique() -> Bool {
+        isKnownUniquelyReferenced(&storage)
+    }
+
+    // There's no ensureUnique() because a Storage object that's only referenced by
+    // an UnownedNode would be immediately deallocated.
+    //
+    // The actual operation you want for this situation is copying Storage and storing
+    // it in a normal BTreeNode, which will retain it. This is done
+    // inside BTreeBuilder.Node.ensureUnique()
 }
 
 // MARK: - Appending
-extension NodeProtocol {
-    mutating func append<N>(_ other: N) where N: NodeProtocol<Summary> {
-        assert(isUnique())
-
+extension BTreeBuilder.Node {
+    mutating func append(_ other: BTreeBuilder.Node) {
         if other.isEmpty {
             return
         }
 
+        ensureUnique()
+        storage.mutationCount &+= 1
 
         let h1 = height
         let h2 = other.height
 
         if h1 < h2 {
             if h1 == h2 - 1 && !isUndersized {
-                // TODO: creating a new storage here because once I call ensureUnique() before append,
-                // self will have refcount=1 here, and then when I create [self] for my new children
-                // it'll have a refcount of 2, but ensureUnique() won't get called again.
+                // We have to do an explicit copy here because dup is a seperate reference
+                // to self and we've already called ensureUnique().
                 //
-                // I bet there's a better way to do this that will become more clear when I do the
-                // next refactor.
-                storage = Storage(children(with: [self], merging: other.children))
+                // Conceptually what's going on here is that
+                let dup = BTreeNode<Summary>(self)
+                replaceChildren(with: [dup], merging: other.children)
                 return
             }
 
-            append(other.children[0])
+            append(children: [other.children[0]])
             // height rather than h1 becuase self.append() can increment height
             if height == h2 - 1 {
-                // TODO: see comment above
-                storage = Storage(children(with: [self], merging: other.children.dropFirst()))
+                // see comment above
+                let dup = BTreeNode<Summary>(copying: self)
+                replaceChildren(with: [dup], merging: other.children.dropFirst())
             } else {
                 append(children: other.children.dropFirst())
             }
         } else if h1 == h2 {
             if !isUndersized && !other.isUndersized {
-                // ditto
-                replaceChildren(with: [self], merging: [other])
+                // see comment above
+                let dup = BTreeNode<Summary>(copying: self)
+                replaceChildren(with: [dup], merging: [BTreeNode<Summary>(other)])
             } else if h1 == 0 {
                 append(leafNode: other)
             } else {
@@ -575,12 +611,9 @@ extension NodeProtocol {
             }
         } else {
             if h2 == h1 - 1 && !other.isUndersized {
-                append(children: [other])
+                append(children: [BTreeNode<Summary>(other)])
                 return
             }
-
-            ensureUnique()
-            mutationCount &+= 1
 
             children[children.count - 1].append(other)
             if children.last!.height == h1 - 1 {
@@ -588,68 +621,41 @@ extension NodeProtocol {
             } else {
                 replaceChildren(with: children.dropLast(), merging: children.last!.children)
             }
-
         }
     }
 
-    mutating func append<C>(children newChildren: C) where C: Collection<BTreeNode> {
+    mutating func append<C>(children newChildren: C) where C: Collection<BTreeNode<Summary>> {
         replaceChildren(with: children, merging: newChildren)
     }
 
-    mutating func replaceChildren<C1, C2>(with leftChildren: C1, merging rightChildren: C2) where C1: Collection<BTreeNode>, C2: Collection<BTreeNode> {
-        ensureUnique()
-        mutationCount &+= 1
-
-        // hacks (for now?)
-        storage.children = children(with: leftChildren, merging: rightChildren)
-        storage.leaf = .zero
-
-        updateNonLeafMetadata()
-    }
-
-    func children<C1, C2>(with leftChildren: C1, merging rightChildren: C2) -> [BTreeNode] where C1: Collection<BTreeNode>, C2: Collection<BTreeNode> {
-
+    mutating func replaceChildren<C1, C2>(with leftChildren: C1, merging rightChildren: C2) where C1: Collection<BTreeNode<Summary>>, C2: Collection<BTreeNode<Summary>> {
         let count = leftChildren.count + rightChildren.count
-        assert(count <= BTreeNode.maxChild*2)
+        assert(count <= BTreeNode<Summary>.maxChild*2)
 
         let cs = [AnySequence(leftChildren), AnySequence(rightChildren)].joined()
 
-        if count <= BTreeNode.maxChild {
-            return Array(cs)
+        if count <= BTreeNode<Summary>.maxChild {
+            storage.children = Array(cs)
         } else {
             let split = count / 2
-            let left = BTreeNode(cs.prefix(split))
-            let right = BTreeNode(cs.dropFirst(split))
-            return [left, right]
+            let left = BTreeNode<Summary>(children: cs.prefix(split))
+            let right = BTreeNode<Summary>(children: cs.dropFirst(split))
+            storage.children = [left, right]
         }
+
+        storage.updateNonLeafMetadata()
     }
 
-    mutating func updateNonLeafMetadata() {
-        // TODO: height has to be updated first, because we could be switching from a
-        // leaf to a non-leaf node, and if height is 0 and we try to access children,
-        // we'll hit a bad assertion. This is gross and I should fix it.
-        height = storage.children[0].height + 1
-        summary = .zero
-        for c in children {
-            assert(c.height == children[0].height)
-            summary += c.summary
-        }
-        count = children.map(\.count).reduce(0, +)
-    }
-
-    mutating func append<N>(leafNode other: N) where N: NodeProtocol<Summary> {
-        ensureUnique()
-        mutationCount &+= 1
-
+    mutating func append(leafNode other: BTreeBuilder.Node) {
         assert(isLeaf && other.isLeaf)
 
-        let newLeaf = leaf.pushMaybeSplitting(other: other.leaf)
+        let newLeaf = storage.leaf.pushMaybeSplitting(other: other.leaf)
+        storage.count = storage.leaf.count
+        storage.summary = Summary(summarizing: storage.leaf)
 
         if let newLeaf {
-            replaceChildren(with: [self], merging: [BTreeNode(newLeaf)])
-        } else {
-            count = leaf.count
-            summary = Summary(summarizing: leaf)
+            let retained = BTreeNode(self)
+            replaceChildren(with: [retained], merging: [BTreeNode(leaf: newLeaf)])
         }
     }
 }
@@ -658,6 +664,112 @@ extension NodeProtocol {
 struct BTreeBuilder<Tree> where Tree: BTree {
     typealias Summary = Tree.Summary
     typealias Leaf = Summary.Leaf
+    typealias Storage = BTreeNode<Summary>.Storage
+
+    fileprivate enum Node: NodeProtocol {
+        case owned(BTreeNode<Summary>)
+        case unowned(UnownedNode<Summary>)
+        case none // hack because we can't have mutable references in pattern matches
+
+        // TODO: this is pretty awkward. I think maybe Node should not conform
+        // to NodeProtocol. I could remove the conformance and delegate everything to
+        // an underlying (any NodeProtocol), but that will probably cause a bunch of
+        // repeated code on Node, which is annoying. I'm not exactly sure which we
+        // should do yet.
+//        init(storage: Storage) {
+//            fatalError("cannot initialize BTreeBuilder.Node directly with storage")
+//        }
+
+        init<N>(owned n: N) where N: NodeProtocol<Summary> {
+            self = .owned(BTreeNode<Summary>(storage: n.storage))
+        }
+
+        init<N>(unowned n: N) where N: NodeProtocol<Summary> {
+            self = .unowned(UnownedNode<Summary>(storage: n.storage))
+        }
+
+        init<S>(ownedWithChildren children: S) where S: Sequence<BTreeNode<Summary>> {
+            self = .owned(BTreeNode<Summary>(children: children))
+        }
+
+        init(ownedWithLeaf leaf: Leaf) {
+            self = .owned(BTreeNode<Summary>(leaf: leaf))
+        }
+
+        var storage: BTreeNode<Summary>.Storage {
+            get {
+                switch self {
+                case let .owned(n):  return n.storage
+                case let .unowned(u): return u.storage
+                case .none: fatalError("not possible")
+                }
+            }
+
+            _modify {
+                switch self {
+                case var .owned(n):
+                    self = .none
+                    yield &n.storage
+                    self = .owned(n)
+                case var .unowned(u):
+                    // unowned ref, so having a copy won't affect refcount
+                    yield &u.storage
+                case .none: fatalError("not possible")
+                }
+            }
+        }
+
+        mutating func isUnique() -> Bool {
+            switch self {
+            case var .owned(n):
+                self = .none
+                defer { self = .owned(n) }
+                return n.isUnique()
+            case var .unowned(u):
+                // unowned ref, so having a copy won't affect refcount
+                return u.isUnique()
+            case .none: fatalError("not possible")
+            }
+        }
+
+        mutating func ensureUnique() {
+            switch self {
+            case var .owned(n):
+                self = .none
+                n.ensureUnique()
+                self = .owned(n)
+            case var .unowned(u):
+                // unowned ref, so having a copy won't affect refcount
+                if !u.isUnique() {
+                    self = .owned(BTreeNode(storage: u.storage.copy()))
+                }
+            case .none: fatalError("not possible")
+            }
+        }
+
+//        @discardableResult
+//        mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
+//            precondition(isLeaf, "updateLeaf called on a non-leaf node")
+//            ensureUnique()
+//            let r = unsafeUpdate { storage in
+//                body(&storage.leaf)
+//            }
+//            updateLeafMetadata()
+//        }
+//
+//        @discardableResult
+//        mutating func update<T>(_ body: (inout Storage) -> T) -> T {
+//            ensureUnique()
+//            return unsafeUpdate(body)
+//            // TODO: recalculate metadata afterwards
+//        }
+//
+//        @discardableResult
+//        mutating func unsafeUpdate<T>(_ body: (inout Storage) -> T) -> T {
+//            storage.mutationCount &+= 1
+//            return body(&storage)
+//        }
+    }
 
     // isUnique is an optimization to let us clone less often. If we didn't use it
     // and called isKnownUniquelyReferenced inside push(_:), the code would still
@@ -694,23 +806,22 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     //     to right.
     // 2b. You can't have two inner arrays with nodes of the same height.
     // 3.  No empty inner arrays.
-    fileprivate var stack: [[any NodeProtocol<Summary>]] = []
+    fileprivate var stack: [[Node]] = []
 
     // Nodes pushed from the outside are expected to be externally retained for the
     // life of the builder, and are thus not reatined internally.
     mutating func push(_ node: BTreeNode<Summary>) {
-        var u = UnownedNode(storage: node.storage)
-        pushInternal(u)
+        pushInternal(Node(unowned: node))
     }
 
     // skipLeafFixup is an optimization. If you pass true, you're telling the builder
     // promising the builder that node (which must be a leaf) is already fixed up
     // with whatever is already on the builder's stack.
-    fileprivate mutating func pushInternal<N>(_ node: N, skipLeafFixup: Bool = false) where N: NodeProtocol<Summary> {
+    fileprivate mutating func pushInternal(_ node: Node, skipLeafFixup: Bool = false) {
         // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
         assert(node.isLeaf || !skipLeafFixup)
 
-        var n: any NodeProtocol<Summary> = node
+        var n = node
 
         // Ensure that n is no larger than the node at the top of the stack.
         while let lastNode = stack.last?.last, lastNode.height < n.height {
@@ -725,9 +836,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         }
 
         while true {
-            assert(stack.last?.last == nil || stack.last!.last!.node.height >= n.height)
+            assert(stack.last?.last == nil || stack.last!.last!.height >= n.height)
 
-            if var (lastNode, _) = stack.last?.last, lastNode.height == n.height {
+            if var lastNode = stack.last?.last, lastNode.height == n.height {
                 if !lastNode.isUndersized && !n.isUndersized {
                     if n.isLeaf && Leaf.needsFixupOnAppend && !skipLeafFixup {
                         // n.isLeaf and lastNode.height == n.height, therefore lastNode.leaf
@@ -735,7 +846,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                         fixup(&lastNode, &n)
                     }
 
-                    stack[stack.count - 1].append((n, isUnique))
+                    stack[stack.count - 1].append(n)
                 } else if n.isLeaf {
                     assert(lastNode.isLeaf)
 
@@ -743,29 +854,29 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
                     if let newLeaf {
                         assert(!newLeaf.isUndersized)
-                        stack[stack.count - 1].append((NodeProtocol(newLeaf), true))
+                        stack[stack.count - 1].append((Node(ownedWithLeaf: newLeaf)))
                     }
                 } else {
                     let c1 = lastNode.children
                     let c2 = n.children
                     let count = c1.count + c2.count
-                    if count <= NodeProtocol.maxChild {
-                        stack[stack.count - 1].append((NodeProtocol(c1 + c2), true))
+                    if count <= BTreeNode<Summary>.maxChild {
+                        stack[stack.count - 1].append(Node(ownedWithChildren: c1 + c2))
                     } else {
                         let split = count / 2
                         let children = [c1, c2].joined()
-                        stack[stack.count - 1].append((NodeProtocol(children.prefix(split)), true))
-                        stack[stack.count - 1].append((NodeProtocol(children.dropFirst(split)), true))
+                        stack[stack.count - 1].append(Node(ownedWithChildren: children.prefix(split)))
+                        stack[stack.count - 1].append(Node(ownedWithChildren: children.dropFirst(split)))
                     }
                 }
 
-                if stack[stack.count - 1].count < NodeProtocol.maxChild {
+                if stack[stack.count - 1].count < BTreeNode<Summary>.maxChild {
                     break
                 }
 
-                (n, isUnique) = pop()
+                n = pop()
             } else {
-                stack.append([(n, isUnique)])
+                stack.append([n])
                 break
             }
         }
@@ -793,8 +904,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         // The better solution would be to have a needsClone bit that starts at
         // isKnownUniquelyReferenced and can only ever transition from false to true.
         if range == 0..<node.count {
-            var u = UnownedNode(storage: node.storage)
-            pushInternal(u)
+            pushInternal(Node(unowned: node))
             return
         }
 
@@ -816,15 +926,15 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        var n = BTreeNode<Summary>(leaf)
-        pushInternal(n, skipLeafFixup: skipFixup)
+        var n = BTreeNode<Summary>(leaf: leaf)
+        pushInternal(Node(owned: n), skipLeafFixup: skipFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
         push(leaf: leaf[range])
     }
 
-    fileprivate mutating func pop() -> any NodeProtocol<Summary> {
+    fileprivate mutating func pop() -> Node {
         let nodes = stack.removeLast()
         if nodes.count == 1 {
             return nodes[0]
@@ -845,12 +955,13 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             // TODO: make sure it's ok to retain here. I think it is. If we are at the
             // point where we're building a bigger tree, any node passed in from the
             // outside is now necessarily part of at least two trees and should be retained by them.
-            return BTreeNode<Summary>(retaining: nodes)
+
+            return Node(ownedWithChildren: nodes.map { BTreeNode<Summary>($0) })
         }
     }
 
     consuming func build() -> Tree {
-        var n: any NodeProtocol<Summary> = BTreeNode<Summary>()
+        var n: Node = .owned(BTreeNode<Summary>())
         while !stack.isEmpty {
             var popped = pop()
             if Leaf.needsFixupOnAppend {
@@ -864,15 +975,15 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             n = popped
         }
 
-        return Tree(BTreeNode(retaining: n))
+        return Tree(BTreeNode(storage: n.storage))
     }
 
     // Appends right to left, ensuring left is unique. Any non-unique UnownedNodes are
     // converted to BTreeNodes.
-    fileprivate func append<N1, N2>(_ left: inout N1, _ right: inout N2) -> any NodeProtocol<Summary> where N1: NodeProtocol<Summary>, N2: NodeProtocol<Summary> {
+    fileprivate func append(_ left: inout Node, _ right: inout Node) -> Node {
     }
 
-    fileprivate func fixup<N1, N2>(_ left: inout N1, _ right: inout N2) where N1: NodeProtocol<Summary>, N2: NodeProtocol<Summary> {
+    fileprivate func fixup(_ left: inout Node, _ right: inout Node) {
         var done = false
         var i = right.startIndex
         var prev: Leaf? = nil
@@ -919,7 +1030,7 @@ extension BTreeNode {
         // count is equal to the root's mutation count. If both of those
         // are true, we're guaranteed that the path is valid, so we can
         // unowned instead of weak references for the nodes.
-        unowned var node: BTreeNode.Storage
+        fileprivate var node: UnownedNode<Summary>
         var slot: Int // child index
 
         var child: BTreeNode {
@@ -928,7 +1039,7 @@ extension BTreeNode {
     }
 
     struct Index {
-        weak var root: Storage?
+        weak var rootStorage: Storage?
         let mutationCount: Int
 
         var position: Int
@@ -946,14 +1057,14 @@ extension BTreeNode {
         }
 
         var atEnd: Bool {
-            position == root!.count
+            position == rootStorage!.count
         }
 
-        init(offsetBy offset: Int, in root: BTreeNode) {
-            precondition((0...root.count).contains(offset), "Index out of bounds")
+        init(offsetBy offset: Int, in storage: BTreeNode.Storage) {
+            precondition((0...storage.count).contains(offset), "Index out of bounds")
 
-            self.root = root.storage
-            self.mutationCount = root.mutationCount
+            self.rootStorage = storage
+            self.mutationCount = storage.mutationCount
             self.position = offset
             self.path = []
             self.leaf = nil
@@ -962,17 +1073,29 @@ extension BTreeNode {
             descend()
         }
 
-        init(startOf root: BTreeNode) {
-            self.init(offsetBy: 0, in: root)
+        init(startOf storage: BTreeNode.Storage) {
+            self.init(offsetBy: 0, in: storage)
         }
 
-        init(endOf root: BTreeNode) {
-            self.init(offsetBy: root.count, in: root)
+        init(endOf storage: BTreeNode.Storage) {
+            self.init(offsetBy: storage.count, in: storage)
+        }
+
+        fileprivate init<N>(offsetBy offset: Int, in root: N) where N: NodeProtocol<Summary> {
+            self.init(offsetBy: offset, in: root.storage)
+        }
+
+        fileprivate init<N>(startOf root: N) where N: NodeProtocol<Summary>  {
+            self.init(startOf: root.storage)
+        }
+
+        fileprivate init<N>(endOf root: N) where N: NodeProtocol<Summary> {
+            self.init(endOf: root.storage)
         }
 
         mutating func descend() {
             path = []
-            var node = root! // assume we have a root
+            var node = BTreeNode<Summary>(storage: rootStorage!) // assume we have a root
             var offset = 0
             while !node.isLeaf {
                 var slot = 0
@@ -983,8 +1106,8 @@ extension BTreeNode {
                     offset += child.count
                     slot += 1
                 }
-                path.append(PathElement(node: node, slot: slot))
-                node = node.children[slot].storage
+                path.append(PathElement(node: UnownedNode(node), slot: slot))
+                node = node.children[slot]
             }
 
             self.leaf = node.leaf
@@ -992,7 +1115,7 @@ extension BTreeNode {
         }
 
         func isBoundary<M>(in metric: M) -> Bool where M: BTreeMetric<Summary> {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             guard let leaf else {
                 return false
@@ -1004,7 +1127,7 @@ extension BTreeNode {
 
             switch metric.type {
             case .leading:
-                if position == root!.count {
+                if position == rootStorage!.count {
                     return true
                 } else {
                     // Unlike the trailing case below, we don't have to peek at the
@@ -1026,7 +1149,7 @@ extension BTreeNode {
                     return metric.isBoundary(offsetInLeaf, in: leaf)
                 }
             case .atomic:
-                if position == 0 || position == root!.count {
+                if position == 0 || position == rootStorage!.count {
                     return true
                 } else {
                     // Atomic metrics don't make the distinction between leading and
@@ -1047,14 +1170,14 @@ extension BTreeNode {
         }
 
         mutating func set(_ position: Int) {
-            precondition((0...root!.count).contains(position), "Index out of bounds")
+            precondition((0...rootStorage!.count).contains(position), "Index out of bounds")
 
             self.position = position
 
             if let leaf {
                 let leafEnd = offsetOfLeaf + leaf.count
 
-                if position >= offsetOfLeaf && (position < leafEnd || position == leafEnd && position == root!.count) {
+                if position >= offsetOfLeaf && (position < leafEnd || position == leafEnd && position == rootStorage!.count) {
                     // We're still in the same leaf. No need to descend.
                     return
                 }
@@ -1065,7 +1188,7 @@ extension BTreeNode {
 
         @discardableResult
         mutating func prev<M>(using metric: M) -> Int? where M: BTreeMetric<Summary> {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             if leaf == nil {
                 return nil
@@ -1116,13 +1239,13 @@ extension BTreeNode {
 
         @discardableResult
         mutating func next<M>(using metric: M) -> Int? where M: BTreeMetric<Summary> {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             if leaf == nil {
                 return nil
             }
 
-            if position == root!.count {
+            if position == rootStorage!.count {
                 invalidate()
                 return nil
             }
@@ -1162,7 +1285,7 @@ extension BTreeNode {
         }
 
         mutating func prev<M>(withinLeafUsing metric: M) -> Int? where M: BTreeMetric<Summary> {
-            assert(root != nil && leaf != nil)
+            assert(rootStorage != nil && leaf != nil)
 
             if offsetInLeaf == 0 {
                 return nil
@@ -1193,9 +1316,9 @@ extension BTreeNode {
         }
 
         mutating func next<M>(withinLeafUsing metric: M) -> Int? where M: BTreeMetric<Summary> {
-            assert(root != nil && leaf != nil)
+            assert(rootStorage != nil && leaf != nil)
 
-            let isLastLeaf = offsetOfLeaf + leaf!.count == root!.count
+            let isLastLeaf = offsetOfLeaf + leaf!.count == rootStorage!.count
 
             var next: Leaf?
             if metric.needsLookahead(offsetInLeaf, in: leaf!) {
@@ -1229,7 +1352,7 @@ extension BTreeNode {
         // Moves to the start of the previous leaf, regardless of offsetInLeaf.
         @discardableResult
         mutating func prevLeaf() -> (Leaf, Int)? {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             if leaf == nil {
                 return nil
@@ -1253,7 +1376,7 @@ extension BTreeNode {
 
             // descend right
             while !node.isLeaf {
-                path.append(PathElement(node: node.storage, slot: node.children.count - 1))
+                path.append(PathElement(node: UnownedNode(node), slot: node.children.count - 1))
                 node = node.children[node.children.count - 1]
             }
 
@@ -1267,7 +1390,7 @@ extension BTreeNode {
 
         @discardableResult
         mutating func nextLeaf() -> (Leaf, Int)? {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             guard let leaf else {
                 return nil
@@ -1275,7 +1398,7 @@ extension BTreeNode {
 
             self.position = offsetOfLeaf + leaf.count
 
-            if position == root!.count {
+            if position == rootStorage!.count {
                 invalidate()
                 return nil
             }
@@ -1292,7 +1415,7 @@ extension BTreeNode {
 
             // descend left
             while !node.isLeaf {
-                path.append(PathElement(node: node.storage, slot: 0))
+                path.append(PathElement(node: UnownedNode(node), slot: 0))
                 node = node.children[0]
             }
 
@@ -1312,7 +1435,7 @@ extension BTreeNode {
         }
 
         mutating func floorLeaf() -> Leaf? {
-            assert(root != nil)
+            assert(rootStorage != nil)
 
             guard let leaf else {
                 return nil
@@ -1327,14 +1450,14 @@ extension BTreeNode {
                 return 0
             }
 
-            var node = root!
+            var node = BTreeNode(storage: rootStorage!)
             var measure: M.Unit = 0
             var pos = pos
 
             while !node.isLeaf {
                 for child in node.children {
                     if pos < child.count {
-                        node = child.storage
+                        node = child
                         break
                     }
                     pos -= child.count
@@ -1346,7 +1469,7 @@ extension BTreeNode {
         }
 
         mutating func descend<M>(toLeafContaining measure: M.Unit, asMeasuredBy metric: M) where M: BTreeMetric<Summary> {
-            var node = root!
+            var node = BTreeNode(storage: rootStorage!)
             var offset = 0
             var measure = measure
 
@@ -1363,8 +1486,8 @@ extension BTreeNode {
                     measure -= childMeasure
                     slot += 1
                 }
-                path.append(PathElement(node: node, slot: slot))
-                node = node.children[slot].storage
+                path.append(PathElement(node: UnownedNode(node), slot: slot))
+                node = node.children[slot]
             }
 
             self.leaf = node.leaf
@@ -1378,14 +1501,14 @@ extension BTreeNode {
         }
 
         func validate(for root: BTreeNode) {
-            precondition(self.root === root.storage)
+            precondition(self.rootStorage === root.storage)
             precondition(self.mutationCount == root.mutationCount)
             precondition(self.leaf != nil)
         }
 
         func validate(_ other: Index) {
-            precondition(root === other.root && root != nil)
-            precondition(mutationCount == root!.mutationCount)
+            precondition(rootStorage === other.rootStorage && rootStorage != nil)
+            precondition(mutationCount == rootStorage!.mutationCount)
             precondition(mutationCount == other.mutationCount)
             precondition(leaf != nil && other.leaf != nil)
         }
@@ -1402,18 +1525,6 @@ extension BTreeNode {
             self.leaf = nil
             self.offsetOfLeaf = -1
         }
-    }
-
-    var startIndex: Index {
-        Index(startOf: self)
-    }
-
-    var endIndex: Index {
-        Index(endOf: self)
-    }
-
-    func index(at offset: Int) -> Index {
-        Index(offsetBy: offset, in: self)
     }
 }
 
@@ -1460,7 +1571,7 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
 
         // the index before endIndex
         var lastLeaf: Bool {
-            ni.root!.count == ni.offsetOfLeaf + ni.leaf!.count && ni.position < ni.root!.count
+            ni.rootStorage!.count == ni.offsetOfLeaf + ni.leaf!.count && ni.position < ni.rootStorage!.count
         }
     }
 
@@ -1624,10 +1735,10 @@ extension BTree {
         for el in delta.elements {
             switch el {
             case let .copy(start, end):
-                b.push(&r, slicedBy: start..<end)
+                b.push(r, slicedBy: start..<end)
             case let .insert(node):
                 var n = node
-                b.push(&n)
+                b.push(n)
             }
         }
         return b.build()
