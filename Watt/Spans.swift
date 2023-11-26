@@ -387,7 +387,7 @@ struct SpansBuilder<T> {
         let prefixLength = offsetOfLeaf + (leaf.spans.last?.range.upperBound ?? 0)
 
         // leaf.spans is only empty when there's nothing on the stack
-        assert(b.stack.isEmpty || !leaf.spans.isEmpty)
+        assert(b.isEmpty || !leaf.spans.isEmpty)
 
         if !leaf.spans.isEmpty {
             var iter = sliced.makeIterator()
