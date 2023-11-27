@@ -553,27 +553,6 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    // TODO: I forgot to name this. What is it doing and what's a good name?
-    func testHmm() {
-        var cache = makeContiguousCache(upperBound: 20, stride: 10)
-        cache.set(0, forRange: 0..<10)
-        cache.set(1, forRange: 10..<20)
-
-        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
-        b.removeSubrange(4..<11)
-        b.removeSubrange(15..<20)
-        let delta = b.build()
-
-        XCTAssertEqual(2, delta.elements.count)
-        XCTAssertEqual(.copy(0, 4), delta.elements[0])
-        XCTAssertEqual(.copy(11, 15), delta.elements[1])
-
-        cache.invalidate(delta: delta)
-
-        XCTAssertEqual(0, cache.count)
-        XCTAssertEqual(8, cache.upperBound)
-    }
-
     // This is a bit of a misnomer, because you can't actually do an insert
     // (replace into an empty range) across leaves.
     func testInvalidateInsertAcrossLeaves() {
@@ -1869,5 +1848,32 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(Span(range: 90..<100, data: 9), iter.next())
         XCTAssertEqual(Span(range: 100..<100, data: 10), iter.next())
         XCTAssertNil(iter.next())
+    }
+
+    // I forgot to give this a name, and don't remember why I wrote it.
+    // I think there's a good chance I'll end up getting rid of IntervalCache
+    // and replacing it with something simpler, so I'm not going to bother
+    // figuring out what this should be called.
+    //
+    // The "something simpler" is a cache based on line starts rather than
+    // intervals. The insight is that given an index into a Rope, I can always
+    // round down to the nearest line using the Rope, which means I don't have
+    // to worry about looking up a non-newline boundary in the line cache.
+    func testHmm() {
+        var cache = makeContiguousCache(upperBound: 20, stride: 10)
+
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
+        b.removeSubrange(4..<11)
+        b.removeSubrange(15..<20)
+        let delta = b.build()
+
+        XCTAssertEqual(2, delta.elements.count)
+        XCTAssertEqual(.copy(0, 4), delta.elements[0])
+        XCTAssertEqual(.copy(11, 15), delta.elements[1])
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(0, cache.count)
+        XCTAssertEqual(8, cache.upperBound)
     }
 }
