@@ -1247,6 +1247,7 @@ extension Rope.LinesView: BidirectionalCollection {
         root.endIndex
     }
 
+    // TODO: make this a Subrope so we don't allocate a big String.
     subscript(position: Rope.Index) -> Substring {
         position.validate(for: root)
         return root.index(roundingDown: position, using: .newlines).readLine()!
