@@ -630,78 +630,49 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     typealias Leaf = Summary.Leaf
     typealias Storage = BTreeNode<Summary>.Storage
 
+    // PartialTree is an optimization to reduce unnecessary copying.
+    // Unless a tree has been pushed on to the builder more than once,
+    // it will have exactly one reference inside the builder: either
+    // on the stack or in a local variable.
+    //
+    // For nodes created inside the builder, this is fine. But for
+    // uniquely referenced trees created outside the builder, this is
+    // a problem. As soon as the tree is in the builder, it has
+    // refcount=2 even though it's actually safe to mutate.
+    //
+    // To get around this, we record the result of isKnownUniquelyReferenced
+    // into isUnique before pushing the tree onto the stack.
     fileprivate struct PartialTree: NodeProtocol {
-        var s: Storage
+        var storage: Storage
         var isUnique: Bool
 
         init<N>(_ node: N, isUnique: Bool) where N: NodeProtocol<Summary> {
-            self.s = node.storage
+            self.storage = node.storage
             self.isUnique = isUnique
         }
 
         init(leaf: Leaf) {
-            self.s = Storage(leaf: leaf)
+            self.storage = Storage(leaf: leaf)
             self.isUnique = true
         }
 
         init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
-            self.s = Storage(children: Array(children))
+            self.storage = Storage(children: Array(children))
             self.isUnique = true
-        }
-
-        var storage: BTreeNode<Summary>.Storage {
-            _read {
-                yield s
-            }
-
-            _modify {
-                yield &s
-            }
         }
 
         mutating func ensureUnique() {
             if !isUnique {
                 isUnique = true
-                s = s.copy()
+                storage = storage.copy()
             }
         }
     }
 
-    // isUnique is an optimization to let us clone less often. If we didn't use it
-    // and called isKnownUniquelyReferenced inside push(_:), the code would still
-    // be semantically correct, we'd just clone more often than necessary.
-    //
-    // Here are the situations where we'd make unnecessary extra clones.
-    //
-    // 1. If we check n for uniqueness, n == node, and node is unique outside push(_:),
-    //    there are two references to n: n and node, yielding an unnecssary clone. With
-    //    isUnique, we check if node is unique before assigning it to n.
-    // 2. If we're checking lastNode for uniqueness, and lastNode exists with a single
-    //    reference outside push, there are three references to lastNode – lastNode,
-    //    the stack, and the reference outside push(_:).
-    //
-    // Without this optimization, there would still be some situations where we would make
-    // the optimal number of copies. Specifically, if n is created inside the builder
-    // it should be unique during the execution of the loop, as a node is never simultaneously
-    // stored in n and on the stack.
-//    typealias PartialTree = (node: Node, isUnique: Bool)
-
-    // A stack subtrees that when concatinated from left to right yield the final tree
-    // we're building.
-    //
-    // Preconditions:
-    //
-    // Let height(N) = stack[N][0].node.height
-    // 1. For all nodes in stack[N], node.height == height(N)
-    // 2. For all (A, B) where A < B, height(A) > height(B)
-    // 3. stack[N].count > 0
-    //
-    // In other words:
-    // 1.  Each inner array contains nodes of the same height.
-    // 2a. Inner arrays are sorted by decreasing node height from left
-    //     to right.
-    // 2b. You can't have two inner arrays with nodes of the same height.
-    // 3.  No empty inner arrays.
+    // A stack of PartialTrees, strictly descending in height.
+    // Each inner array contains trees of the same height and has a
+    // count less than maxChild. If an inner array has a count greater
+    // than 1, all of its children are balanced.
     fileprivate var stack: [[PartialTree]] = []
 
     var isEmpty: Bool {
