@@ -843,8 +843,21 @@ extension Rope: RangeReplaceableCollection {
         let rangeStart = index(roundingDown: subrange.lowerBound)
         let rangeEnd = index(roundingDown: subrange.upperBound)
 
+        // We have to ensure that root isn't mutated directly because that would
+        // invalidate indices and counts when we push the suffix (rangeEnd..<endIndex)
+        // onto the builder.
+        //
+        // A nice optimization would be to make BTreeBuilder more like the RopeBuilder
+        // in swift-collections, which has two stacks: a prefix stack descending in
+        // height, and a suffix stack ascending in height. Then you have a "split"
+        // operation that pushes the prefix and suffix onto the builder simultaneously
+        // and then push() pushes in between prefix and suffix.
+        //
+        // Pushing both the prefix and suffix onto the builder in one step should
+        // make the copying here unnecessary.
+        var r = root
+
         if var new = newElements as? Rope {
-            var r = root
             var b = BTreeBuilder<Rope>()
             b.push(&r, slicedBy: Range(startIndex..<rangeStart))
             b.push(&new.root)
@@ -857,7 +870,6 @@ extension Rope: RangeReplaceableCollection {
         var b = BTreeBuilder<Rope>()
         var br = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
-        var r = root
         b.push(&r, slicedBy: Range(startIndex..<rangeStart))
         b.push(string: newElements, breaker: &br)
         b.push(&r, slicedBy: Range(rangeEnd..<endIndex))
