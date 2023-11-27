@@ -17,6 +17,19 @@ protocol BTree {
     init(_ root: BTreeNode<Summary>)
 }
 
+extension BTree {
+    init(_ root: BTreeNode<Summary>, slicedBy range: Range<Int>) {
+        assert(range.lowerBound >= 0 && range.upperBound <= root.count)
+
+        // don't mutate root
+        var r = root
+
+        var b = BTreeBuilder<Self>()
+        b.push(&r, slicedBy: range)
+        self = b.build()
+    }
+}
+
 protocol BTreeSummary {
     associatedtype Leaf: BTreeLeaf
 
@@ -105,19 +118,6 @@ extension BTreeMetric {
     }
 }
 
-extension BTree {
-    init(_ root: BTreeNode<Summary>, slicedBy range: Range<Int>) {
-        assert(range.lowerBound >= 0 && range.upperBound <= root.count)
-
-        // don't mutate root
-        var r = root
-
-        var b = BTreeBuilder<Self>()
-        b.push(&r, slicedBy: range)
-        self = b.build()
-    }
-}
-
 // MARK: - Node
 
 struct BTreeNode<Summary>: NodeProtocol where Summary: BTreeSummary {
@@ -128,32 +128,28 @@ struct BTreeNode<Summary>: NodeProtocol where Summary: BTreeSummary {
 
     var storage: Storage
 
-    init() {
-        storage = Storage()
-    }
-
     init(storage: Storage) {
         self.storage = storage
+    }
+
+    init() {
+        self.init(storage: Storage())
     }
 
     init(leaf: Leaf) {
         self.init(storage: Storage(leaf: leaf))
     }
 
-    init(children: [BTreeNode<Summary>]) {
+    init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
         self.init(storage: Storage(children: children))
     }
 
-    init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
-        self.init(children: Array(children))
-    }
-
     fileprivate init<N>(_ n: N) where N: NodeProtocol<Summary> {
-        self.storage = n.storage
+        self.init(storage: n.storage)
     }
 
     fileprivate init<N>(copying n: N) where N: NodeProtocol<Summary> {
-        self.storage = n.storage.copy()
+        self.init(storage: n.storage.copy())
     }
 
     mutating func isUnique() -> Bool {
@@ -165,7 +161,81 @@ struct BTreeNode<Summary>: NodeProtocol where Summary: BTreeSummary {
             storage = storage.copy()
         }
     }
+}
 
+extension BTreeNode {
+    final class Storage {
+        var height: Int
+        var count: Int // in base units
+
+        // TODO: maybe make these optional?
+        // children and leaf are mutually exclusive
+        var children: [BTreeNode]
+        var leaf: Leaf
+        var summary: Summary
+
+        var mutationCount: Int = 0
+
+#if DEBUG
+        var copyCount: Int = 0
+#endif
+
+        convenience init() {
+            self.init(leaf: Leaf.zero)
+        }
+
+        init(leaf: Leaf) {
+            self.height = 0
+            self.count = leaf.count
+            self.children = []
+            self.leaf = leaf
+            self.summary = Summary(summarizing: leaf)
+        }
+
+        init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
+            let children = Array(children)
+
+            assert(1 <= children.count && children.count <= BTreeNode<Summary>.maxChild)
+            let height = children[0].height + 1
+            var count = 0
+            var summary = Summary.zero
+
+            for child in children {
+                assert(child.height + 1 == height)
+                assert(!child.isUndersized)
+                count += child.count
+                summary += child.summary
+            }
+
+            self.height = height
+            self.count = count
+            self.children = children
+            self.leaf = .zero
+            self.summary = summary
+        }
+
+        init(copying storage: Storage) {
+            self.height = storage.height
+            self.mutationCount = storage.mutationCount
+            self.count = storage.count
+            self.children = storage.children
+            self.leaf = storage.leaf
+            self.summary = storage.summary
+
+#if DEBUG
+            self.copyCount = storage.copyCount + 1
+#endif
+        }
+
+        func copy() -> Storage {
+            // All properties are value types, so it's sufficient
+            // to just create a new Storage instance.
+            return Storage(copying: self)
+        }
+    }
+}
+
+extension BTreeNode {
     func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
         metric.measure(summary: summary, count: count)
     }
@@ -214,77 +284,6 @@ extension BTreeNode: Equatable {
         lhs.storage === rhs.storage
     }
 }
-
-extension BTreeNode {
-    final class Storage {
-        var height: Int
-        var count: Int // in base units
-
-        // TODO: maybe make these optional?
-        // children and leaf are mutually exclusive
-        var children: [BTreeNode]
-        var leaf: Leaf
-        var summary: Summary
-
-        var mutationCount: Int = 0
-
-#if DEBUG
-        var copyCount: Int = 0
-#endif
-
-        convenience init() {
-            self.init(leaf: Leaf.zero)
-        }
-
-        init(leaf: Leaf) {
-            self.height = 0
-            self.count = leaf.count
-            self.children = []
-            self.leaf = leaf
-            self.summary = Summary(summarizing: leaf)
-        }
-
-        init(children: [BTreeNode<Summary>]) {
-            assert(1 <= children.count && children.count <= BTreeNode<Summary>.maxChild)
-            let height = children[0].height + 1
-            var count = 0
-            var summary = Summary.zero
-
-            for child in children {
-                assert(child.height + 1 == height)
-                assert(!child.isUndersized)
-                count += child.count
-                summary += child.summary
-            }
-
-            self.height = height
-            self.count = count
-            self.children = children
-            self.leaf = .zero
-            self.summary = summary
-        }
-
-        init(copying storage: Storage) {
-            self.height = storage.height
-            self.mutationCount = storage.mutationCount
-            self.count = storage.count
-            self.children = storage.children
-            self.leaf = storage.leaf
-            self.summary = storage.summary
-
-#if DEBUG
-            self.copyCount = storage.copyCount + 1
-#endif
-        }
-
-        func copy() -> Storage {
-            // All properties are value types, so it's sufficient
-            // to just create a new Storage instance.
-            return Storage(copying: self)
-        }
-    }
-}
-
 
 // MARK: - Basic operations
 
@@ -646,6 +645,11 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var storage: Storage
         var isUnique: Bool
 
+        init() {
+            self.storage = Storage()
+            self.isUnique = true
+        }
+
         init<N>(_ node: N, isUnique: Bool) where N: NodeProtocol<Summary> {
             self.storage = node.storage
             self.isUnique = isUnique
@@ -830,7 +834,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     consuming func build() -> Tree {
-        var n: PartialTree = PartialTree(leaf: .zero)
+        var n: PartialTree = PartialTree()
         while !stack.isEmpty {
             var popped = pop()
             if Leaf.needsFixupOnAppend {
@@ -841,7 +845,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             n = popped
         }
 
-        return Tree(BTreeNode(storage: n.storage))
+        return Tree(BTreeNode(n))
     }
 
     private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
