@@ -428,10 +428,11 @@ extension Heights {
             hb.addLine(withBaseCount: 0, height: 14)
         }
 
+        var new = hb.build()
+
         var b = BTreeBuilder<Heights>()
         var r = root
         b.push(&r, slicedBy: 0..<start)
-        var new = hb.build()
         b.push(&new.root)
         b.push(&r, slicedBy: end..<r.count)
 
