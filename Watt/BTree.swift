@@ -980,8 +980,7 @@ extension NodeProtocol {
         storage.mutationCount &+= 1
 
         var offset = 0
-        var cont = true
-        storage.summary = .zero
+        var done = false
         for i in 0..<children.count {
             let end = offset + children[i].count
 
@@ -992,14 +991,17 @@ extension NodeProtocol {
                 continue
             }
 
-            if cont {
-                cont = children[i].mutatingForEach(startingAt: position - offset, offsetOfNode: offsetOfNode + offset, using: block)
+            if !children[i].mutatingForEach(startingAt: position - offset, offsetOfNode: offsetOfNode + offset, using: block) {
+                done = true
+                break
             }
-            storage.summary += children[i].summary
+
             offset += children[i].count
         }
 
-        return cont
+        updateNonLeafMetadata()
+
+        return !done
     }
 
     @discardableResult
