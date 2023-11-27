@@ -1453,6 +1453,85 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.root.children[1].leaf.string, String(repeating: "c", count: 1000))
     }
 
+    func testBTreeBuilderFixesUpMultipleNonLeafNodes() {
+        var r1 = Rope(String(repeating: "a", count: 8000))
+
+        XCTAssertEqual(r1.count, 8000)
+        XCTAssertEqual(r1.unicodeScalars.count, 8000)
+        XCTAssertEqual(r1.utf16.count, 8000)
+        XCTAssertEqual(r1.utf8.count, 8000)
+
+        XCTAssertEqual(r1.root.height, 1)
+        XCTAssertEqual(r1.root.children.count, 8)
+        XCTAssert(!r1.root.isUndersized)
+
+        // 'combining acute accent' + "b"*7999
+        var r2 = Rope("\u{0301}" + String(repeating: "b", count: 7999))
+
+        XCTAssertEqual(r2.count, 8000)
+        XCTAssertEqual(r2.unicodeScalars.count, 8000)
+        XCTAssertEqual(r2.utf16.count, 8000)
+        XCTAssertEqual(r2.utf8.count, 8001) // 'combining accute accent' takes up 2 bytes
+
+        XCTAssertEqual(r2.root.height, 1)
+        XCTAssertEqual(r2.root.children.count, 8)
+        XCTAssert(!r2.root.isUndersized)
+
+        var b = BTreeBuilder<Rope>()
+        b.push(&r1.root)
+        b.push(&r2.root)
+        let r = b.build()
+
+        XCTAssertEqual(r.count, 15999)
+        XCTAssertEqual(r.unicodeScalars.count, 16000)
+        XCTAssertEqual(r.utf16.count, 16000)
+        XCTAssertEqual(r.utf8.count, 16001)
+
+        XCTAssertEqual(r.root.height, 2)
+        XCTAssertEqual(r.root.children.count, 2)
+        XCTAssertEqual(r.root.children[0].count, 8000)
+        XCTAssertEqual(r.root.children[1].count, 8001)
+    }
+
+    func testBTreeBuilderFixesUpUndersizedNonLeafNodes() {
+        var r1 = Rope(String(repeating: "a", count: 3000))
+
+        XCTAssertEqual(r1.count, 3000)
+        XCTAssertEqual(r1.unicodeScalars.count, 3000)
+        XCTAssertEqual(r1.utf16.count, 3000)
+        XCTAssertEqual(r1.utf8.count, 3000)
+
+        XCTAssertEqual(r1.root.height, 1)
+        XCTAssertEqual(r1.root.children.count, 3)
+        XCTAssert(r1.root.isUndersized)
+
+        // 'combining acute accent' + "b"*2999
+        var r2 = Rope("\u{0301}" + String(repeating: "b", count: 2999))
+
+        XCTAssertEqual(r2.count, 3000)
+        XCTAssertEqual(r2.unicodeScalars.count, 3000)
+        XCTAssertEqual(r2.utf16.count, 3000)
+        XCTAssertEqual(r2.utf8.count, 3001) // 'combining accute accent' takes up 2 bytes
+
+        XCTAssertEqual(r2.root.height, 1)
+        XCTAssertEqual(r2.root.children.count, 3)
+        XCTAssert(r2.root.isUndersized)
+
+        var b = BTreeBuilder<Rope>()
+        b.push(&r1.root)
+        b.push(&r2.root)
+        let r = b.build()
+
+        XCTAssertEqual(r.count, 5999)
+        XCTAssertEqual(r.unicodeScalars.count, 6000)
+        XCTAssertEqual(r.utf16.count, 6000)
+        XCTAssertEqual(r.utf8.count, 6001)
+
+        XCTAssertEqual(r.root.height, 1)
+        XCTAssertEqual(r.root.children.count, 6)
+    }
+
+
     // TODO: this is broken. Rope.LinesView really needs its own Index type.
     // In the case where the rope is empty, or the rope ends in a newline,
     // LinesView needs to have an index after rope.endIndex. If we fix this

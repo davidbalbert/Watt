@@ -189,9 +189,9 @@ extension NodeProtocol {
 
     var isUndersized: Bool {
         if isLeaf {
-            return storage.leaf.isUndersized
+            return leaf.isUndersized
         } else {
-            return count < BTreeNode<Summary>.minChild
+            return children.count < BTreeNode<Summary>.minChild
         }
     }
 
@@ -1182,9 +1182,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 var lastNode = popLast()!
 
                 if !lastNode.isUndersized && !n.isUndersized {
-                    if n.isLeaf && Leaf.needsFixupOnAppend {
-                        // n.isLeaf and lastNode.height == n.height, therefore lastNode.leaf
-                        assert(lastNode.isLeaf)
+                    if Leaf.needsFixupOnAppend {
                         fixup(&lastNode, &n)
                     }
 
@@ -1201,6 +1199,10 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                         stack[stack.count - 1].append((PartialTree(leaf: newLeaf)))
                     }
                 } else {
+                    if Leaf.needsFixupOnAppend {
+                        fixup(&lastNode, &n)
+                    }
+
                     let c1 = lastNode.children
                     let c2 = n.children
                     let count = c1.count + c2.count
