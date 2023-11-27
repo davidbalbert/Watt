@@ -1050,4 +1050,32 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(12, h.root.count)
         XCTAssertTrue(h.root.summary.endsWithBlankLine)
     }
+
+    func testSettingHeightsDoesntBreakLeafCount() {
+        var b = HeightsBuilder()
+        XCTAssertEqual(HeightsLeaf.maxSize, 64)
+
+        for _ in 0..<192 {
+            b.addLine(withBaseCount: 10, height: 14)
+        }
+
+        var heights = b.build()
+
+        XCTAssertEqual(heights.root.count, 1920)
+        XCTAssertEqual(heights.root.height, 1)
+        XCTAssertEqual(heights.root.children.count, 3)
+
+        XCTAssertEqual(heights.root.children[0].count, 640)
+        XCTAssertEqual(heights.root.children[1].count, 640)
+        XCTAssertEqual(heights.root.children[2].count, 640)
+
+        for i in 0..<192 {
+            let hi = heights.index(at: 10*i)
+            heights[hi] = 30
+        }
+
+        XCTAssertEqual(heights.root.count, 1920)
+        XCTAssertEqual(heights.root.height, 1)
+        XCTAssertEqual(heights.root.children.count, 6) // each leaf split in two
+    }
 }

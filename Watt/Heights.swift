@@ -378,9 +378,10 @@ extension Heights {
 
             var b = BTreeBuilder<Heights>()
 
-            b.push(&root, slicedBy: 0..<prefixEnd)
+            var r = root
+            b.push(&r, slicedBy: 0..<prefixEnd)
             b.push(leaf: newLeaf)
-            b.push(&root, slicedBy: suffixStart..<root.count)
+            b.push(&r, slicedBy: suffixStart..<root.count)
 
             let oldCount = root.count
             self = b.build()
