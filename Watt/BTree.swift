@@ -545,7 +545,7 @@ extension NodeProtocol {
 
 // MARK: - Appending
 extension NodeProtocol {
-    mutating func append<N>(_ other: inout N) where N: NodeProtocol<Summary> {
+    mutating func append<N>(_ other: N) where N: NodeProtocol<Summary> {
         if other.isEmpty {
             return
         }
@@ -559,7 +559,7 @@ extension NodeProtocol {
                 return
             }
 
-            append(&other.children[0])
+            append(other.children[0])
             // height rather than h1 becuase self.append() can increment height
             if height == h2 - 1 {
                 replaceChildren(with: [BTreeNode(copying: self)], merging: other.children.dropFirst())
@@ -580,7 +580,7 @@ extension NodeProtocol {
                 return
             }
 
-            children[children.count - 1].append(&other)
+            children[children.count - 1].append(other)
             if children.last!.height == h1 - 1 {
                 replaceChildren(with: children.dropLast(), merging: [children.last!])
             } else {
@@ -732,7 +732,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 fixup(&popped, &n)
             }
 
-            popped.append(&n)
+            popped.append(n)
             n = popped
         }
 
@@ -805,31 +805,31 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         // The better solution would be to have a needsClone bit that starts at
         // isKnownUniquelyReferenced and can only ever transition from false to true.
 
-        func helper(_ node: inout BTreeNode<Summary>, slicedBy range: Range<Int>, isUnique: Bool) {
-            let isUnique = isUnique && node.isUnique()
+        func helper(_ n: inout BTreeNode<Summary>, slicedBy r: Range<Int>, isUnique: Bool) {
+            let isUnique = isUnique && n.isUnique()
 
-            if range.isEmpty {
+            if r.isEmpty {
                 return
             }
 
-            if range == 0..<node.count {
-                pushInternal(PartialTree(node, isUnique: isUnique))
+            if r == 0..<n.count {
+                pushInternal(PartialTree(n, isUnique: isUnique))
                 return
             }
 
-            if node.isLeaf {
-                push(leaf: node.leaf, slicedBy: range)
+            if n.isLeaf {
+                push(leaf: n.leaf, slicedBy: r)
             } else {
                 var offset = 0
-                for i in 0..<node.children.count {
-                    if range.upperBound <= offset {
+                for i in 0..<n.children.count {
+                    if r.upperBound <= offset {
                         break
                     }
 
-                    let childRange = 0..<node.children[i].count
-                    let intersection = childRange.clamped(to: range.offset(by: -offset))
-                    helper(&node.children[i], slicedBy: intersection, isUnique: isUnique)
-                    offset += node.children[i].count
+                    let childRange = 0..<n.children[i].count
+                    let intersection = childRange.clamped(to: r.offset(by: -offset))
+                    helper(&n.children[i], slicedBy: intersection, isUnique: isUnique)
+                    offset += n.children[i].count
                 }
             }
         }
@@ -888,7 +888,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 fixup(&popped, &n)
             }
 
-            popped.append(&n)
+            popped.append(n)
             n = popped
         }
 
