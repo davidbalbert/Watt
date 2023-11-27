@@ -1149,7 +1149,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
         }
 
-        helper(&root, slicedBy: range, isUnique: root.isUnique())
+        let isUnique = root.isUnique()
+        helper(&root, slicedBy: range, isUnique: isUnique)
     }
 
     mutating func push(leaf: Leaf) {
