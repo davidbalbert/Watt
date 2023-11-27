@@ -630,33 +630,23 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     typealias Leaf = Summary.Leaf
     typealias Storage = BTreeNode<Summary>.Storage
 
-    fileprivate struct Node: NodeProtocol {
+    fileprivate struct PartialTree: NodeProtocol {
         var s: Storage
-        // isKnownUnique == true -> mutate even if we'd otherwise copy
-        var isKnownUnique: Bool
+        var isUnique: Bool
 
-        // TODO: this is pretty awkward. I think maybe Node should not conform
-        // to NodeProtocol. I could remove the conformance and delegate everything to
-        // an underlying (any NodeProtocol), but that will probably cause a bunch of
-        // repeated code on Node, which is annoying. I'm not exactly sure which we
-        // should do yet.
-//        init(storage: Storage) {
-//            fatalError("cannot initialize BTreeBuilder.Node directly with storage")
-//        }
-
-        init<N>(_ node: N, isKnownUnique: Bool = false) where N: NodeProtocol<Summary> {
+        init<N>(_ node: N, isUnique: Bool) where N: NodeProtocol<Summary> {
             self.s = node.storage
-            self.isKnownUnique = isKnownUnique
+            self.isUnique = isUnique
         }
 
         init(leaf: Leaf) {
             self.s = Storage(leaf: leaf)
-            self.isKnownUnique = false
+            self.isUnique = true
         }
 
         init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
             self.s = Storage(children: Array(children))
-            self.isKnownUnique = false
+            self.isUnique = true
         }
 
         var storage: BTreeNode<Summary>.Storage {
@@ -669,39 +659,12 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
         }
 
-        mutating func isUnique() -> Bool {
-            isKnownUnique || isKnownUniquelyReferenced(&s)
-        }
-
         mutating func ensureUnique() {
-            if !isUnique() {
-                isKnownUnique = true
+            if !isUnique {
+                isUnique = true
                 s = s.copy()
             }
         }
-
-//        @discardableResult
-//        mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
-//            precondition(isLeaf, "updateLeaf called on a non-leaf node")
-//            ensureUnique()
-//            let r = unsafeUpdate { storage in
-//                body(&storage.leaf)
-//            }
-//            updateLeafMetadata()
-//        }
-//
-//        @discardableResult
-//        mutating func update<T>(_ body: (inout Storage) -> T) -> T {
-//            ensureUnique()
-//            return unsafeUpdate(body)
-//            // TODO: recalculate metadata afterwards
-//        }
-//
-//        @discardableResult
-//        mutating func unsafeUpdate<T>(_ body: (inout Storage) -> T) -> T {
-//            storage.mutationCount &+= 1
-//            return body(&storage)
-//        }
     }
 
     // isUnique is an optimization to let us clone less often. If we didn't use it
@@ -739,7 +702,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     //     to right.
     // 2b. You can't have two inner arrays with nodes of the same height.
     // 3.  No empty inner arrays.
-    fileprivate var stack: [[Node]] = []
+    fileprivate var stack: [[PartialTree]] = []
 
     var isEmpty: Bool {
         stack.isEmpty
@@ -749,14 +712,13 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // life of the builder, and are thus not reatined internally.
     mutating func push(_ node: inout BTreeNode<Summary>) {
         let isUnique = node.isUnique()
-        var n = Node(node, isKnownUnique: isUnique)
-        pushInternal(n)
+        pushInternal(PartialTree(node, isUnique: isUnique))
     }
 
     // skipLeafFixup is an optimization. If you pass true, you're telling the builder
     // promising the builder that node (which must be a leaf) is already fixed up
     // with whatever is already on the builder's stack.
-    fileprivate mutating func pushInternal(_ node: Node, skipLeafFixup: Bool = false) {
+    fileprivate mutating func pushInternal(_ node: PartialTree, skipLeafFixup: Bool = false) {
         // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
         assert(node.isLeaf || !skipLeafFixup)
 
@@ -797,19 +759,19 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
                     if let newLeaf {
                         assert(!newLeaf.isUndersized)
-                        stack[stack.count - 1].append((Node(leaf: newLeaf)))
+                        stack[stack.count - 1].append((PartialTree(leaf: newLeaf)))
                     }
                 } else {
                     let c1 = lastNode.children
                     let c2 = n.children
                     let count = c1.count + c2.count
                     if count <= BTreeNode<Summary>.maxChild {
-                        stack[stack.count - 1].append(Node(children: c1 + c2))
+                        stack[stack.count - 1].append(PartialTree(children: c1 + c2))
                     } else {
                         let split = count / 2
                         let children = [c1, c2].joined()
-                        stack[stack.count - 1].append(Node(children: children.prefix(split)))
-                        stack[stack.count - 1].append(Node(children: children.dropFirst(split)))
+                        stack[stack.count - 1].append(PartialTree(children: children.prefix(split)))
+                        stack[stack.count - 1].append(PartialTree(children: children.dropFirst(split)))
                     }
                 }
 
@@ -851,7 +813,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
 
             if range == 0..<node.count {
-                pushInternal(Node(node, isKnownUnique: isUnique))
+                pushInternal(PartialTree(node, isUnique: isUnique))
                 return
             }
 
@@ -876,22 +838,21 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        let n = BTreeNode<Summary>(leaf: leaf)
-        pushInternal(Node(n), skipLeafFixup: skipFixup)
+        pushInternal(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
         push(leaf: leaf[range])
     }
 
-    fileprivate mutating func popLast() -> Node? {
+    fileprivate mutating func popLast() -> PartialTree? {
         if stack.isEmpty {
             return nil
         }
         return stack[stack.count - 1].removeLast()
     }
 
-    fileprivate mutating func pop() -> Node {
+    fileprivate mutating func pop() -> PartialTree {
         let nodes = stack.removeLast()
         assert(!nodes.isEmpty)
 
@@ -915,12 +876,12 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             // point where we're building a bigger tree, any node passed in from the
             // outside is now necessarily part of at least two trees and should be retained by them.
 
-            return Node(children: nodes.map { BTreeNode<Summary>($0) })
+            return PartialTree(children: nodes.map { BTreeNode<Summary>($0) })
         }
     }
 
     consuming func build() -> Tree {
-        var n: Node = Node(leaf: .zero)
+        var n: PartialTree = PartialTree(leaf: .zero)
         while !stack.isEmpty {
             var popped = pop()
             if Leaf.needsFixupOnAppend {
@@ -934,7 +895,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         return Tree(BTreeNode(storage: n.storage))
     }
 
-    fileprivate func fixup(_ left: inout Node, _ right: inout Node) {
+    fileprivate func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
         var i = right.startIndex
         var prev: Leaf? = nil
