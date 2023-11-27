@@ -407,7 +407,6 @@ extension BTreeNode {
 
         var path: [PathElement]
 
-        // TODO: have a _leaf: Storage? and leaf: Leaf? { _read, _modify }
         var leaf: Leaf? // Present unless the index is invalid.
         var offsetOfLeaf: Int // Position of the first element of the leaf in base units. -1 if we're invalid.
 
