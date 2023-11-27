@@ -642,7 +642,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     //
     // To get around this, we record the result of isKnownUniquelyReferenced
     // into isUnique before pushing the tree onto the stack.
-    fileprivate struct PartialTree: NodeProtocol {
+    struct PartialTree: NodeProtocol {
         var storage: Storage
         var isUnique: Bool
 
@@ -673,23 +673,76 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // Each inner array contains trees of the same height and has a
     // count less than maxChild. If an inner array has a count greater
     // than 1, all of its children are balanced.
-    fileprivate var stack: [[PartialTree]] = []
+    var stack: [[PartialTree]] = []
 
     var isEmpty: Bool {
         stack.isEmpty
     }
 
-    // Nodes pushed from the outside are expected to be externally retained for the
-    // life of the builder, and are thus not reatined internally.
+    // Always call this method on a local variable, never directly on the child
+    // of an existing node. I.e. this is bad: push(&node.children[n]).
     mutating func push(_ node: inout BTreeNode<Summary>) {
+        // must call isUnique() on a separate line, otherwise
+        // we end up with two references.
         let isUnique = node.isUnique()
         pushInternal(PartialTree(node, isUnique: isUnique))
     }
 
-    // skipLeafFixup is an optimization. If you pass true, you're telling the builder
-    // promising the builder that node (which must be a leaf) is already fixed up
-    // with whatever is already on the builder's stack.
-    fileprivate mutating func pushInternal(_ node: PartialTree, skipLeafFixup: Bool = false) {
+    // For descendents of root, isKnownUniquelyReferenced isn't enough to know whether
+    // a node is safe to mutate or not. A node can have refcount=1 but a parent with
+    // refcount=2. To get around this, we pass down isUnique, a flag that starts out
+    // as isKnownUniquelyReferenced(&root.storage), and can only transition from true
+    // to false.
+    //
+    // N.b. always call this method on a local variable, never directly on the child
+    // of an existing node. I.e. this is bad: push(&node.children[n], slicedBy:...).
+    // If you don't do this, the builder will think that root is safe to mutate even
+    // though it's also a subtree of a larger tree.
+    mutating func push(_ root: inout BTreeNode<Summary>, slicedBy range: Range<Int>) {
+        func helper(_ n: inout BTreeNode<Summary>, slicedBy r: Range<Int>, isUnique: Bool) {
+            let isUnique = isUnique && n.isUnique()
+
+            if r.isEmpty {
+                return
+            }
+
+            if r == 0..<n.count {
+                pushInternal(PartialTree(n, isUnique: isUnique))
+                return
+            }
+
+            if n.isLeaf {
+                push(leaf: n.leaf, slicedBy: r)
+            } else {
+                var offset = 0
+                for i in 0..<n.children.count {
+                    if r.upperBound <= offset {
+                        break
+                    }
+
+                    let childRange = 0..<n.children[i].count
+                    let intersection = childRange.clamped(to: r.offset(by: -offset))
+                    helper(&n.children[i], slicedBy: intersection, isUnique: isUnique)
+                    offset += n.children[i].count
+                }
+            }
+        }
+
+        helper(&root, slicedBy: range, isUnique: root.isUnique())
+    }
+
+    mutating func push(leaf: Leaf, skipFixup: Bool = false) {
+        pushInternal(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
+    }
+
+    mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
+        push(leaf: leaf[range])
+    }
+
+    // skipLeafFixup is an optimization. If you pass true, you're promising the
+    // builder that node (which must be a leaf) is already fixed up with whatever
+    // is already on the builder's stack.
+    private mutating func pushInternal(_ node: PartialTree, skipLeafFixup: Bool = false) {
         // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
         assert(node.isLeaf || !skipLeafFixup)
 
@@ -758,96 +811,21 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         }
     }
 
-    mutating func push(_ node: inout BTreeNode<Summary>, slicedBy range: Range<Int>) {
-        // TODO: this coment is out of date. Write a new one.
-        //
-        // Right now, when building new trees, all intermediate nodes are allocated anew,
-        // and only leaves are modified. That's why we can get away with passing node
-        // directly to push() if it's not a leaf. For leaves, we make a second reference
-        // to node to ensure that if the builder wants to mutate node, it will clone it first.
-        //
-        // Here's the bigger picture: isKnownUniquelyReferenced isn't actually good enough
-        // to know whether we need to clone or not. Something could have a single reference
-        // but have a parent with multiple references, which means we can't mutate it even though
-        // its refcount == 1.
-        //
-        // The upshot is that we're doing more copies than we have to – we clone a leaf every time
-        // we call pushMaybeSplitting even if that leaf is part of a tree that's uniquely referenced.
-        // The better solution would be to have a needsClone bit that starts at
-        // isKnownUniquelyReferenced and can only ever transition from false to true.
-
-        func helper(_ n: inout BTreeNode<Summary>, slicedBy r: Range<Int>, isUnique: Bool) {
-            let isUnique = isUnique && n.isUnique()
-
-            if r.isEmpty {
-                return
-            }
-
-            if r == 0..<n.count {
-                pushInternal(PartialTree(n, isUnique: isUnique))
-                return
-            }
-
-            if n.isLeaf {
-                push(leaf: n.leaf, slicedBy: r)
-            } else {
-                var offset = 0
-                for i in 0..<n.children.count {
-                    if r.upperBound <= offset {
-                        break
-                    }
-
-                    let childRange = 0..<n.children[i].count
-                    let intersection = childRange.clamped(to: r.offset(by: -offset))
-                    helper(&n.children[i], slicedBy: intersection, isUnique: isUnique)
-                    offset += n.children[i].count
-                }
-            }
-        }
-
-        helper(&node, slicedBy: range, isUnique: node.isUnique())
-    }
-
-    mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        pushInternal(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
-    }
-
-    mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
-        push(leaf: leaf[range])
-    }
-
-    fileprivate mutating func popLast() -> PartialTree? {
+    private mutating func popLast() -> PartialTree? {
         if stack.isEmpty {
             return nil
         }
         return stack[stack.count - 1].removeLast()
     }
 
-    fileprivate mutating func pop() -> PartialTree {
-        let nodes = stack.removeLast()
-        assert(!nodes.isEmpty)
+    private mutating func pop() -> PartialTree {
+        let partialTrees = stack.removeLast()
+        assert(!partialTrees.isEmpty)
 
-        if nodes.count == 1 {
-            return nodes[0]
+        if partialTrees.count == 1 {
+            return partialTrees[0]
         } else {
-            // TODO: this explanation is out of date. It refers to concatenate,
-            // which we're no longer doing. I also don't really remember what
-            // it means.
-            //
-            // We are able to throw away isUnique for all our children, because
-            // inside Builder, we only care about the uniqueness of the nodes
-            // directly on the stack.
-            //
-            // In general, we do still care if some nodes are unique – specifically
-            // when concatinating two nodes, the rightmost branch of the left tree
-            // in the concatination is being mutated during the graft, so it needs to
-            // be unique, but we take care of that in Node.concat.
-            //
-            // TODO: make sure it's ok to retain here. I think it is. If we are at the
-            // point where we're building a bigger tree, any node passed in from the
-            // outside is now necessarily part of at least two trees and should be retained by them.
-
-            return PartialTree(children: nodes.map { BTreeNode<Summary>($0) })
+            return PartialTree(children: partialTrees.map { BTreeNode<Summary>($0) })
         }
     }
 
@@ -866,7 +844,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         return Tree(BTreeNode(storage: n.storage))
     }
 
-    fileprivate func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
+    private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
         var i = right.startIndex
         var prev: Leaf? = nil
