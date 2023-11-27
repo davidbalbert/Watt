@@ -843,11 +843,12 @@ extension Rope: RangeReplaceableCollection {
         let rangeStart = index(roundingDown: subrange.lowerBound)
         let rangeEnd = index(roundingDown: subrange.upperBound)
 
-        if var r = newElements as? Rope {
+        if var new = newElements as? Rope {
+            var r = root
             var b = BTreeBuilder<Rope>()
-            b.push(&root, slicedBy: Range(startIndex..<rangeStart))
-            b.push(&r.root)
-            b.push(&root, slicedBy: Range(rangeEnd..<endIndex))
+            b.push(&r, slicedBy: Range(startIndex..<rangeStart))
+            b.push(&new.root)
+            b.push(&r, slicedBy: Range(rangeEnd..<endIndex))
             self = b.build()
 
             return
@@ -856,9 +857,10 @@ extension Rope: RangeReplaceableCollection {
         var b = BTreeBuilder<Rope>()
         var br = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
 
-        b.push(&root, slicedBy: Range(startIndex..<rangeStart))
+        var r = root
+        b.push(&r, slicedBy: Range(startIndex..<rangeStart))
         b.push(string: newElements, breaker: &br)
-        b.push(&root, slicedBy: Range(rangeEnd..<endIndex))
+        b.push(&r, slicedBy: Range(rangeEnd..<endIndex))
 
         self = b.build()
     }

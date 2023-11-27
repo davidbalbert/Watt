@@ -545,7 +545,7 @@ extension NodeProtocol {
 
 // MARK: - Appending
 extension NodeProtocol {
-    mutating func append<N>(_ other: N) where N: NodeProtocol<Summary> {
+    mutating func append<N>(_ other: inout N) where N: NodeProtocol<Summary> {
         if other.isEmpty {
             return
         }
@@ -555,20 +555,20 @@ extension NodeProtocol {
 
         if h1 < h2 {
             if h1 == h2 - 1 && !isUndersized {
-                replaceChildren(with: [BTreeNode(self)], merging: other.children)
+                replaceChildren(with: [BTreeNode(copying: self)], merging: other.children)
                 return
             }
 
-            append(other.children[0])
+            append(&other.children[0])
             // height rather than h1 becuase self.append() can increment height
             if height == h2 - 1 {
-                replaceChildren(with: [BTreeNode(self)], merging: other.children.dropFirst())
+                replaceChildren(with: [BTreeNode(copying: self)], merging: other.children.dropFirst())
             } else {
                 replaceChildren(with: children, merging: other.children.dropFirst())
             }
         } else if h1 == h2 {
             if !isUndersized && !other.isUndersized {
-                replaceChildren(with: [BTreeNode(self)], merging: [BTreeNode(other)])
+                replaceChildren(with: [BTreeNode(copying: self)], merging: [BTreeNode(other)])
             } else if h1 == 0 {
                 append(leafNode: other)
             } else {
@@ -580,7 +580,7 @@ extension NodeProtocol {
                 return
             }
 
-            children[children.count - 1].append(other)
+            children[children.count - 1].append(&other)
             if children.last!.height == h1 - 1 {
                 replaceChildren(with: children.dropLast(), merging: [children.last!])
             } else {
@@ -625,23 +625,15 @@ extension NodeProtocol {
     }
 }
 
-struct Unowned<T> where T: AnyObject {
-    unowned var value: T
-
-    init(_ value: T) {
-        self.value = value
-    }
-}
-
 struct BTreeBuilder<Tree> where Tree: BTree {
     typealias Summary = Tree.Summary
     typealias Leaf = Summary.Leaf
     typealias Storage = BTreeNode<Summary>.Storage
 
-    fileprivate enum Node: NodeProtocol {
-        case owned(Storage)
-        case unowned(Unowned<Storage>)
-        case none // hack because we can't have mutable references in pattern matches
+    fileprivate struct Node: NodeProtocol {
+        var s: Storage
+        // isKnownUnique == true -> mutate even if we'd otherwise copy
+        var isKnownUnique: Bool
 
         // TODO: this is pretty awkward. I think maybe Node should not conform
         // to NodeProtocol. I could remove the conformance and delegate everything to
@@ -652,63 +644,39 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 //            fatalError("cannot initialize BTreeBuilder.Node directly with storage")
 //        }
 
-        init<N>(owned n: N) where N: NodeProtocol<Summary> {
-            self = .owned(BTreeNode<Summary>(storage: n.storage).storage)
+        init<N>(_ node: N, isKnownUnique: Bool = false) where N: NodeProtocol<Summary> {
+            self.s = node.storage
+            self.isKnownUnique = isKnownUnique
         }
 
-        init<N>(unowned n: N) where N: NodeProtocol<Summary> {
-            self = .unowned(Unowned(n.storage))
+        init(leaf: Leaf) {
+            self.s = Storage(leaf: leaf)
+            self.isKnownUnique = false
         }
 
-        init<S>(ownedWithChildren children: S) where S: Sequence<BTreeNode<Summary>> {
-            self = .owned(BTreeNode<Summary>(children: children).storage)
-        }
-
-        init(ownedWithLeaf leaf: Leaf) {
-            self = .owned(BTreeNode<Summary>(leaf: leaf).storage)
+        init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
+            self.s = Storage(children: Array(children))
+            self.isKnownUnique = false
         }
 
         var storage: BTreeNode<Summary>.Storage {
-            get {
-                switch self {
-                case let .owned(s):  return s
-                case let .unowned(u): return u.value
-                case .none: fatalError("not possible")
-                }
+            _read {
+                yield s
             }
 
             _modify {
-                switch self {
-                case var .owned(s):
-                    self = .none
-                    yield &s
-                    self = .owned(s)
-                case var .unowned(u):
-                    // unowned ref, so having a copy won't affect refcount
-                    yield &u.value
-                case .none: fatalError("not possible")
-                }
+                yield &s
             }
         }
 
         mutating func isUnique() -> Bool {
-            isKnownUniquelyReferenced(&storage)
+            isKnownUnique || isKnownUniquelyReferenced(&s)
         }
 
         mutating func ensureUnique() {
-            switch self {
-            case var .owned(s):
-                self = .none
-                if !isKnownUniquelyReferenced(&s) {
-                    s = s.copy()
-                }
-                self = .owned(s)
-            case var .unowned(u):
-                // unowned ref, so having a copy won't affect refcount
-                if !isKnownUniquelyReferenced(&u.value) {
-                    self = .owned(BTreeNode(storage: u.value.copy()).storage)
-                }
-            case .none: fatalError("not possible")
+            if !isUnique() {
+                isKnownUnique = true
+                s = s.copy()
             }
         }
 
@@ -780,7 +748,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // Nodes pushed from the outside are expected to be externally retained for the
     // life of the builder, and are thus not reatined internally.
     mutating func push(_ node: inout BTreeNode<Summary>) {
-        pushInternal(Node(unowned: node))
+        let isUnique = node.isUnique()
+        var n = Node(node, isKnownUnique: isUnique)
+        pushInternal(n)
     }
 
     // skipLeafFixup is an optimization. If you pass true, you're telling the builder
@@ -800,7 +770,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 fixup(&popped, &n)
             }
 
-            popped.append(n)
+            popped.append(&n)
             n = popped
         }
 
@@ -827,19 +797,19 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
                     if let newLeaf {
                         assert(!newLeaf.isUndersized)
-                        stack[stack.count - 1].append((Node(ownedWithLeaf: newLeaf)))
+                        stack[stack.count - 1].append((Node(leaf: newLeaf)))
                     }
                 } else {
                     let c1 = lastNode.children
                     let c2 = n.children
                     let count = c1.count + c2.count
                     if count <= BTreeNode<Summary>.maxChild {
-                        stack[stack.count - 1].append(Node(ownedWithChildren: c1 + c2))
+                        stack[stack.count - 1].append(Node(children: c1 + c2))
                     } else {
                         let split = count / 2
                         let children = [c1, c2].joined()
-                        stack[stack.count - 1].append(Node(ownedWithChildren: children.prefix(split)))
-                        stack[stack.count - 1].append(Node(ownedWithChildren: children.dropFirst(split)))
+                        stack[stack.count - 1].append(Node(children: children.prefix(split)))
+                        stack[stack.count - 1].append(Node(children: children.dropFirst(split)))
                     }
                 }
 
@@ -856,10 +826,6 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     mutating func push(_ node: inout BTreeNode<Summary>, slicedBy range: Range<Int>) {
-        if range.isEmpty {
-            return
-        }
-
         // TODO: this coment is out of date. Write a new one.
         //
         // Right now, when building new trees, all intermediate nodes are allocated anew,
@@ -876,31 +842,42 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         // we call pushMaybeSplitting even if that leaf is part of a tree that's uniquely referenced.
         // The better solution would be to have a needsClone bit that starts at
         // isKnownUniquelyReferenced and can only ever transition from false to true.
-        if range == 0..<node.count {
-            pushInternal(Node(unowned: node))
-            return
-        }
 
-        if node.isLeaf {
-            push(leaf: node.leaf, slicedBy: range)
-        } else {
-            var offset = 0
-            for i in 0..<node.children.count {
-                if range.upperBound <= offset {
-                    break
+        func helper(_ node: inout BTreeNode<Summary>, slicedBy range: Range<Int>, isUnique: Bool) {
+            let isUnique = isUnique && node.isUnique()
+
+            if range.isEmpty {
+                return
+            }
+
+            if range == 0..<node.count {
+                pushInternal(Node(node, isKnownUnique: isUnique))
+                return
+            }
+
+            if node.isLeaf {
+                push(leaf: node.leaf, slicedBy: range)
+            } else {
+                var offset = 0
+                for i in 0..<node.children.count {
+                    if range.upperBound <= offset {
+                        break
+                    }
+
+                    let childRange = 0..<node.children[i].count
+                    let intersection = childRange.clamped(to: range.offset(by: -offset))
+                    helper(&node.children[i], slicedBy: intersection, isUnique: isUnique)
+                    offset += node.children[i].count
                 }
-
-                let childRange = 0..<node.children[i].count
-                let intersection = childRange.clamped(to: range.offset(by: -offset))
-                push(&node.children[i], slicedBy: intersection)
-                offset += node.children[i].count
             }
         }
+
+        helper(&node, slicedBy: range, isUnique: node.isUnique())
     }
 
     mutating func push(leaf: Leaf, skipFixup: Bool = false) {
         let n = BTreeNode<Summary>(leaf: leaf)
-        pushInternal(Node(owned: n), skipLeafFixup: skipFixup)
+        pushInternal(Node(n), skipLeafFixup: skipFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
@@ -938,19 +915,19 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             // point where we're building a bigger tree, any node passed in from the
             // outside is now necessarily part of at least two trees and should be retained by them.
 
-            return Node(ownedWithChildren: nodes.map { BTreeNode<Summary>($0) })
+            return Node(children: nodes.map { BTreeNode<Summary>($0) })
         }
     }
 
     consuming func build() -> Tree {
-        var n: Node = Node(owned: BTreeNode<Summary>())
+        var n: Node = Node(leaf: .zero)
         while !stack.isEmpty {
             var popped = pop()
             if Leaf.needsFixupOnAppend {
                 fixup(&popped, &n)
             }
 
-            popped.append(n)
+            popped.append(&n)
             n = popped
         }
 

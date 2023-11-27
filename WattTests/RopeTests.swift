@@ -1430,6 +1430,29 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, j.position)
     }
 
+    func testReplaceSubrangeOnChunkBoudariesAppendingToChunkWorks() {
+        var r = Rope()
+        r += String(repeating: "a", count: 1000)
+        r += String(repeating: "b", count: 1000)
+        r += String(repeating: "c", count: 1000)
+
+        XCTAssertEqual(r.utf8.count, 3000)
+        XCTAssertEqual(r.root.height, 1)
+        XCTAssertEqual(r.root.children.count, 3)
+
+        XCTAssertEqual(r.root.children[0].leaf.string, String(repeating: "a", count: 1000))
+        XCTAssertEqual(r.root.children[1].leaf.string, String(repeating: "b", count: 1000))
+        XCTAssertEqual(r.root.children[2].leaf.string, String(repeating: "c", count: 1000))
+
+        r.replaceSubrange(r.index(at: 1000)..<r.index(at: 2000), with: "d")
+
+        XCTAssertEqual(r.utf8.count, 2001)
+        XCTAssertEqual(r.root.height, 1)
+        XCTAssertEqual(r.root.children.count, 2)
+        XCTAssertEqual(r.root.children[0].leaf.string, String(repeating: "a", count: 1000) + "d")
+        XCTAssertEqual(r.root.children[1].leaf.string, String(repeating: "c", count: 1000))
+    }
+
     // TODO: this is broken. Rope.LinesView really needs its own Index type.
     // In the case where the rope is empty, or the rope ends in a newline,
     // LinesView needs to have an index after rope.endIndex. If we fix this
