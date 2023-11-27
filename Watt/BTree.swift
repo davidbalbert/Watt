@@ -421,11 +421,11 @@ extension BTreeNode {
             position == rootStorage!.count
         }
 
-        init(offsetBy offset: Int, in storage: BTreeNode.Storage) {
-            precondition((0...storage.count).contains(offset), "Index out of bounds")
+        init<N>(offsetBy offset: Int, in root: N) where N: NodeProtocol<Summary> {
+            precondition((0...root.count).contains(offset), "Index out of bounds")
 
-            self.rootStorage = storage
-            self.mutationCount = storage.mutationCount
+            self.rootStorage = root.storage
+            self.mutationCount = root.mutationCount
             self.position = offset
             self.path = []
             self.leaf = nil
@@ -434,24 +434,12 @@ extension BTreeNode {
             descend()
         }
 
-        init(startOf storage: BTreeNode.Storage) {
-            self.init(offsetBy: 0, in: storage)
-        }
-
-        init(endOf storage: BTreeNode.Storage) {
-            self.init(offsetBy: storage.count, in: storage)
-        }
-
-        init<N>(offsetBy offset: Int, in root: N) where N: NodeProtocol<Summary> {
-            self.init(offsetBy: offset, in: root.storage)
-        }
-
         init<N>(startOf root: N) where N: NodeProtocol<Summary>  {
-            self.init(startOf: root.storage)
+            self.init(offsetBy: 0, in: root)
         }
 
         init<N>(endOf root: N) where N: NodeProtocol<Summary> {
-            self.init(endOf: root.storage)
+            self.init(offsetBy: root.count, in: root)
         }
 
         mutating func descend() {
