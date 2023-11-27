@@ -1114,7 +1114,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         // must call isUnique() on a separate line, otherwise
         // we end up with two references.
         let isUnique = node.isUnique()
-        pushInternal(PartialTree(node, isUnique: isUnique))
+        push(PartialTree(node, isUnique: isUnique))
     }
 
     // For descendents of root, isKnownUniquelyReferenced isn't enough to know whether
@@ -1136,7 +1136,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
 
             if r == 0..<n.count {
-                pushInternal(PartialTree(n, isUnique: isUnique))
+                push(PartialTree(n, isUnique: isUnique))
                 return
             }
 
@@ -1161,7 +1161,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        pushInternal(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
+        push(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
@@ -1171,7 +1171,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // skipLeafFixup is an optimization. If you pass true, you're promising the
     // builder that node (which must be a leaf) is already fixed up with whatever
     // is already on the builder's stack.
-    private mutating func pushInternal(_ node: PartialTree, skipLeafFixup: Bool = false) {
+    private mutating func push(_ node: PartialTree, skipLeafFixup: Bool = false) {
         // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
         assert(node.isLeaf || !skipLeafFixup)
 
