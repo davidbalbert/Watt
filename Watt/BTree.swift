@@ -616,10 +616,10 @@ extension NodeProtocol {
         ensureUnique()
         storage.mutationCount &+= 1
 
-        let newLeaf = storage.leaf.pushMaybeSplitting(other: other.leaf)
-        updateLeafMetadata()
+        let newLeaf = updateLeaf { $0.pushMaybeSplitting(other: other.leaf) }
 
         if let newLeaf {
+            // No need to explicitly copy self because we're creating a new storage.
             storage = Storage(children: [BTreeNode(self), BTreeNode(leaf: newLeaf)])
         }
     }
