@@ -1152,21 +1152,15 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         helper(&root, slicedBy: range, isUnique: root.isUnique())
     }
 
-    mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        push(PartialTree(leaf: leaf), skipLeafFixup: skipFixup)
+    mutating func push(leaf: Leaf) {
+        push(PartialTree(leaf: leaf))
     }
 
     mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
         push(leaf: leaf[range])
     }
 
-    // skipLeafFixup is an optimization. If you pass true, you're promising the
-    // builder that node (which must be a leaf) is already fixed up with whatever
-    // is already on the builder's stack.
-    private mutating func push(_ node: PartialTree, skipLeafFixup: Bool = false) {
-        // skipLeafFixup=true is only valid for leaves, not intermediate nodes.
-        assert(node.isLeaf || !skipLeafFixup)
-
+    private mutating func push(_ node: PartialTree) {
         var n = node
 
         // Ensure that n is no larger than the node at the top of the stack.
@@ -1188,7 +1182,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 var lastNode = popLast()!
 
                 if !lastNode.isUndersized && !n.isUndersized {
-                    if n.isLeaf && Leaf.needsFixupOnAppend && !skipLeafFixup {
+                    if n.isLeaf && Leaf.needsFixupOnAppend {
                         // n.isLeaf and lastNode.height == n.height, therefore lastNode.leaf
                         assert(lastNode.isLeaf)
                         fixup(&lastNode, &n)

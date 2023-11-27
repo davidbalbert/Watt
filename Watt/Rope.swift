@@ -599,10 +599,28 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 }
 
 
-// MARK: - Builder additions
+// MARK: - Builder
 
-extension BTreeBuilder where Tree == Rope {
-    mutating func push(string: some Sequence<Character>, breaker: inout Rope.GraphemeBreaker) {
+// An optimization to unnecessary calls to fixup while building. When we're
+// building a Rope out of a long string, we're already running a GraphemeBreaker
+// down the length of the string, so all the chunks we create are already in sync.
+//
+// If we push chunks onto a BTreeBuilder one at a time, fixup will be called on
+// each pair, which will be a no-op but slows things down. Instead, we build up
+// trees where height=1 in the RopeBuilder and then push those on to the BTreeBuilder,
+// skipping the fixup between leaves.
+struct RopeBuilder {
+    var b: BTreeBuilder<Rope>
+    var br: Rope.GraphemeBreaker
+    var leaves: [BTreeNode<RopeSummary>]
+
+    init() {
+        self.b = BTreeBuilder<Rope>()
+        self.br = Rope.GraphemeBreaker()
+        self.leaves = []
+    }
+
+    mutating func push(string: some Sequence<Character>) {
         var string = String(string)
         string.makeContiguousUTF8()
 
@@ -618,12 +636,82 @@ extension BTreeBuilder where Tree == Rope {
                 end = boundaryForBulkInsert(string[i...])
             }
             
-            push(leaf: Chunk(string[i..<end], breaker: &breaker), skipFixup: true)
+            push(chunk: Chunk(string[i..<end], breaker: &br))
             i = end
         }
+
+        if leaves.count > 0 {
+            pushLeaves()
+        }
+    }
+
+    mutating func push(_ rope: inout Rope) {
+        assert(leaves.isEmpty)
+
+        br = Rope.GraphemeBreaker(for: rope, upTo: rope.endIndex)
+        b.push(&rope.root)
+    }
+
+    mutating func push(_ rope: inout Rope, slicedBy range: Range<Rope.Index>) {
+        assert(leaves.isEmpty)
+
+        br = Rope.GraphemeBreaker(for: rope, upTo: range.upperBound)
+        b.push(&rope.root, slicedBy: Range(range))
+    }
+
+    private mutating func push(chunk: Chunk) {
+        if leaves.count == BTreeNode<RopeSummary>.maxChild && !leaves.last!.isUndersized && !chunk.isUndersized {
+            pushLeaves()
+        }
+
+        if leaves.isEmpty || (!leaves.last!.isUndersized && !chunk.isUndersized) {
+            leaves.append(BTreeNode(leaf: chunk))
+            return
+        }
+
+        var lastNode = leaves.removeLast()
+
+        assert(!lastNode.isUndersized)
+        assert(lastNode.isLeaf)
+
+        let newChunk = lastNode.updateLeaf { $0.pushMaybeSplitting(other: chunk) }
+
+        br = lastNode.leaf.endBreakState
+        leaves.append(lastNode)
+
+        if let newChunk {
+            assert(!newChunk.isUndersized)
+
+            br = newChunk.endBreakState 
+            leaves.append(BTreeNode(leaf: newChunk))
+        }
+    }
+
+    consuming func build() -> Rope {
+        if leaves.count > 0 {
+            pushLeaves()
+        }
+
+        return b.build()
+    }
+
+    private mutating func pushLeaves() {
+        assert(!leaves.isEmpty)
+        
+        if leaves.count == 1 {
+            var node = leaves.removeLast()
+            b.push(&node)
+            return
+        }
+
+        let children = leaves
+        // make sure leafs are uniquely referenced before pushing
+        leaves = []
+
+        var node = BTreeNode(children: children)
+        b.push(&node)
     }
 }
-
 
 fileprivate func boundaryForBulkInsert(_ s: Substring) -> String.Index {
     boundary(for: s, startingAt: Chunk.minSize)
@@ -855,24 +943,22 @@ extension Rope: RangeReplaceableCollection {
         //
         // Pushing both the prefix and suffix onto the builder in one step should
         // make the copying here unnecessary.
-        var r = root
+        var dup = self
 
         if var new = newElements as? Rope {
-            var b = BTreeBuilder<Rope>()
-            b.push(&r, slicedBy: Range(startIndex..<rangeStart))
-            b.push(&new.root)
-            b.push(&r, slicedBy: Range(rangeEnd..<endIndex))
+            var b = RopeBuilder()
+            b.push(&dup, slicedBy: startIndex..<rangeStart)
+            b.push(&new)
+            b.push(&dup, slicedBy: rangeEnd..<endIndex)
             self = b.build()
 
             return
         }
 
-        var b = BTreeBuilder<Rope>()
-        var br = GraphemeBreaker(for: self, upTo: rangeStart, withKnownNextScalar: newElements.first?.unicodeScalars.first)
-
-        b.push(&r, slicedBy: Range(startIndex..<rangeStart))
-        b.push(string: newElements, breaker: &br)
-        b.push(&r, slicedBy: Range(rangeEnd..<endIndex))
+        var b = RopeBuilder()
+        b.push(&dup, slicedBy: startIndex..<rangeStart)
+        b.push(string: newElements)
+        b.push(&dup, slicedBy: rangeEnd..<endIndex)
 
         self = b.build()
     }
@@ -880,18 +966,16 @@ extension Rope: RangeReplaceableCollection {
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
         if var r = newElements as? Rope {
-            var b = BTreeBuilder<Rope>()
-            b.push(&root)
-            b.push(&r.root)
+            var b = RopeBuilder()
+            b.push(&self)
+            b.push(&r)
             self = b.build()
             return
         }
 
-        var b = BTreeBuilder<Rope>()
-        var br = GraphemeBreaker(for: self, upTo: endIndex)
-
-        b.push(&root)
-        b.push(string: newElements, breaker: &br)
+        var b = RopeBuilder()
+        b.push(&self)
+        b.push(string: newElements)
         self = b.build()
     }
 }
@@ -904,9 +988,9 @@ extension Rope {
         var l = left
         var r = right
 
-        var b = BTreeBuilder<Rope>()
-        b.push(&l.root)
-        b.push(&r.root)
+        var b = RopeBuilder()
+        b.push(&l)
+        b.push(&r)
         return b.build()
     }
 
