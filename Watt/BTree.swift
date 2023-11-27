@@ -965,21 +965,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 // MARK: - Mutation
 
 extension NodeProtocol {
-    mutating func mutateLeaf(containing position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Void) {
+    mutating func mutatingForEach(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) {
         precondition(position >= 0 && position <= count)
-
-        return mutateLeaves(startingAt: position) { offset, leaf in
-            block(offset, &leaf)
-            return false
-        }
+        _ = mutatingForEach(startingAt: position, offsetOfNode: 0, using: block)
     }
 
-    mutating func mutateLeaves(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) {
-        precondition(position >= 0 && position <= count)
-        _ = mutateLeaves(startingAt: position, offsetOfNode: 0, using: block)
-    }
-
-    private mutating func mutateLeaves(startingAt position: Int, offsetOfNode: Int, using block: (_ offsetOfLeaf: Int, inout Summary.Leaf) -> Bool) -> Bool {
+    private mutating func mutatingForEach(startingAt position: Int, offsetOfNode: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) -> Bool {
 
         if isLeaf {
             return updateLeaf { l in block(offsetOfNode, &l) }
@@ -989,7 +980,7 @@ extension NodeProtocol {
         storage.mutationCount &+= 1
 
         var offset = 0
-        var done = false
+        var cont = true
         storage.summary = .zero
         for i in 0..<children.count {
             let end = offset + children[i].count
@@ -1001,14 +992,14 @@ extension NodeProtocol {
                 continue
             }
 
-            if !done {
-                done = !children[i].mutateLeaves(startingAt: position - offset, offsetOfNode: offsetOfNode + offset, using: block)
+            if cont {
+                cont = children[i].mutatingForEach(startingAt: position - offset, offsetOfNode: offsetOfNode + offset, using: block)
             }
             storage.summary += children[i].summary
             offset += children[i].count
         }
 
-        return !done
+        return cont
     }
 
     @discardableResult
@@ -1278,18 +1269,20 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         var i = right.startIndex
         var prev: Leaf? = nil
 
-        left.mutateLeaf(containing: left.count) { _, leaf in
+        left.mutatingForEach(startingAt: left.count) { _, leaf in
             // each tree has at least one leaf
             let (next, _) = i.read()!
 
             done = leaf.fixup(withNext: next)
             prev = leaf
+            return false
         }
+
         if done {
             return
         }
 
-        right.mutateLeaves(startingAt: 0) { offset, leaf in
+        right.mutatingForEach(startingAt: 0) { offset, leaf in
             done = leaf.fixup(withPrevious: prev!)
             if done {
                 return false
