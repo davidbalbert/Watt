@@ -990,9 +990,9 @@ extension NodeProtocol {
             left.storage.mutationCount &+= 1
             defer { left.updateNonLeafMetadata() }
 
-            var (offset, done) = mutateChildren(pos, left.count, &left.children)
+            var (offset, more) = mutateChildren(pos, left.count, &left.children)
 
-            if done {
+            if !more {
                 return false
             }
 
@@ -1006,8 +1006,8 @@ extension NodeProtocol {
             }
 
             // handle the rest of the pairs
-            (_, done) = mutateChildren(pos - offset, right.count, &right.children)
-            return done
+            (_, more) = mutateChildren(pos - offset, right.count, &right.children)
+            return more
         }
 
         func mutateChildren(_ pos: Int, _ count: Int, _ children: inout [BTreeNode<Summary>]) -> (Int, Bool) {
@@ -1033,7 +1033,7 @@ extension NodeProtocol {
             }
 
             children = mutated
-            return (offset, done)
+            return (offset, !done)
         }
 
         ensureUnique()
