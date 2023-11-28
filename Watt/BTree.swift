@@ -1042,41 +1042,39 @@ extension NodeProtocol {
         updateNonLeafMetadata()
     }
 
-    mutating func mutatingForEach(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) {
-        precondition(position >= 0 && position <= count)
-        _ = mutatingForEach(startingAt: position, offsetOfNode: 0, using: block)
-    }
-
-    private mutating func mutatingForEach(startingAt position: Int, offsetOfNode: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) -> Bool {
-        if isLeaf {
-            return updateLeaf { l in block(offsetOfNode, &l) }
-        }
-
-        ensureUnique()
-        storage.mutationCount &+= 1
-
-        var offset = 0
-        var done = false
-        for i in 0..<children.count {
-            let end = offset + children[i].count
-
-            // skip children that don't contain position, making an exception for position == count
-            if position > end || (position == end && position < count) {
-                offset += children[i].count
-                continue
+    mutating func mutatingForEach(startingAt position: Int, using block: (inout Leaf) -> Bool) {
+        func helper<N>(_ pos: Int, _ n: inout N) -> Bool where N: NodeProtocol<Summary> {
+            if n.isLeaf {
+                return n.updateLeaf { l in block(&l) }
             }
 
-            if !children[i].mutatingForEach(startingAt: position - offset, offsetOfNode: offsetOfNode + offset, using: block) {
-                done = true
-                break
+            n.ensureUnique()
+            n.storage.mutationCount &+= 1
+
+            var offset = 0
+            var done = false
+            for i in 0..<n.children.count {
+                let end = offset + n.children[i].count
+
+                // skip children that don't contain pos, making an exception for pos == count
+                if pos > end || (pos == end && pos < n.count) {
+                    offset += n.children[i].count
+                    continue
+                }
+
+                if !helper(pos - offset, &n.children[i]) {
+                    done = true
+                    break
+                }
+
+                offset += n.children[i].count
             }
 
-            offset += children[i].count
+            n.updateNonLeafMetadata()
+            return done
         }
 
-        updateNonLeafMetadata()
-
-        return !done
+        _ = helper(position, &self)
     }
 
     @discardableResult
@@ -1373,9 +1371,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
 
-        left.mutatingForEach(startingAt: left.count) { _, last in
-            right.mutatingForEach(startingAt: 0) { _, first in
-                done = last.fixup(withNext: &first)
+        left.mutatingForEach(startingAt: left.count) { prev in
+            right.mutatingForEach(startingAt: 0) { next in
+                done = prev.fixup(withNext: &next)
                 return false
             }
             return false
