@@ -599,14 +599,8 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 
 // MARK: - Builder
 
-// An optimization to unnecessary calls to fixup while building. When we're
-// building a Rope out of a long string, we're already running a GraphemeBreaker
-// down the length of the string, so all the chunks we create are already in sync.
-//
-// If we push chunks onto a BTreeBuilder one at a time, fixup will be called on
-// each pair, which will be a no-op but slows things down. Instead, we build up
-// trees where height=1 in the RopeBuilder and then push those on to the BTreeBuilder,
-// skipping the fixup between leaves.
+// An optimized builder that handles grapheme breaking and skips unnecessary
+// calls to fixup.
 struct RopeBuilder {
     var b: BTreeBuilder<Rope>
     var breaker: Rope.GraphemeBreaker
@@ -616,8 +610,13 @@ struct RopeBuilder {
         self.breaker = Rope.GraphemeBreaker()
     }
 
-    mutating func push(string: some Sequence<Character>) {
-        var string = String(string)
+    mutating func push(characters: some Sequence<Character>) {
+        if var r = characters as? Rope {
+            push(&r)
+            return
+        }
+
+        var string = String(characters)
         string.makeContiguousUTF8()
 
         var i = string.startIndex
@@ -894,19 +893,9 @@ extension Rope: RangeReplaceableCollection {
         // make the copying here unnecessary.
         var dup = self
 
-        if var new = newElements as? Rope {
-            var b = RopeBuilder()
-            b.push(&dup, slicedBy: startIndex..<rangeStart)
-            b.push(&new)
-            b.push(&dup, slicedBy: rangeEnd..<endIndex)
-            self = b.build()
-
-            return
-        }
-
         var b = RopeBuilder()
         b.push(&dup, slicedBy: startIndex..<rangeStart)
-        b.push(string: newElements)
+        b.push(characters: newElements)
         b.push(&dup, slicedBy: rangeEnd..<endIndex)
 
         self = b.build()
@@ -914,17 +903,9 @@ extension Rope: RangeReplaceableCollection {
 
     // The deafult implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
-        if var r = newElements as? Rope {
-            var b = RopeBuilder()
-            b.push(&self)
-            b.push(&r)
-            self = b.build()
-            return
-        }
-
         var b = RopeBuilder()
         b.push(&self)
-        b.push(string: newElements)
+        b.push(characters: newElements)
         self = b.build()
     }
 }
