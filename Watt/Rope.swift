@@ -66,6 +66,10 @@ extension RopeSummary: BTreeDefaultMetric {
 
 
 struct Chunk: BTreeLeaf {
+    static var needsFixupOnAppend: Bool {
+        true
+    }
+
     // measured in base units
     static let minSize = 511
     static let maxSize = 1023
@@ -147,10 +151,6 @@ struct Chunk: BTreeLeaf {
             endBreakState = b
             return Chunk(rest[...], breaker: &b)
         }
-    }
-
-    static var needsFixupOnAppend: Bool {
-        true
     }
 
     mutating func fixup(withPrevious prev: Chunk) -> Bool {

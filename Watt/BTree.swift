@@ -52,21 +52,21 @@ protocol BTreeDefaultMetric: BTreeSummary {
 protocol BTreeLeaf {
     static var zero: Self { get }
 
+    // True if the state of a leaf depends on the state of the previous and/or
+    // next leaves.
+    static var needsFixupOnAppend: Bool { get }
+
     // Measured in base units
     var count: Int { get }
     var isUndersized: Bool { get }
     mutating func pushMaybeSplitting(other: Self) -> Self?
 
-    // Specified in base units from the start of self. Should be O(1).
-    subscript(bounds: Range<Int>) -> Self { get }
-
-    // True if the state of a leaf depends on the state of the previous leaf.
-    // If true, fixup(prev:) is called whenever two leaves are
-    // concatenated together.
-    static var needsFixupOnAppend: Bool { get }
     // Returns true if we're in sync. Returns false if we need to continue fixing up.
     mutating func fixup(withPrevious: Self) -> Bool
     mutating func fixup(withNext: Self) -> Bool
+
+    // Specified in base units from the start of self. Should be O(1).
+    subscript(bounds: Range<Int>) -> Self { get }
 }
 
 extension BTreeLeaf {
