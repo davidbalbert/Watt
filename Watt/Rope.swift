@@ -611,12 +611,10 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 struct RopeBuilder {
     var b: BTreeBuilder<Rope>
     var br: Rope.GraphemeBreaker
-    var leaves: [BTreeNode<RopeSummary>]
 
     init() {
         self.b = BTreeBuilder<Rope>()
         self.br = Rope.GraphemeBreaker()
-        self.leaves = []
     }
 
     mutating func push(string: some Sequence<Character>) {
@@ -624,6 +622,7 @@ struct RopeBuilder {
         string.makeContiguousUTF8()
 
         var i = string.startIndex
+        var first = true
 
         while i < string.endIndex {
             let n = string.utf8.distance(from: i, to: string.endIndex)
@@ -635,80 +634,24 @@ struct RopeBuilder {
                 end = boundaryForBulkInsert(string[i...])
             }
             
-            push(chunk: Chunk(string[i..<end], breaker: &br))
+            b.push(leaf: Chunk(string[i..<end], breaker: &br), skipFixup: !first)
+            first = false
             i = end
-        }
-
-        if leaves.count > 0 {
-            pushLeaves()
         }
     }
 
     mutating func push(_ rope: inout Rope) {
-        assert(leaves.isEmpty)
-
         br = Rope.GraphemeBreaker(for: rope, upTo: rope.endIndex)
         b.push(&rope.root)
     }
 
     mutating func push(_ rope: inout Rope, slicedBy range: Range<Rope.Index>) {
-        assert(leaves.isEmpty)
-
         br = Rope.GraphemeBreaker(for: rope, upTo: range.upperBound)
         b.push(&rope.root, slicedBy: Range(range))
     }
 
-    private mutating func push(chunk: Chunk) {
-        if leaves.count == BTreeNode<RopeSummary>.maxChild && !leaves.last!.isUndersized && !chunk.isUndersized {
-            pushLeaves()
-        }
-
-        if leaves.isEmpty || (!leaves.last!.isUndersized && !chunk.isUndersized) {
-            leaves.append(BTreeNode(leaf: chunk))
-            return
-        }
-
-        var lastNode = leaves.removeLast()
-
-        assert(!lastNode.isUndersized)
-        assert(lastNode.isLeaf)
-
-        let newChunk = lastNode.updateLeaf { $0.pushMaybeSplitting(other: chunk) }
-
-        br = lastNode.leaf.endBreakState
-        leaves.append(lastNode)
-
-        if let newChunk {
-            assert(!newChunk.isUndersized)
-
-            br = newChunk.endBreakState 
-            leaves.append(BTreeNode(leaf: newChunk))
-        }
-    }
-
     consuming func build() -> Rope {
-        if leaves.count > 0 {
-            pushLeaves()
-        }
-
-        return b.build()
-    }
-
-    private mutating func pushLeaves() {
-        assert(!leaves.isEmpty)
-        
-        if leaves.count == 1 {
-            var node = leaves.removeLast()
-            b.push(&node)
-            return
-        }
-
-        let children = leaves
-        // make sure leafs are uniquely referenced before pushing
-        leaves = []
-
-        var node = BTreeNode(children: children)
-        b.push(&node)
+        return b.build(skipFixup: true)
     }
 }
 
