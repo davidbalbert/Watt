@@ -1531,6 +1531,18 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.root.children.count, 6)
     }
 
+    func testBTreeBuilderFixesUpWhileSlicingWithinGraphemeCluster() {
+        var r1 = Rope("a\u{0301}")
+
+        var b = BTreeBuilder<Rope>()
+        b.push(&r1.root, slicedBy: 1..<3)
+        let r = b.build()
+
+        XCTAssertEqual(r.count, 1)
+        XCTAssertEqual(r.unicodeScalars.count, 1)
+        XCTAssertEqual(r.utf16.count, 1)
+        XCTAssertEqual(r.utf8.count, 2)
+    }
 
     // TODO: this is broken. Rope.LinesView really needs its own Index type.
     // In the case where the rope is empty, or the rope ends in a newline,
