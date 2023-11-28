@@ -1179,7 +1179,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         while true {
             assert(stack.last?.last == nil || stack.last!.last!.height >= n.height)
 
-            if stack.last?.last?.height == n.height { // lastNode?.height == n.height
+            if !isEmpty && stack.last!.last!.height == n.height {
                 var lastNode = popLast()!
 
                 if !lastNode.isUndersized && !n.isUndersized {
@@ -1222,7 +1222,19 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 }
 
                 n = pop()
+            } else if !isEmpty {
+                var lastNode = popLast()!
+                if Leaf.needsFixupOnAppend {
+                    fixup(&lastNode, &n)
+                }
+                stack[stack.count - 1].append(lastNode)
+                stack.append([n])
+                break
             } else {
+                if Leaf.needsFixupOnAppend {
+                    var blank = PartialTree()
+                    fixup(&blank, &n)
+                }
                 stack.append([n])
                 break
             }

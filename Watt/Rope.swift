@@ -217,10 +217,9 @@ struct Chunk: BTreeLeaf {
         // didn't even get to the old firstBreak. This means the breaks didn't
         // change at all.
 
-        // We got to the end without getting in sync. By definition this means that
-        // our old endBreakState and our new endBreakState are not the same.
+        // We got to the end, either because we're not in sync yet, or because we got
+        // in sync at right at the end of the chunk. Save the break state.
         if i == string.endIndex {
-            assert(string.isEmpty || new != endBreakState)
             endBreakState = new
         }
 
