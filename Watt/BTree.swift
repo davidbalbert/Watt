@@ -1223,11 +1223,11 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
                 n = pop()
             } else if !isEmpty {
-                var lastNode = popLast()!
                 if Leaf.needsFixupOnAppend {
+                    var lastNode = popLast()!
                     fixup(&lastNode, &n)
+                    stack[stack.count - 1].append(lastNode)
                 }
-                stack[stack.count - 1].append(lastNode)
                 stack.append([n])
                 break
             } else {
