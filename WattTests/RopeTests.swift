@@ -1531,8 +1531,15 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.root.children.count, 6)
     }
 
-    func testBTreeBuilderFixesUpWhileSlicingWithinGraphemeCluster() {
+    func testBTreeBuilderFixesUpWhileSlicingGraphemeCluster() {
         var r1 = Rope("a\u{0301}")
+
+        XCTAssertEqual(r1.count, 1)
+        XCTAssertEqual(r1.unicodeScalars.count, 2)
+        XCTAssertEqual(r1.utf16.count, 2)
+        XCTAssertEqual(r1.utf8.count, 3)
+
+        XCTAssertEqual(r1.first, "a\u{0301}")
 
         var b = BTreeBuilder<Rope>()
         b.push(&r1.root, slicedBy: 1..<3)
@@ -1542,6 +1549,40 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.unicodeScalars.count, 1)
         XCTAssertEqual(r.utf16.count, 1)
         XCTAssertEqual(r.utf8.count, 2)
+
+        XCTAssertEqual(r.first, "\u{0301}")
+    }
+
+    func testBTreeBuilderFixesUpWhileSlicingGraphemeClusterOnChunkBoundary() {
+        var r1 = Rope()
+        r1 += String(repeating: "a", count: 1000)
+        r1 += "\u{0301}" + String(repeating: "b", count: 999)
+
+        XCTAssertEqual(r1.count, 1999)
+        XCTAssertEqual(r1.unicodeScalars.count, 2000)
+        XCTAssertEqual(r1.utf16.count, 2000)
+        XCTAssertEqual(r1.utf8.count, 2001)
+
+        XCTAssertEqual(r1[r1.index(at: 999)], "a\u{0301}")
+
+        XCTAssertEqual(r1.root.height, 1)
+        XCTAssertEqual(r1.root.children.count, 2)
+        XCTAssertEqual(r1.root.children[0].count, 1000)
+        XCTAssertEqual(r1.root.children[1].count, 1001)
+
+        var b = BTreeBuilder<Rope>()
+        b.push(&r1.root, slicedBy: 1000..<2001)
+        let r = b.build()
+
+        XCTAssertEqual(r.count, 1000)
+        XCTAssertEqual(r.unicodeScalars.count, 1000)
+        XCTAssertEqual(r.utf16.count, 1000)
+        XCTAssertEqual(r.utf8.count, 1001)
+
+        XCTAssertEqual(r.first, "\u{0301}")
+
+        XCTAssertEqual(r.root.height, 0)
+        XCTAssertEqual(r.root.count, 1001)
     }
 
     // TODO: this is broken. Rope.LinesView really needs its own Index type.
