@@ -1094,7 +1094,13 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // Each inner array contains trees of the same height and has a
     // count less than maxChild. If an inner array has a count greater
     // than 1, all of its children are balanced.
-    var stack: [[PartialTree]] = []
+    var stack: [[PartialTree]]
+    var skipFixup: Bool
+
+    init() {
+        stack = []
+        skipFixup = false
+    }
 
     var isEmpty: Bool {
         stack.isEmpty
@@ -1102,11 +1108,20 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
     // Always call this method on a local variable, never directly on the child
     // of an existing node. I.e. this is bad: push(&node.children[n]).
-    mutating func push(_ node: inout BTreeNode<Summary>, skipFixup: Bool = false) {
+    mutating func push(_ node: inout BTreeNode<Summary>) {
         // must call isUnique() on a separate line, otherwise
         // we end up with two references.
         let isUnique = node.isUnique()
-        push(PartialTree(node, isUnique: isUnique), skipFixup: skipFixup)
+        push(PartialTree(node, isUnique: isUnique))
+    }
+
+    // Precondition: leaves must already be fixed up with each other.
+    mutating func push<S>(leaves: S) where S: Sequence<Leaf> {
+        for l in leaves {
+            push(leaf: l)
+            skipFixup = true
+        }
+        skipFixup = false
     }
 
     // For descendents of root, isKnownUniquelyReferenced isn't enough to know whether
@@ -1119,8 +1134,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // of an existing node. I.e. this is bad: push(&node.children[n], slicedBy:...).
     // If you don't do this, the builder will think that root is safe to mutate even
     // though it's also a subtree of a larger tree.
-    mutating func push(_ root: inout BTreeNode<Summary>, slicedBy range: Range<Int>, skipFixup: Bool = false) {
-        var first = true
+    mutating func push(_ root: inout BTreeNode<Summary>, slicedBy range: Range<Int>) {
+        defer { skipFixup = false }
 
         func helper(_ n: inout BTreeNode<Summary>, slicedBy r: Range<Int>, isUnique: Bool) {
             let isUnique = isUnique && n.isUnique()
@@ -1130,14 +1145,14 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             }
 
             if r == 0..<n.count {
-                push(PartialTree(n, isUnique: isUnique), skipFixup: skipFixup || !first)
-                first = false
+                push(PartialTree(n, isUnique: isUnique))
+                skipFixup = true
                 return
             }
 
             if n.isLeaf {
-                push(leaf: n.leaf, slicedBy: r, skipFixup: skipFixup || !first)
-                first = false
+                push(leaf: n.leaf, slicedBy: r)
+                skipFixup = true
             } else {
                 var offset = 0
                 for i in 0..<n.children.count {
@@ -1157,15 +1172,15 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         helper(&root, slicedBy: range, isUnique: isUnique)
     }
 
-    mutating func push(leaf: Leaf, slicedBy range: Range<Int>, skipFixup: Bool = false) {
-        push(leaf: leaf[range], skipFixup: skipFixup)
+    mutating func push(leaf: Leaf, slicedBy range: Range<Int>) {
+        push(leaf: leaf[range])
     }
 
-    mutating func push(leaf: Leaf, skipFixup: Bool = false) {
-        push(PartialTree(leaf: leaf), skipFixup: skipFixup)
+    mutating func push(leaf: Leaf) {
+        push(PartialTree(leaf: leaf))
     }
 
-    private mutating func push(_ node: PartialTree, skipFixup: Bool) {
+    private mutating func push(_ node: PartialTree) {
         var n = node
 
         // Ensure that n is no larger than the node at the top of the stack.
@@ -1263,7 +1278,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         }
     }
 
-    consuming func build(skipFixup: Bool = false) -> Tree {
+    consuming func build() -> Tree {
         var n: PartialTree = PartialTree()
         while !stack.isEmpty {
             var popped = pop()

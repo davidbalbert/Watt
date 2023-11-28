@@ -597,7 +597,6 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
     static var newlines: Rope.NewlinesMetric { Rope.NewlinesMetric() }
 }
 
-
 // MARK: - Builder
 
 // An optimization to unnecessary calls to fixup while building. When we're
@@ -610,11 +609,11 @@ extension BTreeMetric<RopeSummary> where Self == Rope.NewlinesMetric {
 // skipping the fixup between leaves.
 struct RopeBuilder {
     var b: BTreeBuilder<Rope>
-    var br: Rope.GraphemeBreaker
+    var breaker: Rope.GraphemeBreaker
 
     init() {
         self.b = BTreeBuilder<Rope>()
-        self.br = Rope.GraphemeBreaker()
+        self.breaker = Rope.GraphemeBreaker()
     }
 
     mutating func push(string: some Sequence<Character>) {
@@ -622,9 +621,13 @@ struct RopeBuilder {
         string.makeContiguousUTF8()
 
         var i = string.startIndex
-        var first = true
+        var br = breaker
 
-        while i < string.endIndex {
+        let iter = AnyIterator<Chunk> {
+            if i == string.endIndex {
+                return nil
+            }
+
             let n = string.utf8.distance(from: i, to: string.endIndex)
 
             let end: String.Index
@@ -633,25 +636,29 @@ struct RopeBuilder {
             } else {
                 end = boundaryForBulkInsert(string[i...])
             }
-            
-            b.push(leaf: Chunk(string[i..<end], breaker: &br), skipFixup: !first)
-            first = false
+
+            let chunk = Chunk(string[i..<end], breaker: &br)
             i = end
+
+            return chunk
         }
+
+        b.push(leaves: iter)
+        breaker = br
     }
 
     mutating func push(_ rope: inout Rope) {
-        br = Rope.GraphemeBreaker(for: rope, upTo: rope.endIndex)
+        breaker = Rope.GraphemeBreaker(for: rope, upTo: rope.endIndex)
         b.push(&rope.root)
     }
 
     mutating func push(_ rope: inout Rope, slicedBy range: Range<Rope.Index>) {
-        br = Rope.GraphemeBreaker(for: rope, upTo: range.upperBound)
+        breaker = Rope.GraphemeBreaker(for: rope, upTo: range.upperBound)
         b.push(&rope.root, slicedBy: Range(range))
     }
 
     consuming func build() -> Rope {
-        return b.build(skipFixup: true)
+        return b.build()
     }
 }
 
