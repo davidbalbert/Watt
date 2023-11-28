@@ -62,8 +62,7 @@ protocol BTreeLeaf {
     mutating func pushMaybeSplitting(other: Self) -> Self?
 
     // Returns true if we're in sync. Returns false if we need to continue fixing up.
-    mutating func fixup(withPrevious: Self) -> Bool
-    mutating func fixup(withNext: Self) -> Bool
+    mutating func fixup(withNext next: inout Self) -> Bool
 
     // Specified in base units from the start of self. Should be O(1).
     subscript(bounds: Range<Int>) -> Self { get }
@@ -74,11 +73,7 @@ extension BTreeLeaf {
         false
     }
 
-    mutating func fixup(withPrevious prev: Self) -> Bool {
-        true
-    }
-
-    mutating func fixup(withNext next: Self) -> Bool {
+    mutating func fixup(withNext next: inout Self) -> Bool {
         true
     }
 }
@@ -964,13 +959,95 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 // MARK: - Mutation
 
 extension NodeProtocol {
+    mutating func mutatingForEachPair(startingAt position: Int, using block: (inout Leaf, inout Leaf) -> Bool) {
+        precondition(position >= 0 && position <= count)
+
+        // If root has height=0, there's only one leaf, so don't mutate.
+        if isLeaf {
+            return
+        }
+
+        func mutatePair(_ pos: Int, _ left: inout BTreeNode<Summary>, _ right: inout BTreeNode<Summary>) -> Bool {
+            assert(left.height == right.height)
+
+            if left.isLeaf {
+                assert(right.isLeaf)
+
+                return left.updateLeaf { a in
+                    right.updateLeaf { b in
+                        block(&a, &b)
+                    }
+                }
+            }
+
+            // A root with height=1 can have 2...maxChild children.
+            // All other non-leaf nodes can have minChild...maxChild children.
+            // assert(left.children.count > 1 && right.children.count > 1)
+            assert(left.children.count > 1)
+            assert(right.children.count > 1)
+
+            left.ensureUnique()
+            left.storage.mutationCount &+= 1
+            defer { left.updateNonLeafMetadata() }
+
+            var (offset, done) = mutateChildren(pos, left.count, &left.children)
+
+            if done {
+                return false
+            }
+
+            right.ensureUnique()
+            right.storage.mutationCount &+= 1
+            defer { right.updateNonLeafMetadata() }
+
+            // handle the middle pair
+            if !mutatePair(pos - offset - left.children.last!.count, &left.children[left.children.count - 1], &right.children[0]) {
+                return false
+            }
+
+            // handle the rest of the pairs
+            (_, done) = mutateChildren(pos - offset, right.count, &right.children)
+            return done
+        }
+
+        func mutateChildren(_ pos: Int, _ count: Int, _ children: inout [BTreeNode<Summary>]) -> (Int, Bool) {
+            var mutated: [BTreeNode<Summary>] = [children.removeFirst()]
+            var offset = 0
+            var done = false
+            while !children.isEmpty {
+                let end = offset + mutated[mutated.count - 1].count
+                defer { offset = end }
+
+                var next = children.removeFirst()
+
+                if done || pos > end || (pos == end && pos < count) {
+                    mutated.append(next)
+                    continue
+                }
+
+                if !mutatePair(pos - offset, &mutated[mutated.count - 1], &next) {
+                    done = true
+                }
+
+                mutated.append(next)
+            }
+
+            children = mutated
+            return (offset, done)
+        }
+
+        ensureUnique()
+        storage.mutationCount &+= 1
+        _ = mutateChildren(position, count, &children)
+        updateNonLeafMetadata()
+    }
+
     mutating func mutatingForEach(startingAt position: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) {
         precondition(position >= 0 && position <= count)
         _ = mutatingForEach(startingAt: position, offsetOfNode: 0, using: block)
     }
 
     private mutating func mutatingForEach(startingAt position: Int, offsetOfNode: Int, using block: (_ offsetOfLeaf: Int, inout Leaf) -> Bool) -> Bool {
-
         if isLeaf {
             return updateLeaf { l in block(offsetOfNode, &l) }
         }
@@ -985,7 +1062,6 @@ extension NodeProtocol {
 
             // skip children that don't contain position, making an exception for position == count
             if position > end || (position == end && position < count) {
-                storage.summary += children[i].summary
                 offset += children[i].count
                 continue
             }
@@ -1007,6 +1083,7 @@ extension NodeProtocol {
     mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
         precondition(isLeaf, "updateLeaf called on a non-leaf node")
         ensureUnique()
+        storage.mutationCount &+= 1
         let r = body(&storage.leaf)
         updateLeafMetadata()
         return r
@@ -1295,15 +1372,12 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
     private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
-        var i = right.startIndex
-        var prev: Leaf? = nil
 
-        left.mutatingForEach(startingAt: left.count) { _, leaf in
-            // each tree has at least one leaf
-            let (next, _) = i.read()!
-
-            done = leaf.fixup(withNext: next)
-            prev = leaf
+        left.mutatingForEach(startingAt: left.count) { _, last in
+            right.mutatingForEach(startingAt: 0) { _, first in
+                done = last.fixup(withNext: &first)
+                return false
+            }
             return false
         }
 
@@ -1311,24 +1385,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             return
         }
 
-        right.mutatingForEach(startingAt: 0) { offset, leaf in
-            done = leaf.fixup(withPrevious: prev!)
-            if done {
-                return false
-            }
-
-            guard let (next, _) = i.nextLeaf() else {
-                // We're at the end of the tree. Even if we return true, we'd stop here.
-                return false
-            }
-
-            done = leaf.fixup(withNext: next)
-            if done {
-                return false
-            }
-
-            prev = leaf
-            return true
+        right.mutatingForEachPair(startingAt: 0) { prev, next in
+            return !prev.fixup(withNext: &next)
         }
     }
 }
