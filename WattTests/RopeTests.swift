@@ -1114,8 +1114,10 @@ final class RopeTests: XCTestCase {
     }
 
     func testNextCharacterAtBoundaryWithCombining() {
-        let s = String(repeating: "a", count: 1023) + "\u{0301}" + String(repeating: "b", count: 1022) // U+0301 COMBINING ACUTE ACCENT
+        let s = String(repeating: "a", count: 1023) + "\u{0301}" + String(repeating: "b", count: 1021) // U+0301 COMBINING ACUTE ACCENT
         let r = Rope(s)
+
+        XCTAssertEqual(r.root.children.count, 2)
 
         let i = r.utf8.index(at: 1022)
         XCTAssertEqual(1025, r.index(after: i).position)

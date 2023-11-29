@@ -462,7 +462,7 @@ extension Heights {
             return found
         }
 
-        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
+        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
             assert(offset > 0 && offset <= leaf.count)
 
             // Handle special cases where leaf ends in a blank line.
@@ -489,7 +489,7 @@ extension Heights {
             fatalError("this is unreachable, offset must be <= leaf.count")
         }
 
-        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
+        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
             assert(offset >= 0 && offset < leaf.count)
 
             // situations:
@@ -586,12 +586,12 @@ extension Heights {
             HeightsBaseMetric().isBoundary(offset, in: leaf)
         }
         
-        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf, prevLeaf: prevLeaf)
+        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            HeightsBaseMetric().prev(offset, in: leaf)
         }
         
-        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf, nextLeaf: nextLeaf)
+        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            HeightsBaseMetric().next(offset, in: leaf)
         }
 
         var canFragment: Bool {

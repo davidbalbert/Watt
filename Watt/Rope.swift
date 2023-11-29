@@ -79,15 +79,19 @@ struct Chunk: BTreeLeaf {
     }
 
     var string: String
+
+    // The number of bytes that continue a grapheme from
+    // the previous chunk.
     var prefixCount: Int
+
+    // does the last grapheme continue on to the next Chunk
+    var lastCharSplits: Bool
 
     // a breaker ready to consume the first
     // scalar in the Chunk. Used for prefix
     // calculation in pushMaybeSplitting(other:)
-    var startBreakState: Rope.GraphemeBreaker
-
-    // a breaker that has consumed the entirety of string.
-    var endBreakState: Rope.GraphemeBreaker
+    // and fixup(withNext:)
+    var breaker: Rope.GraphemeBreaker
 
     var count: Int {
         string.utf8.count
@@ -116,8 +120,8 @@ struct Chunk: BTreeLeaf {
     init() {
         self.string = ""
         self.prefixCount = 0
-        self.startBreakState = Rope.GraphemeBreaker()
-        self.endBreakState = Rope.GraphemeBreaker()
+        self.lastCharSplits = false
+        self.breaker = Rope.GraphemeBreaker()
     }
 
     init(_ substring: Substring, breaker b: inout Rope.GraphemeBreaker) {
@@ -126,20 +130,20 @@ struct Chunk: BTreeLeaf {
         assert(s.utf8.count <= Chunk.maxSize)
 
         // save the breaker at the start of the chunk
-        self.startBreakState = b
+        self.breaker = b
 
         self.string = s
         self.prefixCount = consumeAndFindPrefixCount(in: s, using: &b)
-        self.endBreakState = b
+        self.lastCharSplits = false
     }
 
     mutating func pushMaybeSplitting(other: Chunk) -> Chunk? {
         string += other.string
-        var b = startBreakState
+        var b = breaker
 
         if string.utf8.count <= Chunk.maxSize {
             prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
-            endBreakState = b
+            lastCharSplits = other.lastCharSplits
             return nil
         } else {
             let i = boundaryForMerge(string[...])
@@ -148,8 +152,11 @@ struct Chunk: BTreeLeaf {
             string = String(string.unicodeScalars[..<i])
 
             prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
-            endBreakState = b
-            return Chunk(rest[...], breaker: &b)
+            let next = Chunk(rest[...], breaker: &b)
+            if next.prefixCount > 0 {
+                lastCharSplits = true
+            }
+            return next
         }
     }
 
@@ -158,10 +165,11 @@ struct Chunk: BTreeLeaf {
         var i = s.startIndex
         var first: String.Index?
 
-        var old = next.startBreakState
-        var new = endBreakState
+        var old = next.breaker
+        var new = breaker
+        new.consume(self.string[...])
 
-        next.startBreakState = new
+        next.breaker = new
 
         while i < s.unicodeScalars.endIndex {
             let scalar = s.unicodeScalars[i]
@@ -218,11 +226,8 @@ struct Chunk: BTreeLeaf {
         // didn't even get to the old firstBreak. This means the breaks didn't
         // change at all.
 
-        // We got to the end, either because we're not in sync yet, or because we got
-        // in sync at right at the end of the chunk. Save the break state.
-        if i == s.endIndex {
-            next.endBreakState = new
-        }
+
+        lastCharSplits = next.prefixCount > 0
 
         // We're done if we synced up before the end of the chunk.
         return i < s.endIndex
@@ -236,7 +241,7 @@ struct Chunk: BTreeLeaf {
             fatalError("invalid unicode scalar offsets")
         }
 
-        var b = startBreakState
+        var b = breaker
         b.consume(string[string.startIndex..<start])
         return Chunk(string[start..<end], breaker: &b)
     }
@@ -282,12 +287,12 @@ extension Rope {
             true
         }
 
-        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset > 0)
             return offset - 1
         }
 
-        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset < chunk.count)
             return offset + 1
         }
@@ -338,7 +343,7 @@ extension Rope {
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -351,7 +356,7 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -400,7 +405,7 @@ extension Rope {
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -413,7 +418,7 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -472,7 +477,7 @@ extension Rope {
             return chunk.isValidCharacterIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -490,18 +495,13 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func needsLookahead(_ offset: Int, in chunk: Chunk) -> Bool {
-            let current = chunk.string.utf8Index(at: offset)
-            return current >= chunk.lastBreak
-        }
-
-        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
 
-            if current >= chunk.lastBreak && (nextLeaf == nil || nextLeaf!.prefixCount > 0) {
+            if current >= chunk.lastBreak && chunk.lastCharSplits {
                 return nil
             }
 
@@ -560,7 +560,7 @@ extension Rope {
             }
         }
 
-        func prev(_ offset: Int, in chunk: Chunk, prevLeaf: Chunk?) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
             precondition(offset > 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
@@ -569,7 +569,7 @@ extension Rope {
             }
         }
 
-        func next(_ offset: Int, in chunk: Chunk, nextLeaf: Chunk?) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk) -> Int? {
             precondition(offset >= 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
@@ -605,36 +605,42 @@ struct RopeBuilder {
         self.breaker = Rope.GraphemeBreaker()
     }
 
-    mutating func push(characters: some Sequence<Character>) {
+    mutating func push<S>(characters: S) where S: Sequence<Character>{
         if var r = characters as? Rope {
             push(&r)
             return
         }
 
-        var string = String(characters)
-        string.makeContiguousUTF8()
-
-        var i = string.startIndex
+        var s = String(characters)[...]
+        s.makeContiguousUTF8()
         var br = breaker
 
-        let iter = AnyIterator<Chunk> {
-            if i == string.endIndex {
+        func nextChunk() -> Chunk? {
+            if s.isEmpty {
                 return nil
             }
 
-            let n = string.utf8.distance(from: i, to: string.endIndex)
-
             let end: String.Index
-            if n <= Chunk.maxSize {
-                end = string.endIndex
+            if s.utf8.count <= Chunk.maxSize {
+                end = s.endIndex
             } else {
-                end = boundaryForBulkInsert(string[i...])
+                end = boundaryForBulkInsert(s)
             }
 
-            let chunk = Chunk(string[i..<end], breaker: &br)
-            i = end
-
+            let chunk = Chunk(s[..<end], breaker: &br)
+            s = s[end...]
             return chunk
+        }
+
+        var chunk = nextChunk()
+        let iter = AnyIterator<Chunk> {
+            guard var c = chunk else {
+                return nil
+            }
+            let next = nextChunk()
+            defer { chunk = next }
+            c.lastCharSplits = (next?.prefixCount ?? 0) > 0
+            return c
         }
 
         b.push(leaves: iter)
@@ -725,6 +731,7 @@ extension Rope.Index {
             return nil
         }
 
+        assert(offset >= chunk.prefixCount)
         let ci = chunk.string.utf8Index(at: offset)
 
         assert(chunk.isValidCharacterIndex(ci))
@@ -977,13 +984,6 @@ extension Rope {
                 return
             }
 
-            if upperBound == rope.endIndex {
-                let (leaf, _) = upperBound.read()!
-
-                self = leaf.endBreakState
-                return
-            }
-
             if let next {
                 let i = rope.unicodeScalars.index(before: upperBound)
                 let prev = rope.unicodeScalars[i]
@@ -998,7 +998,7 @@ extension Rope {
             let i = chunk.string.utf8Index(at: offset)
 
             if i <= chunk.firstBreak {
-                self.init(chunk.startBreakState.recognizer, consuming: chunk.string[..<i])
+                self.init(chunk.breaker.recognizer, consuming: chunk.string[..<i])
                 return
             }
 
