@@ -153,17 +153,18 @@ struct Chunk: BTreeLeaf {
         }
     }
 
-    mutating func fixup(withPrevious prev: Chunk) -> Bool {
-        var i = string.startIndex
+    mutating func fixup(withNext next: inout Chunk) -> Bool {
+        let s = next.string
+        var i = s.startIndex
         var first: String.Index?
 
-        var old = startBreakState
-        var new = prev.endBreakState
+        var old = next.startBreakState
+        var new = endBreakState
 
-        startBreakState = new
+        next.startBreakState = new
 
-        while i < string.unicodeScalars.endIndex {
-            let scalar = string.unicodeScalars[i]
+        while i < s.unicodeScalars.endIndex {
+            let scalar = s.unicodeScalars[i]
             let a = old.hasBreak(before: scalar)
             let b = new.hasBreak(before: scalar)
 
@@ -179,13 +180,13 @@ struct Chunk: BTreeLeaf {
                 break
             }
 
-            i = string.unicodeScalars.index(after: i)
+            i = s.unicodeScalars.index(after: i)
         }
 
         if let first {
             // We found a new first break
-            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
-        } else if i >= lastBreak {
+            next.prefixCount = s.utf8.distance(from: s.startIndex, to: first)
+        } else if i >= next.lastBreak {
             // We made it up through lastBreak without finding any breaks
             // and now we're in sync. We know there are no more breaks
             // ahead of us, which means there are no breaks in the chunk.
@@ -199,18 +200,18 @@ struct Chunk: BTreeLeaf {
             // in the chunk without finding a break, we know there are still
             // no breaks in the chunk, so this code is a no-op.
 
-            prefixCount = string.utf8.count
-        } else if i >= firstBreak {
+            next.prefixCount = s.utf8.count
+        } else if i >= next.firstBreak {
             // We made it up through firstBreak without finding any breaks
             // but we got in sync before lastBreak. Find a new firstBreak:
 
-            let j = string.unicodeScalars.index(after: i)
+            let j = s.unicodeScalars.index(after: i)
             var tmp = new
-            let first = tmp.firstBreak(in: string[j...])!.lowerBound
-            prefixCount = string.utf8.distance(from: string.startIndex, to: first)
+            let first = tmp.firstBreak(in: s[j...])!.lowerBound
+            next.prefixCount = s.utf8.distance(from: s.startIndex, to: first)
 
             // If this is false, there's a bug in the code, or my assumptions are wrong.
-            assert(firstBreak <= lastBreak)
+            assert(next.firstBreak <= next.lastBreak)
         }
 
         // There's an implicit else clause to the above– we're in sync, and we
@@ -219,18 +220,12 @@ struct Chunk: BTreeLeaf {
 
         // We got to the end, either because we're not in sync yet, or because we got
         // in sync at right at the end of the chunk. Save the break state.
-        if i == string.endIndex {
-            endBreakState = new
+        if i == s.endIndex {
+            next.endBreakState = new
         }
 
         // We're done if we synced up before the end of the chunk.
-        return i < string.endIndex
-    }
-
-    // fixup(withPrevious:) decides whether we're done or not. fixup(withNext:) is
-    // a no-op and should always continue.
-    func fixup(withNext next: Chunk) -> Bool {
-        false
+        return i < s.endIndex
     }
 
     subscript(bounds: Range<Int>) -> Chunk {

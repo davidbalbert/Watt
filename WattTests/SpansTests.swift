@@ -138,19 +138,19 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testSpanBuilderPushSlicedByEmptyBuilder() {
-        var b1 = SpansBuilder<Int>(totalCount: 256)
+    func testBuilderFixupPushSlicedByEmptyBuilder() {
+        var sb = SpansBuilder<Int>(totalCount: 256)
         for i in stride(from: 0, through: 255, by: 2) {
-            b1.add(i, covering: i..<i+2)
+            sb.add(i, covering: i..<i+2)
         }
-        let s1 = b1.build()
+        var s1 = sb.build()
 
         XCTAssertEqual(256, s1.upperBound)
         XCTAssertEqual(128, s1.count)
 
-        var b2 = SpansBuilder<Int>(totalCount: 254)
-        b2.push(s1, slicedBy: 1..<255)
-        let s2 = b2.build()
+        var b = BTreeBuilder<Spans<Int>>()
+        b.push(&s1.root, slicedBy: 1..<255)
+        let s2 = b.build()
 
         XCTAssertEqual(254, s2.upperBound)
         XCTAssertEqual(128, s2.count)
@@ -173,25 +173,29 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testSpanBuilderPushSlicedByNonEmptyBuilder() {
-        var b1 = SpansBuilder<Int>(totalCount: 256)
+    func testBuilderFixupPushSlicedByNonEmptyBuilder() {
+        var sb1 = SpansBuilder<Int>(totalCount: 256)
         for i in stride(from: 0, through: 255, by: 2) {
-            b1.add(i, covering: i..<i+2)
+            sb1.add(i, covering: i..<i+2)
         }
-        let s1 = b1.build()
+        var s1 = sb1.build()
 
         XCTAssertEqual(256, s1.upperBound)
         XCTAssertEqual(128, s1.count)
 
-        var b2 = SpansBuilder<Int>(totalCount: 5) // set totalCount low to make sure it gets bumped up correctly.
-        b2.add(-1, covering: 0..<3)
-        b2.push(s1, slicedBy: 1..<255)
-        let s2 = b2.build()
+        var sb2 = SpansBuilder<Int>(totalCount: 3)
+        sb2.add(-1, covering: 0..<3)
+        var s2 = sb2.build()
 
-        XCTAssertEqual(257, s2.upperBound)
-        XCTAssertEqual(129, s2.count)
+        var b = BTreeBuilder<Spans<Int>>()
+        b.push(&s2.root)
+        b.push(&s1.root, slicedBy: 1..<255)
+        let s3 = b.build()
 
-        var iter = s2.makeIterator()
+        XCTAssertEqual(257, s3.upperBound)
+        XCTAssertEqual(129, s3.count)
+
+        var iter = s3.makeIterator()
         let first = iter.next()!
         XCTAssertEqual(0..<3, first.range)
         XCTAssertEqual(-1, first.data)
@@ -213,25 +217,29 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testSpansBuilderPushSlicedByCombineSpans() {
-        var b1 = SpansBuilder<Int>(totalCount: 256)
+    func testBuilderFixupPushSlicedByCombineSpans() {
+        var sb1 = SpansBuilder<Int>(totalCount: 256)
         for i in stride(from: 0, through: 255, by: 2) {
-            b1.add(i, covering: i..<i+2)
+            sb1.add(i, covering: i..<i+2)
         }
-        let s1 = b1.build()
+        var s1 = sb1.build()
 
         XCTAssertEqual(256, s1.upperBound)
         XCTAssertEqual(128, s1.count)
 
-        var b2 = SpansBuilder<Int>(totalCount: 257)
-        b2.add(0, covering: 0..<3)
-        b2.push(s1, slicedBy: 1..<255)
-        let s2 = b2.build()
+        var sb2 = SpansBuilder<Int>(totalCount: 3)
+        sb2.add(0, covering: 0..<3)
+        var s2 = sb2.build()
 
-        XCTAssertEqual(257, s2.upperBound)
-        XCTAssertEqual(128, s2.count)
+        var b = BTreeBuilder<Spans<Int>>()
+        b.push(&s2.root)
+        b.push(&s1.root, slicedBy: 1..<255)
+        let s3 = b.build()
 
-        var iter = s2.makeIterator()
+        XCTAssertEqual(257, s3.upperBound)
+        XCTAssertEqual(128, s3.count)
+
+        var iter = s3.makeIterator()
         let first = iter.next()!
         XCTAssertEqual(0..<4, first.range)
         XCTAssertEqual(0, first.data)
@@ -249,40 +257,35 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testSpansBuilderPushSlicedWithFullLeaf() {
+    func testBuilderFixupPushSlicedWithFullLeaf() {
         XCTAssertEqual(64, SpansLeaf<Int>.maxSize)
 
-        var b1 = SpansBuilder<Int>(totalCount: 128)
+        var sb1 = SpansBuilder<Int>(totalCount: 128)
         for i in stride(from: 0, through: 127, by: 2) {
-            b1.add(i, covering: i..<i+2)
+            sb1.add(i, covering: i..<i+2)
         }
-        let s1 = b1.build()
+        var s1 = sb1.build()
 
         XCTAssertEqual(128, s1.upperBound)
         XCTAssertEqual(64, s1.count)
         XCTAssertEqual(0, s1.root.height)
         XCTAssertEqual(64, s1.root.leaf.spans.count)
 
-        var b2 = SpansBuilder<Int>(totalCount: 64)
+        var sb2 = SpansBuilder<Int>(totalCount: 64)
         for i in stride(from: 0, through: 63, by: 2) {
-            b2.add(i, covering: i..<i+2)
+            sb2.add(i, covering: i..<i+2)
         }
-        let s2 = b2.build()
+        var s2 = sb2.build()
 
         XCTAssertEqual(64, s2.upperBound)
         XCTAssertEqual(32, s2.count)
         XCTAssertEqual(0, s2.root.height)
         XCTAssertEqual(32, s2.root.leaf.spans.count)
 
-        var b3 = SpansBuilder<Int>(totalCount: 0) // set totalCount low to make sure it gets bumped up correctly.
-        b3.push(s1, slicedBy: 0..<128)
-
-        XCTAssertEqual(128, b3.totalCount)
-        XCTAssertEqual(0, b3.offsetOfLeaf)
-        XCTAssertEqual(64, b3.leaf.spans.count)
-
-        b3.push(s2, slicedBy: 1..<63)
-        let s3 = b3.build()
+        var b = BTreeBuilder<Spans<Int>>()
+        b.push(&s1.root, slicedBy: 0..<128)
+        b.push(&s2.root, slicedBy: 1..<63)
+        let s3 = b.build()
 
         XCTAssertEqual(190, s3.upperBound)
         XCTAssertEqual(96, s3.count)
@@ -311,40 +314,35 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
-    func testSpansBuilderPushSlicedWithFullLeafCombineSpans() {
+    func testBuilderFixupPushSlicedWithFullLeafCombineSpans() {
         XCTAssertEqual(64, SpansLeaf<Int>.maxSize)
 
-        var b1 = SpansBuilder<Int>(totalCount: 128)
+        var sb1 = SpansBuilder<Int>(totalCount: 128)
         for i in stride(from: 0, through: 127, by: 2) {
-            b1.add(i, covering: i..<i+2)
+            sb1.add(i, covering: i..<i+2)
         }
-        let s1 = b1.build()
+        var s1 = sb1.build()
 
         XCTAssertEqual(128, s1.upperBound)
         XCTAssertEqual(64, s1.count)
         XCTAssertEqual(0, s1.root.height)
         XCTAssertEqual(64, s1.root.leaf.spans.count)
 
-        var b2 = SpansBuilder<Int>(totalCount: 64)
+        var sb2 = SpansBuilder<Int>(totalCount: 64)
         for i in stride(from: 0, through: 63, by: 2) {
-            b2.add(126+i, covering: i..<i+2)
+            sb2.add(126+i, covering: i..<i+2)
         }
-        let s2 = b2.build()
+        var s2 = sb2.build()
 
         XCTAssertEqual(64, s2.upperBound)
         XCTAssertEqual(32, s2.count)
         XCTAssertEqual(0, s2.root.height)
         XCTAssertEqual(32, s2.root.leaf.spans.count)
 
-        var b3 = SpansBuilder<Int>(totalCount: 0) // set totalCount low to make sure it gets bumped up correctly.
-        b3.push(s1, slicedBy: 0..<128)
-
-        XCTAssertEqual(128, b3.totalCount)
-        XCTAssertEqual(0, b3.offsetOfLeaf)
-        XCTAssertEqual(64, b3.leaf.spans.count)
-
-        b3.push(s2, slicedBy: 1..<63)
-        let s3 = b3.build()
+        var b = BTreeBuilder<Spans<Int>>()
+        b.push(&s1.root, slicedBy: 0..<128)
+        b.push(&s2.root, slicedBy: 1..<63)
+        let s3 = b.build()
 
         XCTAssertEqual(190, s3.upperBound)
         XCTAssertEqual(95, s3.count)
