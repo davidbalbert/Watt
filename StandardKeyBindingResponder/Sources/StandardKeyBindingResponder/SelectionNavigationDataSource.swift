@@ -114,7 +114,7 @@ extension SelectionNavigationDataSource {
         case .line:
             return lineFragmentRange(containing: i)
         case .paragraph:
-            let start = index(roundedDownToParagraph: i)
+            let start = index(roundingDownToParagraph: i)
             let end = i == endIndex ? endIndex : index(afterParagraph: i)
             return start..<end
         }
@@ -377,7 +377,7 @@ extension SelectionNavigationDataSource {
         return !c.isWhitespace && !c.isPunctuation
     }
 
-    func index(roundedDownToParagraph i: Index) -> Index {
+    func index(roundingDownToParagraph i: Index) -> Index {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i
         }
