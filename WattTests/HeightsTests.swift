@@ -1061,6 +1061,8 @@ final class HeightsTests: XCTestCase {
 
         var heights = b.build()
 
+        XCTAssertEqual(heights.contentHeight, 2688)
+
         XCTAssertEqual(heights.root.count, 1920)
         XCTAssertEqual(heights.root.height, 1)
         XCTAssertEqual(heights.root.children.count, 3)
@@ -1074,8 +1076,14 @@ final class HeightsTests: XCTestCase {
             heights[hi] = 30
         }
 
+        XCTAssertEqual(heights.contentHeight, 5760)
+
         XCTAssertEqual(heights.root.count, 1920)
         XCTAssertEqual(heights.root.height, 1)
-        XCTAssertEqual(heights.root.children.count, 6) // each leaf split in two
+        XCTAssertEqual(heights.root.children.count, 3)
+
+        XCTAssertEqual(heights.root.children[0].count, 640)
+        XCTAssertEqual(heights.root.children[1].count, 640)
+        XCTAssertEqual(heights.root.children[2].count, 640)
     }
 }
