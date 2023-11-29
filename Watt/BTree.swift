@@ -118,7 +118,7 @@ extension BTreeMetric {
 
 // MARK: - Nodes
 
-protocol NodeProtocol<Summary> {
+protocol BTreeNodeProtocol<Summary> {
     associatedtype Summary where Summary: BTreeSummary
     typealias Storage = BTreeNode<Summary>.Storage
     typealias Leaf = Summary.Leaf
@@ -128,7 +128,7 @@ protocol NodeProtocol<Summary> {
     mutating func ensureUnique()
 }
 
-extension NodeProtocol {
+extension BTreeNodeProtocol {
     var height: Int {
         storage.height
     }
@@ -204,7 +204,7 @@ extension NodeProtocol {
     }
 }
 
-struct BTreeNode<Summary>: NodeProtocol where Summary: BTreeSummary {
+struct BTreeNode<Summary>: BTreeNodeProtocol where Summary: BTreeSummary {
     static var minChild: Int { 4 }
     static var maxChild: Int { 8 }
 
@@ -306,11 +306,11 @@ extension BTreeNode {
         self.init(storage: Storage(children: children))
     }
 
-    fileprivate init<N>(_ n: N) where N: NodeProtocol<Summary> {
+    fileprivate init<N>(_ n: N) where N: BTreeNodeProtocol<Summary> {
         self.init(storage: n.storage)
     }
 
-    fileprivate init<N>(copying n: N) where N: NodeProtocol<Summary> {
+    fileprivate init<N>(copying n: N) where N: BTreeNodeProtocol<Summary> {
         self.init(storage: n.storage.copy())
     }
 }
@@ -416,7 +416,7 @@ extension BTreeNode {
             position == rootStorage!.count
         }
 
-        init<N>(offsetBy offset: Int, in root: N) where N: NodeProtocol<Summary> {
+        init<N>(offsetBy offset: Int, in root: N) where N: BTreeNodeProtocol<Summary> {
             precondition((0...root.count).contains(offset), "Index out of bounds")
 
             self.rootStorage = root.storage
@@ -429,11 +429,11 @@ extension BTreeNode {
             descend()
         }
 
-        init<N>(startOf root: N) where N: NodeProtocol<Summary>  {
+        init<N>(startOf root: N) where N: BTreeNodeProtocol<Summary>  {
             self.init(offsetBy: 0, in: root)
         }
 
-        init<N>(endOf root: N) where N: NodeProtocol<Summary> {
+        init<N>(endOf root: N) where N: BTreeNodeProtocol<Summary> {
             self.init(offsetBy: root.count, in: root)
         }
 
@@ -959,7 +959,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
 // MARK: - Mutation
 
-extension NodeProtocol {
+extension BTreeNodeProtocol {
     mutating func mutatingForEachPair(startingAt position: Int, using block: (inout Leaf, inout Leaf) -> Bool) {
         precondition(position >= 0 && position <= count)
 
@@ -1051,7 +1051,7 @@ extension NodeProtocol {
     }
 
     mutating func mutatingForEach(startingAt position: Int, using block: (inout Leaf) -> Bool) {
-        func helper<N>(_ pos: Int, _ n: inout N) -> Bool where N: NodeProtocol<Summary> {
+        func helper<N>(_ pos: Int, _ n: inout N) -> Bool where N: BTreeNodeProtocol<Summary> {
             if n.isLeaf {
                 return n.updateLeaf { l in block(&l) }
             }
@@ -1135,7 +1135,7 @@ extension NodeProtocol {
 
     #if CHECK_INVARIANTS
     func checkInvariants() {
-        func helper<N>(_ n: N, isRoot: Bool) where N: NodeProtocol<Summary> {
+        func helper<N>(_ n: N, isRoot: Bool) where N: BTreeNodeProtocol<Summary> {
             if isRoot {
                 // we don't have a good way to check a tree of height=0. In that case, the root
                 // (which is a leaf) is allowed to be undersized, but not too big (oversized?).
@@ -1226,7 +1226,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     //
     // To get around this, we record the result of isKnownUniquelyReferenced
     // into isUnique before pushing the tree onto the stack.
-    struct PartialTree: NodeProtocol {
+    struct PartialTree: BTreeNodeProtocol {
         var storage: Storage
         var _isUnique: Bool
 
@@ -1235,7 +1235,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             self._isUnique = true
         }
 
-        init<N>(_ node: N, isUnique: Bool) where N: NodeProtocol<Summary> {
+        init<N>(_ node: N, isUnique: Bool) where N: BTreeNodeProtocol<Summary> {
             self.storage = node.storage
             self._isUnique = isUnique
         }
@@ -1549,8 +1549,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     #endif
 }
 
-extension NodeProtocol {
-    mutating func append<N>(_ other: N) where N: NodeProtocol<Summary> {
+extension BTreeNodeProtocol {
+    mutating func append<N>(_ other: N) where N: BTreeNodeProtocol<Summary> {
         if other.isEmpty {
             return
         }
@@ -1624,7 +1624,7 @@ extension NodeProtocol {
         }
     }
 
-    mutating func append<N>(leafNode other: N) where N: NodeProtocol<Summary> {
+    mutating func append<N>(leafNode other: N) where N: BTreeNodeProtocol<Summary> {
         assert(isLeaf && other.isLeaf)
 
         let newLeaf = updateLeaf { $0.pushMaybeSplitting(other: other.leaf) }
