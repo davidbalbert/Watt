@@ -992,7 +992,7 @@ extension BTreeNodeProtocol {
             defer { left.mergeUndersizedChildren() }
             defer { left.updateNonLeafMetadata() }
 
-            var (offset, more) = mutateChildren(pos, left.count, &left.children)
+            var (offset, more) = mutateChildren(pos, &left)
 
             if !more {
                 return false
@@ -1004,44 +1004,46 @@ extension BTreeNodeProtocol {
             defer { right.updateNonLeafMetadata() }
 
             // handle the middle pair
-            if !mutatePair(pos - offset - left.children.last!.count, &left.children[left.children.count - 1], &right.children[0]) {
+            if !mutatePair(max(0, pos - offset - left.children.last!.count), &left.children[left.children.count - 1], &right.children[0]) {
                 return false
             }
 
             // handle the rest of the pairs
-            (_, more) = mutateChildren(pos - offset, right.count, &right.children)
+            (_, more) = mutateChildren(max(0, pos - offset), &right)
             return more
         }
 
-        func mutateChildren(_ pos: Int, _ count: Int, _ children: inout [BTreeNode<Summary>]) -> (Int, Bool) {
-            var mutated: [BTreeNode<Summary>] = [children.removeFirst()]
+        func mutateChildren<N>(_ pos: Int, _ n: inout N) -> (Int, Bool) where N: BTreeNodeProtocol<Summary> {
+            var mutated: [BTreeNode<Summary>] = [n.children.removeFirst()]
             var offset = 0
-            var done = false
-            while !children.isEmpty {
+            var more = true
+            while !n.children.isEmpty {
                 let end = offset + mutated[mutated.count - 1].count
                 defer { offset = end }
 
-                var next = children.removeFirst()
+                var next = n.children.removeFirst()
 
-                if done || pos > end || (pos == end && pos < count) {
+                if pos > end || (pos == end && pos < n.count) {
                     mutated.append(next)
                     continue
                 }
 
-                if !mutatePair(pos - offset, &mutated[mutated.count - 1], &next) {
-                    done = true
+                if !mutatePair(max(0, pos - offset), &mutated[mutated.count - 1], &next) {
+                    mutated.append(contentsOf: n.children)
+                    more = false
+                    break
                 }
 
                 mutated.append(next)
             }
 
-            children = mutated
-            return (offset, !done)
+            n.children = mutated
+            return (offset, more)
         }
 
         ensureUnique()
         storage.mutationCount &+= 1
-        _ = mutateChildren(position, count, &children)
+        _ = mutateChildren(position, &self)
         mergeUndersizedChildren()
         updateNonLeafMetadata()
 
@@ -1050,17 +1052,18 @@ extension BTreeNodeProtocol {
         #endif
     }
 
-    mutating func mutatingForEach(startingAt position: Int, using block: (inout Leaf) -> Bool) {
-        func helper<N>(_ pos: Int, _ n: inout N) -> Bool where N: BTreeNodeProtocol<Summary> {
+    mutating func mutatingForEach(startingAt position: Int, using block: (_ offsetOfLeaf: Int, _ leaf: inout Leaf) -> Bool) {
+        func helper<N>(_ pos: Int, _ offsetOfNode: Int, _ n: inout N) -> Bool where N: BTreeNodeProtocol<Summary> {
             if n.isLeaf {
-                return n.updateLeaf { l in block(&l) }
+                return n.updateLeaf { l in block(offsetOfNode, &l) }
             }
 
             n.ensureUnique()
             n.storage.mutationCount &+= 1
+            defer { n.mergeUndersizedChildren() }
+            defer { n.updateNonLeafMetadata() }
 
             var offset = 0
-            var done = false
             for i in 0..<n.children.count {
                 let end = offset + n.children[i].count
 
@@ -1070,20 +1073,17 @@ extension BTreeNodeProtocol {
                     continue
                 }
 
-                if !helper(pos - offset, &n.children[i]) {
-                    done = true
-                    break
+                if !helper(max(0, pos - offset), offsetOfNode+offset, &n.children[i]) {
+                    return false
                 }
 
                 offset += n.children[i].count
             }
 
-            n.mergeUndersizedChildren()
-            n.updateNonLeafMetadata()
-            return done
+            return true
         }
 
-        _ = helper(position, &self)
+        _ = helper(position, 0, &self)
 
         #if CHECK_INVARIANTS
         checkInvariants()
@@ -1497,8 +1497,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
     private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
-        left.mutatingForEach(startingAt: left.count) { prev in
-            right.mutatingForEach(startingAt: 0) { next in
+        left.mutatingForEach(startingAt: left.count) { _, prev in
+            right.mutatingForEach(startingAt: 0) { _, next in
                 done = prev.fixup(withNext: &next)
                 return false
             }
