@@ -124,6 +124,7 @@ protocol NodeProtocol<Summary> {
     typealias Leaf = Summary.Leaf
 
     var storage: Storage { get set }
+    mutating func isUnique() -> Bool
     mutating func ensureUnique()
 }
 
@@ -988,6 +989,7 @@ extension NodeProtocol {
 
             left.ensureUnique()
             left.storage.mutationCount &+= 1
+            defer { left.mergeUndersizedChildren() }
             defer { left.updateNonLeafMetadata() }
 
             var (offset, more) = mutateChildren(pos, left.count, &left.children)
@@ -998,6 +1000,7 @@ extension NodeProtocol {
 
             right.ensureUnique()
             right.storage.mutationCount &+= 1
+            defer { right.mergeUndersizedChildren() }
             defer { right.updateNonLeafMetadata() }
 
             // handle the middle pair
@@ -1039,7 +1042,12 @@ extension NodeProtocol {
         ensureUnique()
         storage.mutationCount &+= 1
         _ = mutateChildren(position, count, &children)
+        mergeUndersizedChildren()
         updateNonLeafMetadata()
+
+        #if DEBUG
+        checkInvariants()
+        #endif
     }
 
     mutating func mutatingForEach(startingAt position: Int, using block: (inout Leaf) -> Bool) {
@@ -1070,12 +1078,88 @@ extension NodeProtocol {
                 offset += n.children[i].count
             }
 
+            n.mergeUndersizedChildren()
             n.updateNonLeafMetadata()
             return done
         }
 
         _ = helper(position, &self)
+
+        #if DEBUG
+        checkInvariants()
+        #endif
     }
+
+    // N.b. doesn't update metadata, requires self to be unique.
+    mutating func mergeUndersizedChildren() {
+        assert(!isLeaf)
+        assert(isUnique())
+
+        guard children.contains(where: \.isUndersized) else {
+            return
+        }
+
+        var i = 0
+        while i < children.count - 1 {
+            assert(children[i].height == children[i+1].height)
+
+            if children[i].isUndersized || children[i+1].isUndersized {
+                let bothUndersized = children[i].isUndersized && children[i+1].isUndersized
+
+                if children[i].isLeaf {
+                    let other = children[i+1]
+                    let newLeaf = children[i].updateLeaf { $0.pushMaybeSplitting(other: other.leaf) }
+                    if let newLeaf {
+                        assert(bothUndersized)
+                        children[i+1] = BTreeNode(leaf: newLeaf)
+                    }
+                } else {
+                    let (left, right) = children(merging: children[i].children, with: children[i+1].children)
+                    children[i].updateChildren { $0 = left }
+                    if let right {
+                        assert(bothUndersized)
+                        children[i+1].updateChildren { $0 = right }
+                    }
+                }
+
+                if !bothUndersized {
+                    children.remove(at: i+1)
+                }
+
+                continue
+            }
+
+            i += 1
+        }
+    }
+
+    #if DEBUG
+    func checkInvariants() {
+        func helper<N>(_ n: N, isRoot: Bool) where N: NodeProtocol<Summary> {
+            if isRoot {
+                // we don't have a good way to check a tree of height=0. In that case, the root
+                // (which is a leaf) is allowed to be undersized, but not too big (oversized?).
+                // Unfortunately, we don't have "isOversized," and I don't feel like adding it
+                // right now.
+                if n.height > 0 {
+                    assert(n.children.count > 1 && n.children.count <= BTreeNode<Summary>.maxChild)
+                }
+            } else {
+                assert(!isUndersized)
+            }
+
+            guard height > 0 else {
+                return
+            }
+
+            for c in n.children {
+                c.checkInvariants()
+            }
+        }
+
+        helper(self, isRoot: true)
+    }
+    #endif
 
     @discardableResult
     mutating func updateLeaf<T>(_ body: (inout Leaf) -> T) -> T {
@@ -1084,6 +1168,15 @@ extension NodeProtocol {
         storage.mutationCount &+= 1
         let r = body(&storage.leaf)
         updateLeafMetadata()
+        return r
+    }
+
+    mutating func updateChildren<T>(_ body: (inout [BTreeNode<Summary>]) -> T) -> T {
+        precondition(!isLeaf, "updateChildren called on a leaf node")
+        ensureUnique()
+        storage.mutationCount &+= 1
+        let r = body(&storage.children)
+        updateNonLeafMetadata()
         return r
     }
 
@@ -1135,31 +1228,35 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     // into isUnique before pushing the tree onto the stack.
     struct PartialTree: NodeProtocol {
         var storage: Storage
-        var isUnique: Bool
+        var _isUnique: Bool
 
         init() {
             self.storage = Storage()
-            self.isUnique = true
+            self._isUnique = true
         }
 
         init<N>(_ node: N, isUnique: Bool) where N: NodeProtocol<Summary> {
             self.storage = node.storage
-            self.isUnique = isUnique
+            self._isUnique = isUnique
         }
 
         init(leaf: Leaf) {
             self.storage = Storage(leaf: leaf)
-            self.isUnique = true
+            self._isUnique = true
         }
 
         init<S>(children: S) where S: Sequence<BTreeNode<Summary>> {
             self.storage = Storage(children: Array(children))
-            self.isUnique = true
+            self._isUnique = true
+        }
+
+        func isUnique() -> Bool {
+            _isUnique
         }
 
         mutating func ensureUnique() {
-            if !isUnique {
-                isUnique = true
+            if !_isUnique {
+                _isUnique = true
                 storage = storage.copy()
             }
         }
@@ -1167,8 +1264,8 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
     // A stack of PartialTrees, strictly descending in height.
     // Each inner array contains trees of the same height and has a
-    // count less than maxChild. If an inner array has a count greater
-    // than 1, all of its children are balanced.
+    // count less than maxChild. For each inner array with count > 1,
+    // no elements are undersized.
     var stack: [[PartialTree]]
     var skipFixup: Bool
 
@@ -1256,6 +1353,9 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     private mutating func push(_ node: PartialTree) {
+        #if DEBUG
+        defer { checkInvariants() }
+        #endif
         var n = node
 
         // Ensure that n is no larger than the node at the top of the stack.
@@ -1278,7 +1378,13 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
                 if !lastNode.isUndersized && !n.isUndersized {
                     if Leaf.needsFixupOnAppend && !skipFixup {
+                        let h1 = lastNode.height, h2 = n.height
                         fixup(&lastNode, &n)
+                        if h1 != lastNode.height || h2 != n.height || lastNode.isUndersized || n.isUndersized {
+                            repushNoFixup(lastNode)
+                            repushNoFixup(n)
+                            return
+                        }
                     }
 
                     stack[stack.count - 1].append(lastNode)
@@ -1294,8 +1400,18 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                         stack[stack.count - 1].append((PartialTree(leaf: newLeaf)))
                     }
                 } else {
+                    // The only time lastNode (which was already on the stack) would be
+                    // undersized is if it was the only element of height N on the stack.
+                    assert(stack.last!.isEmpty || (!lastNode.isUndersized && n.isUndersized))
+
                     if Leaf.needsFixupOnAppend && !skipFixup {
+                        let h1 = lastNode.height, h2 = n.height
                         fixup(&lastNode, &n)
+                        if h1 != lastNode.height || h2 != n.height {
+                            repushNoFixup(lastNode)
+                            repushNoFixup(n)
+                            return
+                        }
                     }
 
                     let c1 = lastNode.children
@@ -1318,16 +1434,27 @@ struct BTreeBuilder<Tree> where Tree: BTree {
                 n = pop()
             } else if !isEmpty {
                 if Leaf.needsFixupOnAppend && !skipFixup {
-                    var lastNode = popLast()!
+                    var lastNode = popLast()!, h = lastNode.height
                     fixup(&lastNode, &n)
+                    if h != lastNode.height || lastNode.height <= n.height {
+                        repushNoFixup(lastNode)
+                        repushNoFixup(n)
+                        return
+                    }
+
                     stack[stack.count - 1].append(lastNode)
                 }
                 stack.append([n])
                 break
             } else {
                 if Leaf.needsFixupOnAppend && !skipFixup {
+                    let h = n.height
                     var blank = PartialTree()
                     fixup(&blank, &n)
+
+                    // fixup shouldn't change heights if either argument
+                    // is empty.
+                    assert(blank.isEmpty && n.height == h)
                 }
                 stack.append([n])
                 break
@@ -1370,7 +1497,6 @@ struct BTreeBuilder<Tree> where Tree: BTree {
 
     private func fixup(_ left: inout PartialTree, _ right: inout PartialTree) {
         var done = false
-
         left.mutatingForEach(startingAt: left.count) { prev in
             right.mutatingForEach(startingAt: 0) { next in
                 done = prev.fixup(withNext: &next)
@@ -1387,6 +1513,40 @@ struct BTreeBuilder<Tree> where Tree: BTree {
             return !prev.fixup(withNext: &next)
         }
     }
+
+    // fixup() guarantees that it won't break either tree's invariants, but it might
+    // break the builder's invariants between the two trees. E.g. the trees could
+    // change height or a tree of height=0 could become undersized.
+    //
+    // If that happens, we recurisvely re-push each tree without fixing up (they're now
+    // guaranteed to be fixed up relative to each other), and then bail out of the
+    // original push.
+    mutating func repushNoFixup(_ n: PartialTree) {
+        assert(!skipFixup)
+
+        // because we're in the middle of a push, it's possible the last stack is
+        // empty because we've popped the only element off. Make sure our invariants
+        // are correct
+        if stack[stack.count - 1].isEmpty {
+            stack.removeLast()
+        }
+        skipFixup = true
+        push(n)
+        skipFixup = false
+    }
+
+    #if DEBUG
+    func checkInvariants() {
+        for nodes in stack {
+            assert(!nodes.isEmpty)
+            for n in nodes {
+                assert(n.height == nodes[0].height)
+                assert(nodes.count == 1 || !n.isUndersized)
+                n.checkInvariants()
+            }
+        }
+    }
+    #endif
 }
 
 extension NodeProtocol {
@@ -1438,28 +1598,34 @@ extension NodeProtocol {
         ensureUnique()
         storage.mutationCount &+= 1
 
+        let (left, right) = children(merging: leftChildren, with: rightChildren)
+        if let right {
+            let n1 = BTreeNode<Summary>(children: left)
+            let n2 = BTreeNode<Summary>(children: right)
+            storage.children = [n1, n2]
+        } else {
+            storage.children = left
+        }
+
+        updateNonLeafMetadata()
+    }
+
+    func children<C1, C2>(merging leftChildren: C1, with rightChildren: C2) -> ([BTreeNode<Summary>], [BTreeNode<Summary>]?) where C1: Collection<BTreeNode<Summary>>, C2: Collection<BTreeNode<Summary>> {
         let count = leftChildren.count + rightChildren.count
         assert(count <= BTreeNode<Summary>.maxChild*2)
 
         let cs = [AnySequence(leftChildren), AnySequence(rightChildren)].joined()
 
         if count <= BTreeNode<Summary>.maxChild {
-            storage.children = Array(cs)
+            return (Array(cs), nil)
         } else {
             let split = count / 2
-            let left = BTreeNode<Summary>(children: cs.prefix(split))
-            let right = BTreeNode<Summary>(children: cs.dropFirst(split))
-            storage.children = [left, right]
+            return (Array(cs.prefix(split)), Array(cs.dropFirst(split)))
         }
-
-        updateNonLeafMetadata()
     }
 
     mutating func append<N>(leafNode other: N) where N: NodeProtocol<Summary> {
         assert(isLeaf && other.isLeaf)
-
-        ensureUnique()
-        storage.mutationCount &+= 1
 
         let newLeaf = updateLeaf { $0.pushMaybeSplitting(other: other.leaf) }
 

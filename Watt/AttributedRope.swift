@@ -631,12 +631,15 @@ extension AttributedRope {
 
         let replacementRange = Range(range)
 
-        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        sb.push(spans, slicedBy: 0..<replacementRange.lowerBound)
-        sb.push(s.spans)
-        sb.push(spans, slicedBy: replacementRange.upperBound..<spans.upperBound)
+        var dup = spans
+        var new = s.spans
 
-        self.spans = sb.build()
+        var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
+        b.push(&dup.root, slicedBy: 0..<replacementRange.lowerBound)
+        b.push(&new.root)
+        b.push(&dup.root, slicedBy: replacementRange.upperBound..<spans.upperBound)
+
+        self.spans = b.build()
     }
 
     mutating func insert(_ s: AttributedRope, at i: Index) {
@@ -839,20 +842,18 @@ fileprivate func attributes(forReplacementRange range: Range<Int>, in spans: Spa
 
 extension AttributedRope {
     struct Builder {
-        var rb: BTreeBuilder<Rope>
-        var sb: SpansBuilder<Attributes>
+        var rb: RopeBuilder
+        var sb: BTreeBuilder<Spans<Attributes>>
 
         init() {
-            rb = BTreeBuilder<Rope>()
-            sb = SpansBuilder<Attributes>(totalCount: 0)
+            rb = RopeBuilder()
+            sb = BTreeBuilder<Spans<Attributes>>()
         }
 
         mutating func push(_ r: AttributedSubrope) {
-            let intRange = Range(r.bounds)
-
-            var root = r.text.root
-            rb.push(&root, slicedBy: intRange)
-            sb.push(r.spans, slicedBy: intRange)
+            var dup = r
+            rb.push(&dup.text, slicedBy: r.bounds)
+            sb.push(&dup.spans.root, slicedBy: Range(r.bounds))
         }
 
         consuming func build() -> AttributedRope {

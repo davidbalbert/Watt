@@ -16,6 +16,10 @@ extension Span: Equatable where T: Equatable {
 }
 
 struct SpansLeaf<T>: BTreeLeaf {
+    static var needsFixupOnAppend: Bool {
+        true
+    }
+
     static var minSize: Int { 32 }
     static var maxSize: Int { 64 }
 
@@ -41,7 +45,18 @@ struct SpansLeaf<T>: BTreeLeaf {
     }
 
     mutating func pushMaybeSplitting(other: SpansLeaf) -> SpansLeaf? {
-        for span in other.spans {
+        var newSpans = other.spans
+
+        if !spans.isEmpty, let right = newSpans.first, spans.last!.range.upperBound == count && right.range.lowerBound == 0 {
+            var left = spans.removeLast()
+            if isEqual(left.data, right.data) {
+                left.range = left.range.lowerBound..<(left.range.upperBound + right.range.count)
+                newSpans.removeFirst()
+            }
+            spans.append(left)
+        }
+
+        for span in newSpans {
             let range = span.range.offset(by: count)
             spans.append(Span(range: range, data: span.data))
         }
@@ -64,6 +79,29 @@ struct SpansLeaf<T>: BTreeLeaf {
 
             return SpansLeaf(count: newCount, spans: new)
         }
+    }
+
+    mutating func fixup(withNext next: inout SpansLeaf<T>) -> Bool {
+        if !spans.isEmpty, let right = next.spans.first, spans.last!.range.upperBound == count && right.range.lowerBound == 0 {
+            var left = spans.removeLast()
+            if isEqual(left.data, right.data) {
+                let delta = right.range.count
+
+                left.range = left.range.lowerBound..<(left.range.upperBound + delta)
+                next.spans.removeFirst()
+
+                for i in 0..<next.spans.count {
+                    next.spans[i].range = next.spans[i].range.offset(by: -delta)
+                }
+                next.count -= delta
+
+                assert(next.spans[0].range.lowerBound == 0)
+            }
+            spans.append(left)
+            count = max(count, left.range.upperBound)
+        }
+
+        return true
     }
 
     subscript(bounds: Range<Int>) -> SpansLeaf {
@@ -260,30 +298,6 @@ struct Spans<T>: BTree {
 
         return sb.build()
     }
-
-    // Override the default BTree.applying(delta:) implementation to use
-    // SpansBuilder so that spans with equal data get combined correctly.
-    func applying(delta: BTreeDelta<Spans<T>>) -> Spans<T> {
-        let totalCount = delta.elements.map { el in
-            switch el {
-            case let .copy(start, end):
-                end - start
-            case let .insert(n):
-                n.count
-            }
-        }.reduce(0, +)
-
-        var sb = SpansBuilder<T>(totalCount: totalCount)
-        for el in delta.elements {
-            switch el {
-            case let .copy(start, end):
-                sb.push(self, slicedBy: start..<end)
-            case let .insert(node):
-                sb.push(Spans(node))
-            }
-        }
-        return sb.build()
-    }
 }
 
 extension Spans: Sequence {
@@ -367,82 +381,6 @@ struct SpansBuilder<T> {
 
         leaf.spans.append(Span(range: range.offset(by: -offsetOfLeaf), data: data))
         totalCount = max(totalCount, range.upperBound)
-    }
-
-    mutating func push(_ other: Spans<T>) {
-        push(other, slicedBy: 0..<other.upperBound)
-    }
-
-    mutating func push(_ other: Spans<T>, slicedBy range: Range<Int>) {
-        precondition(range.lowerBound >= 0 && range.upperBound <= other.upperBound)
-
-        if other.upperBound == 0 || range.isEmpty {
-            return
-        }
-
-        let sliced = Spans(other.root, slicedBy: range)
-        var lowerBoundToPush = 0
-
-        // prefix == what's on the builder when we're first called
-        let prefixLength = offsetOfLeaf + (leaf.spans.last?.range.upperBound ?? 0)
-
-        // leaf.spans is only empty when there's nothing on the stack
-        assert(b.isEmpty || !leaf.spans.isEmpty)
-
-        if !leaf.spans.isEmpty {
-            var iter = sliced.makeIterator()
-            var span = iter.next()
-
-            if span != nil, leaf.spans.count == SpansLeaf<T>.maxSize {
-                let adjustedRange = span!.range.offset(by: prefixLength)
-                let last = leaf.spans.last!
-                
-                if last.range.upperBound == adjustedRange.lowerBound - offsetOfLeaf && isEqual(last.data, span!.data) {
-                    leaf.spans[leaf.spans.count - 1].range = last.range.lowerBound..<(last.range.upperBound + adjustedRange.count)
-                    totalCount = max(totalCount, adjustedRange.upperBound)
-                    // Note: not adjusted. We'll use this to re-slice sliced later.
-                    lowerBoundToPush = span!.range.upperBound
-                    span = iter.next()
-                }
-            } else {
-                while span != nil, leaf.spans.count < SpansLeaf<T>.maxSize {
-                    add(span!.data, covering: span!.range.offset(by: prefixLength))
-                    // Note: not adjusted. See below.
-                    lowerBoundToPush = span!.range.upperBound
-                    span = iter.next()
-                }
-            }
-
-            // if there's nothing left in sliced, we're done
-            guard let span else {
-                return
-            }
-
-            assert(leaf.spans.count == SpansLeaf<T>.maxSize)
-
-            let adjustedRange = span.range.offset(by: prefixLength)
-            leaf.count = adjustedRange.lowerBound - offsetOfLeaf
-            offsetOfLeaf = adjustedRange.lowerBound
-            b.push(leaf: leaf)
-        }
-
-        // split sliced into a left tree, and its final leaf
-        let end = sliced.root.endIndex
-
-        let upperBoundToPush = max(end.offsetOfLeaf, lowerBoundToPush)
-        offsetOfLeaf = prefixLength + upperBoundToPush
-        var r = sliced.root
-        b.push(&r, slicedBy: lowerBoundToPush..<upperBoundToPush)
-
-        // Pretty sure this will always be true at this point. Either
-        // we returned early because other or range were empty, or we
-        // returned early in the `guard let span { else } return above.
-        assert(end.position - upperBoundToPush > 0)
-
-        let rest = Spans(sliced.root, slicedBy: upperBoundToPush..<end.position)
-        assert(rest.root.height == 0)
-        leaf = rest.root.leaf
-        totalCount = max(totalCount, offsetOfLeaf + leaf.count)
     }
 
     consuming func build() -> Spans<T> {
