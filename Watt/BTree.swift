@@ -1045,7 +1045,7 @@ extension NodeProtocol {
         mergeUndersizedChildren()
         updateNonLeafMetadata()
 
-        #if DEBUG
+        #if CHECK_INVARIANTS
         checkInvariants()
         #endif
     }
@@ -1085,7 +1085,7 @@ extension NodeProtocol {
 
         _ = helper(position, &self)
 
-        #if DEBUG
+        #if CHECK_INVARIANTS
         checkInvariants()
         #endif
     }
@@ -1133,7 +1133,7 @@ extension NodeProtocol {
         }
     }
 
-    #if DEBUG
+    #if CHECK_INVARIANTS
     func checkInvariants() {
         func helper<N>(_ n: N, isRoot: Bool) where N: NodeProtocol<Summary> {
             if isRoot {
@@ -1353,7 +1353,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
     }
 
     private mutating func push(_ node: PartialTree) {
-        #if DEBUG
+        #if CHECK_INVARIANTS
         defer { checkInvariants() }
         #endif
         var n = node
@@ -1535,7 +1535,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         skipFixup = false
     }
 
-    #if DEBUG
+    #if CHECK_INVARIANTS
     func checkInvariants() {
         for nodes in stack {
             assert(!nodes.isEmpty)
