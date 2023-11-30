@@ -1375,6 +1375,74 @@ extension Rope: Equatable {
 }
 
 
+// MARK: - Subropes
+
+struct Subrope {
+    var base: Rope
+    var bounds: Range<Rope.Index>
+}
+
+extension Subrope: BidirectionalCollection {
+    typealias Index = Rope.Index
+
+    var count: Int {
+        distance(from: startIndex, to: endIndex)
+    }
+
+    var startIndex: Index {
+        bounds.lowerBound
+    }
+
+    var endIndex: Index {
+        bounds.upperBound
+    }
+
+    // See note on Rope.subscript(_:) for behavior differences from String.
+    subscript(position: Index) -> Character {
+        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
+        let i = base.index(roundingDown: position)
+        precondition(i >= startIndex, "Index out of bounds")
+        return base[position]
+    }
+
+    subscript(bounds: Range<Index>) -> Subrope {
+        precondition(bounds.lowerBound >= startIndex && bounds.upperBound <= endIndex, "Index out of bounds")
+        return Subrope(base: base, bounds: bounds)
+    }
+
+    func index(before i: Index) -> Index {
+        precondition(i > startIndex, "Index out of bounds")
+        return base.index(before: i)
+    }
+
+    func index(after i: Index) -> Index {
+        precondition(i < endIndex, "Index out of bounds")
+        return base.index(after: i)
+    }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        let j = base.index(i, offsetBy: distance)
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        guard let j = base.index(i, offsetBy: distance, limitedBy: limit) else {
+            return nil
+        }
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        return base.distance(from: start, to: end)
+    }
+}
+
+
 // MARK: - Standard library integration
 
 extension Rope: ExpressibleByStringLiteral {
