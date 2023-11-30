@@ -129,7 +129,7 @@ class Buffer {
     }
 
     func index(fromOldIndex oldIndex: Index) -> Index {
-        utf8.index(at: oldIndex.position)
+        text.index(fromOldIndex: oldIndex)
     }
 
     func addDelegate(_ delegate: BufferDelegate) {

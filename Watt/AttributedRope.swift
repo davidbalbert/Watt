@@ -36,7 +36,7 @@ struct AttributedRope {
     }
 
     init(_ subrope: AttributedSubrope) {
-        self.text = subrope.text[subrope.bounds]
+        self.text = Rope(subrope.text[subrope.bounds])
         self.spans = subrope.spans[Range(subrope.bounds)]
     }
 

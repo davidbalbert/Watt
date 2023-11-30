@@ -116,16 +116,16 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(2001, r.utf8.count)
 
         let i = r.index(at: 999)
-        let r2 = r[i..<r.index(after: i)]
+        let sr = r[i..<r.index(after: i)]
 
-        XCTAssertEqual(0, r2.root.height)
+        XCTAssertEqual(1, sr.count)
+        XCTAssertEqual(2, sr.unicodeScalars.count)
+        XCTAssertEqual(2, sr.utf16.count)
+        XCTAssertEqual(3, sr.utf8.count)
 
-        XCTAssertEqual(1, r2.count)
-        XCTAssertEqual(2, r2.unicodeScalars.count)
-        XCTAssertEqual(2, r2.utf16.count)
-        XCTAssertEqual(3, r2.utf8.count)
+        XCTAssertEqual("a\u{0301}", String(sr))
 
-        XCTAssertEqual("a\u{0301}", String(r2))
+        XCTAssertEqual(0, Rope(sr).root.height)
     }
 
     func testReplaceSubrangeFullRange() {
