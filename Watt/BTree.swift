@@ -834,6 +834,19 @@ extension BTreeNode {
             precondition(leaf != nil && other.leaf != nil)
         }
 
+        func assertValid(for root: BTreeNode) {
+            assert(self.rootStorage === root.storage)
+            assert(self.mutationCount == root.mutationCount)
+            assert(self.leaf != nil)
+        }
+
+        func assertValid(_ other: Index) {
+            assert(rootStorage === other.rootStorage && rootStorage != nil)
+            assert(mutationCount == rootStorage!.mutationCount)
+            assert(mutationCount == other.mutationCount)
+            assert(leaf != nil && other.leaf != nil)
+        }
+
         func read() -> (Leaf, Int)? {
             guard let leaf else {
                 return nil
@@ -850,14 +863,14 @@ extension BTreeNode {
 }
 
 extension BTreeNode.Index: Comparable {
-    static func < (left: BTreeNode.Index, right: BTreeNode.Index) -> Bool {
-        left.validate(right)
-        return left.position < right.position
+    static func < (lhs: BTreeNode.Index, rhs: BTreeNode.Index) -> Bool {
+        lhs.validate(rhs)
+        return lhs.position < rhs.position
     }
 
-    static func == (left: BTreeNode.Index, right: BTreeNode.Index) -> Bool {
-        left.validate(right)
-        return left.position == right.position
+    static func == (lhs: BTreeNode.Index, rhs: BTreeNode.Index) -> Bool {
+        lhs.validate(rhs)
+        return lhs.position == rhs.position
     }
 }
 

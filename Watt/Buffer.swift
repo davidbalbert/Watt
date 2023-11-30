@@ -64,7 +64,7 @@ class Buffer {
         contents.characters
     }
 
-    var lines: Rope.LinesView {
+    var lines: Rope.LineView {
         contents.text.lines
     }
 
