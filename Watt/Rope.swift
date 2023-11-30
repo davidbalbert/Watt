@@ -1064,20 +1064,19 @@ extension Rope {
 
 // MARK: - Views
 
-protocol RopeView: BidirectionalCollection where Index == BTreeNode<RopeSummary>.Index {
+protocol RopeView: BidirectionalCollection {
     associatedtype Element
     associatedtype Metric: BTreeMetric<RopeSummary> where Metric.Unit == Int
 
     var root: BTreeNode<RopeSummary> { get }
-    var bounds: Range<Index> { get }
+    var bounds: Range<BTreeNode<RopeSummary>.Index> { get }
     var metric: Metric { get }
 
     init(root: BTreeNode<RopeSummary>, bounds: Range<Index>)
-
     func readElement(at i: Index) -> Element
 }
 
-extension RopeView {
+extension RopeView where Index == BTreeNode<RopeSummary>.Index {
     var count: Int {
         root.distance(from: startIndex, to: endIndex, using: metric)
     }
@@ -1137,7 +1136,7 @@ extension RopeView {
     }
 }
 
-extension RopeView {
+extension RopeView where Index == BTreeNode<RopeSummary>.Index {
     func index(at offset: Int) -> Index {
         precondition(offset >= 0 && offset <= count)
         return root.index(at: offset, using: metric)
