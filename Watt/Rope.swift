@@ -1415,78 +1415,34 @@ extension Rope: Equatable {
 
 // MARK: - Subropes
 
-struct Subrope {
+struct Subrope: RopeView {
+    typealias Element = Character
+    
+    init(base: Rope, bounds: Range<Rope.Index>) {
+        self.base = base
+        self.bounds = bounds
+    }
+
+    init(root: BTreeNode<RopeSummary>, bounds: Range<Rope.Index>) {
+        self.init(base: Rope(root), bounds: bounds)
+    }
+    
     var base: Rope
     var bounds: Range<Rope.Index>
 
     var root: BTreeNode<RopeSummary> {
         base.root
     }
-}
 
-extension Subrope: BidirectionalCollection {
-    typealias Index = Rope.Index
-
-    var count: Int {
-        base.distance(from: startIndex, to: endIndex)
+    var metric: Rope.CharacterMetric {
+        .characters
     }
 
-    var startIndex: Index {
-        bounds.lowerBound
-    }
-
-    var endIndex: Index {
-        bounds.upperBound
-    }
-
-    // See note on Rope.subscript(_:) for behavior differences from String.
-    subscript(position: Index) -> Character {
-        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
-        let i = root.index(roundingDown: position, using: .characters)
-        precondition(i >= startIndex, "Index out of bounds")
-        return i.readChar()!
-    }
-
-    subscript(bounds: Range<Index>) -> Subrope {
-        precondition(bounds.lowerBound >= startIndex && bounds.upperBound <= endIndex, "Index out of bounds")
-        return Subrope(base: base, bounds: bounds)
-    }
-
-    func index(before i: Index) -> Index {
-        precondition(i > startIndex, "Index out of bounds")
-        let j = root.index(before: i, using: .characters)
-        precondition(j >= startIndex, "Index out of bounds")
-        return j
-    }
-
-    func index(after i: Index) -> Index {
-        precondition(i < endIndex, "Index out of bounds")
-        let j = root.index(after: i, using: .characters)
-        precondition (j <= endIndex, "Index out of bounds")
-        return j
-    }
-
-    func index(_ i: Index, offsetBy distance: Int) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        let j = root.index(i, offsetBy: distance, using: .characters)
-        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
-        return j
-    }
-
-    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        guard let j = root.index(i, offsetBy: distance, limitedBy: limit, using: .characters) else {
-            return nil
-        }
-        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
-        return j
-    }
-
-    func distance(from start: Index, to end: Index) -> Int {
-        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
-        return root.distance(from: start, to: end, using: .characters)
+    func readElement(at i: Rope.Index) -> Character {
+        i.readChar()!
     }
 }
+
 
 extension Subrope {
     typealias UTF8View = Rope.UTF8View
