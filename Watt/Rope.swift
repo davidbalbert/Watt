@@ -828,7 +828,7 @@ extension Rope.Index: CustomDebugStringConvertible {
 // MARK: - Collection conformances
 
 // TODO: audit default methods from Collection, BidirectionalCollection and RangeReplaceableCollection for default implementations that perform poorly.
-extension Rope: Collection {
+extension Rope: BidirectionalCollection {
     typealias Index = BTreeNode<RopeSummary>.Index
 
     var count: Int {
@@ -843,6 +843,31 @@ extension Rope: Collection {
         root.endIndex
     }
 
+    // N.b. This has a different behavior than String when subscripting on a
+    // non-character boundary. String will round down to the closest UnicodeScalar
+    // and then do some interesting things depending on what the index is
+    // pointing to:
+    //
+    // All example indices are unicode scalar indices.
+    //
+    // s = "e\u{0301}"          - "e" + combining accute accent
+    //   s[0] = "e\u{0301}"
+    //   s[1] = "\u{0301}"
+    //
+    // s = "👨‍👩‍👧‍👦"
+    //   = "👨\u{200D}👩\u{200D}👧\u{200D}👦"
+    //   = "\u{0001F468}\u{200D}\u{0001F469}\u{200D}\u{0001F467}\u{200D}\u{0001F466}"
+    //
+    //   s[0] = "👨‍👩‍👧‍👦"
+    //   s[1] = "\u{200D}"
+    //   s[2] = "👩\u{200D}👧\u{200D}👦"
+    //   s[3] = "\u{200D}"
+    //   s[4] = "👧\u{200D}👦"
+    //   s[5] = "\u{200D}"
+    //   s[6] = "👦"
+    //
+    // This is pretty gnarley behavior that is doing special things with grapheme breaking,
+    // so it's not worth reproducing.
     subscript(position: Index) -> Character {
         root.index(roundingDown: position, using: .characters).readChar()!
     }
@@ -851,6 +876,10 @@ extension Rope: Collection {
         let start = index(roundingDown: bounds.lowerBound)
         let end = index(roundingDown: bounds.upperBound)
         return Rope(root, slicedBy: Range(start..<end))
+    }
+
+    func index(before i: Index) -> Index {
+        root.index(before: i, using: .characters)
     }
 
     func index(after i: Index) -> Index {
@@ -867,12 +896,6 @@ extension Rope: Collection {
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
         root.distance(from: start, to: end, using: .characters)
-    }
-}
-
-extension Rope: BidirectionalCollection {
-    func index(before i: Index) -> Index {
-        root.index(before: i, using: .characters)
     }
 }
 
