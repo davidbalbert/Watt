@@ -739,7 +739,7 @@ extension LayoutManager: BufferDelegate {
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
         for r in ranges {
-            lineCache.invalidate(range: Range(r))
+            lineCache.invalidate(range: Range(r, in: buffer))
         }
         delegate?.didInvalidateLayout(for: self)
     }

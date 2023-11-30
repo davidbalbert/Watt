@@ -1838,7 +1838,7 @@ extension BTree {
 // MARK: - Helpers
 
 extension Range where Bound == Int {
-    init<Summary>(_ range: Range<BTreeNode<Summary>.Index>) where Summary: BTreeSummary {
+    init<Summary>(uncheckedRange range: Range<BTreeNode<Summary>.Index>) where Summary: BTreeSummary {
         self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
     }
 }
