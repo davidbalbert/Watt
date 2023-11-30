@@ -1059,63 +1059,83 @@ extension Rope {
 
 extension Rope {
     var utf8: UTF8View {
-        UTF8View(root: root)
+        UTF8View(root: root, bounds: startIndex..<endIndex)
     }
 
     struct UTF8View {
         var root: BTreeNode<RopeSummary>
-
-        func index(at offset: Int) -> Index {
-            root.index(at: offset, using: .utf8)
-        }
-
-        func index(roundingDown i: Index) -> Index {
-            i.validate(for: root)
-            return i
-        }
-
-        subscript(offset: Int) -> UTF8.CodeUnit {
-            self[root.index(at: offset, using: .utf8)]
-        }
+        var bounds: Range<Index>
     }
 }
 
 extension Rope.UTF8View: BidirectionalCollection {
+    var count: Int {
+        root.distance(from: startIndex, to: endIndex, using: .utf8)
+    }
+
     var startIndex: Rope.Index {
-        root.startIndex
+        bounds.lowerBound
     }
 
     var endIndex: Rope.Index {
-        root.endIndex
+        bounds.upperBound
     }
 
     subscript(position: Rope.Index) -> UTF8.CodeUnit {
         position.validate(for: root)
+        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
         return position.readUTF8()!
     }
 
+    subscript(r: Range<Index>) -> Self {
+        precondition(r.lowerBound >= startIndex && r.upperBound <= endIndex, "Index out of bounds")
+        return Self(root: root, bounds: r)
+    }
+
     func index(before i: Rope.Index) -> Rope.Index {
-        root.index(before: i, using: .utf8)
+        precondition(i > startIndex, "Index out of bounds")
+        return root.index(before: i, using: .utf8)
     }
 
     func index(after i: Rope.Index) -> Rope.Index {
-        root.index(after: i, using: .utf8)
+        precondition(i < endIndex, "Index out of bounds")
+        return root.index(after: i, using: .utf8)
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        root.index(i, offsetBy: distance, using: .utf8)
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        let j = root.index(i, offsetBy: distance, using: .utf8)
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
     }
 
     func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8)
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        guard let j = root.index(i, offsetBy: distance, limitedBy: limit, using: .utf8) else {
+            return nil
+        }
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        root.distance(from: start, to: end, using: .utf8)
+        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        return root.distance(from: start, to: end, using: .utf8)
+    }
+}
+
+extension Rope.UTF8View {
+    func index(at offset: Int) -> Index {
+        root.index(at: offset, using: .utf8)
     }
 
-    var count: Int {
-        root.measure(using: .utf8)
+    func index(roundingDown i: Index) -> Index {
+        i.validate(for: root)
+        return i
+    }
+
+    subscript(offset: Int) -> UTF8.CodeUnit {
+        self[root.index(at: offset, using: .utf8)]
     }
 }
 
@@ -1129,83 +1149,130 @@ extension Rope.UTF8View: BidirectionalCollection {
 // do this, our ability to click on a line fragment after an emoji will fail.
 extension Rope {
     var utf16: UTF16View {
-        UTF16View(root: root)
+        UTF16View(root: root, bounds: startIndex..<endIndex)
     }
 
     struct UTF16View {
         var root: BTreeNode<RopeSummary>
+        var bounds: Range<Index>
+    }
+}
 
-        var count: Int {
-            root.measure(using: .utf16)
-        }
+extension Rope.UTF16View {
+    typealias Index = Rope.Index
 
-        func index(_ i: Index, offsetBy distance: Int) -> Index {
-            root.index(i, offsetBy: distance, using: .utf16)
-        }
+    var count: Int {
+        root.distance(from: startIndex, to: endIndex, using: .utf16)
+    }
 
-        func distance(from start: Index, to end: Index) -> Int {
-            root.distance(from: start, to: end, using: .utf16)
-        }
+   var startIndex: Index {
+       bounds.lowerBound
+   }
+
+   var endIndex: Index {
+       bounds.upperBound
+   }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        let j = root.index(i, offsetBy: distance, using: .utf16)
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        return root.distance(from: start, to: end, using: .utf16)
     }
 }
 
 extension Rope {
     var unicodeScalars: UnicodeScalarView {
-        UnicodeScalarView(root: root)
+        UnicodeScalarView(root: root, bounds: startIndex..<endIndex)
     }
 
     struct UnicodeScalarView {
-        var root: BTreeNode<RopeSummary>
+        typealias Index = Rope.Index
 
-        func index(at offset: Int) -> Index {
-            root.index(at: offset, using: .unicodeScalars)
-        }
-
-        func index(roundingDown i: Index) -> Index {
-            root.index(roundingDown: i, using: .unicodeScalars)
-        }
-
-        subscript(offset: Int) -> UnicodeScalar {
-            self[root.index(at: offset, using: .unicodeScalars)]
-        }
+        let root: BTreeNode<RopeSummary>
+        let bounds: Range<Index>
     }
 }
 
 extension Rope.UnicodeScalarView: BidirectionalCollection {
-    var startIndex: Rope.Index {
-        root.startIndex
-    }
-
-    var endIndex: Rope.Index {
-        root.endIndex
-    }
-
-    subscript(position: Rope.Index) -> Unicode.Scalar {
-        root.index(roundingDown: position, using: .unicodeScalars).readScalar()!
-    }
-
-    func index(before i: Rope.Index) -> Rope.Index {
-        root.index(before: i, using: .unicodeScalars)
-    }
-
-    func index(after i: Rope.Index) -> Rope.Index {
-        root.index(after: i, using: .unicodeScalars)
-    }
-
-    func index(_ i: Rope.Index, offsetBy distance: Int) -> Rope.Index {
-        root.index(i, offsetBy: distance, using: .unicodeScalars)
-    }
-
-    func index(_ i: Rope.Index, offsetBy distance: Int, limitedBy limit: Rope.Index) -> Rope.Index? {
-        root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars)
-    }
-
-    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
-        root.distance(from: start, to: end, using: .unicodeScalars)
-    }
-
     var count: Int {
-        root.measure(using: .unicodeScalars)
+        root.distance(from: startIndex, to: endIndex, using: .unicodeScalars)
+    }
+
+    var startIndex: Index {
+        bounds.lowerBound
+    }
+
+    var endIndex: Index {
+        bounds.upperBound
+    }
+
+    subscript(position: Index) -> Unicode.Scalar {
+        position.validate(for: root)
+        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
+        let i = root.index(roundingDown: position, using: .unicodeScalars)
+        precondition(i >= startIndex, "Index out of bounds")
+        return i.readScalar()!
+    }
+
+    subscript(r: Range<Index>) -> Self {
+        precondition(r.lowerBound >= startIndex && r.upperBound <= endIndex, "Index out of bounds")
+        let start = root.index(roundingDown: r.lowerBound, using: .unicodeScalars)
+        let end = root.index(roundingDown: r.upperBound, using: .unicodeScalars)
+        precondition(start >= startIndex && end <= endIndex, "Index out of bounds")
+        return Self(root: root, bounds: start..<end)
+    }
+
+    func index(before i: Index) -> Index {
+        precondition(i > startIndex, "Index out of bounds")
+        return root.index(before: i, using: .unicodeScalars)
+    }
+
+    func index(after i: Index) -> Index {
+        precondition(i < endIndex, "Index out of bounds")
+        return root.index(after: i, using: .unicodeScalars)
+    }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        let j = root.index(i, offsetBy: distance, using: .unicodeScalars)
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        guard let j = root.index(i, offsetBy: distance, limitedBy: limit, using: .unicodeScalars) else {
+            return nil
+        }
+        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        return j
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        return root.distance(from: start, to: end, using: .unicodeScalars)
+    }
+}
+
+extension Rope.UnicodeScalarView {
+    func index(at offset: Int) -> Index {
+        precondition(offset >= 0 && offset <= count)
+        return root.index(at: offset, using: .unicodeScalars)
+    }
+
+    func index(roundingDown i: Index) -> Index {
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        return root.index(roundingDown: i, using: .unicodeScalars)
+    }
+
+    subscript(offset: Int) -> UnicodeScalar {
+        self[index(at: offset)]
     }
 }
 

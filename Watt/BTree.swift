@@ -912,6 +912,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         start.validate(for: self)
         end.validate(for: self)
 
+        if start == startIndex && end == endIndex {
+            return measure(using: metric)
+        }
+
         return count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
     }
 
