@@ -1355,6 +1355,9 @@ final class RopeTests: XCTestCase {
         // out of bounds
         // i = r.lines.index(r.index(at: 0), offsetBy: 2)
 
+        // out of bounds
+        // i = r.lines.index(r.index(at: 3), offsetBy: 2)
+
         i = r.lines.index(r.lines.endIndex, offsetBy: -1)
         XCTAssertEqual(r.index(at: 0), i)
 
@@ -1542,6 +1545,11 @@ final class RopeTests: XCTestCase {
 
         i = r.lines.index(roundingDown: r.lines.endIndex)
         XCTAssertEqual(r.lines.endIndex, i)
+
+        // tricky, rounding down from r.lines.endIndex in a different
+        // view yields r.endIndex:
+        i = r.index(roundingDown: r.lines.endIndex)
+        XCTAssertEqual(r.endIndex, i)
     }
 
     func testLinesRoundingUp() {
@@ -1581,6 +1589,61 @@ final class RopeTests: XCTestCase {
         i = r.lines.index(roundingUp: r.lines.endIndex)
         XCTAssertEqual(r.lines.endIndex, i)
     }
+
+    func testLineSlicing() {
+        let r = Rope("foo\nbar")
+        XCTAssertEqual(r.lines.count, 2)
+
+        var slice = r.lines[r.index(at: 1)..<r.index(at: 6)]
+        XCTAssertEqual(slice.count, 2)
+
+        slice = r.lines[r.index(at:3)..<r.index(at: 6)]
+        XCTAssertEqual(slice.count, 2)
+
+        slice = r.lines[r.index(at: 4)..<r.index(at: 6)]
+        XCTAssertEqual(slice.count, 1)
+
+        slice = r.lines[r.index(at: 6)..<r.index(at: 6)]
+        XCTAssertEqual(slice.count, 1)
+
+        slice = r.lines[r.index(at: 7)..<r.index(at: 7)]
+        XCTAssertEqual(slice.count, 1)
+
+        slice = r.lines[r.index(at: 0)..<r.lines.endIndex]
+        XCTAssertEqual(slice.count, 2)
+
+        slice = r.lines[r.index(at: 4)..<r.lines.endIndex]
+        XCTAssertEqual(slice.count, 1)
+
+        slice = r.lines[r.index(at: 7)..<r.lines.endIndex]
+        XCTAssertEqual(slice.count, 1)
+
+
+        var subrope = r[r.index(at: 1)..<r.index(at: 6)]
+        XCTAssertEqual(subrope.count, 5)
+        XCTAssertEqual(subrope.lines.count, 2)
+
+        subrope = r[r.index(at:3)..<r.index(at: 6)]
+        XCTAssertEqual(subrope.count, 3)
+        XCTAssertEqual(subrope.lines.count, 2)
+
+        subrope = r[r.index(at: 4)..<r.index(at: 6)]
+        XCTAssertEqual(subrope.count, 2)
+        XCTAssertEqual(subrope.lines.count, 1)
+
+        subrope = r[r.index(at: 6)..<r.index(at: 6)]
+        XCTAssertEqual(subrope.count, 0)
+        XCTAssertEqual(subrope.lines.count, 1)
+
+        subrope = r[r.index(at: 7)..<r.index(at: 7)]
+        XCTAssertEqual(subrope.count, 0)
+        XCTAssertEqual(subrope.lines.count, 1)
+
+        subrope = r[r.index(at: 7)..<r.lines.endIndex]
+        XCTAssertEqual(subrope.count, 0)
+        XCTAssertEqual(subrope.lines.count, 1)
+    }
+
 
     // MARK: - Deltas
 
