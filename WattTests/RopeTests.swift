@@ -1212,71 +1212,374 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual([a, b, c], Array(r.lines.map { String($0) }))
     }
 
-    // LinesView has to have some extra logic in its indexing
-    // methods to handle endIndex correctly. This is because
-    // the .newlines metric counts "\n" characters and there's
-    // always one more line than newlines.
-    func testLinesViewIndexAtEnd() {
-        let r = Rope("foo")
+    func testLinesCount() {
+        var r = Rope("")
+        XCTAssertEqual(r.lines.count, 1)
 
-        XCTAssertEqual(1, r.lines.count)
+        r = Rope("foo")
+        XCTAssertEqual(r.lines.count, 1)
 
-        let i = r.lines.index(at: 1)
-        XCTAssertEqual(r.endIndex, i)
-        XCTAssertEqual(3, i.position)
+        r = Rope("foo\n")
+        XCTAssertEqual(r.lines.count, 2)
+
+        r = Rope("foo\nbar")
+        XCTAssertEqual(r.lines.count, 2)
+
+        r = Rope("foo\nbar\n")
+        XCTAssertEqual(r.lines.count, 3)
     }
 
-    func testLinesViewIndexAfterEnd() {
-        let r = Rope("foo")
+    func testLinesIndexAt() {
+        var r = Rope("")
+        var i = r.lines.index(at: 0)
+        XCTAssertEqual(r.startIndex, i)
 
-        XCTAssertEqual(1, r.lines.count)
+        i = r.lines.index(at: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
 
-        let i = r.lines.index(after: r.startIndex)
+        r = Rope("foo")
+        i = r.lines.index(at: 0)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.lines.index(at: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        r = Rope("foo\n")
+        i = r.lines.index(at: 0)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.lines.index(at: 1)
         XCTAssertEqual(r.endIndex, i)
-        XCTAssertEqual(3, i.position)
+
+        i = r.lines.index(at: 2)
+        XCTAssertEqual(r.lines.endIndex, i)
     }
 
-    func testLinesViewIndexBeforeEnd() {
-        let r = Rope("foo")
+    func testLinesIndexAfter() {
+        var r = Rope("")
+        var i = r.lines.index(after: r.startIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
 
-        XCTAssertEqual(1, r.lines.count)
+        i = r.lines.index(after: r.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
 
-        let i = r.lines.index(before: r.endIndex)
+        // out of bounds
+        // r.lines.index(after: r.lines.endIndex)
+
+        r = Rope("foo")
+        i = r.lines.index(after: r.index(at: 0)) // r.startIndex
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(after: r.index(at: 1))
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(after: r.index(at: 3)) // r.endIndex
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        // out of bounds
+        // r.lines.index(after: r.lines.endIndex)
+
+        r = Rope("foo\n")
+        i = r.lines.index(after: r.index(at: 0)) // r.startIndex
+        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+
+        i = r.lines.index(after: r.index(at: 3))
+        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+
+        i = r.lines.index(after: r.index(at: 4))
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        // out of bounds
+        // r.lines.index(after: r.lines.endIndex)
+    }
+
+    func testLinesIndexBefore() {
+        var r = Rope("")
+        var i = r.lines.index(before: r.lines.endIndex)
+        XCTAssertEqual(r.startIndex, i)
+
+        // out of bounds
+        // r.lines.index(before: r.endIndex)
+
+        r = Rope("foo")
+        i = r.lines.index(before: r.lines.endIndex)
+        XCTAssertEqual(r.startIndex, i)
+
+        // out of bounds
+        // r.lines.index(before: r.endIndex)
+
+        r = Rope("foo\n")
+        i = r.lines.index(before: r.lines.endIndex)
+        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+
+        i = r.lines.index(before: r.index(at: 4))
         XCTAssertEqual(r.index(at: 0), i)
-        XCTAssertEqual(0, i.position)
+
+        // out of bounds
+        // r.lines.index(before: r.index(at: 3))
     }
 
-    func testLinesViewIndexOffsetByEnd() {
-        let r = Rope("foo")
+    func testLinesIndexOffsetBy() {
+        var r = Rope("")
+        var i = r.lines.index(r.startIndex, offsetBy: 0)
+        XCTAssertEqual(r.startIndex, i)
 
-        XCTAssertEqual(1, r.lines.count)
+        i = r.lines.index(r.startIndex, offsetBy: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
 
-        let i = r.lines.index(r.index(at: 2), offsetBy: 1)
-        XCTAssertEqual(r.endIndex, i)
-        XCTAssertEqual(3, i.position)
+        i = r.lines.index(r.lines.endIndex, offsetBy: 0)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: -1)
+        XCTAssertEqual(r.startIndex, i)
+
+        // out of bounds
+        // r.lines.index(r.startIndex, offsetBy: 2)
+
+        // out of bounds
+        // r.lines.index(r.lines.endIndex, offsetBy: 1)
+
+        // out of bounds
+        // r.lines.index(r.lines.endIndex, offsetBy: -2)
+
+        r = Rope("foo")
+        i = r.lines.index(r.index(at: 0), offsetBy: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        // out of bounds
+        // i = r.lines.index(r.index(at: 0), offsetBy: 2)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: -1)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        // out of bounds
+        // i = r.lines.index(r.index(at: 3), offsetBy: -1)
+
+        // out of bounds
+        // i = r.lines.index(r.lines.endIndex, offsetBy: -2)
+
+        r = Rope("foo\n")
+        i = r.lines.index(r.index(at: 0), offsetBy: 1)
+        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 1)
+        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+
+        i = r.lines.index(r.index(at: 4), offsetBy: 1)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        // out of bounds
+        // i = r.lines.index(r.index(at: 4), offsetBy: 2)
     }
 
-    func testLinesViewIndexOffsetByLimitedByEnd() {
-        let r = Rope("foo")
+    func testLinesIndexOffsetByLimitedBy() {
+        var r = Rope("")
+        var i = r.lines.index(r.index(at: 0), offsetBy: 0, limitedBy: r.startIndex)
+        XCTAssertEqual(r.startIndex, i)
 
-        XCTAssertEqual(1, r.lines.count)
-
-        var i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.endIndex)
-        XCTAssertEqual(r.endIndex, i)
-        XCTAssertEqual(3, i?.position)
-
-        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.endIndex)
+        i = r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.startIndex)
         XCTAssertNil(i)
 
-        // limit in opposite direction is a no-op.
-        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.startIndex)
-        XCTAssertEqual(r.endIndex, i)
-        XCTAssertEqual(3, i?.position)
+        i = r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
 
-        let r1 = Rope("foo\nbar\nbaz")
-        i = r1.lines.index(r1.index(at: 2), offsetBy: 3, limitedBy: r1.startIndex)
-        XCTAssertEqual(r1.endIndex, i)
-        XCTAssertEqual(11, i?.position)
+        i = r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: 0, limitedBy: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: 1, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: -1, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.lines.endIndex, offsetBy: -2, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+
+        r = Rope("foo")
+        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.lines.endIndex)
+        XCTAssertNil(i)
+
+        // the second character is still part of the first line, so even though
+        // the 2[utf8] > 0[utf8], they're part of the same line, so the limit
+        // does take effect
+        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.startIndex)
+        XCTAssertNil(i)
+
+        // Same applies to r.endIndex, which is still part of the first line
+        i = r.lines.index(r.endIndex, offsetBy: 1, limitedBy: r.startIndex)
+        XCTAssertNil(i)
+
+
+        r = Rope("foo\n")
+        i = r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.endIndex)
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.endIndex)
+        XCTAssertNil(i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.lines.endIndex)
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.index(at: 4), offsetBy: -1, limitedBy: r.startIndex)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: -1, limitedBy: r.startIndex)
+        XCTAssertNil(i)
+
+
+        r = Rope("foo\nbar\nbaz")
+        i = r.lines.index(r.index(at: 4), offsetBy: 1, limitedBy: r.startIndex)
+        XCTAssertEqual(r.index(at: 8), i)
+
+        i = r.lines.index(r.index(at: 4), offsetBy: 2, limitedBy: r.startIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(r.index(at: 4), offsetBy: -1, limitedBy: r.startIndex)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 4), offsetBy: -2, limitedBy: r.startIndex)
+        XCTAssertNil(i)
+    }
+
+    func testLinesDistance() {
+        var r = Rope("foo")
+        var d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 0))
+        XCTAssertEqual(0, d)
+
+        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 3))
+        XCTAssertEqual(0, d)
+
+        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 3))
+        XCTAssertEqual(0, d)
+
+        d = r.lines.distance(from: r.index(at: 0), to: r.lines.endIndex)
+        XCTAssertEqual(1, d)
+
+        d = r.lines.distance(from: r.index(at: 3), to: r.lines.endIndex)
+        XCTAssertEqual(1, d)
+
+        d = r.lines.distance(from: r.lines.endIndex, to: r.lines.endIndex)
+        XCTAssertEqual(0, d)
+
+        d = r.lines.distance(from: r.lines.endIndex, to: r.index(at: 3))
+        XCTAssertEqual(-1, d)
+
+        d = r.lines.distance(from: r.lines.endIndex, to: r.index(at: 0))
+        XCTAssertEqual(-1, d)
+
+        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 1))
+        XCTAssertEqual(0, d)
+
+        r = Rope("foo\n")
+        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 3))
+        XCTAssertEqual(0, d)
+
+        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 4))
+        XCTAssertEqual(1, d)
+
+        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 4))
+        XCTAssertEqual(1, d)
+
+        d = r.lines.distance(from: r.index(at: 3), to: r.lines.endIndex)
+        XCTAssertEqual(2, d)
+
+        d = r.lines.distance(from: r.index(at: 4), to: r.lines.endIndex)
+        XCTAssertEqual(1, d)
+
+        d = r.lines.distance(from: r.lines.endIndex, to: r.lines.endIndex)
+        XCTAssertEqual(0, d)
+    }
+
+    func testLinesRoundingDown() {
+        var r = Rope("")
+        var i = r.lines.index(roundingDown: r.startIndex)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.lines.index(roundingDown: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        r = Rope("foo")
+        i = r.lines.index(roundingDown: r.index(at: 0))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingDown: r.index(at: 1))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingDown: r.index(at: 3))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingDown: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        r = Rope("foo\n")
+        i = r.lines.index(roundingDown: r.index(at: 3))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingDown: r.index(at: 4))
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(roundingDown: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+    }
+
+    func testLinesRoundingUp() {
+        var r = Rope("")
+        var i = r.lines.index(roundingUp: r.startIndex)
+        XCTAssertEqual(r.startIndex, i)
+
+        i = r.lines.index(roundingUp: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        r = Rope("foo")
+        i = r.lines.index(roundingUp: r.index(at: 0))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingUp: r.index(at: 1))
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(roundingUp: r.index(at: 3))
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        i = r.lines.index(roundingUp: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
+
+        r = Rope("foo\n")
+        i = r.lines.index(roundingUp: r.index(at: 0))
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(roundingUp: r.index(at: 1))
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(roundingUp: r.index(at: 3))
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(roundingUp: r.index(at: 4))
+        XCTAssertEqual(r.index(at: 4), i)
+
+        i = r.lines.index(roundingUp: r.lines.endIndex)
+        XCTAssertEqual(r.lines.endIndex, i)
     }
 
     // MARK: - Deltas
@@ -1587,20 +1890,16 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.root.count, 1001)
     }
 
-    // TODO: this is broken. Rope.LinesView really needs its own Index type.
-    // In the case where the rope is empty, or the rope ends in a newline,
-    // LinesView needs to have an index after rope.endIndex. If we fix this
-    // issue, we can get rid of Lines.Iterator and switch to IndexingIterator
-    // which is the default.
     func testMoveToLastLineIndexInEmptyRope() {
-//        let r = Rope()
-//        XCTAssertEqual(r.lines.count, 1)
-//
-//        let i = r.startIndex
-//        XCTAssertEqual(r.lines[i], "")
-//
-//        let j = r.lines.index(after: i)
-//        XCTAssertEqual(j, r.endIndex)
+        let r = Rope()
+        XCTAssertEqual(r.lines.count, 1)
+
+        let i = r.startIndex
+        XCTAssertEqual(i, r.endIndex)
+        XCTAssertEqual(r.lines[i], "")
+
+        let j = r.lines.index(after: i)
+        XCTAssertEqual(j, r.lines.endIndex)
     }
 }
 

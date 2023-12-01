@@ -2,11 +2,11 @@ import lldb
 
 def rope_index_summary(valobj, internal_dict):
     position = valobj.GetChildMemberWithName('i').GetChildMemberWithName('position').GetValue()
-    nl = valobj.GetChildMemberWithName('trailingNewline')
+    lend = valobj.GetChildMemberWithName('lineViewEnd')
 
     summary = f'{position}[utf8]'
-    if read_bool(nl):
-        summary += '-nl'
+    if read_bool(lend):
+        summary += '+lend'
 
     return summary
 
