@@ -1337,7 +1337,7 @@ extension Rope {
 extension Rope.LineView: BidirectionalCollection {
     typealias Index = Rope.Index
     var count: Int {
-        root.distance(from: startIndex.i, to: endIndex.i, using: .newlines) + 1
+        root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, using: .newlines) + 1
     }
 
     var startIndex: Index {
@@ -1373,12 +1373,12 @@ extension Rope.LineView: BidirectionalCollection {
         }
 
         let j = index(roundingDown: i)
-
         precondition(j > startIndex, "Index out of bounds")
         return Index(root.index(before: j.i, using: .newlines))
     }
 
     func index(after i: Index) -> Index {
+        // No need to validate because comparison in the precondition will do it for us
         precondition(i < endIndex, "Index out of bounds")
 
         var j = i.i
@@ -1389,8 +1389,7 @@ extension Rope.LineView: BidirectionalCollection {
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        // Even though we're not using root's index methods, we don't need to
-        // validate because the index comparison operators will do it for us.
+        // No need to validate because comparison in the precondition will do it for us
         precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
 
         if distance > 0 && i == endIndex {
