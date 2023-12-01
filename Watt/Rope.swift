@@ -728,6 +728,13 @@ extension Rope {
     }
 }
 
+extension Rope.Index: Comparable {
+    static func < (lhs: Rope.Index, rhs: Rope.Index) -> Bool {
+        lhs.i < rhs.i || (!lhs.lineViewEnd && rhs.lineViewEnd)
+    }
+}
+
+
 extension Rope.Index {
     func readUTF8() -> UTF8.CodeUnit? {
         guard let (chunk, offset) = i.read() else {
@@ -807,51 +814,6 @@ extension Rope.Index {
 
         assert(s.count == 1)
         return s[s.startIndex]
-    }
-
-    func readLine() -> Substring? {
-        guard var (chunk, offset) = i.read() else {
-            return nil
-        }
-
-        // An optimization: if the entire line is within
-        // the chunk, return a Substring.
-        var end = self
-        if let endOffset = end.i.next(withinLeafUsing: .newlines) {
-            let i = chunk.string.utf8Index(at: offset)
-            let j = chunk.string.utf8Index(at: endOffset - self.i.offsetOfLeaf)
-
-            return chunk.string[i..<j]
-        }
-
-        end = self
-        if end.i.next(using: .newlines) == nil {
-            end = Rope(BTreeNode(storage: i.rootStorage!)).endIndex
-        }
-
-        var s = ""
-        s.reserveCapacity(end.position - position)
-
-        var i = self
-        while true {
-            let count = min(chunk.count - offset, end.position - i.position)
-
-            let endOffset = offset + count
-            assert(endOffset <= chunk.count)
-
-            let cstart = chunk.string.utf8Index(at: offset)
-            let cend = chunk.string.utf8Index(at: endOffset)
-
-            s += chunk.string[cstart..<cend]
-
-            if i.position + count == end.position {
-                break
-            }
-
-            (chunk, offset) = i.i.nextLeaf()!
-        }
-
-        return s[...]
     }
 }
 
@@ -934,12 +896,6 @@ extension Rope: BidirectionalCollection {
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
         root.distance(from: start.i, to: end.i, using: .characters)
-    }
-}
-
-extension Rope.Index: Comparable {
-    static func < (lhs: Rope.Index, rhs: Rope.Index) -> Bool {
-        lhs.i < rhs.i || (!lhs.lineViewEnd && rhs.lineViewEnd)
     }
 }
 
