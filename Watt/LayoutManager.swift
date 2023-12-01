@@ -452,12 +452,10 @@ class LayoutManager {
     }
 
     func line(containing location: Buffer.Index) -> Line {
-        let start = buffer.lines.index(roundingDown: location)
-        let end = start == buffer.endIndex ? start : buffer.lines.index(after: start)
+        let content = buffer.lines[location]
+        let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let y = heights.yOffset(upThroughPosition: start.position)
-
-        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
 
         return line
     }
