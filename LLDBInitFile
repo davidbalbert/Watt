@@ -3,7 +3,8 @@ script print("Loading Watt/LLDBInitFile")
 command script import -c lldb_utils.py
 
 type summary add --python-function lldb_utils.rope_index_summary "Watt.Rope.Index"
-type summary add --summary-string "${var.lowerBound}..<${var.upperBound}" -x "^Range<Watt.Rope.(.+.)?Index>$"
+type summary add --summary-string "${var.lowerBound}..<${var.upperBound}" -x "^Range<Watt.Rope.+Index>$"
+type summary add --summary-string "${var.lowerBound}..<${var.upperBound}" "Range<Watt.Buffer.Index>"
 
 type summary add --summary-string "${var.position}[pos]" -x "^Watt.BTreeNode<.+>.Index$"
 type summary add --summary-string "${var.lowerBound}..<${var.upperBound}" -x "^Range<Watt.BTreeNode<.+>.Index>$"
