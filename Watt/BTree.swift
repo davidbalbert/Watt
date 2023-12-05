@@ -901,10 +901,6 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
 
         var i = i
-        // TODO: maybe
-        // if distance < 0 {
-        //     i = index(roundingDown: i, using: metric)
-        // }
         let m = count(metric, upThrough: i.position)
         precondition(m+distance >= 0 && m+distance <= measure(using: metric), "Index out of bounds")
         let pos = countBaseUnits(upThrough: m + distance, measuredIn: metric)
