@@ -901,6 +901,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
 
         var i = i
+        // TODO: maybe
+        // if distance < 0 {
+        //     i = index(roundingDown: i, using: metric)
+        // }
         let m = count(metric, upThrough: i.position)
         precondition(m+distance >= 0 && m+distance <= measure(using: metric), "Index out of bounds")
         let pos = countBaseUnits(upThrough: m + distance, measuredIn: metric)
@@ -913,12 +917,53 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         limit.validate(for: self)
 
-        let l = self.distance(from: i, to: limit, using: metric)
-        if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
-            return nil
+//        let shouldLimit = (distance < 0 && limit <= i) || (distance > 0 && limit >= i)
+
+//        let limitApplies = (distance <= 0 && limit <= i) || (distance >= 0 && limit >= i)
+//        if !limitApplies {
+//            return index(i, offsetBy: distance, using: metric)
+//        }
+
+        if distance < 0 && limit <= i {
+            let l = self.distance(from: i, to: index(roundingUp: limit, using: metric), using: metric)
+            if distance < l {
+                return nil
+            }
+        } else if distance > 0 && limit >= i {
+            let l = self.distance(from: i, to: index(roundingDown: limit, using: metric), using: metric)
+            if distance > l {
+                return nil
+            }
         }
 
+
+//        if shouldLimit && distance < 0 {
+//            let l = self.distance(from: i, to: index(roundingUp: limit, using: metric), using: metric)
+//            if distance < l {
+//                return nil
+//            }
+//        } else if shouldLimit {
+//            let l = self.distance(from: i, to: index(roundingDown: limit, using: metric), using: metric)
+//            if distance > l {
+//                return nil
+//            }
+//        }
+
+//        let l = self.distance(from: i, to: index(roundingUp: limit, using: metric), using: metric)
+//        if distance < 0 && distance < l {
+//            return nil
+//        } else if distance > 0 && distance > l {
+//            return nil
+//        }
+
         return index(i, offsetBy: distance, using: metric)
+
+
+//        let l = self.distance(from: i, to: limit, using: metric)
+//        if distance > 0 ? l >= 0 && l < distance : l <= 0 && distance < l {
+//            return nil
+//        }
+//        return index(i, offsetBy: distance, using: metric)
     }
 
     func distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
@@ -940,6 +985,16 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         }
 
         return index(before: i, using: metric)
+    }
+
+    func index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        i.validate(for: self)
+
+        if i.isBoundary(in: metric) {
+            return i
+        }
+
+        return index(after: i, using: metric)
     }
 
     func index<M>(at offset: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {

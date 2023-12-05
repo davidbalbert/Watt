@@ -11,10 +11,11 @@ import XCTest
 import CwlPreconditionTesting
 
 func assertCrashes<T>(_ body: @escaping @autoclosure () -> T, file: StaticString = #file, line: UInt = #line) {
+    var res: T?
     let e = catchBadInstruction {
-        _ = body()
+        res = body()
     }
     if e == nil {
-        XCTFail("Expected crash", file: file, line: line)
+        XCTFail("expected crash, got \(res!)", file: file, line: line)
     }
 }

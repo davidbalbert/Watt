@@ -952,76 +952,169 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(22, r.utf8.count)
 
         assertCrashes(r.index(before: r.utf8.index(at: 0)))
-        assertCrashes(r.index(before: r.utf8.index(at: 1)))
-        assertCrashes(r.index(before: r.utf8.index(at: 2)))
-        assertCrashes(r.index(before: r.utf8.index(at: 3)))
-        assertCrashes(r.index(before: r.utf8.index(at: 4)))
-        assertCrashes(r.index(before: r.utf8.index(at: 5)))
-        assertCrashes(r.index(before: r.utf8.index(at: 6)))
-        assertCrashes(r.index(before: r.utf8.index(at: 7)))
-        assertCrashes(r.index(before: r.utf8.index(at: 8)))
-        assertCrashes(r.index(before: r.utf8.index(at: 9)))
         assertCrashes(r.index(before: r.utf8.index(at: 10)))
         XCTAssertEqual(0, r.index(before: r.utf8.index(at: 11)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 12)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 13)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 14)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 15)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 16)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 17)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 18)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 19)).position)
-        XCTAssertEqual(0, r.index(before: r.utf8.index(at: 20)).position)
         XCTAssertEqual(0, r.index(before: r.utf8.index(at: 21)).position)
         XCTAssertEqual(11, r.index(before: r.utf8.index(at: 22)).position)
 
         assertCrashes(r.unicodeScalars.index(before: r.utf8.index(at: 0)))
-        assertCrashes(r.unicodeScalars.index(before: r.utf8.index(at: 1)))
-        assertCrashes(r.unicodeScalars.index(before: r.utf8.index(at: 2)))
         assertCrashes(r.unicodeScalars.index(before: r.utf8.index(at: 3)))
         XCTAssertEqual(0, r.unicodeScalars.index(before: r.utf8.index(at: 4)).position)
-        XCTAssertEqual(0, r.unicodeScalars.index(before: r.utf8.index(at: 5)).position)
         XCTAssertEqual(0, r.unicodeScalars.index(before: r.utf8.index(at: 6)).position)
         XCTAssertEqual(4, r.unicodeScalars.index(before: r.utf8.index(at: 7)).position)
-        XCTAssertEqual(4, r.unicodeScalars.index(before: r.utf8.index(at: 8)).position)
-        XCTAssertEqual(4, r.unicodeScalars.index(before: r.utf8.index(at: 9)).position)
         XCTAssertEqual(4, r.unicodeScalars.index(before: r.utf8.index(at: 10)).position)
         XCTAssertEqual(7, r.unicodeScalars.index(before: r.utf8.index(at: 11)).position)
-        XCTAssertEqual(7, r.unicodeScalars.index(before: r.utf8.index(at: 12)).position)
-        XCTAssertEqual(7, r.unicodeScalars.index(before: r.utf8.index(at: 13)).position)
         XCTAssertEqual(7, r.unicodeScalars.index(before: r.utf8.index(at: 14)).position)
         XCTAssertEqual(11, r.unicodeScalars.index(before: r.utf8.index(at: 15)).position)
-        XCTAssertEqual(11, r.unicodeScalars.index(before: r.utf8.index(at: 16)).position)
         XCTAssertEqual(11, r.unicodeScalars.index(before: r.utf8.index(at: 17)).position)
         XCTAssertEqual(15, r.unicodeScalars.index(before: r.utf8.index(at: 18)).position)
-        XCTAssertEqual(15, r.unicodeScalars.index(before: r.utf8.index(at: 19)).position)
-        XCTAssertEqual(15, r.unicodeScalars.index(before: r.utf8.index(at: 20)).position)
         XCTAssertEqual(15, r.unicodeScalars.index(before: r.utf8.index(at: 21)).position)
         XCTAssertEqual(18, r.unicodeScalars.index(before: r.utf8.index(at: 22)).position)
 
         assertCrashes(r.utf8.index(before: r.utf8.index(at: 0)))
         XCTAssertEqual(0, r.utf8.index(before: r.utf8.index(at: 1)).position)
-        XCTAssertEqual(1, r.utf8.index(before: r.utf8.index(at: 2)).position)
-        XCTAssertEqual(2, r.utf8.index(before: r.utf8.index(at: 3)).position)
-        XCTAssertEqual(3, r.utf8.index(before: r.utf8.index(at: 4)).position)
-        XCTAssertEqual(4, r.utf8.index(before: r.utf8.index(at: 5)).position)
-        XCTAssertEqual(5, r.utf8.index(before: r.utf8.index(at: 6)).position)
-        XCTAssertEqual(6, r.utf8.index(before: r.utf8.index(at: 7)).position)
-        XCTAssertEqual(7, r.utf8.index(before: r.utf8.index(at: 8)).position)
         XCTAssertEqual(8, r.utf8.index(before: r.utf8.index(at: 9)).position)
         XCTAssertEqual(9, r.utf8.index(before: r.utf8.index(at: 10)).position)
         XCTAssertEqual(10, r.utf8.index(before: r.utf8.index(at: 11)).position)
         XCTAssertEqual(11, r.utf8.index(before: r.utf8.index(at: 12)).position)
-        XCTAssertEqual(12, r.utf8.index(before: r.utf8.index(at: 13)).position)
-        XCTAssertEqual(13, r.utf8.index(before: r.utf8.index(at: 14)).position)
-        XCTAssertEqual(14, r.utf8.index(before: r.utf8.index(at: 15)).position)
-        XCTAssertEqual(15, r.utf8.index(before: r.utf8.index(at: 16)).position)
-        XCTAssertEqual(16, r.utf8.index(before: r.utf8.index(at: 17)).position)
-        XCTAssertEqual(17, r.utf8.index(before: r.utf8.index(at: 18)).position)
-        XCTAssertEqual(18, r.utf8.index(before: r.utf8.index(at: 19)).position)
-        XCTAssertEqual(19, r.utf8.index(before: r.utf8.index(at: 20)).position)
-        XCTAssertEqual(20, r.utf8.index(before: r.utf8.index(at: 21)).position)
         XCTAssertEqual(21, r.utf8.index(before: r.utf8.index(at: 22)).position)
+    }
+
+    func testIndexOffsetByNegativeJoinedEmoji() {
+        // [Man, ZWJ, Laptop, Man, ZWJ, Laptop]
+        // UTF-16 count: 2*(2+1+2)
+        // UTF-8 count: 2*(4+3+4)
+        let r = Rope("👨‍💻🧑‍💻")
+
+        XCTAssertEqual(2, r.count)
+        XCTAssertEqual(6, r.unicodeScalars.count)
+        XCTAssertEqual(10, r.utf16.count)
+        XCTAssertEqual(22, r.utf8.count)
+
+        assertCrashes(r.index(r.utf8.index(at: 0), offsetBy: -1))
+        assertCrashes(r.index(r.utf8.index(at: 10), offsetBy: -1))
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 11), offsetBy: -1).position)
+
+        assertCrashes(r.index(r.utf8.index(at: 11), offsetBy: -2))
+        assertCrashes(r.index(r.utf8.index(at: 21), offsetBy: -2))
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 22), offsetBy: -2).position)
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 11), offsetBy: -1).position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 21), offsetBy: -1).position)
+        XCTAssertEqual(11, r.index(r.utf8.index(at: 22), offsetBy: -1).position)
+        
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 0), offsetBy: -1))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 3), offsetBy: -1))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 4), offsetBy: -1).position)
+
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 4), offsetBy: -2))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 6), offsetBy: -2))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 7), offsetBy: -2).position)
+
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 7), offsetBy: -3))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 10), offsetBy: -3))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 11), offsetBy: -3).position)
+
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 11), offsetBy: -4))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 14), offsetBy: -4))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 15), offsetBy: -4).position)
+
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 15), offsetBy: -5))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 17), offsetBy: -5))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 18), offsetBy: -5).position)
+
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 18), offsetBy: -6))
+        assertCrashes(r.unicodeScalars.index(r.utf8.index(at: 21), offsetBy: -6))
+        XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 22), offsetBy: -6).position)
+    }
+
+    func testIndexOffsetByLimitedByEmoji() {
+        let s = "😁😬"
+        let r = Rope(s)
+
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 0), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 1), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 3), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 3), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+
+
+
+
+
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 0), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 1), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 3), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 3), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
+
+
+
+
+
+        XCTAssertNil(s.index(s.utf8Index(at: 0), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
+        XCTAssertNil(s.index(s.utf8Index(at: 1), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
+        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
+
+        assertCrashes(s.index(s.utf8Index(at: 1), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
+        XCTAssertNil(s.index(s.utf8Index(at: 2), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
+        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
+
+
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 4), offsetBy: -1, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
+        XCTAssertEqual(0, s.index(s.utf8Index(at: 5), offsetBy: -1, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
+        XCTAssertNil(s.index(s.utf8Index(at: 4), offsetBy: -1, limitedBy: s.utf8Index(at: 1)))
+        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: -1, limitedBy: s.utf8Index(at: 1)))
+
+        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
+        XCTAssertNil(s.index(s.utf8Index(at: 4), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
+        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
+
+
+
+        XCTAssertNil(r.index(r.utf8.index(at: 0), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
+        XCTAssertNil(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
+        XCTAssertNil(r.index(r.utf8.index(at: 3), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
+
+        assertCrashes(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
+        XCTAssertNil(r.index(r.utf8.index(at: 2), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
+        XCTAssertNil(r.index(r.utf8.index(at: 3), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 4), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 5), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 4), offsetBy: -1, limitedBy: r.utf8.index(at: 1)))
+        XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: -1, limitedBy: r.utf8.index(at: 1)))
+
+
+
+        // to the right
+        XCTAssertEqual(8, s.index(s.utf8Index(at: 4), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
+        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
+        XCTAssertEqual(8, s.index(s.utf8Index(at: 7), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
+        XCTAssertNil(s.index(s.utf8Index(at: 8), offsetBy: 1, limitedBy: s.utf8Index(at: 8)))
+
+        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
+        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 5)))
+        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 6)))
+        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
+
+
+        XCTAssertEqual(8, r.index(r.utf8.index(at: 4), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
+        XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
+        XCTAssertEqual(8, r.index(r.utf8.index(at: 7), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 8), offsetBy: 1, limitedBy: r.utf8.index(at: 8)))
+
+        XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 4))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 5)))
+        XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 6)))
+        XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
+
+
+
     }
 
     func testIndexRoundingDownJoinedEmoji() {

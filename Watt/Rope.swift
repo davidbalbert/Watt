@@ -889,10 +889,10 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        guard let j = root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters) else {
+        guard let k = root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters) else {
             return nil
         }
-        return Index(j)
+        return Index(k)
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
