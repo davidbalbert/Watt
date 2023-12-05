@@ -876,7 +876,8 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(before i: Index) -> Index {
-        Index(root.index(before: i.i, using: .characters))
+        let j = index(roundingDown: i)
+        return Index(root.index(before: j.i, using: .characters))
     }
 
     func index(after i: Index) -> Index {
@@ -1116,7 +1117,8 @@ extension RopeView {
 
     func index(before i: Index) -> Index {
         precondition(i > startIndex, "Index out of bounds")
-        return Index(root.index(before: i.i, using: metric))
+        let j = index(roundingDown: i)
+        return Index(root.index(before: j.i, using: metric))
     }
 
     func index(after i: Index) -> Index {
