@@ -1032,89 +1032,73 @@ final class RopeTests: XCTestCase {
         let s = "😁😬"
         let r = Rope(s)
 
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 0), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 1), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 3), offsetBy: 0, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
-
+        // when distance == 0
+        // a) limit doesn't apply
+        // b) rounded down to nearest boundary
         XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
         XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
         XCTAssertEqual(0, r.index(r.utf8.index(at: 3), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
 
-
-
-
-
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 0), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 1), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 3), offsetBy: 0, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 2))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 2))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 3), offsetBy: 0, limitedBy: r.utf8.index(at: 2))?.position)
 
         XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
         XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
         XCTAssertEqual(0, r.index(r.utf8.index(at: 3), offsetBy: 0, limitedBy: r.utf8.index(at: 4))?.position)
 
+        // when distance < 0
+        // a) round down before going backwards
+        // b) limit applies if limit <= i
 
-
-
-
-        XCTAssertNil(s.index(s.utf8Index(at: 0), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
-        XCTAssertNil(s.index(s.utf8Index(at: 1), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
-        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -1, limitedBy: s.utf8Index(at: 0)))
-
-        assertCrashes(s.index(s.utf8Index(at: 1), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
-        XCTAssertNil(s.index(s.utf8Index(at: 2), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
-        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -1, limitedBy: s.utf8Index(at: 2)))
-
-
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 4), offsetBy: -1, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
-        XCTAssertEqual(0, s.index(s.utf8Index(at: 5), offsetBy: -1, limitedBy: s.utf8Index(at: 0))?.encodedOffset)
-        XCTAssertNil(s.index(s.utf8Index(at: 4), offsetBy: -1, limitedBy: s.utf8Index(at: 1)))
-        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: -1, limitedBy: s.utf8Index(at: 1)))
-
-        XCTAssertNil(s.index(s.utf8Index(at: 3), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
-        XCTAssertNil(s.index(s.utf8Index(at: 4), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
-        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: -2, limitedBy: s.utf8Index(at: 1)))
-
-
-
+        // limit <= i, so it applies
+        // round down to 0 and then go left beyond limit -> nil
         XCTAssertNil(r.index(r.utf8.index(at: 0), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
         XCTAssertNil(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
         XCTAssertNil(r.index(r.utf8.index(at: 3), offsetBy: -1, limitedBy: r.utf8.index(at: 0)))
 
+        // limit > i, so limit doesn't apply
         assertCrashes(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
+        // limit == i, it applies
         XCTAssertNil(r.index(r.utf8.index(at: 2), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
+        // limit < i, it applies
         XCTAssertNil(r.index(r.utf8.index(at: 3), offsetBy: -1, limitedBy: r.utf8.index(at: 2)))
 
+        // limit < i, it applies
+        // round down to 4, move left to 0, within the limit
         XCTAssertEqual(0, r.index(r.utf8.index(at: 4), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
         XCTAssertEqual(0, r.index(r.utf8.index(at: 5), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+
+        // limit < i, it applies
+        // round down to 4, move left, but 0 is less than 1[utf8], so nil
         XCTAssertNil(r.index(r.utf8.index(at: 4), offsetBy: -1, limitedBy: r.utf8.index(at: 1)))
         XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: -1, limitedBy: r.utf8.index(at: 1)))
 
+        // when distance > 0
+        // a) limit applies if limit >= i
 
-
-        // to the right
-        XCTAssertEqual(8, s.index(s.utf8Index(at: 4), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
-        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
-        XCTAssertEqual(8, s.index(s.utf8Index(at: 7), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
-        XCTAssertNil(s.index(s.utf8Index(at: 8), offsetBy: 1, limitedBy: s.utf8Index(at: 8)))
-
-        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 4))?.encodedOffset)
-        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 5)))
-        XCTAssertNil(s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 6)))
-        XCTAssertEqual(8, s.index(s.utf8Index(at: 5), offsetBy: 1, limitedBy: s.utf8Index(at: 8))?.encodedOffset)
-
-
+        // limit > i, it applies
+        // go right to 8[utf8], 8[utf8] == limit, therefore not-nil
         XCTAssertEqual(8, r.index(r.utf8.index(at: 4), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
         XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
         XCTAssertEqual(8, r.index(r.utf8.index(at: 7), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
+
+        // limit >= i, it applies
+        // go right past endIndex, but we're limited to endIndex -> nil
         XCTAssertNil(r.index(r.utf8.index(at: 8), offsetBy: 1, limitedBy: r.utf8.index(at: 8)))
 
+
+        // limit < i, it doesn't apply
+        // next character after 5[utf8] == endIndex
         XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 4))?.position)
+
+        // limit == i, it applies, 8[utf8] > limit (5[utf8]) -> nil
         XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 5)))
+        // limit > i, it applies, 8[utf8] > limit (6[utf8]) -> nil
         XCTAssertNil(r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 6)))
+
+        // limit > i, it applies, 8[utf8] == limit, therefore not-nil
         XCTAssertEqual(8, r.index(r.utf8.index(at: 5), offsetBy: 1, limitedBy: r.utf8.index(at: 8))?.position)
-
-
-
     }
 
     func testIndexRoundingDownJoinedEmoji() {
