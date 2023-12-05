@@ -704,6 +704,12 @@ extension Rope {
             self.lineViewEnd = false
         }
 
+        init?(_ i: BTreeNode<RopeSummary>.Index?) {
+            guard let i else { return nil }
+            self.i = i
+            self.lineViewEnd = false
+        }
+
         init(_ i: BTreeNode<RopeSummary>.Index, lineViewEnd: Bool) {
             self.i = i
             self.lineViewEnd = lineViewEnd
@@ -889,10 +895,7 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        guard let k = root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters) else {
-            return nil
-        }
-        return Index(k)
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters))
     }
 
     func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
@@ -1167,14 +1170,8 @@ extension RopeView {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        i.i.assertValid(for: root)
-
-        // checking startIndex isn't technically necessary because
-        // none of our RopeViews use leading metrics, but it's nicer
-        // to never have to worry about that.
-        if i == endIndex || i == startIndex {
-            return true
-        }
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        assert(metric.type == .atomic)
         return i.i.isBoundary(in: metric)
     }
 }
@@ -1433,7 +1430,7 @@ extension Rope.LineView {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        i.i.assertValid(for: root)
+        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
         if i == endIndex {
             // lines.endIndex (i.e. index(startIndex, offsetBy: lines.count)) is always a boundary.
             return true
