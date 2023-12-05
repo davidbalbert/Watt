@@ -1264,7 +1264,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.lines.endIndex, i)
 
         // out of bounds
-        // r.lines.index(after: r.lines.endIndex)
+        assertCrashes(r.lines.index(after: r.lines.endIndex))
 
         r = Rope("foo")
         i = r.lines.index(after: r.index(at: 0)) // r.startIndex
@@ -1277,7 +1277,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.lines.endIndex, i)
 
         // out of bounds
-        // r.lines.index(after: r.lines.endIndex)
+        assertCrashes(r.lines.index(after: r.lines.endIndex))
 
         r = Rope("foo\n")
         i = r.lines.index(after: r.index(at: 0)) // r.startIndex
@@ -1290,7 +1290,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.lines.endIndex, i)
 
         // out of bounds
-        // r.lines.index(after: r.lines.endIndex)
+        assertCrashes(r.lines.index(after: r.lines.endIndex))
     }
 
     func testLinesIndexBefore() {
@@ -1299,14 +1299,14 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.startIndex, i)
 
         // out of bounds
-        // r.lines.index(before: r.endIndex)
+        assertCrashes(r.lines.index(before: r.endIndex))
 
         r = Rope("foo")
         i = r.lines.index(before: r.lines.endIndex)
         XCTAssertEqual(r.startIndex, i)
 
         // out of bounds
-        // r.lines.index(before: r.endIndex)
+        assertCrashes(r.lines.index(before: r.endIndex))
 
         r = Rope("foo\n")
         i = r.lines.index(before: r.lines.endIndex)
@@ -1316,7 +1316,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.index(at: 0), i)
 
         // out of bounds
-        // r.lines.index(before: r.index(at: 3))
+        assertCrashes(r.lines.index(before: r.index(at: 3)))
     }
 
     func testLinesIndexOffsetBy() {
@@ -1334,13 +1334,13 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.startIndex, i)
 
         // out of bounds
-        // r.lines.index(r.startIndex, offsetBy: 2)
+        assertCrashes(r.lines.index(r.startIndex, offsetBy: 2))
 
         // out of bounds
-        // r.lines.index(r.lines.endIndex, offsetBy: 1)
+        assertCrashes(r.lines.index(r.lines.endIndex, offsetBy: 1))
 
         // out of bounds
-        // r.lines.index(r.lines.endIndex, offsetBy: -2)
+        assertCrashes(r.lines.index(r.lines.endIndex, offsetBy: -2))
 
         r = Rope("foo")
         i = r.lines.index(r.index(at: 0), offsetBy: 1)
@@ -1353,19 +1353,19 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.lines.endIndex, i)
 
         // out of bounds
-        // i = r.lines.index(r.index(at: 0), offsetBy: 2)
+        assertCrashes(i = r.lines.index(r.index(at: 0), offsetBy: 2))
 
         // out of bounds
-        // i = r.lines.index(r.index(at: 3), offsetBy: 2)
+        assertCrashes(i = r.lines.index(r.index(at: 3), offsetBy: 2))
 
         i = r.lines.index(r.lines.endIndex, offsetBy: -1)
         XCTAssertEqual(r.index(at: 0), i)
 
         // out of bounds
-        // i = r.lines.index(r.index(at: 3), offsetBy: -1)
+        assertCrashes(i = r.lines.index(r.index(at: 3), offsetBy: -1))
 
         // out of bounds
-        // i = r.lines.index(r.lines.endIndex, offsetBy: -2)
+        assertCrashes(i = r.lines.index(r.lines.endIndex, offsetBy: -2))
 
         r = Rope("foo\n")
         i = r.lines.index(r.index(at: 0), offsetBy: 1)
@@ -1378,7 +1378,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(r.lines.endIndex, i)
 
         // out of bounds
-        // i = r.lines.index(r.index(at: 4), offsetBy: 2)
+        assertCrashes(i = r.lines.index(r.index(at: 4), offsetBy: 2))
     }
 
     func testLinesIndexOffsetByLimitedBy() {
