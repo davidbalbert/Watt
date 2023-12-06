@@ -1288,6 +1288,13 @@ extension Rope {
     }
 }
 
+// TODO: I have very little confidence in LineView. My guess is that it's full of bugs,
+// and the endIndex which is greater than Rope.endIndex is pretty confusing to work with.
+//
+// Some options:
+// - See if we can remove LineView and just have some indexing functions directly on Rope.
+// - Have a separate LineView.Index type that isn't interchangable with Rope.Index, but
+//   is still nice to use.
 extension Rope.LineView: BidirectionalCollection {
     typealias Index = Rope.Index
     var count: Int {
