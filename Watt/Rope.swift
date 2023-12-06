@@ -1137,8 +1137,7 @@ extension RopeView {
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        let j = Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: metric))
-        guard let j else {
+        guard let j = Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: metric)) else {
             return nil
         }
         precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
