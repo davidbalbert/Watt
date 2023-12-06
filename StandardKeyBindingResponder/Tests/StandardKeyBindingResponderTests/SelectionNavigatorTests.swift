@@ -800,6 +800,14 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssertNoop(s, direction: .beginningOfLine, dataSource: d)
         s = extendAndAssert(s, direction: .endOfLine, selected: "Hello, wor", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfLine, dataSource: d)
+
+        // caret at "H" - can't expand to beginning
+        s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .beginningOfLine, caret: "H", affinity: .downstream, dataSource: d)
+
+        // caret at end - can't expand to end
+        s = SimpleSelection(caretAt: string.index(at: 13), affinity: .upstream, granularity: .character)
+        s = extendAndAssert(s, direction: .endOfLine, caretAt: string.index(at: 13), affinity: .upstream, dataSource: d)
     }
 
     func testExtendSelectionByLineHardWrap() {
@@ -842,6 +850,14 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssertNoop(s, direction: .beginningOfParagraph, dataSource: d)
         s = extendAndAssert(s, direction: .endOfParagraph, selected: "0123456789wrap", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfParagraph, dataSource: d)
+
+        // caret at "f" - nothing to select left
+        s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .beginningOfParagraph, caret: "f", affinity: .downstream, dataSource: d)
+
+        // caret at "r" - nothing to select right
+        s = SimpleSelection(caretAt: string.index(at: 22), affinity: .upstream, granularity: .character)
+        s = extendAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 22), affinity: .upstream, dataSource: d)
     }
 
     func testExtendSelectionByDocument() {
@@ -865,6 +881,14 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssertNoop(s, direction: .beginningOfDocument, dataSource: d)
         s = extendAndAssert(s, direction: .endOfDocument, selected: "foo\n0123456789wrap\nbar", affinity: .upstream, dataSource: d)
         s = extendAndAssertNoop(s, direction: .endOfDocument, dataSource: d)
+
+        // caret at "f" - nothing to select left
+        s = SimpleSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .beginningOfDocument, caret: "f", affinity: .downstream, dataSource: d)
+
+        // caret at "r" - nothing to select right
+        s = SimpleSelection(caretAt: string.index(at: 22), affinity: .upstream, granularity: .character)
+        s = extendAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 22), affinity: .upstream, dataSource: d)
     }
 
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {

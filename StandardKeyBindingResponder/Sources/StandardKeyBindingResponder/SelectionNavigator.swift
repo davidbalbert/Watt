@@ -263,13 +263,11 @@ extension SelectionNavigator {
         // Granularity is always character because when selecting to the beginning or end of a
         // word, line, or paragraph, we may not have selected the entire word or paragraph.
 
-        if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
-            assert(head != selection.upperBound)
+        if extending && head != selection.upperBound && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
             // Swap anchor and head so that if the next movement is endOf*, we end
             // up selecting the entire line, paragraph, or document.
             return Selection(anchor: head, head: selection.upperBound, granularity: .character, xOffset: nil)
-        } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
-            assert(head != selection.lowerBound)
+        } else if extending && head != selection.lowerBound && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
             // ditto
             return Selection(anchor: head, head: selection.lowerBound, granularity: .character, xOffset: nil)
         } else if extending && head != selection.anchor {
