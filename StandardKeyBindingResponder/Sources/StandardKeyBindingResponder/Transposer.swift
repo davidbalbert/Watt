@@ -100,7 +100,7 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
             }
         }
 
-        // We know we're word2 if:
+        // We know word is word2 if:
         // - We we started in whitespace (position < word.lowerBound)
         // - We are at the start of the word we found, which is treated as whitespace (position == word.lowerBound)
         // - We were at the end of the last word in the document
@@ -117,7 +117,7 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
                 i = prev
             }
 
-            if i == dataSource.startIndex && dataSource.isWordCharacter(i) {
+            if i == dataSource.startIndex && dataSource.isWordStart(position) {
                 // There was no previous word, but we were at the beginning
                 // of a word, so we can search fowards instead. Just
                 // fall through
@@ -126,7 +126,7 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
                 return nil
             } else {
                 // we found a word searching backwards
-                let word1 = dataSource.wordRange(containing: dataSource.index(before: position))!
+                let word1 = dataSource.wordRange(containing: dataSource.index(before: i))!
 
                 return (word1, word2)
             }
