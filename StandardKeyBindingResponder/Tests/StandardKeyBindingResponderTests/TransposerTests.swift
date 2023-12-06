@@ -51,8 +51,13 @@ final class TransposerTests: XCTestCase {
                 guard let (w1, w2) = result else {
                     return
                 }
-                XCTAssertEqual(w1, dataSource.index(at: e1.lowerBound)..<dataSource.index(at: e1.upperBound), file: file, line: line)
-                XCTAssertEqual(w2, dataSource.index(at: e2.lowerBound)..<dataSource.index(at: e2.upperBound), file: file, line: line)
+
+                let i1 = Range(w1, in: dataSource.s)
+                let i2 = Range(w2, in: dataSource.s)
+
+                if i1 != e1 && i2 != e2 {
+                    XCTFail("expected (\(e1), \(e2)), got (\(i1), \(i2))", file: file, line: line)
+                }
             } else {
                 XCTAssertNil(result, file: file, line: line)
             }
@@ -93,11 +98,45 @@ final class TransposerTests: XCTestCase {
         t("  foo bar baz  ", 14..<14, nil)
         t("  foo bar baz  ", 15..<15, nil)
 
+        // a single apostrophe is not a word boundary
+        t("  foo bar's baz  ", 2..<2, (2..<5, 6..<11))
+        //   ^
+        t("  foo bar's baz  ", 5..<5, (2..<5, 6..<11))
+        //      ^
+        t("  foo bar's baz  ", 6..<6, (2..<5, 6..<11))
+        //       ^
+        t("  foo bar's baz  ", 7..<7, (6..<11, 12..<15))
+        //        ^
+        t("  foo bar's baz  ", 9..<9, (6..<11, 12..<15))
+        //          ^
+        t("  foo bar's baz  ", 10..<10, (6..<11, 12..<15))
+        //           ^
+        t("  foo bar's baz  ", 11..<11, (6..<11, 12..<15))
+        //            ^
+        t("  foo bar's baz  ", 12..<12, (6..<11, 12..<15))
+        //             ^
+        t("  foo bar's baz  ", 15..<15, (6..<11, 12..<15))
+        //                ^
 
-        // TODO: leading/trailing whitespace
-        // TODO: commas, apostrophes, decimal points
+        // two words with apostrophes (normal and curly)
+        t("  foo bar's baz’s qux  ", 7..<7, (6..<11, 12..<17))
+        //        ^
+        t("  foo bar's baz’s qux  ", 9..<9, (6..<11, 12..<17))
+        //          ^
+        t("  foo bar's baz’s qux  ", 10..<10, (6..<11, 12..<17))
+        //           ^
+        t("  foo bar's baz’s qux  ", 11..<11, (6..<11, 12..<17))
+        //            ^
+        t("  foo bar's baz’s qux  ", 12..<12, (6..<11, 12..<17))
+        //             ^
+
+        t("  foo bar'’s baz  ", 7..<7, (6..<9, 11..<12)) // two apostrophes are whitespace
+        t("  foo bar, baz  ", 7..<7, (6..<9, 11..<14))   // punctuation is whitespace
+        t("  foo bar \n baz  ", 7..<7, (6..<9, 12..<15)) // newlines are whitespace
+        //        ^
+
+
         // TODO: selections
-        // TODO: newlines
-
+        //   - Selecting two words where one has an apostrophe is broken
     }
 }

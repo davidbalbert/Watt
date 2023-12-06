@@ -43,6 +43,12 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
     // swap that, plus the previous word. If we're in whitespace
     // between two words, swap those. Otherwise swap the word we're
     // in and the next word.
+    //
+    // Suggested improvements:
+    // - A single word surrounded by matching punctuation should treat the punctuation as part of the word.
+    //   E.g. "foo", 'foo', “foo”, ‘foo’, (foo), [foo], <foo>, etc.
+    // - Punctuated numbers should be considered a single word.
+    //   E.g. 1,000,000.00 and 1.000.000,00
     public static func rangesForTransposeWords(inSelectedRange range: Range<Index>, dataSource: DataSource) -> (Range<Index>, Range<Index>)? {
         if dataSource.isEmpty {
             return nil

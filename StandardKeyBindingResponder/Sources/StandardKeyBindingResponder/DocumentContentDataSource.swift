@@ -118,7 +118,6 @@ extension DocumentContentDataSource {
         return i
     }
 
-    // new
     func index(beginningOfWordAfter i: Index) -> Index? {
         if i == endIndex {
             return nil
@@ -142,7 +141,6 @@ extension DocumentContentDataSource {
         return i
     }
 
-    // new
     func index(endOfWordBefore i: Index) -> Index? {
         if i == startIndex {
             return nil
