@@ -948,7 +948,6 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        assert(i > startIndex)
         var i = i
         let offset = i.prev(using: metric)
         if offset == nil {
