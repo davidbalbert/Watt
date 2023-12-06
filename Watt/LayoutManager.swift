@@ -302,6 +302,22 @@ class LayoutManager {
         }
     }
 
+    func caretRect(for i: Buffer.Index, affinity: Selection.Affinity) -> CGRect? {
+        let line = line(containing: i)
+        guard let frag = line.fragment(containing: i, affinity: affinity) else {
+            return nil
+        }
+
+        let offset = buffer.utf16.distance(from: line.range.lowerBound, to: i)
+        let caretOffset = frag.caretOffset(forUTF16OffsetInLine: offset)
+
+        let fragRect = CGRect(x: caretOffset, y: 0, width: 1, height: frag.alignmentFrame.height)
+        let lineRect = convert(fragRect, from: frag)
+        let rect = convert(lineRect, from: line)
+
+        return rect
+    }
+
     // Rects are in text container coordinates
     func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
@@ -796,7 +812,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     // Enumerating over the first line fragment of each string:
-    // ""    -> [(0.0, 0, leading)]
+    // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
