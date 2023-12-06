@@ -1713,7 +1713,7 @@ final class RopeTests: XCTestCase {
     // MARK: - Subropes
 
     func testSubropeLinesIndexBefore() {
-        let r = Rope("foo\nbar")
+        let r = Rope("foo\nbar\n")
 
         // "oo\nba"
         var subrope = r[r.index(at: 1)..<r.index(at: 6)]
@@ -1749,8 +1749,45 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
     }
 
+    func testSubropeLinesIndexBeforeSliceOnNewlineBoundary() {
+        let r = Rope("f\noo\nbar\n")
+
+        // "oo\nba"
+        var subrope = r[r.index(at: 2)..<r.index(at: 7)]
+
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 0)))
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 1)))
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 2)))
+
+        var i = subrope.lines.index(before: subrope.index(at: 3))
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(before: subrope.index(at: 4))
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(before: subrope.index(at: 5))
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(before: subrope.lines.endIndex)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+
+        // "oo\n"
+        subrope = r[r.index(at: 2)..<r.index(at: 5)]
+
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 0)))
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 1)))
+        assertCrashes(subrope.lines.index(before: subrope.index(at: 2)))
+
+        i = subrope.lines.index(before: subrope.index(at: 3))
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(before: subrope.lines.endIndex)
+        XCTAssertEqual(subrope.index(at: 3), i)
+    }
+
     func testSubropeLinesIndexAfter() {
-        let r = Rope("foo\nbar")
+        let r = Rope("foo\nbar\n")
 
         // "oo\nba"
         var subrope = r[r.index(at: 1)..<r.index(at: 6)]
@@ -1777,6 +1814,50 @@ final class RopeTests: XCTestCase {
 
         // "oo\n"
         subrope = r[r.index(at: 1)..<r.index(at: 4)]
+
+        i = subrope.lines.index(after: subrope.index(at: 0))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 1))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 2))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 3))
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+    }
+
+    func testSubropeLinesIndexAfterSliceOnNewlineBoundary() {
+        let r = Rope("f\noo\nbar\n")
+
+        // "oo\nba"
+        var subrope = r[r.index(at: 2)..<r.index(at: 7)]
+
+        var i = subrope.lines.index(after: subrope.index(at: 0))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 1))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 2))
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(after: subrope.index(at: 3))
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        i = subrope.lines.index(after: subrope.index(at: 4))
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        i = subrope.lines.index(after: subrope.index(at: 5))
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+
+        // "oo\n"
+        subrope = r[r.index(at: 2)..<r.index(at: 5)]
 
         i = subrope.lines.index(after: subrope.index(at: 0))
         XCTAssertEqual(subrope.index(at: 3), i)

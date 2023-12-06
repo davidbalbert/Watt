@@ -1329,25 +1329,35 @@ extension Rope.LineView: BidirectionalCollection {
     }
 
     func index(before i: Index) -> Index {
+        precondition(i > startIndex, "Index out of bounds")
         if i == endIndex {
             return index(roundingDown: bounds.upperBound)
         }
-        let j = Index(root.index(before: i.i, using: .newlines))
-        if j < startIndex {
+
+        let j = index(roundingDown: i)
+        precondition(j > startIndex, "Index out of bounds")
+
+        let k = Index(root.index(before: i.i, using: .newlines))
+        if k < startIndex {
             return startIndex
         }
-        return j
+        return k
     }
 
     func index(after i: Index) -> Index {
         // No need to validate because comparison in the precondition will do it for us
         precondition(i < endIndex, "Index out of bounds")
 
-        var j = i.i
-        if j.next(using: .newlines) == nil {
+        if i == bounds.upperBound {
             return endIndex
         }
-        return Index(j)
+        let j = Index(root.index(after: i.i, using: .newlines))
+        if j >= bounds.upperBound && (bounds.isEmpty || base[bounds].last == "\n") {
+            return bounds.upperBound
+        } else if j >= bounds.upperBound {
+            return endIndex
+        }
+        return j
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
