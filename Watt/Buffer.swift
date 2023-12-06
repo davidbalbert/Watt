@@ -64,7 +64,7 @@ class Buffer {
         contents.characters
     }
 
-    var lines: Rope.LinesView {
+    var lines: Rope.LineView {
         contents.text.lines
     }
 
@@ -270,7 +270,7 @@ extension Buffer: HighlighterDelegate {
 
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
         let i = text.utf8.index(at: byteIndex)
-        guard let (chunk, offset) = i.read() else {
+        guard let (chunk, offset) = i.i.read() else {
             return nil
         }
 

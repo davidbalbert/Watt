@@ -273,6 +273,11 @@ class LayoutManager {
             end = buffer.lines.index(roundingUp: range.upperBound)
         }
 
+        // Sanity check. I don't think we should be getting this. We can probably
+        // rewrite enumerateLines without worrying about this by iterating
+        // over buffer.lines.
+        assert(end < buffer.lines.endIndex)
+
         var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < end {
@@ -452,12 +457,10 @@ class LayoutManager {
     }
 
     func line(containing location: Buffer.Index) -> Line {
-        let start = buffer.lines.index(roundingDown: location)
-        let end = start == buffer.endIndex ? start : buffer.lines.index(after: start)
+        let content = buffer.lines[location]
+        let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let y = heights.yOffset(upThroughPosition: start.position)
-
-        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: start..<end, atPoint: CGPoint(x: 0, y: y))
+        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
 
         return line
     }
@@ -650,13 +653,13 @@ class LayoutManager {
     // boundary respectively, so that if you were to lay out those lines,
     // you'd fill the entire rect.
     func lineRange(intersecting rect: CGRect, in buffer: Buffer) -> Range<Buffer.Index> {
-        let baseStart = heights.position(upThroughYOffset: rect.minY)
-        let baseEnd = heights.position(upThroughYOffset: rect.maxY)
+        let byteStart = heights.position(upThroughYOffset: rect.minY)
+        let byteEnd = heights.position(upThroughYOffset: rect.maxY)
 
-        let start = buffer.utf8.index(at: baseStart)
-        var end = buffer.utf8.index(at: baseEnd)
+        let start = buffer.utf8.index(at: byteStart)
+        var end = buffer.utf8.index(at: byteEnd)
 
-        if baseEnd < buffer.utf8.count {
+        if byteEnd < buffer.utf8.count {
             end = buffer.lines.index(after: end)
         }
 
@@ -739,7 +742,7 @@ extension LayoutManager: BufferDelegate {
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
         for r in ranges {
-            lineCache.invalidate(range: Range(r))
+            lineCache.invalidate(range: Range(r, in: buffer))
         }
         delegate?.didInvalidateLayout(for: self)
     }

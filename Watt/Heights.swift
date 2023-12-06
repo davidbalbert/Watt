@@ -328,9 +328,6 @@ extension Heights {
     }
 
     mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
-        // TODO: give subrope a LinesView
-        let rope = Rope(subrope)
-
         let start = index(roundingDown: index(at: oldRange.lowerBound)).position
         let lastBoundary = index(roundingDown: endIndex).position
 
@@ -346,14 +343,15 @@ extension Heights {
 
         var hb = HeightsBuilder()
 
-        for (i, line) in rope.lines.enumerated() {
+        let nlines = subrope.lines.count
+        for (i, line) in subrope.lines.enumerated() {
             var len = line.utf8.count
 
             if i == 0 {
                 len += prefixCount
             }
 
-            if i == rope.lines.count - 1 {
+            if i == nlines - 1 {
                 len += suffixCount
             }
 
