@@ -43,7 +43,7 @@ extension SelectionNavigationDataSource {
 
             return start..<index(after: start)
         case .word:
-            return wordRange(containing: i)
+            return wordGranuleRange(containing: i)
         case .line:
             return lineFragmentRange(containing: i)
         case .paragraph:
@@ -181,7 +181,10 @@ extension SelectionNavigationDataSource {
         return self[index(before: range.upperBound)]
     }
 
-    func wordRange(containing i: Index) -> Range<Index> {
+    // "granule" because in addition to expanding to cover a word
+    // this will also expand to cover one or more space characters
+    // or any other non-word character.
+    func wordGranuleRange(containing i: Index) -> Range<Index> {
         assert(!isEmpty)
 
         var i = i
@@ -203,110 +206,10 @@ extension SelectionNavigationDataSource {
             return i..<j
         }
 
-        let nextIsWordChar = i < index(before: endIndex) && isWordCharacter(index(after: i))
-        let prevIsWordChar = i > startIndex && isWordCharacter(index(before: i))
-
-        if isWordCharacter(i) || (nextIsWordChar && prevIsWordChar && (self[i] == "'" || self[i] == "’")) {
-            var j = index(after: i)
-
-            while i > startIndex && !isWordStart(i) {
-                i = index(before: i)
-            }
-
-            while j < endIndex && !isWordEnd(j) {
-                j = index(after: j)
-            }
-
-            return i..<j
+        if let r = wordRange(containing: i) {
+            return r
         }
 
         return i..<index(after: i)
-    }
-
-    func index(beginningOfWordBefore i: Index) -> Index? {
-        if i == startIndex {
-            return nil
-        }
-
-        var i = i
-        if isWordStart(i) {
-            i = index(before: i)
-        }
-
-        while i > startIndex && !isWordStart(i) {
-            i = index(before: i)
-        }
-
-        // we got to startIndex but the first character
-        // is whitespace.
-        if !isWordStart(i) {
-            return nil
-        }
-
-        return i
-    }
-
-    func index(endOfWordAfter i: Index) -> Index? {
-        if i == endIndex {
-            return nil
-        }
-
-        var i = i
-        if isWordEnd(i) {
-            i = index(after: i)
-        }
-
-        while i < endIndex && !isWordEnd(i) {
-            i = index(after: i)
-        }
-
-        // we got to endIndex, but the last character
-        // is whitespace.
-        if !isWordEnd(i) {
-            return nil
-        }
-
-        return i
-    }
-
-    func isWordStart(_ i: Index) -> Bool {
-        if isEmpty || i == endIndex {
-            return false
-        }
-
-        if i == startIndex {
-            return isWordCharacter(i)
-        }
-        let prev = index(before: i)
-
-        // a single apostrophy surrounded by word characters is not a word boundary
-        if prev > startIndex && (self[prev] == "'" || self[prev] == "’") && isWordCharacter(index(before: prev)) {
-            return false
-        }
-
-        return !isWordCharacter(prev) && isWordCharacter(i)
-    }
-
-    func isWordEnd(_ i: Index) -> Bool {
-        if isEmpty || i == startIndex {
-            return false
-        }
-
-        let prev = index(before: i)
-        if i == endIndex {
-            return isWordCharacter(prev)
-        }
-
-        // a single apostrophy surrounded by word characters is not a word boundary
-        if (self[i] == "'" || self[i] == "’") && isWordCharacter(prev) && isWordCharacter(index(after: i)) {
-            return false
-        }
-
-        return isWordCharacter(prev) && !isWordCharacter(i)
-    }
-
-    func isWordCharacter(_ i: Index) -> Bool {
-        let c = self[i]
-        return !c.isWhitespace && !c.isPunctuation
     }
 }
