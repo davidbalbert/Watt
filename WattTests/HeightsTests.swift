@@ -966,26 +966,24 @@ final class HeightsTests: XCTestCase {
 
     func testIndexBefore() {
         var h = Heights(rope: Rope("foo"))
+        assertCrashes(h.index(before: h.endIndex))
+
+        h = Heights(rope: Rope("foo\n"))
         var i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
-        h = Heights(rope: Rope("foo\n"))
+        h = Heights(rope: Rope("foo\nbar"))
         i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
-        h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(roundingDown: h.endIndex)
+        h = Heights(rope: Rope("foo\nbar\n"))
+        i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
-        h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(8, i.position)
-
-        // TODO: test index(before:) startIndex
+        assertCrashes(h.index(before: h.startIndex))
     }
 
     func testIndexAfter() {
