@@ -823,11 +823,11 @@ extension LayoutManager: SelectionNavigationDataSource {
         }
     }
 
-    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.index(beforeParagraph: i)
+    func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
+        buffer.index(ofParagraphBoundaryBefore: i)
     }
 
-    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.index(afterParagraph: i)
+    func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
+        buffer.index(ofParagraphBoundaryAfter: i)
     }
 }

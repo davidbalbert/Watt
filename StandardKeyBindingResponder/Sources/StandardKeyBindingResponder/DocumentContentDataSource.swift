@@ -20,14 +20,14 @@ public protocol DocumentContentDataSource {
     subscript(index: Index) -> Character { get }
 
     // MARK: Paragraph navigation
-    func index(beforeParagraph i: Index) -> Index
-    func index(afterParagraph i: Index) -> Index
+    func index(ofParagraphBoundaryBefore i: Index) -> Index
+    func index(ofParagraphBoundaryAfter i: Index) -> Index
 }
 
 // MARK: - Default implementations
 
 public extension DocumentContentDataSource {
-    func index(beforeParagraph i: Index) -> Index {
+    func index(ofParagraphBoundaryBefore i: Index) -> Index {
         precondition(i > startIndex)
 
         var j = i
@@ -42,7 +42,7 @@ public extension DocumentContentDataSource {
         return j
     }
 
-    func index(afterParagraph i: Index) -> Index {
+    func index(ofParagraphBoundaryAfter i: Index) -> Index {
         precondition(i < endIndex)
 
         var j = i
@@ -85,14 +85,7 @@ extension DocumentContentDataSource {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i
         }
-        return index(beforeParagraph: i)
-    }
-
-    func index(roundedUpToParagraph i: Index) -> Index {
-        if i == endIndex || self[index(before: i)] == "\n" {
-            return i
-        }
-        return index(afterParagraph: i)
+        return index(ofParagraphBoundaryBefore: i)
     }
 
     func index(beginningOfWordBefore i: Index) -> Index? {

@@ -48,7 +48,7 @@ extension SelectionNavigationDataSource {
             return lineFragmentRange(containing: i)
         case .paragraph:
             let start = index(roundedDownToParagraph: i)
-            let end = i == endIndex ? endIndex : index(afterParagraph: i)
+            let end = i == endIndex ? endIndex : index(ofParagraphBoundaryAfter: i)
             return start..<end
         }
     }

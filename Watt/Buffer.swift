@@ -289,12 +289,17 @@ extension Buffer: DocumentContentDataSource {
         count
     }
 
-    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
-        lines.index(before: i)
+    func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
+        var j = i
+        if lines.isBoundary(j) {
+            j = index(before: j)
+        }
+        return lines.index(roundingDown: i)
     }
 
-    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
-        lines.index(after: i)
+    func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
+        // hack to make sure we don't get lines.endIndex.
+        lines.index(i, offsetBy: 1, limitedBy: endIndex) ?? endIndex
     }
 }
 
