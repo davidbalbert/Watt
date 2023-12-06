@@ -187,19 +187,19 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
         let start1 = range.lowerBound
         var i = start1
 
-        while i < limit && dataSource.isWordCharacter(i) {
+        while i < limit && !dataSource.isWordEnd(i) {
             i = dataSource.index(after: i)
         }
         if i == limit { return nil }
         let end1 = i
 
-        while i < limit && !dataSource.isWordCharacter(i) {
+        while i < limit && !dataSource.isWordStart(i) {
             i = dataSource.index(after: i)
         }
         if i == limit { return nil }
         let start2 = i
 
-        while i < limit && dataSource.isWordCharacter(i) {
+        while i < limit && !dataSource.isWordEnd(i) {
             i = dataSource.index(after: i)
         }
         if i < limit { return nil }

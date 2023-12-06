@@ -135,8 +135,41 @@ final class TransposerTests: XCTestCase {
         t("  foo bar \n baz  ", 7..<7, (6..<9, 12..<15)) // newlines are whitespace
         //        ^
 
+        // selecting two words
+        t("  foo bar baz  ", 2..<9, (2..<5, 6..<9))
+        //   ^^^^^^^
 
-        // TODO: selections
-        //   - Selecting two words where one has an apostrophe is broken
+        // selecting something other than exactly two words is a no-op
+        t("  foo bar baz  ", 2..<5, nil)
+        //   ^^^
+        t("  foo bar baz  ", 2..<6, nil)
+        //   ^^^^
+        t("  foo bar baz  ", 2..<8, nil)
+        //   ^^^^^^
+        t("  foo bar baz  ", 2..<10, nil)
+        //   ^^^^^^^^
+        t("  foo bar baz  ", 3..<9, nil)
+        //    ^^^^^^
+
+
+        // punctuation is whitespace
+        t("  foo bar, baz  ", 2..<9, (2..<5, 6..<9))
+        //   ^^^^^^^
+        t("  foo bar, baz  ", 6..<14, (6..<9, 11..<14))
+        //       ^^^^^^^^
+
+        // apostrophes are words
+        t("  foo's bar’s baz  ", 2..<13, (2..<7, 8..<13))
+        //   ^^^^^^^^^^^
+        t("  foo's bar’s baz  ", 2..<11, nil)
+        //   ^^^^^^^^^
+        t("  foo's bar’s baz  ", 2..<12, nil)
+        //   ^^^^^^^^^^
+
+        // newlines are whitespace
+        t("  foo bar \n baz  ", 6..<15, (6..<9, 12..<15))
+        //       ^^^^^^^^^^
+        t("  foo bar \n baz  ", 7..<14, nil)
+        //        ^^^^^^^^
     }
 }
