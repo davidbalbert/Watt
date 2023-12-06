@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import StandardKeyBindingResponder
 
 protocol BufferDelegate: AnyObject {
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
@@ -280,6 +281,20 @@ extension Buffer: HighlighterDelegate {
     func highlighter(_ highlighter: Highlighter, stringForByteRange range: Range<Int>) -> String {
         let range = Range(range, in: text)
         return String(text[range])
+    }
+}
+
+extension Buffer: DocumentContentDataSource {
+    var characterCount: Int {
+        count
+    }
+
+    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
+        lines.index(before: i)
+    }
+
+    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
+        lines.index(after: i)
     }
 }
 

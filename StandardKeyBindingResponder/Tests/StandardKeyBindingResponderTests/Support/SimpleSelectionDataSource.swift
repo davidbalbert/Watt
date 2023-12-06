@@ -37,6 +37,10 @@ struct SimpleSelectionDataSource {
 }
 
 extension SimpleSelectionDataSource: SelectionNavigationDataSource {
+    var characterCount: Int {
+        string.count
+    }
+    
     var documentRange: Range<String.Index> {
         string.startIndex..<string.endIndex
     }
