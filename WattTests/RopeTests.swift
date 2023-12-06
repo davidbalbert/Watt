@@ -1676,52 +1676,160 @@ final class RopeTests: XCTestCase {
 
         var slice = r.lines[r.index(at: 1)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 2)
+        XCTAssertEqual(slice[0], "oo\n")
+        XCTAssertEqual(slice[1], "ba")
 
         slice = r.lines[r.index(at:3)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 2)
+        XCTAssertEqual(slice[0], "\n")
+        XCTAssertEqual(slice[1], "ba")
 
         slice = r.lines[r.index(at: 4)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 1)
+        XCTAssertEqual(slice[0], "ba")
 
         slice = r.lines[r.index(at: 6)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 1)
+        XCTAssertEqual(slice[0], "")
 
         slice = r.lines[r.index(at: 7)..<r.index(at: 7)]
         XCTAssertEqual(slice.count, 1)
+        XCTAssertEqual(slice[0], "")
 
         slice = r.lines[r.index(at: 0)..<r.lines.endIndex]
         XCTAssertEqual(slice.count, 2)
+        XCTAssertEqual(slice[0], "foo\n")
+        XCTAssertEqual(slice[1], "bar")
 
         slice = r.lines[r.index(at: 4)..<r.lines.endIndex]
         XCTAssertEqual(slice.count, 1)
+        XCTAssertEqual(slice[0], "bar")
 
         slice = r.lines[r.index(at: 7)..<r.lines.endIndex]
         XCTAssertEqual(slice.count, 1)
+        XCTAssertEqual(slice[0], "")
+    }
 
+    // MARK: - Subropes
+
+    func testSubropeLinesIndexOffsetBy() {
+        let r = Rope("foo\nbar")
+        
+        // "oo\nba"
+        let subrope = r[r.index(at: 1)..<r.index(at: 6)]
+
+        var i = subrope.lines.index(subrope.index(at: 0), offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(subrope.index(at: 0), offsetBy: 1)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.index(at: 0), offsetBy: 2)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 0), offsetBy: 3))
+
+
+        i = subrope.lines.index(subrope.index(at: 2), offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        i = subrope.lines.index(subrope.index(at: 2), offsetBy: 1)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.index(at: 2), offsetBy: 2)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 2), offsetBy: 3))
+
+
+        i = subrope.lines.index(subrope.index(at: 3), offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.index(at: 3), offsetBy: 1)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 3), offsetBy: 2))
+
+
+        i = subrope.lines.index(subrope.index(at: 4), offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.index(at: 4), offsetBy: 1)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 4), offsetBy: 2))
+        
+
+        i = subrope.lines.index(subrope.endIndex, offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.endIndex, offsetBy: 1)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+
+        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: 0)
+        XCTAssertEqual(subrope.lines.endIndex, i)
+
+        assertCrashes(subrope.lines.index(subrope.lines.endIndex, offsetBy: 1))
+
+
+        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: -1)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: -2)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        assertCrashes(subrope.lines.index(subrope.lines.endIndex, offsetBy: -3))
+
+
+        i = subrope.lines.index(subrope.index(at: 5), offsetBy: -1)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 5), offsetBy: -2))
+
+
+        i = subrope.lines.index(subrope.index(at: 3), offsetBy: -1)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 3), offsetBy: -2))
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 2), offsetBy: -1))
+    }
+
+    func testSubropeLineSlicing() {
+        let r = Rope("foo\nbar")
 
         var subrope = r[r.index(at: 1)..<r.index(at: 6)]
         XCTAssertEqual(subrope.count, 5)
         XCTAssertEqual(subrope.lines.count, 2)
+        XCTAssertEqual(subrope.lines[0], "oo\n")
+        XCTAssertEqual(subrope.lines[1], "ba")
 
         subrope = r[r.index(at:3)..<r.index(at: 6)]
         XCTAssertEqual(subrope.count, 3)
         XCTAssertEqual(subrope.lines.count, 2)
+        XCTAssertEqual(subrope.lines[0], "\n")
+        XCTAssertEqual(subrope.lines[1], "ba")
 
         subrope = r[r.index(at: 4)..<r.index(at: 6)]
         XCTAssertEqual(subrope.count, 2)
         XCTAssertEqual(subrope.lines.count, 1)
+        XCTAssertEqual(subrope.lines[0], "ba")
 
         subrope = r[r.index(at: 6)..<r.index(at: 6)]
         XCTAssertEqual(subrope.count, 0)
         XCTAssertEqual(subrope.lines.count, 1)
+        XCTAssertEqual(subrope.lines[0], "")
 
         subrope = r[r.index(at: 7)..<r.index(at: 7)]
         XCTAssertEqual(subrope.count, 0)
         XCTAssertEqual(subrope.lines.count, 1)
+        XCTAssertEqual(subrope.lines[0], "")
 
         subrope = r[r.index(at: 7)..<r.lines.endIndex]
         XCTAssertEqual(subrope.count, 0)
         XCTAssertEqual(subrope.lines.count, 1)
+        XCTAssertEqual(subrope.lines[0], "")
     }
 
 
