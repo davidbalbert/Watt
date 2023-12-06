@@ -1315,7 +1315,7 @@ extension Rope.LineView: BidirectionalCollection {
 
         var end = index(after: start)
         if end == endIndex {
-            end = base.endIndex
+            end = bounds.upperBound
         }
 
         return Subrope(base: base, bounds: start..<end)
@@ -1372,12 +1372,13 @@ extension Rope.LineView: BidirectionalCollection {
         }
 
         var j = i.i
+        let moff = root.count(.newlines, upThrough: startIndex.position)
         let m = root.count(.newlines, upThrough: j.position)
         precondition(m+distance >= 0 && m+distance <= count, "Index out of bounds")
-        if m + distance == count {
+        if (m - moff) + distance == count {
             return endIndex
         }
-        let pos = root.countBaseUnits(upThrough: m + distance, measuredIn: .newlines)
+        let pos = Swift.max(startIndex.i.position, root.countBaseUnits(upThrough: m + distance, measuredIn: .newlines))
         j.set(pos)
 
         return Index(j)
