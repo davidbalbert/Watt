@@ -529,7 +529,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(0, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("abc"))
+        h.replaceSubrange(0..<0, with: Subrope("abc"))
 
         XCTAssertEqual(3, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
@@ -542,7 +542,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(1, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("abc"))
+        h.replaceSubrange(0..<0, with: Subrope("abc"))
 
         XCTAssertEqual(4, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
@@ -562,7 +562,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(32, ps.count)
         XCTAssertEqual(63, ps.last)
 
-        h.replaceSubrange(63..<63, with: Rope("abc"))
+        h.replaceSubrange(63..<63, with: Subrope("abc"))
 
         XCTAssertEqual(66, h.root.count)
         XCTAssertEqual(448, h.contentHeight)
@@ -585,7 +585,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(33, ps.count)
         XCTAssertEqual(64, ps.last)
 
-        h.replaceSubrange(64..<64, with: Rope("abc"))
+        h.replaceSubrange(64..<64, with: Subrope("abc"))
 
         XCTAssertEqual(67, h.root.count)
         XCTAssertEqual(462, h.contentHeight)
@@ -610,7 +610,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(62, ps.dropLast().last)
         XCTAssertEqual(63, ps.last)
 
-        h.replaceSubrange(61..<61, with: Rope("abc"))
+        h.replaceSubrange(61..<61, with: Subrope("abc"))
 
         XCTAssertEqual(66, h.root.count)
         XCTAssertEqual(448, h.contentHeight)
@@ -635,7 +635,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(64, ps.dropLast().last)
         XCTAssertEqual(64, ps.last)
 
-        h.replaceSubrange(61..<61, with: Rope("abc"))
+        h.replaceSubrange(61..<61, with: Subrope("abc"))
 
         XCTAssertEqual(67, h.root.count)
         XCTAssertEqual(462, h.contentHeight)
@@ -653,7 +653,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(0, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("\n"))
+        h.replaceSubrange(0..<0, with: Subrope("\n"))
 
         XCTAssertEqual(1, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
@@ -666,7 +666,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(2, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("\n"))
+        h.replaceSubrange(0..<0, with: Subrope("\n"))
 
         XCTAssertEqual(3, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
@@ -679,7 +679,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(2, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(1..<1, with: Rope("\n"))
+        h.replaceSubrange(1..<1, with: Subrope("\n"))
 
         XCTAssertEqual(3, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
@@ -692,7 +692,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(2, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(2..<2, with: Rope("\n"))
+        h.replaceSubrange(2..<2, with: Subrope("\n"))
 
         XCTAssertEqual(3, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
@@ -705,7 +705,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(5, h.root.count)
         XCTAssertEqual(28, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("\n"))
+        h.replaceSubrange(0..<0, with: Subrope("\n"))
 
         XCTAssertEqual(6, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
@@ -718,7 +718,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(11, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
 
-        h.replaceSubrange(0..<0, with: Rope("🙂"))
+        h.replaceSubrange(0..<0, with: Subrope("🙂"))
 
         XCTAssertEqual(15, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
@@ -731,7 +731,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(11, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
 
-        h.replaceSubrange(4..<7, with: Rope("quux"))
+        h.replaceSubrange(4..<7, with: Subrope("quux"))
 
         XCTAssertEqual(12, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
@@ -745,7 +745,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(42, h.contentHeight)
 
         // overwrite "oo\nbar\b" with "qux". The result is "fquxaz".
-        h.replaceSubrange(1..<9, with: Rope("qux"))
+        h.replaceSubrange(1..<9, with: Subrope("qux"))
 
         XCTAssertEqual(6, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
@@ -759,7 +759,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(56, h.contentHeight)
 
         // overwrite "oo\nbar\nbaz\n" with "qux". The result is "fqux".
-        h.replaceSubrange(1..<12, with: Rope("qux"))
+        h.replaceSubrange(1..<12, with: Subrope("qux"))
 
         XCTAssertEqual(4, h.root.count)
         XCTAssertEqual(14, h.contentHeight)
@@ -773,7 +773,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(14, h.contentHeight)
 
         // overwrite "ll" with "foo\nbar\nbaz". The result is "hefoo\nbar\nbazo".
-        h.replaceSubrange(2..<4, with: Rope("foo\nbar\nbaz"))
+        h.replaceSubrange(2..<4, with: Subrope("foo\nbar\nbaz"))
 
         XCTAssertEqual(14, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
@@ -787,7 +787,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(28, h.contentHeight)
 
         // overwrite "ll" with "foo\nbar\nbaz". The result is "hefoo\nbar\nbazo\n".
-        h.replaceSubrange(2..<4, with: Rope("foo\nbar\nbaz"))
+        h.replaceSubrange(2..<4, with: Subrope("foo\nbar\nbaz"))
 
         XCTAssertEqual(15, h.root.count)
         XCTAssertEqual(56, h.contentHeight)   
@@ -801,7 +801,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(42, h.contentHeight)
 
         // overwrite the first "o" with "qux". The result is "fquxo\nbar\n".
-        h.replaceSubrange(1..<2, with: Rope("qux"))
+        h.replaceSubrange(1..<2, with: Subrope("qux"))
 
         XCTAssertEqual(10, h.root.count)
         XCTAssertEqual(42, h.contentHeight)
@@ -821,7 +821,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(32, ps.count)
         XCTAssertEqual(63, ps.last)
 
-        h.replaceSubrange(62..<63, with: Rope("abc"))
+        h.replaceSubrange(62..<63, with: Subrope("abc"))
 
         XCTAssertEqual(65, h.root.count)
         XCTAssertEqual(448, h.contentHeight)
@@ -846,7 +846,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(64, ps.last)
 
         // this replaces the newline, so we lose the empty last line.
-        h.replaceSubrange(63..<64, with: Rope("abc"))
+        h.replaceSubrange(63..<64, with: Subrope("abc"))
 
         XCTAssertEqual(66, h.root.count)
         XCTAssertEqual(448, h.contentHeight)
@@ -871,7 +871,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(62, ps.dropLast().last)
         XCTAssertEqual(63, ps.last)
 
-        h.replaceSubrange(60..<61, with: Rope("abc"))
+        h.replaceSubrange(60..<61, with: Subrope("abc"))
 
         XCTAssertEqual(65, h.root.count)
         XCTAssertEqual(448, h.contentHeight)
@@ -896,7 +896,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(12, ps[2])
         XCTAssertEqual(12, ps[3])
 
-        h.replaceSubrange(11..<11, with: Rope("\n"))
+        h.replaceSubrange(11..<11, with: Subrope("\n"))
 
         XCTAssertEqual(13, h.root.count)
         XCTAssertEqual(70, h.contentHeight)
@@ -914,7 +914,7 @@ final class HeightsTests: XCTestCase {
         let r = Rope("foo\n")
         var h = Heights(rope: r)
 
-        h.replaceSubrange(4..<4, with: Rope("\n"))
+        h.replaceSubrange(4..<4, with: Subrope("\n"))
 
         // "foo\n\n"
         XCTAssertEqual(h.root.leaf.positions, [4, 5, 5])
@@ -924,7 +924,7 @@ final class HeightsTests: XCTestCase {
         let r = Rope("foo\n")
         var h = Heights(rope: r)
 
-        h.replaceSubrange(3..<3, with: Rope("\n"))
+        h.replaceSubrange(3..<3, with: Subrope("\n"))
 
         // "foo\n\n"
         XCTAssertEqual(h.root.leaf.positions, [4, 5, 5])
@@ -945,7 +945,7 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(13, h.root.count)
         XCTAssertEqual(70, h.contentHeight)
 
-        h.replaceSubrange(12..<12, with: Rope("\n"))
+        h.replaceSubrange(12..<12, with: Subrope("\n"))
 
         XCTAssertEqual(14, h.root.count)
         XCTAssertEqual(84, h.contentHeight)
@@ -966,26 +966,24 @@ final class HeightsTests: XCTestCase {
 
     func testIndexBefore() {
         var h = Heights(rope: Rope("foo"))
+        assertCrashes(h.index(before: h.endIndex))
+
+        h = Heights(rope: Rope("foo\n"))
         var i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
-        h = Heights(rope: Rope("foo\n"))
+        h = Heights(rope: Rope("foo\nbar"))
         i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(0, i.position)
 
-        h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(roundingDown: h.endIndex)
+        h = Heights(rope: Rope("foo\nbar\n"))
+        i = h.index(before: h.endIndex)
         XCTAssertTrue(i.isValid)
         XCTAssertEqual(4, i.position)
 
-        h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(8, i.position)
-
-        // TODO: test index(before:) startIndex
+        assertCrashes(h.index(before: h.startIndex))
     }
 
     func testIndexAfter() {
@@ -1049,5 +1047,41 @@ final class HeightsTests: XCTestCase {
         XCTAssertEqual(15, h[8])
         XCTAssertEqual(12, h.root.count)
         XCTAssertTrue(h.root.summary.endsWithBlankLine)
+    }
+
+    func testSettingHeightsDoesntBreakLeafCount() {
+        var b = HeightsBuilder()
+        XCTAssertEqual(HeightsLeaf.maxSize, 64)
+
+        for _ in 0..<192 {
+            b.addLine(withBaseCount: 10, height: 14)
+        }
+
+        var heights = b.build()
+
+        XCTAssertEqual(heights.contentHeight, 2688)
+
+        XCTAssertEqual(heights.root.count, 1920)
+        XCTAssertEqual(heights.root.height, 1)
+        XCTAssertEqual(heights.root.children.count, 3)
+
+        XCTAssertEqual(heights.root.children[0].count, 640)
+        XCTAssertEqual(heights.root.children[1].count, 640)
+        XCTAssertEqual(heights.root.children[2].count, 640)
+
+        for i in 0..<192 {
+            let hi = heights.index(at: 10*i)
+            heights[hi] = 30
+        }
+
+        XCTAssertEqual(heights.contentHeight, 5760)
+
+        XCTAssertEqual(heights.root.count, 1920)
+        XCTAssertEqual(heights.root.height, 1)
+        XCTAssertEqual(heights.root.children.count, 3)
+
+        XCTAssertEqual(heights.root.children[0].count, 640)
+        XCTAssertEqual(heights.root.children[1].count, 640)
+        XCTAssertEqual(heights.root.children[2].count, 640)
     }
 }

@@ -65,7 +65,7 @@ class Buffer {
         contents.characters
     }
 
-    var lines: Rope.LinesView {
+    var lines: Rope.LineView {
         contents.text.lines
     }
 
@@ -130,7 +130,7 @@ class Buffer {
     }
 
     func index(fromOldIndex oldIndex: Index) -> Index {
-        utf8.index(at: oldIndex.position)
+        text.index(fromOldIndex: oldIndex)
     }
 
     func addDelegate(_ delegate: BufferDelegate) {
@@ -271,7 +271,7 @@ extension Buffer: HighlighterDelegate {
 
     func highlighter(_ highlighter: Highlighter, parser: TreeSitterParser, readSubstringStartingAt byteIndex: Int) -> Substring? {
         let i = text.utf8.index(at: byteIndex)
-        guard let (chunk, offset) = i.read() else {
+        guard let (chunk, offset) = i.i.read() else {
             return nil
         }
 

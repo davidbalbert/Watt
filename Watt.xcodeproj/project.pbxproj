@@ -14,6 +14,8 @@
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
+		634A70A22B1F79CB00BDD0D3 /* CwlPreconditionTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 634A70A12B1F79CB00BDD0D3 /* CwlPreconditionTesting */; };
+		634A70A52B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */; };
 		635658902ACD9D5400F1DC63 /* Themes in Resources */ = {isa = PBXBuildFile; fileRef = 6356588F2ACD9D5400F1DC63 /* Themes */; };
 		635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */; };
 		635B36AD2AAE4D7F002FAE70 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36AC2AAE4D7F002FAE70 /* Language.swift */; };
@@ -93,6 +95,7 @@
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
+		634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssertPreconditionViolation.swift; sourceTree = "<group>"; };
 		6356588F2ACD9D5400F1DC63 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Themes; sourceTree = "<group>"; };
 		635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		635B36AC2AAE4D7F002FAE70 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
@@ -127,6 +130,7 @@
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
 		63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Collection+Extensions.swift"; sourceTree = "<group>"; };
+		6384CA642B1959610087FC14 /* lldb_utils.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = lldb_utils.py; sourceTree = "<group>"; };
 		6396DEFD2AA9074D00B1D03B /* TreeSitterLanguages */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TreeSitterLanguages; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618712A0EAF2000E70B0E /* Weak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weak.swift; sourceTree = "<group>"; };
@@ -172,6 +176,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				634A70A22B1F79CB00BDD0D3 /* CwlPreconditionTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,9 +197,18 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		634A70A32B1F7A0A00BDD0D3 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
+				6384CA642B1959610087FC14 /* lldb_utils.py */,
 				637288BB29FD9069005B95E5 /* .gitignore */,
 				63F25BDA2A68409700DEACCF /* LLDBInitFile */,
 				63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */,
@@ -284,6 +298,7 @@
 				63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
+				634A70A32B1F7A0A00BDD0D3 /* Support */,
 			);
 			path = WattTests;
 			sourceTree = "<group>";
@@ -346,6 +361,9 @@
 				6372889F29FD8E1A005B95E5 /* PBXTargetDependency */,
 			);
 			name = WattTests;
+			packageProductDependencies = (
+				634A70A12B1F79CB00BDD0D3 /* CwlPreconditionTesting */,
+			);
 			productName = WattTests;
 			productReference = 6372889D29FD8E1A005B95E5 /* WattTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -404,6 +422,7 @@
 			packageReferences = (
 				63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */,
 				63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */,
+				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -499,6 +518,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */,
+				634A70A52B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift in Sources */,
 				6377E3F12AB3308D0075AEC4 /* BufferTests.swift in Sources */,
 				63C907822A7319E300E4D7C9 /* HeightsTests.swift in Sources */,
 				63B8B1782A9F8A3A00F32C2C /* UtilitiesTest.swift in Sources */,
@@ -844,6 +864,14 @@
 				version = 0.20.6;
 			};
 		};
+		634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mattgallagher/CwlPreconditionTesting.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.0;
+			};
+		};
 		63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/simonbs/tree-sitter";
@@ -859,6 +887,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */;
 			productName = TreeSitterC;
+		};
+		634A70A12B1F79CB00BDD0D3 /* CwlPreconditionTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */;
+			productName = CwlPreconditionTesting;
 		};
 		635F815A2AA9198200553E23 /* TreeSitterObjC */ = {
 			isa = XCSwiftPackageProductDependency;

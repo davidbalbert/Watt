@@ -87,8 +87,8 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
     }
 
     init() {
-        self.positions = []
-        self.heights = []
+        self.positions = [0]
+        self.heights = [14]
     }
 
     init(positions: [Int], heights: [CGFloat]) {
@@ -230,31 +230,26 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
     func height(ofLine i: Int) -> CGFloat {
         i == 0 ? 0 : heights[i-1]
     }
-}
 
-extension Heights.Index {
-    func readLeafIndex() -> (HeightsLeaf, Int)? {
-        guard let (leaf, offset) = read() else {
-            return nil
-        }
-
+    func index(forOffsetInLeaf offset: Int) -> Int {
         // We're addressing an empty line at the end of the
         // rope. In that case, just return the index of
         // the last element.
-        if leaf.endsWithBlankLine && offset == leaf.positions.last! {
-            return (leaf, leaf.positions.count - 1)
+        if endsWithBlankLine && offset == positions.last! {
+            return positions.count - 1
         }
 
-        let (i, found) = leaf.positions.binarySearch(for: offset)
+        let (i, found) = positions.binarySearch(for: offset)
         // Because leaf stores line lengths, the index of a line
         // starting at positions[n] will be n+1.
         if found {
-            return (leaf, i+1)
+            return i+1
         } else {
             // offset == 0 is a boundary even though positions
             // usually doesn't contain 0, so we have to handle
             // this case.
-            return (leaf, i)
+            assert(offset == 0)
+            return i
         }
     }
 }
@@ -299,96 +294,40 @@ extension Heights {
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
-            let (leaf, li) = i.readLeafIndex()!
+            let (leaf, offset) = i.read()!
+            let li = leaf.index(forOffsetInLeaf: offset)
 
             // readLeafIndex can return li == leaf.heights.count if
             // i.offsetInLeaf == leaf.positions.last. The only time
             // this is valid is if we're addressing an empty line
             // at the end of the string, but we handle that in
-            // readLeafIndex by returning leaf.heights.count - 1.
-            precondition(li < leaf.heights.count, "not a boundary")
+            // index(forOffsetInLeaf:) by returning leaf.positions.count - 1.
+            precondition(li < leaf.positions.count, "not a boundary")
 
-            return li == 0 ? leaf.heights[0] : leaf.heights[li] - leaf.heights[li-1]
+            return leaf.lineHeight(atIndex: li)
         }
-        // TODO: this would be much simpler if we had a technique for replacing a known number
-        // of values that already exist in the underlying tree.
-        //
-        // N.b. if we do something like that, we have to update all the trailing heights in
-        // the leaf as well.
         set {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
             precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
 
-            let (leaf, li) = i.readLeafIndex()!
+            root.mutatingForEach(startingAt: i.position) { offsetOfLeaf, leaf in
+                let li = leaf.index(forOffsetInLeaf: i.position - offsetOfLeaf)
+                
+                // See comment in get
+                precondition(li < leaf.heights.count, "not a boundary")
 
-            // See comment in get
-            precondition(li < leaf.heights.count, "not a boundary")
+                let delta = newValue - leaf.lineHeight(atIndex: li)
 
-            let count = leaf.lineLength(atIndex: li)
-
-            let prefixEnd: Int
-            let suffixStart: Int
-            let newLeaf: HeightsLeaf
-
-            if count == 0 && li == 0 {
-                // Updating a zero length line that's the only line in the leaf.
-                assert(i.offsetOfLeaf + leaf.count == root.count)
-
-                prefixEnd = i.offsetOfLeaf
-                suffixStart = i.offsetOfLeaf + leaf.positions.last!
-                newLeaf = HeightsLeaf(positions: [0], heights: [newValue])
-            } else if count == 0 && li == 1 {
-                // Updating a zero length line that's the second line in the leaf
-                assert(i.offsetOfLeaf + leaf.count == root.count)
-
-                prefixEnd = i.offsetOfLeaf
-                suffixStart = i.offsetOfLeaf + leaf.positions.last!
-
-                assert(leaf.positions[0] == leaf.positions[1])
-                let pos = leaf.positions[0]
-
-                newLeaf = HeightsLeaf(positions: [pos, pos], heights: [leaf.heights[0], leaf.heights[0] + newValue])
-            } else if count == 0 {
-                // Updating a zero length line later in the leaf – it's by definition the last line.
-                assert(i.offsetOfLeaf + leaf.count == root.count)
-
-                prefixEnd = i.offsetOfLeaf + leaf.positions[leaf.positions.count - 3]
-                suffixStart = i.offsetOfLeaf + leaf.positions.last!
-
-                assert(leaf.positions[leaf.positions.count - 2] == leaf.positions[leaf.positions.count - 1])
-
-                let pos = leaf.lineLength(atIndex: leaf.positions.count - 2)
-                let penultimateHeight = leaf.lineHeight(atIndex: leaf.heights.count - 2)
-
-                newLeaf = HeightsLeaf(positions: [pos, pos], heights: [penultimateHeight, penultimateHeight + newValue])
-            } else if li == leaf.positions.count - 2 && leaf.lineLength(atIndex: li + 1) == 0 {
-                // Updating the second to last line with length > 0, with an empty line following.
-                prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
-                suffixStart = i.offsetOfLeaf + leaf.positions[li]
-
-                let lastHeight = leaf.lineHeight(atIndex: li + 1)
-                newLeaf = HeightsLeaf(positions: [count, count], heights: [newValue, newValue + lastHeight])
-            } else {
-                // Updating a line with length > 0
-                prefixEnd = li == 0 ? i.offsetOfLeaf : i.offsetOfLeaf + leaf.positions[li - 1]
-                suffixStart = i.offsetOfLeaf + leaf.positions[li]
-                newLeaf = HeightsLeaf(positions: [count], heights: [newValue])
+                for j in li..<leaf.heights.count {
+                    leaf.heights[j] += delta
+                }
+                return false
             }
-
-            var b = BTreeBuilder<Heights>()
-
-            b.push(&root, slicedBy: 0..<prefixEnd)
-            b.push(leaf: newLeaf)
-            b.push(&root, slicedBy: suffixStart..<root.count)
-
-            let oldCount = root.count
-            self = b.build()
-            assert(root.count == oldCount)
         }
     }
 
-    mutating func replaceSubrange(_ oldRange: Range<Int>, with rope: Rope) {
+    mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
         let start = index(roundingDown: index(at: oldRange.lowerBound)).position
         let lastBoundary = index(roundingDown: endIndex).position
 
@@ -404,14 +343,15 @@ extension Heights {
 
         var hb = HeightsBuilder()
 
-        for (i, line) in rope.lines.enumerated() {
+        let nlines = subrope.lines.count
+        for (i, line) in subrope.lines.enumerated() {
             var len = line.utf8.count
 
             if i == 0 {
                 len += prefixCount
             }
 
-            if i == rope.lines.count - 1 {
+            if i == nlines - 1 {
                 len += suffixCount
             }
 
@@ -427,10 +367,11 @@ extension Heights {
             hb.addLine(withBaseCount: 0, height: 14)
         }
 
+        var new = hb.build()
+
         var b = BTreeBuilder<Heights>()
         var r = root
         b.push(&r, slicedBy: 0..<start)
-        var new = hb.build()
         b.push(&new.root)
         b.push(&r, slicedBy: end..<r.count)
 
@@ -522,7 +463,7 @@ extension Heights {
             return found
         }
 
-        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
+        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
             assert(offset > 0 && offset <= leaf.count)
 
             // Handle special cases where leaf ends in a blank line.
@@ -549,7 +490,7 @@ extension Heights {
             fatalError("this is unreachable, offset must be <= leaf.count")
         }
 
-        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
+        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
             assert(offset >= 0 && offset < leaf.count)
 
             // situations:
@@ -646,12 +587,12 @@ extension Heights {
             HeightsBaseMetric().isBoundary(offset, in: leaf)
         }
         
-        func prev(_ offset: Int, in leaf: HeightsLeaf, prevLeaf: HeightsLeaf?) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf, prevLeaf: prevLeaf)
+        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            HeightsBaseMetric().prev(offset, in: leaf)
         }
         
-        func next(_ offset: Int, in leaf: HeightsLeaf, nextLeaf: HeightsLeaf?) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf, nextLeaf: nextLeaf)
+        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+            HeightsBaseMetric().next(offset, in: leaf)
         }
 
         var canFragment: Bool {
@@ -671,16 +612,20 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
 struct HeightsBuilder {
     var b: BTreeBuilder<Heights>
     var leaf: HeightsLeaf
+    var first: Bool
 
     init() {
         b = BTreeBuilder<Heights>()
-        leaf = HeightsLeaf()
+        leaf = HeightsLeaf(positions: [], heights: [])
+        first = true
     }
 
     mutating func addLine(withBaseCount count: Int, height: CGFloat) {
+        first = false
+
         if leaf.positions.count == HeightsLeaf.maxSize {
             b.push(leaf: leaf)
-            leaf = HeightsLeaf()
+            leaf = HeightsLeaf(positions: [], heights: [])
         }
 
         leaf.positions.append(leaf.count + count)
@@ -688,6 +633,8 @@ struct HeightsBuilder {
     }
 
     consuming func build() -> Heights {
+        precondition(!first, "addLine must be called at least once before build()")
+
         if leaf.positions.count > 0 {
             b.push(leaf: leaf)
         }
