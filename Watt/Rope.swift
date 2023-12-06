@@ -882,8 +882,7 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(before i: Index) -> Index {
-        let j = index(roundingDown: i)
-        return Index(root.index(before: j.i, using: .characters))
+        Index(root.index(before: i.i, using: .characters))
     }
 
     func index(after i: Index) -> Index {
@@ -1326,10 +1325,11 @@ extension Rope.LineView: BidirectionalCollection {
         if i == endIndex {
             return index(roundingDown: bounds.upperBound)
         }
-
-        let j = index(roundingDown: i)
-        precondition(j > startIndex, "Index out of bounds")
-        return Index(root.index(before: j.i, using: .newlines))
+        let j = Index(root.index(before: i.i, using: .newlines))
+        if j < startIndex {
+            return startIndex
+        }
+        return j
     }
 
     func index(after i: Index) -> Index {
@@ -1415,18 +1415,26 @@ extension Rope.LineView {
 
     func index(roundingDown i: Index) -> Index {
         precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        if isBoundary(i) {
+        if i == endIndex {
             return i
         }
-        return Index(root.index(before: i.i, using: .newlines))
+        let j = Index(root.index(roundingDown: i.i, using: .newlines))
+        if j < startIndex {
+            return startIndex
+        }
+        return j
     }
 
     func index(roundingUp i: Index) -> Index {
         precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        if isBoundary(i) {
+        if i == endIndex {
             return i
         }
-        return index(after: i)
+        let j = Swift.min(bounds.upperBound, Index(root.index(roundingUp: i.i, using: .newlines)))
+        if j == bounds.upperBound && !isBoundary(j) {
+            return endIndex
+        }
+        return j
     }
 
     func isBoundary(_ i: Index) -> Bool {

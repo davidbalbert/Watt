@@ -878,7 +878,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
 
-        var i = i
+        var i = index(roundingDown: i, using: metric)
         let offset = i.prev(using: metric)
         if offset == nil {
             fatalError("Index out of bounds")
@@ -946,7 +946,15 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        return index(before: i, using: metric)
+        assert(i > startIndex)
+        var i = i
+        let offset = i.prev(using: metric)
+        if offset == nil {
+            // Leading metrics don't have a boundary at pos == 0, but
+            // in Swift, startIndex is always a boundary no matter what.
+            return startIndex
+        }
+        return i
     }
 
     func index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -956,7 +964,14 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        return index(after: i, using: metric)
+        var i = i
+        let offset = i.next(using: metric)
+        if offset == nil {
+            // Trailing metrics don't have a boundary at pos == count, but
+            // in Swift, endIndex is always a boundary no matter what.
+            return endIndex
+        }
+        return i
     }
 
     func index<M>(at offset: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
