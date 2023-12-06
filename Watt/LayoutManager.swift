@@ -264,6 +264,8 @@ class LayoutManager {
     func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Bool) {
         var i = buffer.lines.index(roundingDown: range.lowerBound)
 
+        assert(range.upperBound < buffer.lines.endIndex)
+
         let end: Buffer.Index
         if range.upperBound == buffer.endIndex {
             end = buffer.endIndex
@@ -273,15 +275,14 @@ class LayoutManager {
             end = buffer.lines.index(roundingUp: range.upperBound)
         }
 
-        // Sanity check. I don't think we should be getting this. We can probably
-        // rewrite enumerateLines without worrying about this by iterating
-        // over buffer.lines.
+        // Sanity check. We shouldn't get this. Gross gross gross.
         assert(end < buffer.lines.endIndex)
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < end {
-            let next = buffer.lines.index(after: i)
+            // Gross gross gross
+            let next = min(buffer.endIndex, buffer.lines.index(after: i))
             let (line, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             let stop = !block(line, prevAlignmentFrame)
@@ -660,7 +661,9 @@ class LayoutManager {
         var end = buffer.utf8.index(at: byteEnd)
 
         if byteEnd < buffer.utf8.count {
-            end = buffer.lines.index(after: end)
+            // Hack to make sure we don't get buffer.lines.endIndex. This
+            // is gross.
+            end = min(buffer.endIndex, buffer.lines.index(after: end))
         }
 
         assert(start == buffer.lines.index(roundingDown: start))
