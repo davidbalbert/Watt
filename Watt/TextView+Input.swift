@@ -202,12 +202,7 @@ extension TextView {
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         let affinity: Affinity = head == buffer.endIndex ? .upstream : .downstream
         layoutManager.selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
-
-        guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToVisible(viewRect)
+        
+        scrollSelectionToVisible()
     }
 }

@@ -18,58 +18,72 @@ extension TextView {
 
     override func moveForward(_ sender: Any?) {
         layoutManager.moveSelection(.right)
+        scrollSelectionToVisible()
     }
 
     override func moveRight(_ sender: Any?) {
         layoutManager.moveSelection(.right)
+        scrollSelectionToVisible()
     }
 
     override func moveBackward(_ sender: Any?) {
         layoutManager.moveSelection(.left)
+        scrollSelectionToVisible()
     }
 
     override func moveLeft(_ sender: Any?) {
         layoutManager.moveSelection(.left)
+        scrollSelectionToVisible()
     }
 
     override func moveUp(_ sender: Any?) {
         layoutManager.moveSelection(.up)
+        scrollSelectionToVisible()
     }
 
     override func moveDown(_ sender: Any?) {
         layoutManager.moveSelection(.down)
+        scrollSelectionToVisible()
     }
 
     override func moveWordForward(_ sender: Any?) {
         layoutManager.moveSelection(.rightWord)
+        scrollSelectionToVisible()
     }
 
     override func moveWordBackward(_ sender: Any?) {
         layoutManager.moveSelection(.leftWord)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfLine(_ sender: Any?) {
         layoutManager.moveSelection(.beginningOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfLine(_ sender: Any?) {
         layoutManager.moveSelection(.endOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfParagraph(_ sender: Any?) {
         layoutManager.moveSelection(.beginningOfParagraph)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfParagraph(_ sender: Any?) {
         layoutManager.moveSelection(.endOfParagraph)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfDocument(_ sender: Any?) {
         layoutManager.moveSelection(.endOfDocument)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfDocument(_ sender: Any?) {
         layoutManager.moveSelection(.beginningOfDocument)
+        scrollSelectionToVisible()
     }
 
     override func pageDown(_ sender: Any?) {
@@ -131,50 +145,62 @@ extension TextView {
 
     override func moveBackwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.left)
+        scrollSelectionToVisible()
     }
 
     override func moveForwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.right)
+        scrollSelectionToVisible()
     }
 
     override func moveWordForwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.rightWord)
+        scrollSelectionToVisible()
     }
 
     override func moveWordBackwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.leftWord)
+        scrollSelectionToVisible()
     }
 
     override func moveUpAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.up)
+        scrollSelectionToVisible()
     }
 
     override func moveDownAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.down)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.endOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfParagraphAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfParagraph)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfParagraphAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.endOfParagraph)
+        scrollSelectionToVisible()
     }
 
     override func moveToEndOfDocumentAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.endOfDocument)
+        scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfDocumentAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfDocument)
+        scrollSelectionToVisible()
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
@@ -219,54 +245,66 @@ extension TextView {
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.endOfParagraph)
+        scrollSelectionToVisible()
     }
 
     override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfParagraph)
+        scrollSelectionToVisible()
     }
 
 
 
     override func moveWordRight(_ sender: Any?) {
         layoutManager.moveSelection(.rightWord)
+        scrollSelectionToVisible()
     }
 
     override func moveWordLeft(_ sender: Any?) {
         layoutManager.moveSelection(.leftWord)
+        scrollSelectionToVisible()
     }
 
     override func moveRightAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.right)
+        scrollSelectionToVisible()
     }
 
     override func moveLeftAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.left)
+        scrollSelectionToVisible()
     }
 
     override func moveWordRightAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.rightWord)
+        scrollSelectionToVisible()
     }
 
     override func moveWordLeftAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.leftWord)
+        scrollSelectionToVisible()
     }
 
 
 
     override func moveToLeftEndOfLine(_ sender: Any?) {
         layoutManager.moveSelection(.beginningOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToRightEndOfLine(_ sender: Any?) {
         layoutManager.moveSelection(.endOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfLine)
+        scrollSelectionToVisible()
     }
 
     override func moveToRightEndOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.endOfLine)
+        scrollSelectionToVisible()
     }
 
 

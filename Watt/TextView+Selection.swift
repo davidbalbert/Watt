@@ -84,6 +84,17 @@ extension TextView {
             scheduleInsertionPointTimer()
         }
     }
+
+    func scrollSelectionToVisible() {
+        let head = layoutManager.selection.head
+
+        guard let (rect, _) = layoutManager.firstRect(forRange: head..<head) else {
+            return
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        scrollToVisible(viewRect)
+    }
 }
 
 extension TextView: SelectionLayerDelegate {
