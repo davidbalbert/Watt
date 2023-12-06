@@ -830,12 +830,12 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     func testExtendSelectionByParagraph() {
-        let string = """
+        var string = """
         foo
         0123456789wrap
         bar
         """
-        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+        var d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
@@ -858,6 +858,17 @@ final class SelectionNavigatorTests: XCTestCase {
         // caret at "r" - nothing to select right
         s = SimpleSelection(caretAt: string.index(at: 22), affinity: .upstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 22), affinity: .upstream, dataSource: d)
+
+        string = """
+        foo
+
+        """
+        d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // caret at "\n"
+        s = SimpleSelection(caretAt: string.index(at: 4), affinity: .upstream, granularity: .character)
+        s = extendAndAssert(s, direction: .beginningOfParagraph, caretAt: string.index(at: 4), affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 4), affinity: .upstream, dataSource: d)
     }
 
     func testExtendSelectionByDocument() {

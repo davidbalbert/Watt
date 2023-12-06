@@ -243,7 +243,7 @@ extension SelectionNavigator {
             }
         case .beginningOfParagraph:
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
-            affinity = .downstream
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfParagraph:
             let range = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
             if dataSource.lastCharacter(inRange: range) == "\n" {
