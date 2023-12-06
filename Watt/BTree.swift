@@ -879,9 +879,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
 
         var i = index(roundingDown: i, using: metric)
+        precondition(i > startIndex, "Index out of bounds")
         let offset = i.prev(using: metric)
         if offset == nil {
-            fatalError("Index out of bounds")
+            return startIndex
         }
         return i
     }
@@ -889,10 +890,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
 
+        precondition(i < endIndex, "Index out of bounds")
         var i = i
         let offset = i.next(using: metric)
         if offset == nil {
-            fatalError("Index out of bounds")
+            return endIndex
         }
         return i
     }
