@@ -139,7 +139,7 @@ extension TextView: NSTextInputClient {
         // TODO: We need to deal with affinity if range is empty. It might be asking us for the rect
         // of a caret at the end of a line fragment. Neither firstRect(forRange:) nor
         // enumerateTextSegments(in:type:using:) do anything with affinity at the moment.
-        guard var (rect, rectRange) = layoutManager.firstRect(forRange: range) else {
+        guard let (rect, rectRange) = layoutManager.firstRect(forRange: range) else {
             return .zero
         }
 
