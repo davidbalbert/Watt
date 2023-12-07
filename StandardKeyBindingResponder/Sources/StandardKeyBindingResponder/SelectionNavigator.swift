@@ -291,10 +291,18 @@ extension SelectionNavigator {
                 return Selection(anchor: selection.anchor, head: ptarget.lowerBound, granularity: .character, xOffset: nil)
             }
         case .paragraphForward:
+            if selection.head == dataSource.endIndex {
+                return selection
+            }
+
             if selection.isCaret {
-                let target = selection.lowerBound == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
-                let r = dataSource.range(for: .paragraph, enclosing: target)
-                let head = r.upperBound == dataSource.endIndex ? r.upperBound : dataSource.index(before: r.upperBound)
+                let end = dataSource.endOfParagraph(containing: selection.head)
+                let head: Selection.Index
+                if selection.head == end {
+                    head = dataSource.endOfParagraph(containing: dataSource.index(after: selection.head))
+                } else {
+                    head = end
+                }
                 return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
             }
 
