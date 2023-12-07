@@ -179,7 +179,7 @@ extension SelectionNavigator {
         // after this point, dataSource can't be empty, which means that moving to startIndex
         // can never yield an upstream affinity.
 
-        let head: Selection.Index
+        var head: Selection.Index
         var anchor = selection.anchor
         let affinity: Selection.Affinity
         var xOffset: CGFloat? = nil
@@ -244,7 +244,8 @@ extension SelectionNavigator {
                 head = fragRange.lowerBound
             }
             if extending {
-                anchor = selection.upperBound
+                anchor = head
+                head = selection.upperBound
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
@@ -265,7 +266,8 @@ extension SelectionNavigator {
                 affinity = endsWithNewline ? .downstream : .upstream
             }
             if extending {
-                anchor = selection.lowerBound
+                anchor = head
+                head = selection.lowerBound
             }
         // Multiple presses of Control-Shift-A (moveToBeginningOfParagraphAndModifySelection:) won't go
         // past the start of the paragraph, but multiple Option-Ups (moveToBeginningOfParagraph:) will.
@@ -278,7 +280,8 @@ extension SelectionNavigator {
         case .beginningOfParagraph:
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
             if extending {
-                anchor = selection.upperBound
+                anchor = head
+                head = selection.upperBound
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfParagraph:
@@ -289,7 +292,8 @@ extension SelectionNavigator {
                 head = range.upperBound
             }
             if extending {
-                anchor = selection.lowerBound
+                anchor = head
+                head = selection.lowerBound
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
@@ -298,11 +302,11 @@ extension SelectionNavigator {
             let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             if rlow == rhigh || rlow.upperBound == selection.upperBound {
-                anchor = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == dataSource.startIndex) ? rlow.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rlow.lowerBound)
-                head = selection.upperBound
+                head = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == dataSource.startIndex) ? rlow.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rlow.lowerBound)
+                anchor = selection.upperBound
             } else {
-                anchor = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
-                head = selection.anchor
+                head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
+                anchor = selection.anchor
             }
             assert(anchor != head)
             affinity = .downstream // unused
@@ -312,37 +316,40 @@ extension SelectionNavigator {
             let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             if rlow == rhigh || rlow.upperBound == selection.upperBound {
-                anchor = (selection.upperBound < rlow.upperBound || rlow.upperBound == dataSource.endIndex) ? rlow.upperBound : dataSource.index(ofParagraphBoundaryAfter: rlow.upperBound)
-                head = selection.lowerBound
+                head = (selection.upperBound < rlow.upperBound || rlow.upperBound == dataSource.endIndex) ? rlow.upperBound : dataSource.index(ofParagraphBoundaryAfter: rlow.upperBound)
+                anchor = selection.lowerBound
             } else {
-                anchor = rhead.upperBound
-                head = selection.anchor
+                head = rhead.upperBound
+                anchor = selection.anchor
             }
             assert(anchor != head)
             affinity = .downstream // unused
         case .beginningOfDocument:
-            head = dataSource.startIndex
-            anchor = selection.upperBound
+            if extending {
+                anchor = dataSource.startIndex
+                head = selection.upperBound
+            } else {
+                head = dataSource.startIndex
+                anchor = selection.upperBound
+            }
             affinity = .downstream
         case .endOfDocument:
-            head = dataSource.endIndex
-            anchor = selection.lowerBound
+            if extending {
+                anchor = dataSource.endIndex
+                head = selection.lowerBound
+            } else {
+                head = dataSource.endIndex
+                anchor = selection.lowerBound
+            }
             affinity = .upstream
         }
 
         // Granularity is always character because when selecting to the beginning or end of a
         // word, line, or paragraph, we may not have selected the entire word or paragraph.
 
-        let swapMovements: [Movement] = [.beginningOfLine, .beginningOfParagraph, .beginningOfDocument, .endOfLine, .endOfDocument, .endOfParagraph, .paragraphBackward, .paragraphForward]
-
-        if extending && anchor != head && swapMovements.contains(movement) {
-            // Swap anchor and head so that if the next movement goes in the other direction, we end
-            // up selecting the entire line, paragraph, or document.
-            return Selection(anchor: head, head: anchor, granularity: .character, xOffset: nil)
-        } else if extending && head != anchor {
+        if extending && head != anchor {
             return Selection(anchor: anchor, head: head, granularity: .character, xOffset: xOffset)
         } else {
-            // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
             return Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: xOffset)
         }
     }
