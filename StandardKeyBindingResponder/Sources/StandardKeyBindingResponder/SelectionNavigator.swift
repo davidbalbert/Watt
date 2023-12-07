@@ -280,10 +280,6 @@ extension SelectionNavigator {
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
-            if selection.lowerBound == dataSource.startIndex {
-                return selection
-            }
-
             let r = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
             let sameParagraph = r.contains(selection.upperBound) || r.upperBound == selection.upperBound
 
@@ -293,7 +289,7 @@ extension SelectionNavigator {
                 head = dataSource.index(ofParagraphBoundaryBefore: selection.lowerBound)
                 anchor = selection.upperBound
             } else {
-                head = dataSource.index(ofParagraphBoundaryBefore: selection.head)
+                head = selection.head > dataSource.startIndex ? dataSource.index(ofParagraphBoundaryBefore: selection.head) : selection.head
                 anchor = selection.anchor
             }
             return Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil)
