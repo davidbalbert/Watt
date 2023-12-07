@@ -260,6 +260,14 @@ extension SelectionNavigator {
                 head = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
                 affinity = endsWithNewline ? .downstream : .upstream
             }
+        // Multiple presses of Control-Shift-A (moveToBeginningOfParagraphAndModifySelection:) won't go
+        // past the start of the paragraph, but multiple Option-Ups (moveToBeginningOfParagraph:) will.
+        //
+        // So, how can we have the same logic for .beginningOfParagraph whether or not extending == true?
+        //
+        // The answer is that the system actually maps Option-Up to the sequence [moveBackward:, moveToBeginningOfParagraph:].
+        //
+        // Ditto for Control-Shift-E and Option-Down.
         case .beginningOfParagraph:
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
             affinity = head == dataSource.endIndex ? .upstream : .downstream
@@ -272,8 +280,12 @@ extension SelectionNavigator {
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
+            if selection.head == dataSource.startIndex {
+                return selection
+            }
+
             if selection.isCaret {
-                let target = selection.lowerBound == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
+                let target = selection.head == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
                 let r = dataSource.range(for: .paragraph, enclosing: target)
                 return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
             }
@@ -296,13 +308,8 @@ extension SelectionNavigator {
             }
 
             if selection.isCaret {
-                let end = dataSource.endOfParagraph(containing: selection.head)
-                let head: Selection.Index
-                if selection.head == end {
-                    head = dataSource.endOfParagraph(containing: dataSource.index(after: selection.head))
-                } else {
-                    head = end
-                }
+                let target = selection.head == dataSource.endIndex ? dataSource.endIndex : dataSource.index(before: selection.head)
+                let head = dataSource.endOfParagraph(containing: target)
                 return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
             }
 
@@ -310,8 +317,6 @@ extension SelectionNavigator {
             let r2 = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
 
             let sameParagraph = r1 == r2 || dataSource.distance(from: selection.lowerBound, to: r2.lowerBound) == 1
-
-            // TODO: deal with empty last line
 
             if sameParagraph && dataSource.distance(from: selection.upperBound, to: r2.upperBound) > 2 {
                 // lowerBound and upperBound are in the same paragraph, or lowerBound is at the
