@@ -280,14 +280,14 @@ extension SelectionNavigator {
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
-            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            let r2 = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
-            let rhead = selection.lowerBound == selection.head ? r1 : r2
+            let rlow = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let rhigh = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             let head: Selection.Index
             let anchor: Selection.Index
-            if r1 == r2 || r1.upperBound == selection.upperBound {
-                head = (selection.lowerBound > r1.lowerBound || r1.lowerBound == dataSource.startIndex) ? r1.lowerBound : dataSource.index(ofParagraphBoundaryBefore: r1.lowerBound)
+            if rlow == rhigh || rlow.upperBound == selection.upperBound {
+                head = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == dataSource.startIndex) ? rlow.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rlow.lowerBound)
                 anchor = selection.upperBound
             } else {
                 head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
@@ -298,14 +298,14 @@ extension SelectionNavigator {
             }
             return Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil)
         case .paragraphForward:
-            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            let r2 = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
-            let rhead = selection.lowerBound == selection.head ? r1 : r2
+            let rlow = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let rhigh = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             let head: Selection.Index
             let anchor: Selection.Index
-            if r1 == r2 || r1.upperBound == selection.upperBound {
-                head = (selection.upperBound < r1.upperBound || r1.upperBound == dataSource.endIndex) ? r1.upperBound : dataSource.index(ofParagraphBoundaryAfter: r1.upperBound)
+            if rlow == rhigh || rlow.upperBound == selection.upperBound {
+                head = (selection.upperBound < rlow.upperBound || rlow.upperBound == dataSource.endIndex) ? rlow.upperBound : dataSource.index(ofParagraphBoundaryAfter: rlow.upperBound)
                 anchor = selection.lowerBound
             } else {
                 head = rhead.upperBound
