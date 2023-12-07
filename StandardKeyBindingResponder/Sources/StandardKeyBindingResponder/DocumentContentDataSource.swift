@@ -81,11 +81,26 @@ extension DocumentContentDataSource {
         index(i, offsetBy: 1)
     }
 
-    func index(roundedDownToParagraph i: Index) -> Index {
+    func index(roundingDownToParagraph i: Index) -> Index {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i
         }
         return index(ofParagraphBoundaryBefore: i)
+    }
+
+    func paragraph(containing i: Index) -> Range<Index> {
+        let start = index(roundingDownToParagraph: i)
+        let end = i == endIndex ? endIndex : index(ofParagraphBoundaryAfter: i)
+        return start..<end
+    }
+
+    // either endIndex or self[i] == "\n"
+    func endOfParagraph(containing i: Index) -> Index {
+        let r = paragraph(containing: i)
+        if r.upperBound == endIndex {
+            return r.upperBound
+        }
+        return index(before: r.upperBound)
     }
 
     func index(beginningOfWordBefore i: Index) -> Index? {
