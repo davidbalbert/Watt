@@ -286,8 +286,8 @@ extension SelectionNavigator {
 
             let head: Selection.Index
             let anchor: Selection.Index
-            if (r1 == r2 || r1.upperBound == selection.upperBound) && selection.lowerBound > r1.lowerBound {
-                head = r1.lowerBound
+            if r1 == r2 || r1.upperBound == selection.upperBound {
+                head = (selection.lowerBound > r1.lowerBound || r1.lowerBound == dataSource.startIndex) ? r1.lowerBound : dataSource.index(ofParagraphBoundaryBefore: r1.lowerBound)
                 anchor = selection.upperBound
             } else {
                 head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
@@ -304,8 +304,8 @@ extension SelectionNavigator {
 
             let head: Selection.Index
             let anchor: Selection.Index
-            if r1 == r2 && selection.upperBound < r1.upperBound {
-                head = r1.upperBound
+            if r1 == r2 || r1.upperBound == selection.upperBound {
+                head = (selection.upperBound < r1.upperBound || r1.upperBound == dataSource.endIndex) ? r1.upperBound : dataSource.index(ofParagraphBoundaryAfter: r1.upperBound)
                 anchor = selection.lowerBound
             } else {
                 head = rhead.upperBound
