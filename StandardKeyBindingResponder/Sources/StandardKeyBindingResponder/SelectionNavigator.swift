@@ -291,10 +291,6 @@ extension SelectionNavigator {
                 return Selection(anchor: selection.anchor, head: ptarget.lowerBound, granularity: .character, xOffset: nil)
             }
         case .paragraphForward:
-            if selection.upperBound == dataSource.endIndex {
-                return selection
-            }
-
             if selection.isCaret {
                 let target = selection.lowerBound == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
                 let r = dataSource.range(for: .paragraph, enclosing: target)
