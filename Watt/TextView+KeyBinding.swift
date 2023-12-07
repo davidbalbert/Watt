@@ -47,12 +47,12 @@ extension TextView {
     }
 
     override func moveWordForward(_ sender: Any?) {
-        layoutManager.moveSelection(.rightWord)
+        layoutManager.moveSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordBackward(_ sender: Any?) {
-        layoutManager.moveSelection(.leftWord)
+        layoutManager.moveSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
@@ -154,12 +154,12 @@ extension TextView {
     }
 
     override func moveWordForwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.rightWord)
+        layoutManager.extendSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordBackwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.leftWord)
+        layoutManager.extendSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
@@ -256,12 +256,12 @@ extension TextView {
 
 
     override func moveWordRight(_ sender: Any?) {
-        layoutManager.moveSelection(.rightWord)
+        layoutManager.moveSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordLeft(_ sender: Any?) {
-        layoutManager.moveSelection(.leftWord)
+        layoutManager.moveSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
@@ -276,12 +276,12 @@ extension TextView {
     }
 
     override func moveWordRightAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.rightWord)
+        layoutManager.extendSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordLeftAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.leftWord)
+        layoutManager.extendSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 

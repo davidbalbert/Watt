@@ -60,8 +60,8 @@ extension Granularity {
 public enum Movement: Equatable {
     case left
     case right
-    case leftWord
-    case rightWord
+    case wordLeft
+    case wordRight
     case up
     case down
     case beginningOfLine
@@ -193,7 +193,7 @@ extension SelectionNavigator {
             (head, affinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
         case .down:
             (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
-        case .leftWord:
+        case .wordLeft:
             let start = extending ? selection.head : selection.lowerBound
             let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
             let shrinking = extending && selection.isRange && selection.affinity == .downstream
@@ -201,7 +201,7 @@ extension SelectionNavigator {
             // if we're shrinking the selection, don't move past the anchor
             head = shrinking ? max(wordStart, selection.anchor) : wordStart
             affinity = .downstream
-        case .rightWord:
+        case .wordRight:
             let start = extending ? selection.head : selection.upperBound
             let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
             let shrinking = extending && selection.isRange && selection.affinity == .upstream
