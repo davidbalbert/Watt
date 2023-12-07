@@ -294,7 +294,7 @@ extension Buffer: DocumentContentDataSource {
         if lines.isBoundary(j) {
             j = index(before: j)
         }
-        return lines.index(roundingDown: i)
+        return lines.index(roundingDown: j)
     }
 
     func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {

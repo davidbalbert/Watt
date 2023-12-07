@@ -280,48 +280,41 @@ extension SelectionNavigator {
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
-            let r = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            let sameParagraph = r.contains(selection.upperBound) || r.upperBound == selection.upperBound
+            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let r2 = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? r1 : r2
 
             let head: Selection.Index
             let anchor: Selection.Index
-            if sameParagraph && selection.lowerBound > r.lowerBound {
-                head = dataSource.index(ofParagraphBoundaryBefore: selection.lowerBound)
+            if (r1 == r2 || r1.upperBound == selection.upperBound) && selection.lowerBound > r1.lowerBound {
+                head = r1.lowerBound
                 anchor = selection.upperBound
             } else {
-                head = selection.head > dataSource.startIndex ? dataSource.index(ofParagraphBoundaryBefore: selection.head) : selection.head
+                head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
                 anchor = selection.anchor
+            }
+            if anchor == head {
+                return Selection(caretAt: head, affinity: .downstream, granularity: .character, xOffset: nil)
             }
             return Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil)
         case .paragraphForward:
-            if selection.upperBound == dataSource.endIndex {
-                return selection
-            }
+            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let r2 = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? r1 : r2
 
-            if selection.isCaret {
-                let target = dataSource.index(before: selection.head)
-                let head = dataSource.endOfParagraph(containing: target)
-                return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
-            }
-
-            assert(selection.lowerBound < selection.upperBound)
-            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
-            let sameParagraph = r.contains(selection.lowerBound) || dataSource.distance(from: selection.lowerBound, to: r.lowerBound) == 1
-
-            if sameParagraph && dataSource.distance(from: selection.upperBound, to: r.upperBound) > 2 {
-                // lowerBound and upperBound are in the same paragraph, or lowerBound is at the
-                // newline before the start of r2's paragraph.
-                return Selection(anchor: selection.lowerBound, head: dataSource.index(before: r.upperBound), granularity: .character, xOffset: nil)
+            let head: Selection.Index
+            let anchor: Selection.Index
+            if r1 == r2 && selection.upperBound < r1.upperBound {
+                head = r1.upperBound
+                anchor = selection.lowerBound
             } else {
-                let start: Selection.Index
-                if selection.head < dataSource.endIndex && dataSource[selection.head] == "\n" {
-                    start = dataSource.index(after: selection.head)
-                } else {
-                    start = selection.head
-                }
-                let head = dataSource.endOfParagraph(containing: start)
-                return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: nil)
+                head = rhead.upperBound
+                anchor = selection.anchor
             }
+            if anchor == head {
+                return Selection(caretAt: head, affinity: head == dataSource.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil)
+            }
+            return Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil)
         case .beginningOfDocument:
             head = dataSource.startIndex
             affinity = .downstream
