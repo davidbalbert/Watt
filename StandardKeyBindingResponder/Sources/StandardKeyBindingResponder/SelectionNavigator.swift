@@ -284,18 +284,21 @@ extension SelectionNavigator {
                 return selection
             }
 
-            // lowerBound > startIndex, and upperBound >= lowerBound, therefore upperBound > startIndex.
-            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
-            let sameParagraph = r.contains(selection.lowerBound)
+            let r = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let sameParagraph = r.contains(selection.upperBound) || r.upperBound == selection.upperBound
 
+            let head: Selection.Index
+            let anchor: Selection.Index
             if sameParagraph && selection.lowerBound > r.lowerBound {
-                return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
+                head = dataSource.index(ofParagraphBoundaryBefore: selection.lowerBound)
+                anchor = selection.upperBound
             } else {
-                let head = dataSource.index(ofParagraphBoundaryBefore: selection.head)
-                return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: nil)
+                head = dataSource.index(ofParagraphBoundaryBefore: selection.head)
+                anchor = selection.anchor
             }
+            return Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil)
         case .paragraphForward:
-            if selection.head == dataSource.endIndex {
+            if selection.upperBound == dataSource.endIndex {
                 return selection
             }
 
