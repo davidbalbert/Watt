@@ -874,7 +874,7 @@ final class SelectionNavigatorTests: XCTestCase {
     // paragraphBackward and paragraphForward are only used for extending selection, and
     // can select multiple paragraphs.
     func testExtendSelectionByParagraphBackwardForwards() {
-        var string = """
+        let string = """
         foo
         0123456789wrap
         bar
