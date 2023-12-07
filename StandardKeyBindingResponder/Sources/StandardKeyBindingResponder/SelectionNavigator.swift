@@ -290,17 +290,17 @@ extension SelectionNavigator {
                 return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
             }
 
-            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            let r2 = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+            assert(selection.lowerBound < selection.upperBound)
+            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+            let sameParagraph = r.contains(selection.lowerBound)
 
-            if r1 == r2 && selection.lowerBound > r1.lowerBound {
+            if sameParagraph && selection.lowerBound > r.lowerBound {
                 // lowerBound and upperBound are in the same paragraph, and
                 // we're not yet at the start of the paragraph.
-                return Selection(anchor: selection.upperBound, head: r1.lowerBound, granularity: .character, xOffset: nil)
+                return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
             } else {
-                let target = r1.lowerBound > dataSource.startIndex ? dataSource.index(before: r1.lowerBound) : r1.lowerBound
-                let ptarget = dataSource.range(for: .paragraph, enclosing: target)
-                return Selection(anchor: selection.anchor, head: ptarget.lowerBound, granularity: .character, xOffset: nil)
+                let head = dataSource.index(ofParagraphBoundaryBefore: selection.head)
+                return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: nil)
             }
         case .paragraphForward:
             if selection.head == dataSource.endIndex {
@@ -313,15 +313,14 @@ extension SelectionNavigator {
                 return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
             }
 
-            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            let r2 = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+            assert(selection.lowerBound < selection.upperBound)
+            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+            let sameParagraph = r.contains(selection.lowerBound) || dataSource.distance(from: selection.lowerBound, to: r.lowerBound) == 1
 
-            let sameParagraph = r1 == r2 || dataSource.distance(from: selection.lowerBound, to: r2.lowerBound) == 1
-
-            if sameParagraph && dataSource.distance(from: selection.upperBound, to: r2.upperBound) > 2 {
+            if sameParagraph && dataSource.distance(from: selection.upperBound, to: r.upperBound) > 2 {
                 // lowerBound and upperBound are in the same paragraph, or lowerBound is at the
                 // newline before the start of r2's paragraph.
-                return Selection(anchor: selection.lowerBound, head: dataSource.index(before: r2.upperBound), granularity: .character, xOffset: nil)
+                return Selection(anchor: selection.lowerBound, head: dataSource.index(before: r.upperBound), granularity: .character, xOffset: nil)
             } else {
                 let start: Selection.Index
                 if selection.head < dataSource.endIndex && dataSource[selection.head] == "\n" {
