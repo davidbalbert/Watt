@@ -286,16 +286,9 @@ extension SelectionNavigator {
 
             // lowerBound > startIndex, and upperBound >= lowerBound, therefore upperBound > startIndex.
             let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
-
-            if selection.isCaret {
-                return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
-            }
-
             let sameParagraph = r.contains(selection.lowerBound)
 
             if sameParagraph && selection.lowerBound > r.lowerBound {
-                // lowerBound and upperBound are in the same paragraph, and
-                // we're not yet at the start of the paragraph.
                 return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
             } else {
                 let head = dataSource.index(ofParagraphBoundaryBefore: selection.head)
