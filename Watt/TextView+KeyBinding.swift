@@ -244,12 +244,12 @@ extension TextView {
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.endOfParagraph)
+        layoutManager.extendSelection(.paragraphForward)
         scrollSelectionToVisible()
     }
 
     override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.beginningOfParagraph)
+        layoutManager.extendSelection(.paragraphBackward)
         scrollSelectionToVisible()
     }
 

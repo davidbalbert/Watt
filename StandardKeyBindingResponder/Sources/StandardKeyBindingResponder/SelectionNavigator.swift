@@ -66,8 +66,23 @@ public enum Movement: Equatable {
     case down
     case beginningOfLine
     case endOfLine
+
+    // paragraphBackward and paragraphForward are only used while extending. This is because
+    // NSStandardKeyBindingResponding only has moveParagraphForwardAndModifySelection(_:)
+    // and moveParagraphBackwardAndModifySelection(_:). No non-modifying variants.
+    //
+    // Behavior:
+    // - Move Beginning/End: repeated movements in the same direction will move by an additional
+    //   paragraph each time.
+    // - Extend Beginning/End: repeated movements in the same direction are no-ops. Selection remains
+    //   clamped inside the same paragraph.
+    // - Extend Backward/Forward: repeated movements in the same direction will extend by additional
+    //   paragraphs each time.
     case beginningOfParagraph
     case endOfParagraph
+    case paragraphBackward
+    case paragraphForward
+
     case beginningOfDocument
     case endOfDocument
 }
@@ -153,6 +168,10 @@ extension SelectionNavigator {
     }
 
     func makeSelection(movement: Movement, extending: Bool, dataSource: DataSource) -> Selection {
+        if (movement == .paragraphBackward || movement == .paragraphForward) && !extending {
+            preconditionFailure(String(describing: movement) + " can only be used when extending")
+        }
+
         if dataSource.isEmpty {
             return Selection(caretAt: dataSource.startIndex, affinity: .upstream, granularity: .character, xOffset: nil)
         }
@@ -252,6 +271,40 @@ extension SelectionNavigator {
                 head = range.upperBound
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
+        case .paragraphBackward:
+            if selection.isCaret {
+                let target = selection.lowerBound == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
+                let r = dataSource.range(for: .paragraph, enclosing: target)
+                return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
+            }
+
+            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let r2 = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+
+            if r1 == r2 {
+                // lowerBound and upperBound are in the same paragraph
+                return Selection(anchor: selection.upperBound, head: r1.lowerBound, granularity: .character, xOffset: nil)
+            } else {
+                return Selection(anchor: selection.anchor, head: r1.lowerBound, granularity: .character, xOffset: nil)
+            }
+        case .paragraphForward:
+            if selection.isCaret {
+                let target = selection.lowerBound == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
+                let r = dataSource.range(for: .paragraph, enclosing: target)
+                let head = r.upperBound == dataSource.endIndex ? r.upperBound : dataSource.index(before: r.upperBound)
+                return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
+            }
+
+            let r1 = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let r2 = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+
+            if r1 == r2 || (dataSource.startIndex < r2.lowerBound && selection.lowerBound == dataSource.index(before: r2.lowerBound)) {
+                // lowerBound and upperBound are in the same paragraph, or lowerBound is at the
+                // newline before the start of r2's paragraph.
+                return Selection(anchor: selection.lowerBound, head: r1.upperBound, granularity: .character, xOffset: nil)
+            } else {
+                return Selection(anchor: selection.anchor, head: r1.upperBound, granularity: .character, xOffset: nil)
+            }
         case .beginningOfDocument:
             head = dataSource.startIndex
             affinity = .downstream

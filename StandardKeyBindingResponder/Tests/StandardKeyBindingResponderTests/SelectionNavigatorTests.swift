@@ -871,6 +871,36 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssert(s, direction: .endOfParagraph, caretAt: string.index(at: 4), affinity: .upstream, dataSource: d)
     }
 
+    // paragraphBackward and paragraphForward are only used for extending selection, and
+    // can select multiple paragraphs.
+    func testExtendSelectionByParagraphBackwardForwards() {
+        var string = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
+
+        // caret at "5"
+        var s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "01234", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "foo\n01234", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .paragraphBackward, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphForward, selected: "\n01234", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphForward, selected: "\n0123456789wrap", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphForward, selected: "\n0123456789wrap\nbar", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .paragraphForward, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "\n0123456789wrap\n", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "\n", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "foo\n", affinity: .upstream, dataSource: d)
+
+        // caret at "5"
+        s = SimpleSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .paragraphForward, selected: "56789wrap", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphBackward, selected: "0123456789wrap", affinity: .upstream, dataSource: d)
+        s = extendAndAssert(s, direction: .paragraphForward, caretAt: string.index(at: 18), affinity: .downstream, dataSource: d)
+    }
+
     func testExtendSelectionByDocument() {
         let string = """
         foo
