@@ -280,18 +280,17 @@ extension SelectionNavigator {
             }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .paragraphBackward:
-            if selection.head == dataSource.startIndex {
+            if selection.lowerBound == dataSource.startIndex {
                 return selection
             }
 
+            // lowerBound > startIndex, and upperBound >= lowerBound, therefore upperBound > startIndex.
+            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
+
             if selection.isCaret {
-                let target = selection.head == dataSource.startIndex ? dataSource.startIndex : dataSource.index(before: selection.lowerBound)
-                let r = dataSource.range(for: .paragraph, enclosing: target)
                 return Selection(anchor: selection.upperBound, head: r.lowerBound, granularity: .character, xOffset: nil)
             }
 
-            assert(selection.lowerBound < selection.upperBound)
-            let r = dataSource.range(for: .paragraph, enclosing: dataSource.index(before: selection.upperBound))
             let sameParagraph = r.contains(selection.lowerBound)
 
             if sameParagraph && selection.lowerBound > r.lowerBound {
@@ -308,7 +307,7 @@ extension SelectionNavigator {
             }
 
             if selection.isCaret {
-                let target = selection.head == dataSource.endIndex ? dataSource.endIndex : dataSource.index(before: selection.head)
+                let target = dataSource.index(before: selection.head)
                 let head = dataSource.endOfParagraph(containing: target)
                 return Selection(anchor: selection.lowerBound, head: head, granularity: .character, xOffset: nil)
             }
