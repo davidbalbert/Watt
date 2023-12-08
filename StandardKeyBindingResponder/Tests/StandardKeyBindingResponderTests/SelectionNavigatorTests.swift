@@ -190,7 +190,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         // 0-9
         s = SimpleSelection(anchor: string.index(at: 20), head: string.index(at: 30), granularity: .character)
-        s = moveAndAssert(s, direction: .down, caret: "q", affinity: .downstream, dataSource: d)
+        s = moveAndAssert(s, direction: .down, caret: "w", affinity: .downstream, dataSource: d)
 
         // "wrap"
         s = SimpleSelection(anchor: string.index(at: 30), head: string.index(at: 34), granularity: .character)

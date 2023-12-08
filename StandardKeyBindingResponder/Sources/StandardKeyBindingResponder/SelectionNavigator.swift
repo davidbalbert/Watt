@@ -396,7 +396,9 @@ extension SelectionNavigator {
         }
 
         var fragRange = dataSource.range(for: .line, enclosing: start)
-        if selection.isCaret && !fragRange.isEmpty && fragRange.lowerBound == start && selection.affinity == .upstream {
+        let movingFromRange = selection.isRange && !extending
+        let upstreamCaret = selection.isCaret && selection.affinity == .upstream
+        if (movingFromRange || upstreamCaret) && !fragRange.isEmpty && fragRange.lowerBound == start {
             assert(start != dataSource.startIndex)
             // we're actually in the previous frag
             fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
