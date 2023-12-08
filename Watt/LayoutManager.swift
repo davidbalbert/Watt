@@ -769,7 +769,7 @@ extension LayoutManager: BufferDelegate {
         //
         // This matters for drawing the caret in the correct location immediately after inserting a
         // newline, and probably for other things too.
-         ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
+        ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
 
         delegate?.didInvalidateLayout(for: self)
 
