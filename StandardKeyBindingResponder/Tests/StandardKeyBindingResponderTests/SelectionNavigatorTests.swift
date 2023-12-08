@@ -167,6 +167,9 @@ final class SelectionNavigatorTests: XCTestCase {
         efgh
         ijkl
         mnop
+        0123456789wrap
+        qrst
+        uvwx
         """
         let d = SimpleSelectionDataSource(string: string, charsPerLine: 10)
 
@@ -184,6 +187,14 @@ final class SelectionNavigatorTests: XCTestCase {
         s = SimpleSelection(anchor: string.index(at: 4), head: string.index(at: 0), granularity: .character)
         // at "a"
         s = moveAndAssert(s, direction: .up, caretAt: string.index(at: 0), affinity: .downstream, dataSource: d)
+
+        // 0-9
+        s = SimpleSelection(anchor: string.index(at: 20), head: string.index(at: 30), granularity: .character)
+        s = moveAndAssert(s, direction: .down, caret: "q", affinity: .downstream, dataSource: d)
+
+        // "wrap"
+        s = SimpleSelection(anchor: string.index(at: 30), head: string.index(at: 34), granularity: .character)
+        s = moveAndAssert(s, direction: .down, caret: "q", affinity: .downstream, dataSource: d)
     }
 
     func testMoveHorizontallyByWord() {
