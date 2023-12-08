@@ -473,6 +473,10 @@ class LayoutManager {
         return line(containing: lineStart)
     }
 
+    func ensureLayout(forLineContaining i: Buffer.Index) {
+        _ = line(containing: i)
+    }
+
     func line(containing location: Buffer.Index) -> Line {
         let content = buffer.lines[location]
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
@@ -752,6 +756,12 @@ extension LayoutManager: BufferDelegate {
         heights.replaceSubrange(oldRange, with: new[newRange])
 
         lineCache.invalidate(delta: delta)
+
+        // Layout the line immediately preceding the edit (which could include the first line
+        // of the edit itself). This insures that if we added or removed lines as part of the
+        // edit, the y-offset of the new lines is correct.
+        ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
+
         delegate?.didInvalidateLayout(for: self)
 
         if old.lines.count != new.lines.count {
