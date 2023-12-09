@@ -52,6 +52,11 @@ struct SortedCache<Element> {
 }
 
 extension SortedCache: BidirectionalCollection {
+    var count: Int {
+        assert(dictionary.count == keys.count)
+        return dictionary.count
+    }
+
     var startIndex: Index {
         keys.startIndex
     }
@@ -95,7 +100,7 @@ extension SortedCache: Equatable where Element: Equatable {
 
 extension SortedCache: CustomStringConvertible {
     var description: String {
-        "[" + keys.map { "\($0): \(dictionary[$0]!)" }.joined(separator: ", ") + "]"
+        dictionary.description
     }
 }
 

@@ -31,6 +31,21 @@ final class SortedCacheTests: XCTestCase {
         XCTAssertNil(dict[2])
     }
 
+    func testKeyBefore() {
+        var cache: SortedCache = [1: "One", 3: "Three", 5: "Five"]
+
+        XCTAssertEqual(cache.key(before: 6), 5)
+        XCTAssertEqual(cache.key(before: 5), 3)
+        XCTAssertEqual(cache.key(before: 4), 3)
+        XCTAssertEqual(cache.key(before: 3), 1)
+        XCTAssertEqual(cache.key(before: 2), 1)
+        XCTAssertNil(cache.key(before: 1))
+        XCTAssertNil(cache.key(before: 0))
+
+        cache = [:]
+        XCTAssertNil(cache.key(before: 1))
+    }
+
     func testInvalidate() {
         func t<V>(_ range: Range<Int>, _ cache: SortedCache<V>, _ expected: SortedCache<V>, file: StaticString = #file, line: UInt = #line) where V: Equatable {
             var c = cache
