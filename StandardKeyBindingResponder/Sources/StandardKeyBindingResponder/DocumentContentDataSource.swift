@@ -94,15 +94,6 @@ extension DocumentContentDataSource {
         return start..<end
     }
 
-    // either endIndex or self[i] == "\n"
-    func endOfParagraph(containing i: Index) -> Index {
-        let r = paragraph(containing: i)
-        if r.upperBound == endIndex {
-            return r.upperBound
-        }
-        return index(before: r.upperBound)
-    }
-
     func index(beginningOfWordBefore i: Index) -> Index? {
         if i == startIndex {
             return nil
