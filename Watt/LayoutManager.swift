@@ -302,6 +302,22 @@ class LayoutManager {
         }
     }
 
+    func caretRect(for i: Buffer.Index, affinity: Selection.Affinity) -> CGRect? {
+        let line = line(containing: i)
+        guard let frag = line.fragment(containing: i, affinity: affinity) else {
+            return nil
+        }
+
+        let offset = buffer.utf16.distance(from: line.range.lowerBound, to: i)
+        let caretOffset = frag.caretOffset(forUTF16OffsetInLine: offset)
+
+        let fragRect = CGRect(x: caretOffset, y: 0, width: 1, height: frag.alignmentFrame.height)
+        let lineRect = convert(fragRect, from: frag)
+        let rect = convert(lineRect, from: line)
+
+        return rect
+    }
+
     // Rects are in text container coordinates
     func enumerateCaretRects(containing index: Buffer.Index, affinity: Affinity, using block: (_ rect: CGRect, _ i: Buffer.Index, _ edge: Edge) -> Bool) {
         let line = line(containing: index)
@@ -455,6 +471,16 @@ class LayoutManager {
         assert(lineStart == buffer.lines.index(roundingDown: lineStart))
 
         return line(containing: lineStart)
+    }
+
+    func ensureLayout(forLineContaining i: Buffer.Index) {
+        _ = line(containing: i)
+    }
+
+    func ensureLayout(for range: Range<Buffer.Index>) {
+        enumerateLines(in: range) { _, _ in
+            return true
+        }
     }
 
     func line(containing location: Buffer.Index) -> Line {
@@ -736,6 +762,15 @@ extension LayoutManager: BufferDelegate {
         heights.replaceSubrange(oldRange, with: new[newRange])
 
         lineCache.invalidate(delta: delta)
+
+        // Layout the line containing the index immediately preceding the edit (which could include
+        // the first line of the edit itself). This insures that if we added or removed lines as part
+        // of the edit, the y-offset of the new lines is correct.
+        //
+        // This matters for drawing the caret in the correct location immediately after inserting a
+        // newline, and probably for other things too.
+        ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
+
         delegate?.didInvalidateLayout(for: self)
 
         if old.lines.count != new.lines.count {
@@ -796,7 +831,7 @@ extension LayoutManager: SelectionNavigationDataSource {
     }
 
     // Enumerating over the first line fragment of each string:
-    // ""    -> [(0.0, 0, leading)]
+    // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "\n"  -> [(0.0, 0, leading), (0.0, 0, trailing)]
     // "a"   -> [(0.0, 0, leading), (8.0, 0, trailing)]
     // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
@@ -807,11 +842,11 @@ extension LayoutManager: SelectionNavigationDataSource {
         }
     }
 
-    func index(beforeParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.index(beforeParagraph: i)
+    func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
+        buffer.index(ofParagraphBoundaryBefore: i)
     }
 
-    func index(afterParagraph i: Buffer.Index) -> Buffer.Index {
-        buffer.index(afterParagraph: i)
+    func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
+        buffer.index(ofParagraphBoundaryAfter: i)
     }
 }

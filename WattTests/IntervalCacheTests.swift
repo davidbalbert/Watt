@@ -114,12 +114,16 @@ final class IntervalCacheTests: XCTestCase {
 
         cache.invalidate(delta: delta)
 
-        XCTAssertEqual(9, cache.count)
+        XCTAssertEqual(8, cache.count)
         XCTAssertEqual(98, cache.upperBound)
 
         var iter = cache.spans.makeIterator()
         XCTAssertEqual(Span(range: 0..<10, data: 0), iter.next())
-        XCTAssertEqual(Span(range: 18..<28, data: 2), iter.next())
+        // invalidates 10..<20 (for obvious reasons), but also
+        // invalidates 20..<30 because 18..<20 is adjacent to 20..<30
+        // and we don't know whether 20..<30 is still valid – e.g.
+        // index 19 could have been "\n", in which case we just
+        // merged lines.
         XCTAssertEqual(Span(range: 28..<38, data: 3), iter.next())
         XCTAssertEqual(Span(range: 38..<48, data: 4), iter.next())
         XCTAssertEqual(Span(range: 48..<58, data: 5), iter.next())
@@ -127,6 +131,43 @@ final class IntervalCacheTests: XCTestCase {
         XCTAssertEqual(Span(range: 68..<78, data: 7), iter.next())
         XCTAssertEqual(Span(range: 78..<88, data: 8), iter.next())
         XCTAssertEqual(Span(range: 88..<98, data: 9), iter.next())
+        XCTAssertNil(iter.next())
+    }
+
+    func testInvalidateDeleteEndOfSpanDiscontiguous() {
+        var cache = IntervalCache<Int>(upperBound: 100)
+        cache.set(0, forRange: 0..<10)
+        cache.set(1, forRange: 11..<20)
+
+        // invalidate first span by removing up to firstSpan.upperBound
+        var b = BTreeDeltaBuilder<Rope>(cache.upperBound)
+        b.removeSubrange(8..<10)
+        var delta = b.build()
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(cache.count, 1)
+
+        var iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 9..<18, data: 1), iter.next())
+        XCTAssertNil(iter.next())
+
+
+        // invalidate first span by removing less than firstSpan.upperBound
+        cache = IntervalCache<Int>(upperBound: 100)
+        cache.set(0, forRange: 0..<10)
+        cache.set(1, forRange: 11..<20)
+
+        b = BTreeDeltaBuilder<Rope>(cache.upperBound)
+        b.removeSubrange(7..<9)
+        delta = b.build()
+
+        cache.invalidate(delta: delta)
+
+        XCTAssertEqual(cache.count, 1)
+
+        iter = cache.spans.makeIterator()
+        XCTAssertEqual(Span(range: 9..<18, data: 1), iter.next())
         XCTAssertNil(iter.next())
     }
 

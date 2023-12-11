@@ -144,9 +144,9 @@ struct IntervalCache<T> {
 
         var prev: BTreeDelta<Tree>.DeltaElement? = nil
 
-        // precondition: invalidatedThrough will always be 0 or
+        // precondition: invalidatedUpTo will always be 0 or
         // the upperBound of a span.
-        var invalidatedThrough = 0
+        var invalidatedUpTo = 0
         for (i, el) in delta.elements.enumerated() {
             switch el {
             case let .copy(start, end):
@@ -166,15 +166,24 @@ struct IntervalCache<T> {
                 let copyEnd: Int
                 let suffix: Int
 
-                if invalidatedThrough > end {
+                if invalidatedUpTo > end {
+                    // We've already invalidated the entire range of the copy.
+                    // Add a blanks for the length of the copy.
                     prefix = end - start
                     copyStart = 0
                     copyEnd = 0
                     suffix = 0
-                } else if invalidatedThrough > start, let lastRange {
-                    prefix = invalidatedThrough - start
-                    copyStart = invalidatedThrough
+                } else if invalidatedUpTo > start, let lastRange {
+                    // We've invalidated through a portion of the copy range
+                    // and there's a span that contains the last index in the
+                    // copy. Add blanks for start..<invalidatedThrough and then
+                    // copy any spans that start at invalidatedThrough.
+                    prefix = invalidatedUpTo - start
+                    copyStart = invalidatedUpTo
 
+                    // If the last span ends at the end of the copy and we're
+                    // not about to insert (which would require invalidating the
+                    // last span), include the last span in the copy.
                     if lastRange.upperBound == end && !willInsert {
                         copyEnd = lastRange.upperBound
                     } else {
@@ -183,26 +192,50 @@ struct IntervalCache<T> {
 
                     suffix = copyEnd == end || firstRange == lastRange ? 0 : end - copyEnd
 
-                    invalidatedThrough = lastRange.upperBound
-                } else if invalidatedThrough > start {
-                    prefix = invalidatedThrough - start
-                    copyStart = invalidatedThrough
+                    invalidatedUpTo = lastRange.upperBound
+                } else if invalidatedUpTo > start {
+                    // We've invalidated through a portion of the copy range, and
+                    // there's no span that contains the last index of the copy,
+                    // add a blank Spans for start..<invalidatedThrough and copy
+                    // any spans in invalidatedThrough..<end
+                    prefix = invalidatedUpTo - start
+                    copyStart = invalidatedUpTo
                     copyEnd = end
                     suffix = 0
                 } else {
-                    if let firstRange, (start > firstRange.lowerBound || didInsert) {
+                    // We haven't invalidated any of the copy range.
+
+                    let prevStart = start > 0 ? (range(forSpanContaining: start-1)?.lowerBound ?? 0) : 0
+
+                    if let firstRange, (start > firstRange.lowerBound || (start == firstRange.lowerBound && invalidatedUpTo > prevStart) || didInsert) {
+                        // If we're in any of these situations, we have to invalidate the first span:
+                        // - the start of the copy splits a span
+                        // - the start of the copy lines up with the start of a span, and we invalidated
+                        //   a previous span that is adjacent to the first span.
+                        // - the start of the copy lines up with the start of a span and we just inserted
                         prefix = min(firstRange.upperBound, end) - start
                         copyStart = firstRange.upperBound
-                        invalidatedThrough = firstRange.upperBound
+                        invalidatedUpTo = firstRange.upperBound
                     } else {
+                        // If the start of the copy isn't contained by a span or the
+                        // start of the copy lines up with the start of the span and
+                        // we didn't just insert, there's nothing to invalidate.
                         prefix = 0
                         copyStart = start
                     }
 
                     if let lastRange, (prefix == 0 || lastRange != firstRange) && (end < lastRange.upperBound || willInsert) {
+                        // If the end of copy range splits a span, or the end of the copy range lines
+                        // up with the end of a span and we're about to insert, we want to invalidate
+                        // that span.
+                        //
+                        // However, we only want to do the invalidation if we haven't invalidated the
+                        // span already in the previous if/else. I.e. only if lastRange and firstRange
+                        // are distinct, or if they are the same and we didn't already invalidate
+                        // the span.
                         copyEnd = lastRange.lowerBound
                         suffix = end - max(lastRange.lowerBound, start)
-                        invalidatedThrough = lastRange.upperBound
+                        invalidatedUpTo = lastRange.upperBound
                     } else {
                         copyEnd = end
                         suffix = 0

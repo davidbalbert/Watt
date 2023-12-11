@@ -60,14 +60,30 @@ extension Granularity {
 public enum Movement: Equatable {
     case left
     case right
-    case leftWord
-    case rightWord
+    case wordLeft
+    case wordRight
     case up
     case down
     case beginningOfLine
     case endOfLine
+
+    // paragraphBackward and paragraphForward are only used while extending. This is because
+    // NSStandardKeyBindingResponding only has moveParagraphForwardAndModifySelection(_:)
+    // and moveParagraphBackwardAndModifySelection(_:). No non-modifying variants.
+    //
+    // Behavior:
+    // - Move Beginning/End: repeated movements in the same direction will move by an additional
+    //   paragraph each time.
+    // - Extend Beginning/End: repeated movements in the same direction are no-ops. Selection remains
+    //   clamped inside the same paragraph.
+    // - Move Backward/Forward: not allowed, trap.
+    // - Extend Backward/Forward: repeated movements in the same direction will extend by additional
+    //   paragraphs each time.
     case beginningOfParagraph
     case endOfParagraph
+    case paragraphBackward
+    case paragraphForward
+
     case beginningOfDocument
     case endOfDocument
 }
@@ -153,6 +169,10 @@ extension SelectionNavigator {
     }
 
     func makeSelection(movement: Movement, extending: Bool, dataSource: DataSource) -> Selection {
+        if (movement == .paragraphBackward || movement == .paragraphForward) && !extending {
+            preconditionFailure(String(describing: movement) + " can only be used when extending")
+        }
+
         if dataSource.isEmpty {
             return Selection(caretAt: dataSource.startIndex, affinity: .upstream, granularity: .character, xOffset: nil)
         }
@@ -160,7 +180,8 @@ extension SelectionNavigator {
         // after this point, dataSource can't be empty, which means that moving to startIndex
         // can never yield an upstream affinity.
 
-        let head: Selection.Index
+        var head: Selection.Index
+        var anchor = selection.anchor
         let affinity: Selection.Affinity
         var xOffset: CGFloat? = nil
 
@@ -193,7 +214,7 @@ extension SelectionNavigator {
             (head, affinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
         case .down:
             (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
-        case .leftWord:
+        case .wordLeft:
             let start = extending ? selection.head : selection.lowerBound
             let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
             let shrinking = extending && selection.isRange && selection.affinity == .downstream
@@ -201,7 +222,7 @@ extension SelectionNavigator {
             // if we're shrinking the selection, don't move past the anchor
             head = shrinking ? max(wordStart, selection.anchor) : wordStart
             affinity = .downstream
-        case .rightWord:
+        case .wordRight:
             let start = extending ? selection.head : selection.upperBound
             let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
             let shrinking = extending && selection.isRange && selection.affinity == .upstream
@@ -223,6 +244,10 @@ extension SelectionNavigator {
             } else {
                 head = fragRange.lowerBound
             }
+            if extending {
+                anchor = head
+                head = selection.upperBound
+            }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfLine:
             let start = selection.upperBound
@@ -241,9 +266,25 @@ extension SelectionNavigator {
                 head = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
                 affinity = endsWithNewline ? .downstream : .upstream
             }
+            if extending {
+                anchor = head
+                head = selection.lowerBound
+            }
+        // Multiple presses of Control-Shift-A (moveToBeginningOfParagraphAndModifySelection:) won't go
+        // past the start of the paragraph, but multiple Option-Ups (moveToBeginningOfParagraph:) will.
+        //
+        // So, how can we have the same logic for .beginningOfParagraph whether or not extending == true?
+        //
+        // The answer is that the system actually maps Option-Up to the sequence [moveBackward:, moveToBeginningOfParagraph:].
+        //
+        // Ditto for Control-Shift-E and Option-Down.
         case .beginningOfParagraph:
             head = dataSource.range(for: .paragraph, enclosing: selection.lowerBound).lowerBound
-            affinity = .downstream
+            if extending {
+                anchor = head
+                head = selection.upperBound
+            }
+            affinity = head == dataSource.endIndex ? .upstream : .downstream
         case .endOfParagraph:
             let range = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
             if dataSource.lastCharacter(inRange: range) == "\n" {
@@ -251,31 +292,65 @@ extension SelectionNavigator {
             } else {
                 head = range.upperBound
             }
+            if extending {
+                anchor = head
+                head = selection.lowerBound
+            }
             affinity = head == dataSource.endIndex ? .upstream : .downstream
+        case .paragraphBackward:
+            let rlow = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let rhigh = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? rlow : rhigh
+
+            if rlow == rhigh || rlow.upperBound == selection.upperBound {
+                head = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == dataSource.startIndex) ? rlow.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rlow.lowerBound)
+                anchor = selection.upperBound
+            } else {
+                head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
+                anchor = selection.anchor
+            }
+            assert(anchor != head)
+            affinity = .downstream // unused
+        case .paragraphForward:
+            let rlow = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
+            let rhigh = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
+            let rhead = selection.lowerBound == selection.head ? rlow : rhigh
+
+            if rlow == rhigh || rlow.upperBound == selection.upperBound {
+                head = (selection.upperBound < rlow.upperBound || rlow.upperBound == dataSource.endIndex) ? rlow.upperBound : dataSource.index(ofParagraphBoundaryAfter: rlow.upperBound)
+                anchor = selection.lowerBound
+            } else {
+                head = rhead.upperBound
+                anchor = selection.anchor
+            }
+            assert(anchor != head)
+            affinity = .downstream // unused
         case .beginningOfDocument:
-            head = dataSource.startIndex
+            if extending {
+                anchor = dataSource.startIndex
+                head = selection.upperBound
+            } else {
+                head = dataSource.startIndex
+                anchor = selection.upperBound
+            }
             affinity = .downstream
         case .endOfDocument:
-            head = dataSource.endIndex
+            if extending {
+                anchor = dataSource.endIndex
+                head = selection.lowerBound
+            } else {
+                head = dataSource.endIndex
+                anchor = selection.lowerBound
+            }
             affinity = .upstream
         }
 
         // Granularity is always character because when selecting to the beginning or end of a
         // word, line, or paragraph, we may not have selected the entire word or paragraph.
 
-        if extending && (movement == .beginningOfLine || movement == .beginningOfParagraph || movement == .beginningOfDocument) {
-            assert(head != selection.upperBound)
-            // Swap anchor and head so that if the next movement is endOf*, we end
-            // up selecting the entire line, paragraph, or document.
-            return Selection(anchor: head, head: selection.upperBound, granularity: .character, xOffset: nil)
-        } else if extending && (movement == .endOfLine || movement == .endOfParagraph || movement == .endOfDocument) {
-            assert(head != selection.lowerBound)
-            // ditto
-            return Selection(anchor: head, head: selection.lowerBound, granularity: .character, xOffset: nil)
-        } else if extending && head != selection.anchor {
-            return Selection(anchor: selection.anchor, head: head, granularity: .character, xOffset: xOffset)
+        if extending && head != anchor {
+            return Selection(anchor: anchor, head: head, granularity: .character, xOffset: xOffset)
         } else {
-            // we're not extending, or we're extending and the destination is a caret (i.e. head == anchor)
             return Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: xOffset)
         }
     }
@@ -322,7 +397,9 @@ extension SelectionNavigator {
         }
 
         var fragRange = dataSource.range(for: .line, enclosing: start)
-        if selection.isCaret && !fragRange.isEmpty && fragRange.lowerBound == start && selection.affinity == .upstream {
+        let movingFromRange = selection.isRange && !extending
+        let upstreamCaret = selection.isCaret && selection.affinity == .upstream
+        if (movingFromRange || upstreamCaret) && !fragRange.isEmpty && fragRange.lowerBound == start {
             assert(start != dataSource.startIndex)
             // we're actually in the previous frag
             fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))

@@ -40,6 +40,8 @@ final class LayoutManagerTests: XCTestCase {
 
     let charsPerFrag = 10
     let charWidth = 7.41796875
+    let fragHeight = 14.1328125
+
     var w: Double {
         charWidth
     }
@@ -59,8 +61,49 @@ final class LayoutManagerTests: XCTestCase {
 
     // Make sure the metrics of the font we're using don't change.
     func testFontMetrics() {
-        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let layoutManager = makeLayoutManager("abc")
+        let buffer = layoutManager.buffer
+
+        let font = buffer.getAttributes(at: buffer.index(at: 0)).font!
         XCTAssertEqual(charWidth, font.maximumAdvancement.width)
+
+        let line = layoutManager.line(containing: buffer.index(at: 0))
+        XCTAssertEqual(line.lineFragments.count, 1)
+        XCTAssertEqual(fragHeight, line.lineFragments[0].typographicBounds.height)
+    }
+
+    // MARK: Editing + invalidating
+
+    func testYOffsetAfterSplittingLine() {
+        let string = "0123456789wrap"
+        let l = makeLayoutManager(string)
+        let b = l.buffer
+
+        l.ensureLayout(for: l.documentRange)
+
+        // insert "\n" after "w"
+        b.replaceSubrange(b.index(at: 11)..<b.index(at: 11), with: "\n")
+        XCTAssertEqual(b.text, "0123456789w\nrap")
+
+        let line2 = l.line(containing: b.index(at: 12))
+        XCTAssertEqual(b.text[line2.range], "rap")
+
+        // Each line's alignment frame has point aligned minY and maxY. Line2's minY
+        // is equal to the first line's maxY. Alignment frame heights are calculated
+        // as follows:
+        //
+        // let heights = lineFragments.map(\.typographicBounds.height)
+        // let boundsHeight = sum(heights.dropLast().map { round($0) }) + heights.last
+        // let alignmentHeight = round(boundsHeight)
+        //
+        // The first line has two line fragments, so it's typographicBounds is
+        // round(fragHeight) + fragHeight. It's alignment height is that value rounded.
+        let line1MaxY = round(round(fragHeight) + fragHeight)
+
+        // After an edit, the layout manager has to ensure that the y-offsets of any newly
+        // inserted lines are correct by recalculating the height of the line containing
+        // the index immediately preceding the replacement range.
+        XCTAssertEqual(line2.alignmentFrame.minY, line1MaxY)
     }
 
     // MARK: lineFragmentRange(containing:)

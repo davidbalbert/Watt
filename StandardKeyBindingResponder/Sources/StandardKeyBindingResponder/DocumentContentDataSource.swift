@@ -20,14 +20,14 @@ public protocol DocumentContentDataSource {
     subscript(index: Index) -> Character { get }
 
     // MARK: Paragraph navigation
-    func index(beforeParagraph i: Index) -> Index
-    func index(afterParagraph i: Index) -> Index
+    func index(ofParagraphBoundaryBefore i: Index) -> Index
+    func index(ofParagraphBoundaryAfter i: Index) -> Index
 }
 
 // MARK: - Default implementations
 
 public extension DocumentContentDataSource {
-    func index(beforeParagraph i: Index) -> Index {
+    func index(ofParagraphBoundaryBefore i: Index) -> Index {
         precondition(i > startIndex)
 
         var j = i
@@ -42,7 +42,7 @@ public extension DocumentContentDataSource {
         return j
     }
 
-    func index(afterParagraph i: Index) -> Index {
+    func index(ofParagraphBoundaryAfter i: Index) -> Index {
         precondition(i < endIndex)
 
         var j = i
@@ -81,18 +81,26 @@ extension DocumentContentDataSource {
         index(i, offsetBy: 1)
     }
 
-    func index(roundedDownToParagraph i: Index) -> Index {
+    func index(roundingDownToParagraph i: Index) -> Index {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i
         }
-        return index(beforeParagraph: i)
+        return index(ofParagraphBoundaryBefore: i)
     }
 
-    func index(roundedUpToParagraph i: Index) -> Index {
-        if i == endIndex || self[index(before: i)] == "\n" {
-            return i
+    func paragraph(containing i: Index) -> Range<Index> {
+        let start = index(roundingDownToParagraph: i)
+        let end = i == endIndex ? endIndex : index(ofParagraphBoundaryAfter: i)
+        return start..<end
+    }
+
+    // either endIndex or self[i] == "\n"
+    func endOfParagraph(containing i: Index) -> Index {
+        let r = paragraph(containing: i)
+        if r.upperBound == endIndex {
+            return r.upperBound
         }
-        return index(afterParagraph: i)
+        return index(before: r.upperBound)
     }
 
     func index(beginningOfWordBefore i: Index) -> Index? {

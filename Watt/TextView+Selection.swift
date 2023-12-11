@@ -84,6 +84,30 @@ extension TextView {
             scheduleInsertionPointTimer()
         }
     }
+
+    func scrollSelectionToVisible() {
+        let head = layoutManager.selection.head
+
+        let affinity: Selection.Affinity
+        if layoutManager.selection.isCaret {
+            affinity = layoutManager.selection.affinity
+        } else {
+            // A bit confusing: an upstream selection has head < anchor. Downstream has
+            // anchor > head.
+            // 
+            // The head of an upstream selection is guaranteed to be on the downstream edge
+            // of a line fragment boundary. The head of a downstream selection may be on the
+            // upstream edge of a line fragment boundary if it's at the end.
+            affinity = layoutManager.selection.affinity == .upstream ? .downstream : .upstream
+        }
+
+        guard let rect = layoutManager.caretRect(for: head, affinity: affinity) else {
+            return
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        scrollToVisible(viewRect)
+    }
 }
 
 extension TextView: SelectionLayerDelegate {

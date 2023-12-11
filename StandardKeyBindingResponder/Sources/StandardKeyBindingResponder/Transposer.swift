@@ -20,7 +20,7 @@ public enum Transposer<DataSource> where DataSource: DocumentContentDataSource {
         }
 
         let i: DataSource.Index
-        let lineStart = dataSource.index(roundedDownToParagraph: range.lowerBound)
+        let lineStart = dataSource.index(roundingDownToParagraph: range.lowerBound)
 
         if !range.isEmpty {
             i = range.lowerBound

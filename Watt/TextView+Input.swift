@@ -136,12 +136,22 @@ extension TextView: NSTextInputClient {
             return .zero
         }
 
+        // TODO: We need to deal with affinity if range is empty. It might be asking us for the rect
+        // of a caret at the end of a line fragment. Neither firstRect(forRange:) nor
+        // enumerateTextSegments(in:type:using:) do anything with affinity at the moment.
         guard let (rect, rectRange) = layoutManager.firstRect(forRange: range) else {
             return .zero
         }
 
         actualRange?.pointee = NSRange(rectRange, in: buffer)
 
+        // TODO: from the docs:
+        //   If the length of aRange is 0 (as it would be if there is nothing
+        //   selected at the insertion point), the rectangle coincides with the
+        //   insertion point, and its width is 0.
+        //
+        // We need to verify that rect has a zero width when range.isEmpty. I bet
+        // it doesn't.
         let viewRect = convertFromTextContainer(rect)
         let windowRect = convert(viewRect, to: nil)
         let screenRect = window?.convertToScreen(windowRect) ?? .zero
@@ -202,12 +212,7 @@ extension TextView {
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         let affinity: Affinity = head == buffer.endIndex ? .upstream : .downstream
         layoutManager.selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
-
-        guard let (rect, _) = layoutManager.firstRect(forRange: layoutManager.selection.range) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToVisible(viewRect)
+        
+        scrollSelectionToVisible()
     }
 }
