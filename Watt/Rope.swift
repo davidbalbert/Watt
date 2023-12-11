@@ -897,7 +897,7 @@ extension Rope: BidirectionalCollection {
         Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters))
     }
 
-    func distance(from start: Rope.Index, to end: Rope.Index) -> Int {
+    func distance(from start: Index, to end: Index) -> Int {
         root.distance(from: start.i, to: end.i, using: .characters)
     }
 }

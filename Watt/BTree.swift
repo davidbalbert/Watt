@@ -1809,8 +1809,8 @@ struct BTreeDelta<Tree> where Tree: BTree {
             switch el {
             case let .copy(start, end):
                 return sum + (start - end)
-            case let .insert(tree):
-                return sum + tree.count
+            case let .insert(root):
+                return sum + root.count
             }
         }
 
