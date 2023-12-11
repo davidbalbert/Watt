@@ -76,6 +76,7 @@ public enum Movement: Equatable {
     //   paragraph each time.
     // - Extend Beginning/End: repeated movements in the same direction are no-ops. Selection remains
     //   clamped inside the same paragraph.
+    // - Move Backward/Forward: not allowed, trap.
     // - Extend Backward/Forward: repeated movements in the same direction will extend by additional
     //   paragraphs each time.
     case beginningOfParagraph
