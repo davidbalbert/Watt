@@ -99,7 +99,7 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -119,7 +119,7 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -130,7 +130,8 @@ extension TextView {
 //        let viewport = textContainerViewport
 //        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
 //
-//        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
+        // TODO: with unwrapped text, the selection may not be visible at x == 0, nor at x == scrollOffset.x. Find a better way to handle this.
+//        scroll(CGPoint(x: scrollOffset.x, y: point.y - viewport.height/2))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -212,7 +213,7 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -232,7 +233,7 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
+//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -307,34 +308,58 @@ extension TextView {
     override func scrollPageUp(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: viewport.minY - viewport.height
         )
 
+        // TODO: convert to view coordinates
         animator().scroll(point)
     }
 
     override func scrollPageDown(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: viewport.maxY
         )
 
+        // TODO: convert to view coordinates
         animator().scroll(point)
     }
 
     override func scrollLineUp(_ sender: Any?) {
         let viewport = textContainerViewport
-        let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001)
-        guard let frag = line.fragment(forVerticalOffset: viewport.minY - 0.0001) else {
+
+        // Goal: find the first fragment that's fully above the viewport and scroll it
+        // in to view. It would be simpler to find the first fragment that contains
+        // viewport.minY - 0.0001, but if we did that, and viewport.minY bisected a
+        // fragment, we'd just scroll the rest of that fragment into view, which doesn't
+        // feel as good.
+        let firstLine = layoutManager.line(forVerticalOffset: viewport.minY)
+        guard let firstFrag = firstLine.fragment(forVerticalOffset: viewport.minY) else {
             return
         }
 
-        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+        let i = firstFrag.range.lowerBound
+
+        let targetLine: Line
+        let targetFrag: LineFragment
+        if i == buffer.startIndex {
+            targetLine = firstLine
+            targetFrag = firstFrag
+        } else {
+            let j = buffer.index(before: i)
+            targetLine = layoutManager.line(containing: j)
+            guard let f = targetLine.fragment(containing: j, affinity: .downstream) else {
+                return
+            }
+            targetFrag = f
+        }
+
+        let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
 
         let target = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: frame.minY
         )
 
@@ -344,15 +369,32 @@ extension TextView {
 
     override func scrollLineDown(_ sender: Any?) {
         let viewport = textContainerViewport
-        let line = layoutManager.line(forVerticalOffset: viewport.maxY)
-        guard let frag = line.fragment(forVerticalOffset: viewport.maxY) else {
+
+        // Same goal and logic as scrollLineUp. See comment there for more.
+        let lastLine = layoutManager.line(forVerticalOffset: viewport.maxY - 0.0001)
+        guard let lastFrag = lastLine.fragment(forVerticalOffset: viewport.maxY - 0.0001) else {
             return
         }
 
-        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+        let i = lastFrag.range.upperBound
 
+        let targetLine: Line
+        let targetFrag: LineFragment
+        if i == buffer.endIndex {
+            targetLine = lastLine
+            targetFrag = lastFrag
+        } else {
+            targetLine = layoutManager.line(containing: i)
+            // always .downstream because we're guaranteed not to be at endIndex.
+            guard let f = targetLine.fragment(containing: i, affinity: .downstream) else {
+                return
+            }
+            targetFrag = f
+        }
+
+        let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
         let target = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: frame.maxY - viewport.height
         )
 
@@ -364,20 +406,22 @@ extension TextView {
     override func scrollToBeginningOfDocument(_ sender: Any?) {
         // TODO: this is broken. I think it's interacting with scroll adjustment...
         let point = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: 0
         )
 
+        // TODO: convert to view coordinates
         animator().scroll(point)
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerViewport
         let point = CGPoint(
             x: 0,
             y: layoutManager.contentHeight - viewport.height
         )
 
+        // TODO: convert to view coordinates
         animator().scroll(point)
     }
 
