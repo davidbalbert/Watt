@@ -99,7 +99,8 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
+//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
+//        scroll(convertFromTextContainer(point))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -119,7 +120,8 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
+//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
+//        scroll(convertFromTextContainer(point))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -130,8 +132,9 @@ extension TextView {
 //        let viewport = textContainerViewport
 //        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
 //
-        // TODO: with unwrapped text, the selection may not be visible at x == 0, nor at x == scrollOffset.x. Find a better way to handle this.
-//        scroll(CGPoint(x: scrollOffset.x, y: point.y - viewport.height/2))
+        // TODO: with unwrapped text, the selection may not be visible at x == 0, nor at x == textContainerScrollOffset.x. Find a better way to handle this.
+//        let point = CGPoint(x: textContainerScrollOffset.x, y: point.y - viewport.height/2)
+//        scroll(convertFromTextContainer(point))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -213,7 +216,8 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
+//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
+//        scroll(convertFromTextContainer(point))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
@@ -233,7 +237,8 @@ extension TextView {
 //
 //        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
 //
-//        scroll(CGPoint(x: scrollOffset.x, y: target.y - viewport.height/2))
+//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
+//        scroll(convertFromTextContainer(point))
 //
 //        selectionLayer.setNeedsLayout()
 //        insertionPointLayer.setNeedsLayout()
