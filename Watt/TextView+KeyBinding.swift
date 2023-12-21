@@ -313,23 +313,21 @@ extension TextView {
     override func scrollPageUp(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: viewport.minY - viewport.height
         )
 
-        // TODO: convert to view coordinates
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollPageDown(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: viewport.maxY
         )
 
-        // TODO: convert to view coordinates
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollLineUp(_ sender: Any?) {
@@ -364,11 +362,14 @@ extension TextView {
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
 
         let target = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: frame.minY
         )
 
-        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
+        // Not sure why this isn't animating. I thought it might have been due to only
+        // scrolling by a short distance, but I tried adding longer distances and it
+        // still didn't scroll. But other calls in this file are definitely animating,
+        // so something else is going on. I'll have to look into it.
         animator().scroll(convertFromTextContainer(target))
     }
 
@@ -390,7 +391,7 @@ extension TextView {
 
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
         let target = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: frame.maxY - viewport.height
         )
 
@@ -405,7 +406,7 @@ extension TextView {
     // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: 0
         )
 
@@ -415,7 +416,7 @@ extension TextView {
     override func scrollToEndOfDocument(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: textContainerScrollOffset.x,
             y: layoutManager.contentHeight - viewport.height
         )
 

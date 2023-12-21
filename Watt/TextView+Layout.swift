@@ -137,6 +137,10 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         return scrollView.contentView.bounds.origin
     }
 
+    var textContainerScrollOffset: CGPoint {
+        convertToTextContainer(scrollOffset)
+    }
+
     var textContainerViewport: CGRect {
         visibleRect.inset(by: computedTextContainerInset)
     }
