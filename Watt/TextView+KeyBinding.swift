@@ -87,11 +87,7 @@ extension TextView {
     }
 
     override func pageDown(_ sender: Any?) {
-        // TODO: I don't think any of these calls to convertToTextContainer are correct.
-        // We're using viewport.height down below, but the if there's a top or bottom
-        // inset on the text container, the container will be shorter than the viewport.
-        // I'm not sure the right way to handle this yet.
-//        let viewport = convertToTextContainer(visibleRect)
+//        let viewport = textContainerViewport
 //        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
@@ -111,7 +107,7 @@ extension TextView {
     }
 
     override func pageUp(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
+//        let viewport = textContainerViewport
 //        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
@@ -131,7 +127,7 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
+//        let viewport = textContainerViewport
 //        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
 //
 //        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
@@ -204,7 +200,7 @@ extension TextView {
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
+//        let viewport = textContainerViewport
 //        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
@@ -224,7 +220,7 @@ extension TextView {
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
+//        let viewport = textContainerViewport
 //        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
 //
 //        let target = CGPoint(
@@ -309,7 +305,7 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerViewport
         let point = CGPoint(
             x: 0,
             y: viewport.minY - viewport.height
@@ -319,7 +315,7 @@ extension TextView {
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerViewport
         let point = CGPoint(
             x: 0,
             y: viewport.maxY
@@ -329,7 +325,7 @@ extension TextView {
     }
 
     override func scrollLineUp(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerViewport
         let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001)
         guard let frag = line.fragment(forVerticalOffset: viewport.minY - 0.0001) else {
             return
@@ -347,7 +343,7 @@ extension TextView {
     }
 
     override func scrollLineDown(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerViewport
         let line = layoutManager.line(forVerticalOffset: viewport.maxY)
         guard let frag = line.fragment(forVerticalOffset: viewport.maxY) else {
             return
