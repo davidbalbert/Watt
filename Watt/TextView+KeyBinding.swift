@@ -393,27 +393,28 @@ extension TextView {
         animator().scroll(convertFromTextContainer(target))
     }
 
-
+    // TODO: without better height estimates, or a full asyncronous layout pass,
+    // scrollToBeginningOfDocument and scrollToEndOfDocument often don't actually
+    // put you at the beginning or the end.
+    //
+    // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
-        // TODO: this is broken. I think it's interacting with scroll adjustment...
         let point = CGPoint(
             x: scrollOffset.x,
             y: 0
         )
 
-        // TODO: convert to view coordinates
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
         let viewport = textContainerViewport
         let point = CGPoint(
-            x: 0,
+            x: scrollOffset.x,
             y: layoutManager.contentHeight - viewport.height
         )
 
-        // TODO: convert to view coordinates
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     // MARK: - Graphical element transposition
