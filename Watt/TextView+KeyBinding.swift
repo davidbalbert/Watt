@@ -378,18 +378,9 @@ extension TextView {
 
         let i = lastFrag.range.upperBound
 
-        let targetLine: Line
-        let targetFrag: LineFragment
-        if i == buffer.endIndex {
-            targetLine = lastLine
-            targetFrag = lastFrag
-        } else {
-            targetLine = layoutManager.line(containing: i)
-            // always .downstream because we're guaranteed not to be at endIndex.
-            guard let f = targetLine.fragment(containing: i, affinity: .downstream) else {
-                return
-            }
-            targetFrag = f
+        let targetLine = layoutManager.line(containing: i)
+        guard let targetFrag = targetLine.fragment(containing: i, affinity: i == buffer.endIndex ? .upstream : .downstream) else {
+            return
         }
 
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
