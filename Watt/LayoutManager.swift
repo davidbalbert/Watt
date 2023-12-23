@@ -96,7 +96,7 @@ class LayoutManager {
             lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
         }
 
-        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
+        let viewportRange = lineRange(intersecting: viewportBounds)
 
         lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
@@ -125,7 +125,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
+        let viewportRange = lineRange(intersecting: viewportBounds)
 
         let rangeInViewport = selection.range.clamped(to: viewportRange)
 
@@ -155,7 +155,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds, in: buffer)
+        let viewportRange = lineRange(intersecting: viewportBounds)
 
         guard viewportRange.contains(selection.lowerBound) || viewportRange.upperBound == selection.upperBound else {
             return
@@ -679,7 +679,7 @@ class LayoutManager {
     // and end of the range are rounded down and up to the nearest line
     // boundary respectively, so that if you were to lay out those lines,
     // you'd fill the entire rect.
-    func lineRange(intersecting rect: CGRect, in buffer: Buffer) -> Range<Buffer.Index> {
+    func lineRange(intersecting rect: CGRect) -> Range<Buffer.Index> {
         let byteStart = heights.position(upThroughYOffset: rect.minY)
         let byteEnd = heights.position(upThroughYOffset: rect.maxY)
 

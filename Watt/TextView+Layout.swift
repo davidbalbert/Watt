@@ -77,7 +77,7 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         let width = max(0, frame.width - inset.left - inset.right)
 
         if layoutManager.textContainer.size.width != width {
-            layoutManager.textContainer.size = CGSize(width: width, height: 0)
+            layoutManager.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
 
             // This isn't needed when this function is called from
             // setFrameSize, but it is needed when the line number
@@ -142,7 +142,8 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     var textContainerViewport: CGRect {
-        visibleRect.inset(by: computedTextContainerInset)
+        let r = clampToTextContainer(visibleRect)
+        return convertToTextContainer(r)
     }
 
     func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
@@ -160,6 +161,22 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     func convertToTextContainer(_ rect: CGRect) -> CGRect {
         CGRect(origin: convertToTextContainer(rect.origin), size: rect.size)
     }
+
+    // Returns a rectangle in the view's coordinate system, but with any porition
+    // of the rectangle that overlaps the text container inset removed.
+    func clampToTextContainer(_ rect: CGRect) -> CGRect {
+        let textContainerFrame = convertFromTextContainer(textContainer.bounds)
+
+        // Don't use CGRect.intersection because we never want to return a null rect.
+        // With intersection, we will get a null rect if rect is completely outside
+        // of textContainerFrame.
+        let x = rect.minX.clamped(to: textContainerFrame.minX...textContainerFrame.maxX)
+        let y = rect.minY.clamped(to: textContainerFrame.minY...textContainerFrame.maxY)
+        let maxX = rect.maxX.clamped(to: textContainerFrame.minX...textContainerFrame.maxX)
+        let maxY = rect.maxY.clamped(to: textContainerFrame.minY...textContainerFrame.maxY)
+
+        return CGRect(x: x, y: y, width: maxX - x, height: maxY - y)
+    }
 }
 
 
@@ -172,9 +189,7 @@ extension TextView: LayoutManagerDelegate {
             bounds = visibleRect
         }
 
-        bounds.size.width = textContainer.width
-
-        return bounds
+        return convertToTextContainer(clampToTextContainer(bounds))
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {

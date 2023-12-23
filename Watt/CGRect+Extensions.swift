@@ -14,14 +14,3 @@ extension CGRect: Hashable {
         hasher.combine(size)
     }
 }
-
-extension CGRect {
-    func inset(by insets: NSEdgeInsets) -> CGRect {
-        CGRect(
-            x: origin.x + insets.left,
-            y: origin.y + insets.bottom,
-            width: size.width - insets.left - insets.right,
-            height: size.height - insets.top - insets.bottom
-        )
-    }
-}
