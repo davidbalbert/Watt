@@ -343,6 +343,10 @@ extension SelectionNavigator {
                 anchor = selection.lowerBound
             }
             affinity = .upstream
+        case .pageUp:
+            (head, affinity, xOffset) = pageDestination(movingUp: true, extending: extending, dataSource: dataSource)
+        case .pageDown:
+            (head, affinity, xOffset) = pageDestination(movingUp: false, extending: extending, dataSource: dataSource)
         }
 
         // Granularity is always character because when selecting to the beginning or end of a
@@ -355,7 +359,8 @@ extension SelectionNavigator {
         }
     }
 
-    // Moving up and down when the selection is not empty:
+    // Horizontal offset when moving up and down when the
+    // selection is not empty:
     // - Xcode: always relative to the selection's lower bound
     // - Nova: same as Xcode
     // - TextEdit: always relative to the selection's anchor
