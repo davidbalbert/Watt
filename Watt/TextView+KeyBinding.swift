@@ -97,16 +97,23 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-//        let viewport = textContainerVisibleRect
-//        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
-//
-        // TODO: with unwrapped text, the selection may not be visible at x == 0, nor at x == textContainerScrollOffset.x. Find a better way to handle this.
-//        let point = CGPoint(x: textContainerScrollOffset.x, y: point.y - viewport.height/2)
-//        scroll(convertFromTextContainer(point))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        let rect: CGRect
+        if selection.isCaret {
+            let r = layoutManager.caretRect(for: selection.head, affinity: selection.affinity)
+            guard let r else {
+                return
+            }
+            rect = r
+        } else {
+            let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
+            let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
+            guard let r1, let r2 else {
+                return
+            }
+            rect = r1.union(r2)
+        }
+
+        scrollToCenter(rect)
     }
 
 

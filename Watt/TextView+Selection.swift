@@ -118,12 +118,7 @@ extension TextView {
         if layoutManager.selection.isCaret {
             affinity = layoutManager.selection.affinity
         } else {
-            // A bit confusing: an upstream selection has head < anchor. Downstream has
-            // anchor > head.
-            // 
-            // The head of an upstream selection is guaranteed to be on the downstream edge
-            // of a line fragment boundary. The head of a downstream selection may be on the
-            // upstream edge of a line fragment boundary if it's at the end.
+            // see comment in scrollSelectionToVisible
             affinity = layoutManager.selection.affinity == .upstream ? .downstream : .upstream
         }
 
