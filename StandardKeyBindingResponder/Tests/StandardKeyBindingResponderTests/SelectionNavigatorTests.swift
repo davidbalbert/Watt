@@ -1056,6 +1056,34 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 22), affinity: .upstream, dataSource: d)
     }
 
+    func testExtendSelectionByPage() {
+        let string = """
+        abc
+        def
+        0123456789wrap
+        ghi
+        !@#$%^&*()
+        mno
+        pqr
+        stu
+        vwx
+        """
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+
+        var s = SimpleSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
+        s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789wrap\nghi\n!@#$%^&*()\nm", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789wrap\nghi\n!@#$%^&*()\nmno\npqr\nstu\nv", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789wrap\nghi\n!@#$%^&*()\nmno\npqr\nstu\nvwx", affinity: .downstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .pageDown, dataSource: d)
+        s = extendAndAssert(s, direction: .pageUp, selected: "bc\ndef\n0123456789wrap\nghi\n!@#$%^&*()\nm", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageUp, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageUp, caret: "b", affinity: .downstream, dataSource: d)
+        s = extendAndAssert(s, direction: .pageUp, selected: "a", affinity: .upstream, dataSource: d)
+        s = extendAndAssertNoop(s, direction: .pageUp, dataSource: d)
+        s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
+    }
+
     func extendAndAssert(_ s: SimpleSelection, direction: Movement, caret c: Character, affinity: SimpleSelection.Affinity, granularity: SimpleSelection.Granularity = .character, dataSource: SimpleSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> SimpleSelection {
         let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
