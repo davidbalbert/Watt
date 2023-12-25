@@ -15,10 +15,6 @@ extension TextView {
             return
         }
 
-        // I was able to find some odd key combinations that caused inputContext
-        // not to handle a keyDown event. I don't remember what they were. Just log
-        // them in Release, crash in Debug.
-        assertionFailure("keyDown: inputContext didn't handle this event: \(event)")
         print("keyDown: inputContext didn't handle this event: \(event)")
     }
 }
