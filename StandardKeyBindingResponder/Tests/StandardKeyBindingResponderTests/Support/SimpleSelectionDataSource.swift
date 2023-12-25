@@ -26,6 +26,17 @@ struct SimpleSelectionDataSource {
     // not include a trailing newline character at a hard
     // line break.
     let charsPerLine: Int
+    let linesInViewport: Int
+
+    init(string: String, charsPerLine: Int, linesInViewport: Int) {
+        self.string = string
+        self.charsPerLine = charsPerLine
+        self.linesInViewport = linesInViewport
+    }
+
+    init(string: String, charsPerLine: Int) {
+        self.init(string: string, charsPerLine: charsPerLine, linesInViewport: 10)
+    }
 
     static var charWidth: CGFloat {
         8
@@ -58,7 +69,7 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
     }
 
     func lineFragmentRange(containing i: String.Index) -> Range<String.Index> {
-        let paraStart = index(roundingDown: i)
+        let paraStart = index(roundingDownToParagraph: i)
         let paraEnd = paraStart == string.endIndex ? paraStart : index(ofParagraphBoundaryAfter: paraStart)
         let paraLen = string.distance(from: paraStart, to: paraEnd)
         let offsetInParagraph = string.distance(from: paraStart, to: i)
@@ -114,6 +125,24 @@ extension SimpleSelectionDataSource: SelectionNavigationDataSource {
         }
 
         return nil
+    }
+
+    func verticalOffset(forLineFragmentContaining i: String.Index) -> CGFloat {
+        var y: CGFloat = 0
+        var j = string.startIndex
+        while j < string.endIndex {
+            let fragRange = lineFragmentRange(containing: j)
+            if fragRange.contains(i) {
+                break
+            }
+            y += Self.lineHeight
+            j = fragRange.upperBound
+        }
+        return y
+    }
+
+    var viewportSize: CGSize {
+        CGSize(width: CGFloat(charsPerLine) * Self.charWidth, height: CGFloat(linesInViewport) * Self.lineHeight)
     }
 
     func enumerateCaretOffsetsInLineFragment(containing index: String.Index, using block: (CGFloat, String.Index, Edge) -> Bool) {
@@ -174,7 +203,7 @@ extension SimpleSelectionDataSource {
         return offsets
     }
 
-    func index(roundingDown i: Index) -> Index {
+    func index(roundingDownToParagraph i: Index) -> Index {
         if i == string.startIndex || self[string.index(before: i)] == "\n" {
             return i
         }

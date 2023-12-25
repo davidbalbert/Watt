@@ -13,8 +13,9 @@ import StandardKeyBindingResponder
 extension TextView {
     // List of all key commands for completeness testing: https://support.apple.com/en-us/HT201236
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
+    // KeyBinding Inspector: https://github.com/davidbalbert/KeyBinding-Inspector
 
-    // MARK: Movement
+    // MARK: Selection movement and scrolling
 
     override func moveForward(_ sender: Any?) {
         layoutManager.moveSelection(.right)
@@ -87,58 +88,33 @@ extension TextView {
     }
 
     override func pageDown(_ sender: Any?) {
-        // TODO: I don't think any of these calls to convertToTextContainer are correct.
-        // We're using viewport.height down below, but the if there's a top or bottom
-        // inset on the text container, the container will be shorter than the viewport.
-        // I'm not sure the right way to handle this yet.
-//        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y + viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-//
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.moveSelection(.pageDown)
+        centerSelectionHead()
     }
 
     override func pageUp(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y - viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-//
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.moveSelection(.pageUp)
+        centerSelectionHead()
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
-//
-//        scroll(CGPoint(x: 0, y: point.y - viewport.height/2))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        let rect: CGRect
+        if selection.isCaret {
+            let r = layoutManager.caretRect(for: selection.head, affinity: selection.affinity)
+            guard let r else {
+                return
+            }
+            rect = r
+        } else {
+            let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
+            let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
+            guard let r1, let r2 else {
+                return
+            }
+            rect = r1.union(r2)
+        }
+
+        scrollToCenter(rect)
     }
 
 
@@ -173,6 +149,8 @@ extension TextView {
         scrollSelectionToVisible()
     }
 
+
+
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfLine)
         scrollSelectionToVisible()
@@ -204,43 +182,13 @@ extension TextView {
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y + viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
-//
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.extendSelection(.pageDown)
+        centerSelectionHead()
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-//        let viewport = convertToTextContainer(visibleRect)
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y - viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
-//
-//        scroll(CGPoint(x: 0, y: target.y - viewport.height/2))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.extendSelection(.pageUp)
+        centerSelectionHead()
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
@@ -308,55 +256,89 @@ extension TextView {
     }
 
 
+
     override func scrollPageUp(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: viewport.minY - viewport.height
         )
 
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: viewport.maxY
         )
 
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollLineUp(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let line = layoutManager.line(forVerticalOffset: viewport.minY - 0.0001)
-        guard let frag = line.fragment(forVerticalOffset: viewport.minY - 0.0001) else {
+        let viewport = textContainerVisibleRect
+
+        // Goal: find the first fragment that's fully above the viewport and scroll it
+        // in to view. It would be simpler to find the first fragment that contains
+        // viewport.minY - 0.0001, but if we did that, and viewport.minY bisected a
+        // fragment, we'd just scroll the rest of that fragment into view, which doesn't
+        // feel as good.
+        let firstLine = layoutManager.line(forVerticalOffset: viewport.minY)
+        guard let firstFrag = firstLine.fragment(forVerticalOffset: viewport.minY) else {
             return
         }
 
-        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+        let i = firstFrag.range.lowerBound
+
+        let targetLine: Line
+        let targetFrag: LineFragment
+        if i == buffer.startIndex {
+            targetLine = firstLine
+            targetFrag = firstFrag
+        } else {
+            let j = buffer.index(before: i)
+            targetLine = layoutManager.line(containing: j)
+            guard let f = targetLine.fragment(containing: j, affinity: .downstream) else {
+                return
+            }
+            targetFrag = f
+        }
+
+        let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
 
         let target = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: frame.minY
         )
 
-        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
+        // Not sure why this isn't animating. I thought it might have been due to only
+        // scrolling by a short distance, but I tried adding longer distances and it
+        // still didn't scroll. But other calls in this file are definitely animating,
+        // so something else is going on. I'll have to look into it.
         animator().scroll(convertFromTextContainer(target))
     }
 
     override func scrollLineDown(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
-        let line = layoutManager.line(forVerticalOffset: viewport.maxY)
-        guard let frag = line.fragment(forVerticalOffset: viewport.maxY) else {
+        let viewport = textContainerVisibleRect
+
+        // Same goal and logic as scrollLineUp. See comment there for more.
+        let lastLine = layoutManager.line(forVerticalOffset: viewport.maxY - 0.0001)
+        guard let lastFrag = lastLine.fragment(forVerticalOffset: viewport.maxY - 0.0001) else {
             return
         }
 
-        let frame = layoutManager.convert(frag.alignmentFrame, from: line)
+        let i = lastFrag.range.upperBound
 
+        let targetLine = layoutManager.line(containing: i)
+        guard let targetFrag = targetLine.fragment(containing: i, affinity: i == buffer.endIndex ? .upstream : .downstream) else {
+            return
+        }
+
+        let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
         let target = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: frame.maxY - viewport.height
         )
 
@@ -365,27 +347,33 @@ extension TextView {
     }
 
 
+
+    // TODO: without better height estimates, or a full asyncronous layout pass,
+    // scrollToBeginningOfDocument and scrollToEndOfDocument often don't actually
+    // put you at the beginning or the end.
+    //
+    // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
-        // TODO: this is broken. I think it's interacting with scroll adjustment...
         let point = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: 0
         )
 
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
-        let viewport = convertToTextContainer(visibleRect)
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
-            x: 0,
+            x: textContainerScrollOffset.x,
             y: layoutManager.contentHeight - viewport.height
         )
 
-        animator().scroll(point)
+        animator().scroll(convertFromTextContainer(point))
     }
 
-    // MARK: - Graphical element transposition
+
+    // MARK: - Graphical Element transposition
 
     override func transpose(_ sender: Any?) {
         guard let (i, j) = Transposer.indicesForTranspose(inSelectedRange: selection.range, dataSource: buffer) else {
@@ -417,7 +405,8 @@ extension TextView {
         layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
 
-    // MARK: - Selection
+
+    // MARK: - Selections
 
     override func selectAll(_ sender: Any?) {
         discardMarkedText()
@@ -430,17 +419,41 @@ extension TextView {
         layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
     }
 
-    // MARK: - Insertion and indentation
+    override func selectParagraph(_ sender: Any?) {
+
+    }
+
+    override func selectLine(_ sender: Any?) {
+
+    }
+
+    override func selectWord(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Insertions and Indentations
+
+    override func indent(_ sender: Any?) {
+
+    }
 
     override func insertTab(_ sender: Any?) {
         replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
         unmarkText()
     }
 
+    override func insertBacktab(_ sender: Any?) {
+
+    }
 
     override func insertNewline(_ sender: Any?) {
         replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
         unmarkText()
+    }
+
+    override func insertParagraphSeparator(_ sender: Any?) {
+
     }
 
     override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
@@ -451,7 +464,43 @@ extension TextView {
         insertTab(sender)
     }
 
-    // MARK: - Deletion
+    override func insertLineBreak(_ sender: Any?) {
+
+    }
+
+    override func insertContainerBreak(_ sender: Any?) {
+
+    }
+
+    override func insertSingleQuoteIgnoringSubstitution(_ sender: Any?) {
+
+    }
+
+    override func insertDoubleQuoteIgnoringSubstitution(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Case changes
+
+    override func changeCaseOfLetter(_ sender: Any?) {
+
+    }
+
+    override func uppercaseWord(_ sender: Any?) {
+
+    }
+
+    override func lowercaseWord(_ sender: Any?) {
+
+    }
+
+    override func capitalizeWord(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Deletions
 
     override func deleteForward(_ sender: Any?) {
         if selection.isRange {
@@ -471,6 +520,10 @@ extension TextView {
             replaceSubrange(start..<selection.lowerBound, with: "")
         }
         unmarkText()
+    }
+
+    override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
+
     }
 
     override func deleteWordForward(_ sender: Any?) {
@@ -511,6 +564,96 @@ extension TextView {
             replaceSubrange(start..<caret, with: "")
         }
         unmarkText()
+    }
+
+    override func deleteToBeginningOfLine(_ sender: Any?) {
+
+    }
+
+    override func deleteToEndOfLine(_ sender: Any?) {
+
+    }
+
+    override func deleteToBeginningOfParagraph(_ sender: Any?) {
+
+    }
+
+    override func deleteToEndOfParagraph(_ sender: Any?) {
+
+    }
+
+
+
+    override func yank(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Completion
+
+    override func complete(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Mark/Point manipulation
+    
+    override func setMark(_ sender: Any?) {
+
+    }
+
+    override func deleteToMark(_ sender: Any?) {
+
+    }
+
+    override func selectToMark(_ sender: Any?) {
+
+    }
+
+    override func swapWithMark(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Cancellation
+
+    override func cancelOperation(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Writing Direction
+
+    override func makeBaseWritingDirectionNatural(_ sender: Any?) {
+
+    }
+
+    override func makeBaseWritingDirectionLeftToRight(_ sender: Any?) {
+
+    }
+
+    override func makeBaseWritingDirectionRightToLeft(_ sender: Any?) {
+
+    }
+
+
+    override func makeTextWritingDirectionNatural(_ sender: Any?) {
+
+    }
+
+    override func makeTextWritingDirectionLeftToRight(_ sender: Any?) {
+
+    }
+
+    override func makeTextWritingDirectionRightToLeft(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Quick Look
+
+    override func quickLookPreviewItems(_ sender: Any?) {
+
     }
 }
 

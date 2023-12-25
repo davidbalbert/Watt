@@ -15,8 +15,7 @@ extension TextView {
             return
         }
 
-        // Don't know if handleEvent ever returns false here. Just want to know about it.
-        fatalError("keyDown: inputContext didn't handle this event: \(event)")
+        print("keyDown: inputContext didn't handle this event: \(event)")
     }
 }
 

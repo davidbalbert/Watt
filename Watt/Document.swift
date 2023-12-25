@@ -9,6 +9,17 @@ import Cocoa
 import UniformTypeIdentifiers
 
 class Document: NSDocument {
+    // TODO: from "Developing a Document Based App:
+    //
+    //     The Cocoa document architecture uses the Objective-C runtime, and document-based
+    //     apps often use Objective-C technologies such as key-value coding (KVC), key-value
+    //     observing (KVO), Cocoa bindings, and Cocoa archiving (NSCoding). Therefore, the
+    //     model classes in your app should be Objective-C classes (subclasses of NSObject),
+    //     and the properties and methods in those classes should be Objective-C compatible
+    //     (declared @objc). In addition, their properties should be declared dynamic in Swift,
+    //     which tells the compiler to use dynamic dispatch to access that attribute.
+    //
+    // Buffer isn't an NSObject subclass. Will that cause any issues?
     var buffer: Buffer = {
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
         let text = try! String(contentsOf: url)
@@ -18,6 +29,8 @@ class Document: NSDocument {
     override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {
         true
     }
+
+    // TODO: canAsynchronouslyWrite(to:ofType:for:)
 
     enum DocumentError: Error {
         case load

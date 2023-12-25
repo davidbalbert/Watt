@@ -101,12 +101,35 @@ extension TextView {
             affinity = layoutManager.selection.affinity == .upstream ? .downstream : .upstream
         }
 
-        guard let rect = layoutManager.caretRect(for: head, affinity: affinity) else {
-            return
+        let target: Buffer.Index
+        if affinity == .upstream && head > buffer.startIndex {
+            target = buffer.index(before: head)
+        } else {
+            target = head
         }
 
-        let viewRect = convertFromTextContainer(rect)
-        scrollToVisible(viewRect)
+        scrollIndexToVisible(target)
+    }
+
+    func centerSelectionHead() {
+        let head = layoutManager.selection.head
+
+        let affinity: Selection.Affinity
+        if layoutManager.selection.isCaret {
+            affinity = layoutManager.selection.affinity
+        } else {
+            // see comment in scrollSelectionToVisible
+            affinity = layoutManager.selection.affinity == .upstream ? .downstream : .upstream
+        }
+
+        let target: Buffer.Index
+        if affinity == .upstream && head > buffer.startIndex {
+            target = buffer.index(before: head)
+        } else {
+            target = head
+        }
+
+        scrollIndexToCenter(target)
     }
 }
 

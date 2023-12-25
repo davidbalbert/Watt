@@ -11,6 +11,7 @@
 		6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FF2A9B769100B8A077 /* AttributedRope.swift */; };
 		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
+		63207CB12B374FC60052F451 /* Stdlib+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63207CB02B374FC60052F451 /* Stdlib+Extensions.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
@@ -93,6 +94,7 @@
 		6315D2FF2A9B769100B8A077 /* AttributedRope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedRope.swift; sourceTree = "<group>"; };
 		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
+		63207CB02B374FC60052F451 /* Stdlib+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Stdlib+Extensions.swift"; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
 		634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssertPreconditionViolation.swift; sourceTree = "<group>"; };
@@ -245,6 +247,7 @@
 				63F25BD82A683CC500DEACCF /* Buffer.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
+				63207CB02B374FC60052F451 /* Stdlib+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
@@ -505,6 +508,7 @@
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
+				63207CB12B374FC60052F451 /* Stdlib+Extensions.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,

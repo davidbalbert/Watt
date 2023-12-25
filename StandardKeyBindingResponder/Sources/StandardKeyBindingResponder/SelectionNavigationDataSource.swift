@@ -10,6 +10,8 @@ import Foundation
 public protocol SelectionNavigationDataSource: DocumentContentDataSource {
     func lineFragmentRange(containing index: Index) -> Range<Index>
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
+    func verticalOffset(forLineFragmentContaining index: Index) -> CGFloat
+    var viewportSize: CGSize { get }
 
     // Enumerating over the first line fragment of each string:
     // ""    -> [(0.0, 0, leading), (0.0, 0, trailing)]

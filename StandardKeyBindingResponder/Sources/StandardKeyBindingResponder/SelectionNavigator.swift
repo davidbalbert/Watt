@@ -86,6 +86,9 @@ public enum Movement: Equatable {
 
     case beginningOfDocument
     case endOfDocument
+
+   case pageDown
+   case pageUp
 }
 
 public protocol NavigableSelection {
@@ -211,9 +214,9 @@ extension SelectionNavigator {
                 }
             }
         case .up:
-            (head, affinity, xOffset) = verticalDestination(movingUp: true, extending: extending, dataSource: dataSource)
+            (head, affinity, xOffset) = verticalDestination(movingUp: true, byPage: false, extending: extending, dataSource: dataSource)
         case .down:
-            (head, affinity, xOffset) = verticalDestination(movingUp: false, extending: extending, dataSource: dataSource)
+            (head, affinity, xOffset) = verticalDestination(movingUp: false, byPage: false, extending: extending, dataSource: dataSource)
         case .wordLeft:
             let start = extending ? selection.head : selection.lowerBound
             let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
@@ -343,6 +346,10 @@ extension SelectionNavigator {
                 anchor = selection.lowerBound
             }
             affinity = .upstream
+        case .pageUp:
+            (head, affinity, xOffset) = verticalDestination(movingUp: true, byPage: true, extending: extending, dataSource: dataSource)
+        case .pageDown:
+            (head, affinity, xOffset) = verticalDestination(movingUp: false, byPage: true, extending: extending, dataSource: dataSource)
         }
 
         // Granularity is always character because when selecting to the beginning or end of a
@@ -355,7 +362,8 @@ extension SelectionNavigator {
         }
     }
 
-    // Moving up and down when the selection is not empty:
+    // Horizontal offset when moving up and down when the
+    // selection is not empty:
     // - Xcode: always relative to the selection's lower bound
     // - Nova: same as Xcode
     // - TextEdit: always relative to the selection's anchor
@@ -371,7 +379,7 @@ extension SelectionNavigator {
     // always corresponds to lowerBound.
     //
     // This is only called with a non-empty data source.
-    func verticalDestination(movingUp: Bool, extending: Bool, dataSource: DataSource) -> (Selection.Index, Selection.Affinity, xOffset: CGFloat?) {
+    func verticalDestination(movingUp: Bool, byPage: Bool, extending: Bool, dataSource: DataSource) -> (Selection.Index, Selection.Affinity, xOffset: CGFloat?) {
         assert(!dataSource.isEmpty)
 
         // If we're already at the start or end of the document, the destination
@@ -397,9 +405,9 @@ extension SelectionNavigator {
         }
 
         var fragRange = dataSource.range(for: .line, enclosing: start)
-        let movingFromRange = selection.isRange && !extending
+        let movingDownFromRange = selection.isRange && !extending && !movingUp
         let upstreamCaret = selection.isCaret && selection.affinity == .upstream
-        if (movingFromRange || upstreamCaret) && !fragRange.isEmpty && fragRange.lowerBound == start {
+        if (movingDownFromRange || upstreamCaret) && !fragRange.isEmpty && fragRange.lowerBound == start {
             assert(start != dataSource.startIndex)
             // we're actually in the previous frag
             fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
@@ -430,8 +438,22 @@ extension SelectionNavigator {
 
         let xOffset = selection.xOffset ?? dataSource.caretOffset(forCharacterAt: horizAnchor, inLineFragmentWithRange: horizAnchorFrag)
 
-        let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
-        let targetFragRange = dataSource.range(for: .line, enclosing: target)
+        let targetFragRange: Range<Selection.Index>
+        if byPage {
+            let y = dataSource.verticalOffset(forLineFragmentContaining: fragRange.lowerBound)
+            let height = dataSource.viewportSize.height
+            let targetY = y + (movingUp ? -height : height)
+
+            if let r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: targetY)) {
+                targetFragRange = r
+            } else {
+                targetFragRange = dataSource.lineFragmentRange(containing: targetY <= 0 ? dataSource.startIndex : dataSource.endIndex)
+            }
+        } else {
+            let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
+            targetFragRange = dataSource.range(for: .line, enclosing: target)
+        }
+
         let (head, _) = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
