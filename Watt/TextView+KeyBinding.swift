@@ -13,8 +13,9 @@ import StandardKeyBindingResponder
 extension TextView {
     // List of all key commands for completeness testing: https://support.apple.com/en-us/HT201236
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
+    // KeyBinding Inspector: https://github.com/davidbalbert/KeyBinding-Inspector
 
-    // MARK: Movement
+    // MARK: Selection movement and scrolling
 
     override func moveForward(_ sender: Any?) {
         layoutManager.moveSelection(.right)
@@ -148,6 +149,8 @@ extension TextView {
         scrollSelectionToVisible()
     }
 
+
+
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
         layoutManager.extendSelection(.beginningOfLine)
         scrollSelectionToVisible()
@@ -253,6 +256,7 @@ extension TextView {
     }
 
 
+
     override func scrollPageUp(_ sender: Any?) {
         let viewport = textContainerVisibleRect
         let point = CGPoint(
@@ -342,6 +346,8 @@ extension TextView {
         animator().scroll(convertFromTextContainer(target))
     }
 
+
+
     // TODO: without better height estimates, or a full asyncronous layout pass,
     // scrollToBeginningOfDocument and scrollToEndOfDocument often don't actually
     // put you at the beginning or the end.
@@ -366,7 +372,8 @@ extension TextView {
         animator().scroll(convertFromTextContainer(point))
     }
 
-    // MARK: - Graphical element transposition
+
+    // MARK: - Graphical Element transposition
 
     override func transpose(_ sender: Any?) {
         guard let (i, j) = Transposer.indicesForTranspose(inSelectedRange: selection.range, dataSource: buffer) else {
@@ -398,7 +405,8 @@ extension TextView {
         layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
 
-    // MARK: - Selection
+
+    // MARK: - Selections
 
     override func selectAll(_ sender: Any?) {
         discardMarkedText()
@@ -411,17 +419,41 @@ extension TextView {
         layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
     }
 
-    // MARK: - Insertion and indentation
+    override func selectParagraph(_ sender: Any?) {
+
+    }
+
+    override func selectLine(_ sender: Any?) {
+
+    }
+
+    override func selectWord(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Insertions and Indentations
+
+    override func indent(_ sender: Any?) {
+
+    }
 
     override func insertTab(_ sender: Any?) {
         replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
         unmarkText()
     }
 
+    override func insertBacktab(_ sender: Any?) {
+
+    }
 
     override func insertNewline(_ sender: Any?) {
         replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
         unmarkText()
+    }
+
+    override func insertParagraphSeparator(_ sender: Any?) {
+
     }
 
     override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
@@ -432,7 +464,43 @@ extension TextView {
         insertTab(sender)
     }
 
-    // MARK: - Deletion
+    override func insertLineBreak(_ sender: Any?) {
+
+    }
+
+    override func insertContainerBreak(_ sender: Any?) {
+
+    }
+
+    override func insertSingleQuoteIgnoringSubstitution(_ sender: Any?) {
+
+    }
+
+    override func insertDoubleQuoteIgnoringSubstitution(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Case changes
+
+    override func changeCaseOfLetter(_ sender: Any?) {
+
+    }
+
+    override func uppercaseWord(_ sender: Any?) {
+
+    }
+
+    override func lowercaseWord(_ sender: Any?) {
+
+    }
+
+    override func capitalizeWord(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Deletions
 
     override func deleteForward(_ sender: Any?) {
         if selection.isRange {
@@ -452,6 +520,10 @@ extension TextView {
             replaceSubrange(start..<selection.lowerBound, with: "")
         }
         unmarkText()
+    }
+
+    override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
+
     }
 
     override func deleteWordForward(_ sender: Any?) {
@@ -492,6 +564,96 @@ extension TextView {
             replaceSubrange(start..<caret, with: "")
         }
         unmarkText()
+    }
+
+    override func deleteToBeginningOfLine(_ sender: Any?) {
+
+    }
+
+    override func deleteToEndOfLine(_ sender: Any?) {
+
+    }
+
+    override func deleteToBeginningOfParagraph(_ sender: Any?) {
+
+    }
+
+    override func deleteToEndOfParagraph(_ sender: Any?) {
+
+    }
+
+
+
+    override func yank(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Completion
+
+    override func complete(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Mark/Point manipulation
+    
+    override func setMark(_ sender: Any?) {
+
+    }
+
+    override func deleteToMark(_ sender: Any?) {
+
+    }
+
+    override func selectToMark(_ sender: Any?) {
+
+    }
+
+    override func swapWithMark(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Cancellation
+
+    override func cancelOperation(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Writing Direction
+
+    override func makeBaseWritingDirectionNatural(_ sender: Any?) {
+
+    }
+
+    override func makeBaseWritingDirectionLeftToRight(_ sender: Any?) {
+
+    }
+
+    override func makeBaseWritingDirectionRightToLeft(_ sender: Any?) {
+
+    }
+
+
+    override func makeTextWritingDirectionNatural(_ sender: Any?) {
+
+    }
+
+    override func makeTextWritingDirectionLeftToRight(_ sender: Any?) {
+
+    }
+
+    override func makeTextWritingDirectionRightToLeft(_ sender: Any?) {
+
+    }
+
+
+    // MARK: - Quick Look
+
+    override func quickLookPreviewItems(_ sender: Any?) {
+
     }
 }
 
