@@ -724,7 +724,7 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .endOfDocument, caretAt: string.index(at: 33), affinity: .upstream, dataSource: d)
     }
 
-    func testMoveDocumentByPage() {
+    func testMovePage() {
         let string = """
         abc
         def
@@ -754,6 +754,77 @@ final class SelectionNavigatorTests: XCTestCase {
         s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
         s = moveAndAssertNoop(s, direction: .pageUp, dataSource: d)
         s = moveAndAssert(s, direction: .pageDown, caret: "w", affinity: .downstream, dataSource: d)
+    }
+
+    func testMovePageFromSelection() {
+        let string = """
+        abc
+        def
+        0123456789wrap
+        ghi
+        !@#$%^&*()
+        mno
+        pqr
+        stu
+        vwx
+        """
+        let d = SimpleSelectionDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+
+        // "abc" downstream
+        var s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 3), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "w", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 0), head: string.index(at: 3), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "abc" upstream
+        s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 0), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "w", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 3), head: string.index(at: 0), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "0123456789" downstream
+        s = SimpleSelection(anchor: string.index(at: 8), head: string.index(at: 18), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "!", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 8), head: string.index(at: 18), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "0123456789" upstream
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 8), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "!", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 8), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "wrap" downstream
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "m", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 18), head: string.index(at: 22), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "wrap" upstream
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "m", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 22), head: string.index(at: 18), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "a", affinity: .downstream, dataSource: d)
+
+        // "ra" downstream
+        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 21), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "n", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 19), head: string.index(at: 21), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "b", affinity: .downstream, dataSource: d)
+
+        // "ra" upstream
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 19), granularity: .character)
+        s = moveAndAssert(s, direction: .pageDown, caret: "n", affinity: .downstream, dataSource: d)
+
+        s = SimpleSelection(anchor: string.index(at: 21), head: string.index(at: 19), granularity: .character)
+        s = moveAndAssert(s, direction: .pageUp, caret: "b", affinity: .downstream, dataSource: d)
     }
 
     func testExtendSelectionByCharacter() {
