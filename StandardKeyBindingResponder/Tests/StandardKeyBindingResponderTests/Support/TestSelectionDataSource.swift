@@ -1,5 +1,5 @@
 //
-//  SimpleSelectionDataSource.swift
+//  TestSelectionDataSource.swift
 //  
 //
 //  Created by David Albert on 11/9/23.
@@ -19,7 +19,7 @@ import StandardKeyBindingResponder
 // - Whitespace is treated just like normal characters. If you add
 //   a space after the end of a line fragment, no fancy wrapping
 //   happens. The next line fragment just starts with a space.
-struct SimpleSelectionDataSource {
+struct TestSelectionDataSource {
     let string: String
 
     // Number of visual characters in a line fragment. Does
@@ -47,7 +47,7 @@ struct SimpleSelectionDataSource {
     }
 }
 
-extension SimpleSelectionDataSource: SelectionNavigationDataSource {
+extension TestSelectionDataSource: SelectionNavigationDataSource {
     var characterCount: Int {
         string.count
     }
@@ -193,7 +193,7 @@ struct CaretOffset: Equatable {
     }
 }
 
-extension SimpleSelectionDataSource {
+extension TestSelectionDataSource {
     func carretOffsetsInLineFragment(containing index: String.Index) -> [CaretOffset] {
         var offsets: [CaretOffset] = []
         enumerateCaretOffsetsInLineFragment(containing: index) { offset, i, edge in

@@ -1,5 +1,5 @@
 //
-//  SimpleSelection.swift
+//  TestSelection.swift
 //
 //
 //  Created by David Albert on 11/8/23.
@@ -11,7 +11,7 @@ import StandardKeyBindingResponder
 // Implementations of NavigableSelection, SelectionNavigationDataSource, and InitializableFromAffinity
 // used for testing.
 
-struct SimpleSelection: Equatable {
+struct TestSelection: Equatable {
     enum Affinity: InitializableFromAffinity {
         case upstream
         case downstream
@@ -53,7 +53,7 @@ struct SimpleSelection: Equatable {
     }
 }
 
-extension SimpleSelection: NavigableSelection {
+extension TestSelection: NavigableSelection {
     init(caretAt index: String.Index, affinity: Affinity, granularity: Granularity, xOffset: CGFloat? = nil) {
         self.init(range: index..<index, affinity: affinity, granularity: granularity, xOffset: xOffset)
     }
