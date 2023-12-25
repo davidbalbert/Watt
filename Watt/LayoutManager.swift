@@ -10,8 +10,10 @@ import CoreText
 import StandardKeyBindingResponder
 
 protocol LayoutManagerDelegate: AnyObject {
-    // Should be in text container coordinates.
+    // Text container coordinates. Includes overdraw.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
+    // Text container coordinates. No overdraw.
+    func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func selectionDidChange(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
@@ -828,6 +830,16 @@ extension LayoutManager: SelectionNavigationDataSource {
     func lineFragmentRange(for point: CGPoint) -> Range<AttributedRope.Index>? {
         let line = line(forVerticalOffset: point.y)
         return line.fragment(forVerticalOffset: point.y)?.range
+    }
+
+    func verticalOffset(forLineFragmentContaining index: AttributedRope.Index) -> CGFloat {
+        let line = line(containing: index)
+        let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!
+        return convert(frag.origin, from: line).y
+    }
+
+    var viewportSize: CGSize {
+        delegate?.visibleRect(for: self).size ?? .zero
     }
 
     // Enumerating over the first line fragment of each string:

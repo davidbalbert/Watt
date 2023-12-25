@@ -87,49 +87,17 @@ extension TextView {
     }
 
     override func pageDown(_ sender: Any?) {
-//        let viewport = textContainerViewport
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y + viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-//
-//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
-//        scroll(convertFromTextContainer(point))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.moveSelection(.pageDown)
+        centerSelectionHead()
     }
 
     override func pageUp(_ sender: Any?) {
-//        let viewport = textContainerViewport
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y - viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, affinity: affinity, xOffset: selection.xOffset)
-//
-//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
-//        scroll(convertFromTextContainer(point))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.moveSelection(.pageUp)
+        centerSelectionHead()
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-//        let viewport = textContainerViewport
+//        let viewport = textContainerVisibleRect
 //        let point = layoutManager.point(forCharacterAt: selection.lowerBound, affinity: .downstream)
 //
         // TODO: with unwrapped text, the selection may not be visible at x == 0, nor at x == textContainerScrollOffset.x. Find a better way to handle this.
@@ -204,45 +172,13 @@ extension TextView {
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-//        let viewport = textContainerViewport
-//        let point = layoutManager.position(forCharacterAt: selection.upperBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y + viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, anchor: selection.lowerBound, affinity: affinity, xOffset: selection.xOffset)
-//
-//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
-//        scroll(convertFromTextContainer(point))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.extendSelection(.pageDown)
+        centerSelectionHead()
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-//        let viewport = textContainerViewport
-//        let point = layoutManager.position(forCharacterAt: selection.lowerBound, affinity: selection.isEmpty ? Affinity : .upstream)
-//
-//        let target = CGPoint(
-//            x: selection.xOffset,
-//            y: point.y - viewport.height
-//        )
-//
-//        let (head, affinity) = layoutManager.locationAndAffinity(interactingAt: target)
-//
-//        layoutManager.selection = Selection(head: head, anchor: selection.upperBound, affinity: affinity, xOffset: selection.xOffset)
-//
-//        let point = CGPoint(x: textContainerScrollOffset.x, y: target.y - viewport.height/2)
-//        scroll(convertFromTextContainer(point))
-//
-//        selectionLayer.setNeedsLayout()
-//        insertionPointLayer.setNeedsLayout()
-//        updateInsertionPointTimer()
+        layoutManager.extendSelection(.pageUp)
+        centerSelectionHead()
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
@@ -311,7 +247,7 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
-        let viewport = textContainerViewport
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
             x: textContainerScrollOffset.x,
             y: viewport.minY - viewport.height
@@ -321,7 +257,7 @@ extension TextView {
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        let viewport = textContainerViewport
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
             x: textContainerScrollOffset.x,
             y: viewport.maxY
@@ -331,7 +267,7 @@ extension TextView {
     }
 
     override func scrollLineUp(_ sender: Any?) {
-        let viewport = textContainerViewport
+        let viewport = textContainerVisibleRect
 
         // Goal: find the first fragment that's fully above the viewport and scroll it
         // in to view. It would be simpler to find the first fragment that contains
@@ -374,7 +310,7 @@ extension TextView {
     }
 
     override func scrollLineDown(_ sender: Any?) {
-        let viewport = textContainerViewport
+        let viewport = textContainerVisibleRect
 
         // Same goal and logic as scrollLineUp. See comment there for more.
         let lastLine = layoutManager.line(forVerticalOffset: viewport.maxY - 0.0001)
@@ -414,7 +350,7 @@ extension TextView {
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
-        let viewport = textContainerViewport
+        let viewport = textContainerVisibleRect
         let point = CGPoint(
             x: textContainerScrollOffset.x,
             y: layoutManager.contentHeight - viewport.height

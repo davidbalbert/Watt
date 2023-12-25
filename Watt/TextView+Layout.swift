@@ -51,22 +51,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         true
     }
 
-    var scrollView: NSScrollView? {
-        if let enclosingScrollView, enclosingScrollView.documentView == self {
-            return enclosingScrollView
-        }
-
-        return nil
-    }
-
-    override func prepareContent(in rect: NSRect) {
-        super.prepareContent(in: rect)
-
-        selectionLayer.setNeedsLayout()
-        textLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-    }
-
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         updateTextContainerSizeIfNeeded()
@@ -129,23 +113,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
     }
 
-    var scrollOffset: CGPoint {
-        guard let scrollView else {
-            return .zero
-        }
-
-        return scrollView.contentView.bounds.origin
-    }
-
-    var textContainerScrollOffset: CGPoint {
-        convertToTextContainer(scrollOffset)
-    }
-
-    var textContainerViewport: CGRect {
-        let r = clampToTextContainer(visibleRect)
-        return convertToTextContainer(r)
-    }
-
     func convertFromTextContainer(_ point: CGPoint) -> CGPoint {
         CGPoint(x: point.x + computedTextContainerInset.left, y: point.y + computedTextContainerInset.top)
     }
@@ -179,6 +146,65 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 }
 
+// MARK: - Scrolling
+
+extension TextView {
+    override func prepareContent(in rect: NSRect) {
+        super.prepareContent(in: rect)
+
+        selectionLayer.setNeedsLayout()
+        textLayer.setNeedsLayout()
+        insertionPointLayer.setNeedsLayout()
+    }
+
+    var scrollView: NSScrollView? {
+        if let enclosingScrollView, enclosingScrollView.documentView == self {
+            return enclosingScrollView
+        }
+
+        return nil
+    }
+
+    var scrollOffset: CGPoint {
+        guard let scrollView else {
+            return .zero
+        }
+
+        return scrollView.contentView.bounds.origin
+    }
+
+    var textContainerScrollOffset: CGPoint {
+        convertToTextContainer(scrollOffset)
+    }
+
+    var textContainerVisibleRect: CGRect {
+        convertToTextContainer(clampToTextContainer(visibleRect))
+    }
+
+    func scrollIndexToVisible(_ index: Buffer.Index) {
+        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+            return
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        scrollToVisible(viewRect)
+    }
+
+    func scrollIndexToCenter(_ index: Buffer.Index) {
+        guard var rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+            return
+        }
+
+        let viewRect = convertFromTextContainer(rect)
+        scrollToCenter(viewRect)
+    }
+
+    func scrollToCenter(_ rect: NSRect) {
+        let dx = rect.midX - visibleRect.midX
+        let dy = rect.midY - visibleRect.midY
+        scroll(CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy))
+    }
+}
 
 extension TextView: LayoutManagerDelegate {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
@@ -190,6 +216,10 @@ extension TextView: LayoutManagerDelegate {
         }
 
         return convertToTextContainer(clampToTextContainer(bounds))
+    }
+
+    func visibleRect(for layoutManager: LayoutManager) -> CGRect {
+        textContainerVisibleRect
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
@@ -246,9 +276,9 @@ extension TextView: LayoutManagerDelegate {
     }
 }
 
-extension TextView {
-    // MARK: - Text layout
+// MARK: - Text layout
 
+extension TextView {
     func layoutTextLayer() {
         textLayer.sublayers = nil
 
@@ -311,9 +341,18 @@ extension TextView {
 
         return l
     }
+}
 
-    // MARK: - Selection layout
+extension TextView: LineLayerDelegate {
+    func effectiveAppearance(for lineLayer: LineLayer) -> NSAppearance {
+        effectiveAppearance
+    }
+}
 
+
+// MARK: - Selection layout
+
+extension TextView {
     func layoutSelectionLayer() {
         selectionLayer.sublayers = nil
 
@@ -336,9 +375,11 @@ extension TextView {
 
         return l
     }
+}
 
-    // MARK: - Insertion point layout
+// MARK: - Insertion point layout
 
+extension TextView {
     func layoutInsertionPointLayer() {
         insertionPointLayer.sublayers = nil
 
@@ -360,11 +401,5 @@ extension TextView {
         l.position = convertFromTextContainer(rect.origin)
 
         return l
-    }
-}
-
-extension TextView: LineLayerDelegate {
-    func effectiveAppearance(for lineLayer: LineLayer) -> NSAppearance {
-        effectiveAppearance
     }
 }
