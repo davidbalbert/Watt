@@ -87,8 +87,8 @@ public enum Movement: Equatable {
     case beginningOfDocument
     case endOfDocument
 
-   case pageDown
-   case pageUp
+    case pageDown
+    case pageUp
 }
 
 public protocol NavigableSelection {
@@ -457,6 +457,89 @@ extension SelectionNavigator {
         let (head, _) = dataSource.index(forCaretOffset: xOffset, inLineFragmentWithRange: targetFragRange)
 
         return (head, head == targetFragRange.upperBound ? .upstream : .downstream, xOffset)
+    }
+}
+
+// MARK: - Deletion
+
+extension SelectionNavigator {
+    public static func rangeToDelete(for selection: Selection, movement: Movement, dataSource: DataSource) -> Range<Selection.Index> {
+        if selection.isRange {
+            return selection.range
+        }
+
+        switch movement {
+        case .left:
+            if selection.head == dataSource.startIndex {
+                return selection.head..<selection.head
+            }
+            return dataSource.index(before: selection.head)..<selection.head
+        case .right:
+            if selection.head == dataSource.endIndex {
+                return selection.head..<selection.head
+            }
+            return selection.head..<dataSource.index(after: selection.head)
+        case .wordLeft:
+            let start = selection.head
+            let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
+            return wordStart..<start
+        case .wordRight:
+            let start = selection.head
+            let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
+            return start..<wordEnd
+        case .beginningOfLine, .endOfLine:
+            var fragRange = dataSource.range(for: .line, enclosing: selection.head)
+            if fragRange.isEmpty {
+                assert(selection.affinity == .upstream)
+                // Empty last line. Includes empty document.
+                return selection.head..<selection.head
+            }
+            if selection.head == fragRange.lowerBound && selection.affinity == .upstream {
+                // we're actually on the previous frag
+                fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: selection.head))
+            }
+
+            if movement == .beginningOfLine {
+                return fragRange.lowerBound..<selection.head
+            } else {
+                let endsWithNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
+                let end = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
+                return selection.head..<end
+            }
+        case .paragraphBackward, .beginningOfParagraph:
+            let paraRange = dataSource.range(for: .paragraph, enclosing: selection.head)
+            if paraRange.isEmpty {
+                assert(selection.affinity == .upstream)
+                // Empty last line. Includes empty document.
+                return selection.head..<selection.head
+            }
+            return paraRange.lowerBound..<selection.head
+        case .paragraphForward, .endOfParagraph:
+            if selection.head == dataSource.endIndex {
+                return selection.head..<selection.head
+            }
+            if dataSource[selection.head] == "\n" {
+                return selection.head..<dataSource.index(after: selection.head)
+            }
+
+            let paraRange = dataSource.range(for: .paragraph, enclosing: selection.head)
+            if paraRange.isEmpty {
+                assert(selection.affinity == .upstream)
+                // Empty last line. Includes empty document.
+                return selection.head..<selection.head
+            }
+
+            let endsWithNewline = dataSource.lastCharacter(inRange: paraRange) == "\n"
+            let end = endsWithNewline ? dataSource.index(before: paraRange.upperBound) : paraRange.upperBound
+            return selection.head..<end
+        case .beginningOfDocument:
+            return dataSource.startIndex..<selection.head
+        case .endOfDocument:
+            return selection.head..<dataSource.endIndex
+        case .up, .down, .pageUp, .pageDown:
+            preconditionFailure("rangeToDelete doesn't support vertical movement")
+        }
+
     }
 }
 

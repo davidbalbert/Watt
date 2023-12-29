@@ -1139,6 +1139,374 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
 
+    // MARK: - Deletion
+
+    func testDeleteBackward() {
+        let s = "abc def ghi"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "f"
+        var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .left, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 6))
+
+        // "def"
+        sel = TestSelection(anchor: s.index(at: 4), head: s.index(at: 7), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .left, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 7))
+    }
+
+    func testDeleteForward() {
+        let s = "abc def ghi"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "f"
+        var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .right, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 6)..<s.index(at: 7))
+
+        // "def"
+        sel = TestSelection(anchor: s.index(at: 4), head: s.index(at: 7), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .right, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 7))
+    }
+
+    func testDeleteWordForward() {
+        let s = "abc def ghi"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "e"
+        var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .wordRight, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 7))
+
+        // "e"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 6), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .wordRight, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 6))
+    }
+
+    func testDeleteWordBackward() {
+        let s = "abc def ghi"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "f"
+        var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .wordLeft, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 6))
+
+        // "e"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 6), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .wordLeft, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 6))
+    }
+
+    func testDeleteToBeginningOfLine() {
+        let s = "0123456789wrap"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 5))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 0), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 0))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 10), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 10))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 10), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 10)..<s.index(at: 10))
+
+        // caret at "p"
+        sel = TestSelection(caretAt: s.index(at: 13), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 10)..<s.index(at: 13))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 1), head: s.index(at: 4), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 1)..<s.index(at: 4))
+    }
+
+    func testDeleteToEndOfLine() {
+        let s = "0123456789wrap"
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 10))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 0), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 10))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 10), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 10)..<s.index(at: 10))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 10), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 10)..<s.index(at: 14))
+
+        // caret at "p"
+        sel = TestSelection(caretAt: s.index(at: 13), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 13)..<s.index(at: 14))
+
+        // caret after "p"
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 14)..<s.index(at: 14))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 1), head: s.index(at: 4), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 1)..<s.index(at: 4))
+
+
+        // don't delete trailing newline
+        let s2 = "foo\nbar"
+        let d2 = TestSelectionDataSource(string: s2, charsPerLine: 10)
+
+        // caret at second "o"
+        sel = TestSelection(caretAt: s2.index(at: 2), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d2)
+        XCTAssertEqual(r, s2.index(at: 2)..<s2.index(at: 3))
+
+        // caret at "\n"
+        sel = TestSelection(caretAt: s2.index(at: 3), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfLine, dataSource: d2)
+        XCTAssertEqual(r, s2.index(at: 3)..<s2.index(at: 3))
+    }
+
+    func testDeleteToBeginningOfParagraph() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 9))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 4), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 4))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 14))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 14))
+
+        // caret at "p"
+        sel = TestSelection(caretAt: s.index(at: 18), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 18))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+    }
+
+    func testDeleteToEndOfParagraph() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 9)..<s.index(at: 18))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 4), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 18))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 14)..<s.index(at: 18))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 14)..<s.index(at: 18))
+
+        // caret at "p" – we're at the end of a paragraph, so delete the trailing newline
+        sel = TestSelection(caretAt: s.index(at: 18), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 18)..<s.index(at: 19))
+
+        // caret at end
+        sel = TestSelection(caretAt: s.index(at: 22), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 22)..<s.index(at: 22))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfParagraph, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+    }
+
+    // deletion ranges for paragraphBackward/paragraphForward are the same as for beginningOfParagraph/endOfParagraph
+    func testDeleteParagraphBackward() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 9))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 4), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 4))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 14))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 14))
+
+        // caret at "p"
+        sel = TestSelection(caretAt: s.index(at: 18), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 18))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphBackward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+
+    }
+
+    func testDeleteParagraphForward() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 9)..<s.index(at: 18))
+
+        // caret at "0"
+        sel = TestSelection(caretAt: s.index(at: 4), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 18))
+
+        // caret after "9" (upstream)
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 14)..<s.index(at: 18))
+
+        // caret at "w"
+        sel = TestSelection(caretAt: s.index(at: 14), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 14)..<s.index(at: 18))
+
+        // caret at "p" – we're at the end of a paragraph, so delete the trailing newline
+        sel = TestSelection(caretAt: s.index(at: 18), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 18)..<s.index(at: 19))
+
+        // caret at end
+        sel = TestSelection(caretAt: s.index(at: 22), affinity: .upstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 22)..<s.index(at: 22))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .paragraphForward, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+    }
+
+    func testDeleteBeginningOfDocument() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 9))
+
+        // caret at "f"
+        sel = TestSelection(caretAt: s.index(at: 0), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 0)..<s.index(at: 0))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .beginningOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+    }
+
+    func testDeleteEndOfDocument() {
+        let s = """
+        foo
+        0123456789wrap
+        bar
+        """
+        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+
+        // caret at "5"
+        var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
+        var r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 9)..<s.index(at: 22))
+
+        // caret at end
+        sel = TestSelection(caretAt: s.index(at: 22), affinity: .downstream, granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 22)..<s.index(at: 22))
+
+        // "123"
+        sel = TestSelection(anchor: s.index(at: 5), head: s.index(at: 8), granularity: .character)
+        r = SelectionNavigator.rangeToDelete(for: sel, movement: .endOfDocument, dataSource: d)
+        XCTAssertEqual(r, s.index(at: 5)..<s.index(at: 8))
+    }
+
     // MARK: - Mouse navigation
 
     func testClickingOnEmptyString() {
