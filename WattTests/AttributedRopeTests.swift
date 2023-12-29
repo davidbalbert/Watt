@@ -427,6 +427,25 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
+    func testReplaceSubrangeOnUnicodeScalarBoundary() {
+        var s = AttributedRope("a\u{0301}b") // áb
+        let start = s.text.unicodeScalars.index(s.text.startIndex, offsetBy: 1)
+        let end = s.text.unicodeScalars.index(s.text.startIndex, offsetBy: 2)
+
+        s.replaceSubrange(start..<end, with: AttributedRope(""))
+        XCTAssertEqual(s.text, "ab")
+    }
+
+    func testReplaceSubrangeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        var s = AttributedRope("a\u{0301}b") // áb
+        let start = s.text.utf8.index(s.text.utf8.startIndex, offsetBy: 1)
+        let end = s.text.utf8.index(s.text.utf8.startIndex, offsetBy: 2)
+
+        s.replaceSubrange(start..<end, with: AttributedRope(""))
+        XCTAssertEqual(s.text, "a\u{0301}b")
+    }
+
+
     // MARK: - Deleting from AttributedRope
 
     func testDeleteAtBeginingOfRope() {
@@ -2002,6 +2021,58 @@ final class AttributedRopeTests: XCTestCase {
         XCTAssertEqual(r0.font, .systemFont(ofSize: 12))
 
         XCTAssertNil(iter.next())
+    }
+
+    func testDeltaReplaceSubrangeOnUnicodeScalarBoundary() {
+        let s1 = AttributedRope("a\u{0301}b") // áb
+        let start = s1.text.unicodeScalars.index(s1.text.startIndex, offsetBy: 1)
+        let end = s1.text.unicodeScalars.index(s1.text.startIndex, offsetBy: 2)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replaceSubrange(start..<end, with: "")
+        let d = b.build()
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(s2.text, "ab")
+    }
+
+    func testDeltaReplaceSubrangeWithAttributedRopeOnUnicodeScalarBoundary() {
+        let s1 = AttributedRope("a\u{0301}b") // áb
+        let start = s1.text.unicodeScalars.index(s1.text.startIndex, offsetBy: 1)
+        let end = s1.text.unicodeScalars.index(s1.text.startIndex, offsetBy: 2)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replaceSubrange(start..<end, with: AttributedRope(""))
+        let d = b.build()
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(s2.text, "ab")
+    }
+
+    func testDeltaReplaceSubrangeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        let s1 = AttributedRope("a\u{0301}b") // áb
+        let start = s1.text.utf8.index(s1.text.startIndex, offsetBy: 1)
+        let end = s1.text.utf8.index(s1.text.startIndex, offsetBy: 2)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replaceSubrange(start..<end, with: "")
+        let d = b.build()
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(s2.text, "a\u{0301}b")
+    }
+
+    func testDeltaReplaceSubrangeWithAttributedRopeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        let s1 = AttributedRope("a\u{0301}b") // áb
+        let start = s1.text.utf8.index(s1.text.startIndex, offsetBy: 1)
+        let end = s1.text.utf8.index(s1.text.startIndex, offsetBy: 2)
+
+        var b = AttributedRope.DeltaBuilder(s1)
+        b.replaceSubrange(start..<end, with: AttributedRope(""))
+        let d = b.build()
+
+        let s2 = s1.applying(delta: d)
+        XCTAssertEqual(s2.text, "a\u{0301}b")
     }
 
     func testDeltaDeleteEmptyRangeIsANoop() {

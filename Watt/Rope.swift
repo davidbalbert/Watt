@@ -906,7 +906,7 @@ extension Rope: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
         subrange.lowerBound.validate(for: self)
         subrange.upperBound.validate(for: self)
-        
+
         let rangeStart = unicodeScalars.index(roundingDown: subrange.lowerBound)
         let rangeEnd = unicodeScalars.index(roundingDown: subrange.upperBound)
 
@@ -1577,7 +1577,7 @@ extension Rope: Equatable {
 // TODO: normalized comparisons
 extension Subrope: Equatable {
     static func == (lhs: Subrope, rhs: Subrope) -> Bool {
-        if lhs.base.root == rhs.base.root && Range(uncheckedRange: lhs.bounds) == Range(uncheckedRange: rhs.bounds) {
+        if lhs.base.root == rhs.base.root && Range(unvalidatedRange: lhs.bounds) == Range(unvalidatedRange: rhs.bounds) {
             return true
         }
         return Rope(lhs) == Rope(rhs)
@@ -1675,7 +1675,7 @@ extension Range where Bound == Rope.Index {
 
 extension Range where Bound == Int {
     // Don't use for user provided ranges.
-    init(uncheckedRange range: Range<Rope.Index>) {
+    init(unvalidatedRange range: Range<Rope.Index>) {
         self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
     }
 

@@ -37,7 +37,7 @@ struct AttributedRope {
 
     init(_ subrope: AttributedSubrope) {
         self.text = Rope(subrope.text[subrope.bounds])
-        self.spans = subrope.spans[Range(uncheckedRange: subrope.bounds)]
+        self.spans = subrope.spans[Range(unvalidatedRange: subrope.bounds)]
     }
 
     // internal
@@ -413,7 +413,7 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(uncheckedRange: bounds)
+            let r = Range(unvalidatedRange: bounds)
             var first = true
             var v: K.Value?
 
@@ -446,7 +446,7 @@ extension AttributedSubrope {
             var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
             var s = AttributedRope.Attributes()
             s[K.self] = newValue
-            b.add(s, covering: Range(uncheckedRange: bounds))
+            b.add(s, covering: Range(unvalidatedRange: bounds))
 
             spans = spans.merging(b.build()) { a, b in
                 var a = a ?? AttributedRope.Attributes()
@@ -469,7 +469,7 @@ extension AttributedSubrope {
         }
 
         var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(uncheckedRange: bounds))
+        b.add(attributes, covering: Range(unvalidatedRange: bounds))
 
         spans = spans.merging(b.build()) { a, b in
             b ?? a
@@ -482,7 +482,7 @@ extension AttributedSubrope {
         }
 
         var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(uncheckedRange: bounds))
+        b.add(attributes, covering: Range(unvalidatedRange: bounds))
 
         spans = spans.merging(b.build()) { a, b in
             if let a, let b {
@@ -506,7 +506,7 @@ extension AttributedRope {
         var value: T.Value? {
             get {
                 let span = spans.span(at: range.lowerBound.position)!
-                assert(span.range == Range(uncheckedRange: range))
+                assert(span.range == Range(unvalidatedRange: range))
                 return span.data[T.self]
             }
             set {
@@ -519,7 +519,7 @@ extension AttributedRope {
         }
 
         mutating func replace(with attributes: Attributes) {
-            builder.add(attributes, covering: Range(uncheckedRange: range))
+            builder.add(attributes, covering: Range(unvalidatedRange: range))
         }
 
         mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
@@ -627,9 +627,13 @@ extension AttributedRope {
             return
         }
 
-        text.replaceSubrange(range, with: s.text)
+        let start = text.unicodeScalars.index(roundingDown: range.lowerBound)
+        let end = text.unicodeScalars.index(roundingDown: range.upperBound)
+        let roundedRange = start..<end
 
-        let replacementRange = Range(uncheckedRange: range)
+        text.replaceSubrange(roundedRange, with: s.text)
+
+        let replacementRange = Range(unvalidatedRange: roundedRange)
 
         var dup = spans
         var new = s.spans
@@ -640,6 +644,8 @@ extension AttributedRope {
         b.push(&dup.root, slicedBy: replacementRange.upperBound..<spans.upperBound)
 
         self.spans = b.build()
+
+        assert(spans.root.count == text.root.count)
     }
 
     mutating func insert(_ s: AttributedRope, at i: Index) {
@@ -853,7 +859,7 @@ extension AttributedRope {
         mutating func push(_ r: AttributedSubrope) {
             var dup = r
             rb.push(&dup.text, slicedBy: r.bounds)
-            sb.push(&dup.spans.root, slicedBy: Range(uncheckedRange: r.bounds))
+            sb.push(&dup.spans.root, slicedBy: Range(unvalidatedRange: r.bounds))
         }
 
         consuming func build() -> AttributedRope {
@@ -889,14 +895,20 @@ extension AttributedRope {
         }
 
         mutating func replaceSubrange(_ subrange: Range<Index>, with s: AttributedRope) {
-            let r = Range(subrange, in: attrRope)
+            let start = attrRope.text.unicodeScalars.index(roundingDown: subrange.lowerBound)
+            let end = attrRope.text.unicodeScalars.index(roundingDown: subrange.upperBound)
+
+            let r = Range(start..<end, in: attrRope)
 
             rb.replaceSubrange(r, with: s.text)
             sb.replaceSubrange(r, with: s.spans)
         }
 
-        mutating func replaceSubrange(_ range: Range<Index>, with s: String) {
-            let r = Range(range, in: attrRope)
+        mutating func replaceSubrange(_ subrange: Range<Index>, with s: String) {
+            let start = attrRope.text.unicodeScalars.index(roundingDown: subrange.lowerBound)
+            let end = attrRope.text.unicodeScalars.index(roundingDown: subrange.upperBound)
+
+            let r = Range(start..<end, in: attrRope)
 
             let attrs = attributes(forReplacementRange: r, in: attrRope.spans)
             var b = SpansBuilder<Attributes>(totalCount: s.utf8.count)
@@ -980,7 +992,7 @@ extension AttributedRope {
 
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         attrString.enumerateAttributes(in: NSRange(location: 0, length: attrString.length), options: []) { attrs, range, _ in
-            b.add(Attributes(attrs).merging(attributes), covering: Range(uncheckedRange: Range(range, in: text)!))
+            b.add(Attributes(attrs).merging(attributes), covering: Range(unvalidatedRange: Range(range, in: text)!))
         }
 
         self.text = text
