@@ -539,8 +539,14 @@ extension TextView {
         unmarkText()
     }
 
+    // Follow Xcode's lead and make deleteToBeginningOfLine: behave like deleteToBeginningOfParagraph:.
+    // I imagine this is because StandardKeyBinding.dict only includes deleteToBeginningOfLine: and
+    // deleteToEndOfPargraph: and in a text editor it's more useful for Command-Delete to delete to
+    // the beginning of the line, not the line fragment.
+    //
+    // Perhaps this would be a good place for some sort of preference in the future.
     override func deleteToBeginningOfLine(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfLine, dataSource: layoutManager)
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
