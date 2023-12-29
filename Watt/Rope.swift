@@ -904,8 +904,11 @@ extension Rope: BidirectionalCollection {
 
 extension Rope: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
-        let rangeStart = index(roundingDown: subrange.lowerBound)
-        let rangeEnd = index(roundingDown: subrange.upperBound)
+        subrange.lowerBound.validate(for: self)
+        subrange.upperBound.validate(for: self)
+        
+        let rangeStart = unicodeScalars.index(roundingDown: subrange.lowerBound)
+        let rangeEnd = unicodeScalars.index(roundingDown: subrange.upperBound)
 
         // We have to ensure that root isn't mutated directly because that would
         // invalidate indices and counts when we push the suffix (rangeEnd..<endIndex)
@@ -1034,7 +1037,8 @@ extension Rope {
                 return
             }
 
-            let prev = chunk.characters.index(before: i)
+            let j = chunk.characters._index(roundingDown: i)
+            let prev = j == i ? chunk.characters.index(before: i) : j
 
             self.init(consuming: chunk.string[prev..<i])
         }

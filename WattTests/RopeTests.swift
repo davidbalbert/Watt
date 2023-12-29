@@ -165,6 +165,23 @@ final class RopeTests: XCTestCase {
         XCTAssert(String(repeating: "a", count: 40_000) + String(repeating: "b", count: 710_000) + String(repeating: "a", count: 250_000) == String(r), "not equal")
     }
 
+    func testReplaceSubrangeOnUnicodeScalarBoundary() {
+        var s = "a\u{0301}b"
+        let start1 = s.unicodeScalars.index(s.startIndex, offsetBy: 1)
+        let end1 = s.unicodeScalars.index(s.startIndex, offsetBy: 2)
+
+        s.replaceSubrange(start1..<end1, with: "")
+        XCTAssertEqual("ab", s)
+
+        var r = Rope("a\u{0301}b") // "áb"
+        let start = r.unicodeScalars.index(r.startIndex, offsetBy: 1)
+        let end = r.unicodeScalars.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(start.position..<end.position, 1..<3)
+
+        r.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual("ab", String(r))
+    }
+
     func testAppendContentsOfInPlace() {
         var r = Rope("abc")
         r.append(contentsOf: "def")
