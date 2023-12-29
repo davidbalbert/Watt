@@ -191,7 +191,7 @@ extension TextView {
     }
 
     func scrollIndexToCenter(_ index: Buffer.Index) {
-        guard var rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
+        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
             return
         }
 
