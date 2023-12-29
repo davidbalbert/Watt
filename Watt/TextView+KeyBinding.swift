@@ -118,12 +118,11 @@ extension TextView {
         if rect.height < viewport.height {
             scrollToCenter(rect)
         } else if viewport.minY < rect.minY {
-            let target = convertFromTextContainer(r1.origin)
-            scroll(target)
+            let target = r1.origin
+            scroll(convertFromTextContainer(target))
         } else if rect.maxY < viewport.maxY {
-            let bottomLeft = convertFromTextContainer(CGPoint(x: r2.minX, y: r2.maxY))
-            let target = CGPoint(x: bottomLeft.x, y: bottomLeft.y - viewport.height)
-            scroll(target)
+            let target = CGPoint(x: r2.minX, y: r2.maxY - viewport.height)
+            scroll(convertFromTextContainer(target))
         }
     }
 
