@@ -98,23 +98,33 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-        let rect: CGRect
         if selection.isCaret {
-            let r = layoutManager.caretRect(for: selection.head, affinity: selection.affinity)
-            guard let r else {
+            guard let rect = layoutManager.caretRect(for: selection.head, affinity: selection.affinity) else {
                 return
             }
-            rect = r
-        } else {
-            let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
-            let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
-            guard let r1, let r2 else {
-                return
-            }
-            rect = r1.union(r2)
+            scrollToCenter(rect)
+            return
         }
 
-        scrollToCenter(rect)
+        let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
+        let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
+        guard let r1, let r2 else {
+            return
+        }
+        let rect = r1.union(r2)
+
+        let viewport = textContainerVisibleRect
+
+        if rect.height < viewport.height {
+            scrollToCenter(rect)
+        } else if viewport.minY < rect.minY {
+            let target = convertFromTextContainer(r1.origin)
+            scroll(target)
+        } else if rect.maxY < viewport.maxY {
+            let bottomLeft = convertFromTextContainer(CGPoint(x: r2.minX, y: r2.maxY))
+            let target = CGPoint(x: bottomLeft.x, y: bottomLeft.y - viewport.height)
+            scroll(target)
+        }
     }
 
 
