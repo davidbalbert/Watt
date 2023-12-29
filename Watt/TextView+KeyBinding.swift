@@ -512,22 +512,14 @@ extension TextView {
     // MARK: - Deletions
 
     override func deleteForward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound < buffer.endIndex {
-            let end = buffer.index(after: selection.lowerBound)
-            replaceSubrange(selection.lowerBound..<end, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .right, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound > buffer.startIndex {
-            let start = buffer.index(before: selection.lowerBound)
-            replaceSubrange(start..<selection.lowerBound, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .left, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
@@ -536,59 +528,39 @@ extension TextView {
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound < buffer.endIndex {
-            let caret = selection.lowerBound
-            var end = caret
-
-            while end < buffer.endIndex && !isWordChar(buffer[end]) {
-                end = buffer.index(after: end)
-            }
-            while end < buffer.endIndex && isWordChar(buffer[end]) {
-                end = buffer.index(after: end)
-            }
-
-            replaceSubrange(caret..<end, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordRight, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound > buffer.startIndex {
-            let caret = selection.lowerBound
-            var start = buffer.index(before: caret)
-
-            // TODO: isWordChar should be defined elsewhere I think. Maybe StandardKeyBindingResponder?
-            while start > buffer.startIndex && !isWordChar(buffer[buffer.index(before: start)]) {
-                start = buffer.index(before: start)
-            }
-
-            while start > buffer.startIndex && isWordChar(buffer[buffer.index(before: start)]) {
-                start = buffer.index(before: start)
-            }
-
-            replaceSubrange(start..<caret, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordLeft, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteToBeginningOfLine(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfLine, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToEndOfLine(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfLine, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToBeginningOfParagraph(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToEndOfParagraph(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfParagraph, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
 
@@ -664,8 +636,4 @@ extension TextView {
     override func quickLookPreviewItems(_ sender: Any?) {
 
     }
-}
-
-fileprivate func isWordChar(_ c: Character) -> Bool {
-    !c.isWhitespace && !c.isPunctuation
 }
