@@ -166,13 +166,6 @@ final class RopeTests: XCTestCase {
     }
 
     func testReplaceSubrangeOnUnicodeScalarBoundary() {
-        var s = "a\u{0301}b"
-        let start1 = s.unicodeScalars.index(s.startIndex, offsetBy: 1)
-        let end1 = s.unicodeScalars.index(s.startIndex, offsetBy: 2)
-
-        s.replaceSubrange(start1..<end1, with: "")
-        XCTAssertEqual("ab", s)
-
         var r = Rope("a\u{0301}b") // "áb"
         let start = r.unicodeScalars.index(r.startIndex, offsetBy: 1)
         let end = r.unicodeScalars.index(r.startIndex, offsetBy: 2)
@@ -180,6 +173,16 @@ final class RopeTests: XCTestCase {
 
         r.replaceSubrange(start..<end, with: "")
         XCTAssertEqual("ab", String(r))
+    }
+
+    func testReplaceSubrangeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        var r = Rope("a\u{0301}b") // "áb"
+        let start = r.utf8.index(r.startIndex, offsetBy: 1)
+        let end = r.utf8.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(start.position..<end.position, 1..<2)
+
+        r.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual("a\u{0301}b", String(r))
     }
 
     func testAppendContentsOfInPlace() {
@@ -2093,6 +2096,17 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(3, r2.utf8.count)
 
         XCTAssertEqual("a\u{0301}", String(r2))
+    }
+
+    func testDeltaReplaceSubrangeOnUnicodeScalarBoundary() {
+        var r = Rope("a\u{0301}b") // "áb"
+
+        var b = BTreeDeltaBuilder<Rope>(r.root.count)
+        b.replaceSubrange(1..<3, with: "")
+        let delta = b.build()
+
+        r = r.applying(delta: delta)
+        XCTAssertEqual("ab", String(r))
     }
 
     // MARK: - Regression tests
