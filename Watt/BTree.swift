@@ -1759,6 +1759,15 @@ struct BTreeDelta<Tree> where Tree: BTree {
     var elements: [DeltaElement]
     var baseCount: Int // the count of the associated BTree before applying the delta.
 
+    // An empty delta contains no changes. It doesn't mean elements will be empty.
+    //
+    // Specifically, an empty delta contains one or more adjacent copies that
+    // span 0..<baseCount.
+    var isEmpty: Bool {
+        let (replacementRange, newCount) = summary()
+        return replacementRange.isEmpty && newCount == 0
+    }
+
     // Returns a range covering the entire changed portion of the
     // original tree and the length of the newly inserted tree.
     func summary() -> (replacementRange: Range<Int>, newCount: Int) {

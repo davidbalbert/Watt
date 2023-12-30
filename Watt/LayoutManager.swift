@@ -485,8 +485,8 @@ class LayoutManager {
         }
     }
 
-    func line(containing location: Buffer.Index) -> Line {
-        let content = buffer.lines[location]
+    func line(containing index: Buffer.Index) -> Line {
+        let content = buffer.lines[index]
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
         let (line, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
@@ -756,6 +756,20 @@ class LayoutManager {
 
 extension LayoutManager: BufferDelegate {
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
+        // We should never be called with an empty delta (this would imply that contents didn't actually change).
+        //
+        // Invariant: if heights changes, the corresponding line(s) in lineCache must be invalidated.
+        //
+        // An example: consider a delta with multiple copies: e.g. [copy(0, 10), copy(10, 20)]
+        // where delta.baseCount == 20.
+        //
+        // In this situation, lineCache.invalidate(delta:) won't invalidate anything, but heights.replaceSubrange(_:with:)
+        // will reset the height of the line containing 10.
+        //
+        // This violates the invariant above. We prevent this violation by making sure
+        // buffer(_:contentsDidChangeFrom:to:withDelta:) is only called when the buffer actually changes.
+        assert(!delta.isEmpty)
+
         // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
         let (oldRange, count) = delta.summary()
 
