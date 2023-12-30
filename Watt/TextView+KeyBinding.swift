@@ -524,26 +524,8 @@ extension TextView {
     }
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-            unmarkText()
-            return
-        }
-
-        if selection.lowerBound == buffer.startIndex {
-            return
-        }
-
-        let i = buffer.index(before: selection.lowerBound)
-        var s = String(buffer[i]).decomposedStringWithCanonicalMapping
-        s.unicodeScalars.removeLast()
-
-        // If we left a trailing Zero Width Joiner, remove that too.
-        if s.unicodeScalars.last == "\u{200d}" {
-            s.unicodeScalars.removeLast()
-        }
-
-        replaceSubrange(i..<selection.lowerBound, with: s)
+        let (range, s) = SelectionNavigator.replacementDecomposingPreviousCharacter(for: selection, dataSource: layoutManager)
+        replaceSubrange(range, with: s)
         unmarkText()
     }
 

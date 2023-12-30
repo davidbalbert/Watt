@@ -463,6 +463,29 @@ extension SelectionNavigator {
 // MARK: - Deletion
 
 extension SelectionNavigator {
+    public static func replacementDecomposingPreviousCharacter(for selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
+        if selection.isRange {
+            return (selection.range, "")
+        }
+
+        if selection.head == dataSource.startIndex {
+            return (selection.head..<selection.head, "")
+        }
+
+        let end = selection.head
+        let start = dataSource.index(before: end)
+        
+        var s = String(dataSource[start]).decomposedStringWithCanonicalMapping
+        s.unicodeScalars.removeLast()
+
+        // If we left a trailing Zero Width Joiner, remove that too.
+        if s.unicodeScalars.last == "\u{200d}" {
+            s.unicodeScalars.removeLast()
+        }
+
+        return (start..<end, s)
+    }
+
     public static func rangeToDelete(for selection: Selection, movement: Movement, dataSource: DataSource) -> Range<Selection.Index> {
         if selection.isRange {
             return selection.range
