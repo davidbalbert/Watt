@@ -2147,7 +2147,7 @@ final class RopeTests: XCTestCase {
     func testReadLastLineInChunkWhereChunkEndsInNewlineAndIsNotTheLastChunk() {
         // Very contrived. I don't know how to create this situation naturally
         // because of how boundaryForBulkInsert tries to put the "\n" on the right
-        // side of the rope boundary, but it has appeared in the wild.
+        // side of the chunk boundary, but it has appeared in the wild.
         var b = BTreeBuilder<Rope>()
         var breaker = Rope.GraphemeBreaker()
 
@@ -2164,6 +2164,23 @@ final class RopeTests: XCTestCase {
 
         // This shouldn't crash
         XCTAssertEqual(String(repeating: "b", count: 510) + "\n", r.lines[1])
+    }
+
+    func testPreviousNewlineWhenPreviousChunkEndsInNewline() {
+        var r = Rope(String(repeating: "a", count: 999) + "\n")
+        r += String(repeating: "b", count: 1000)
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1000, r.root.children[1].count)
+
+        XCTAssertEqual("\n", r.root.children[0].leaf.string.last)
+
+        let i = r.root.index(at: 1500, using: .characters)
+        let j = r.root.index(roundingDown: i, using: .newlines)
+
+        XCTAssertEqual(1000, j.position)
     }
 
     func testMoveToPreviousLineInAFourChunkStretchOfNoNewlines() {

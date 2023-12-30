@@ -467,10 +467,13 @@ extension Rope {
         }
 
         func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            assert(offset < chunk.count)
+            assert(offset <= chunk.count)
 
             if offset < chunk.prefixCount {
                 return false
+            }
+            if offset == chunk.count {
+                return !chunk.lastCharSplits
             }
 
             let i = chunk.string.utf8Index(at: offset)
