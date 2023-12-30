@@ -463,7 +463,7 @@ extension SelectionNavigator {
 // MARK: - Deletion
 
 extension SelectionNavigator {
-    public static func replacementDecomposingPreviousCharacter(for selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
+    public static func replacementForDeleteBackwardsByDecomposing(_ selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
         if selection.isRange {
             return (selection.range, "")
         }

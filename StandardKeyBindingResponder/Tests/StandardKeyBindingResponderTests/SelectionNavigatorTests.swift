@@ -1156,6 +1156,55 @@ final class SelectionNavigatorTests: XCTestCase {
         XCTAssertEqual(r, s.index(at: 4)..<s.index(at: 7))
     }
 
+    func testDeleteBackwardWithDecomposition() {
+        func t(_ s: String, _ selectedRange: Range<Int>, _ expectedRange: Range<Int>, _ expectedString: String, file: StaticString = #file, line: UInt = #line) {
+            let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+            let sel: TestSelection
+            if selectedRange.isEmpty {
+                sel = TestSelection(caretAt: s.index(at: selectedRange.lowerBound), affinity: .downstream, granularity: .character)
+            } else {
+                sel = TestSelection(anchor: s.index(at: selectedRange.lowerBound), head: s.index(at: selectedRange.upperBound), granularity: .character)
+            }
+
+            let (range, string) = SelectionNavigator.replacementForDeleteBackwardsByDecomposing(sel, dataSource: d)
+            XCTAssertEqual(range, s.index(at: expectedRange.lowerBound)..<s.index(at: expectedRange.upperBound), file: file, line: line)
+            XCTAssertEqual(string, expectedString, file: file, line: line)
+        }
+
+        t("a", 0..<0, 0..<0, "")
+        t("a", 0..<1, 0..<1, "")
+        t("a", 1..<1, 0..<1, "")
+
+        t("a\u{0301}", 0..<0, 0..<0, "")
+        t("a\u{0301}", 0..<1, 0..<1, "")
+        t("a\u{0301}", 1..<1, 0..<1, "a")
+
+        t("á", 0..<0, 0..<0, "")
+        t("á", 0..<1, 0..<1, "")
+        t("á", 1..<1, 0..<1, "a")
+
+        t("ṩ", 0..<0, 0..<0, "")
+        t("ṩ", 0..<1, 0..<1, "")
+        t("ṩ", 1..<1, 0..<1, "s\u{0323}") // ṣ
+        t("s\u{0323}", 1..<1, 0..<1, "s")
+
+        t("s\u{0323}\u{0307}", 0..<0, 0..<0, "") // ṩ
+        t("s\u{0323}\u{0307}", 0..<1, 0..<1, "")
+        t("s\u{0323}\u{0307}", 1..<1, 0..<1, "s\u{0323}") // ṣ
+
+        t("👨‍👩‍👧‍👦", 0..<0, 0..<0, "")
+        t("👨‍👩‍👧‍👦", 0..<1, 0..<1, "")
+        t("👨‍👩‍👧‍👦", 1..<1, 0..<1, "👨‍👩‍👧")
+        t("👨‍👩‍👧", 1..<1, 0..<1, "👨‍👩")
+        t("👨‍👩", 1..<1, 0..<1, "👨")
+        t("👨", 1..<1, 0..<1, "")
+
+        t("🇺🇸", 0..<0, 0..<0, "")
+        t("🇺🇸", 0..<1, 0..<1, "")
+        t("🇺🇸", 1..<1, 0..<1, "🇺")
+        t("🇺", 1..<1, 0..<1, "")
+    }
+
     func testDeleteForward() {
         let s = "abc def ghi"
         let d = TestSelectionDataSource(string: s, charsPerLine: 10)

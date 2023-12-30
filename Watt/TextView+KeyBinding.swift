@@ -524,7 +524,7 @@ extension TextView {
     }
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
-        let (range, s) = SelectionNavigator.replacementDecomposingPreviousCharacter(for: selection, dataSource: layoutManager)
+        let (range, s) = SelectionNavigator.replacementForDeleteBackwardsByDecomposing(selection, dataSource: layoutManager)
         replaceSubrange(range, with: s)
         unmarkText()
     }
