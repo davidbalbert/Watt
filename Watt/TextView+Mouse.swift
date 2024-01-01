@@ -56,7 +56,6 @@ extension TextView {
                 mouseEvent = nextEvent
             default:
                 print("Unexpected event type \(nextEvent.type)")
-                done = true
             }
 
             NSApp.sendEvent(nextEvent)
