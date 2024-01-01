@@ -1,5 +1,5 @@
 //
-//  DocumentContentDataSource.swift
+//  TextContentDataSource.swift
 //
 //
 //  Created by David Albert on 11/15/23.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol DocumentContentDataSource {
+public protocol TextContentDataSource {
     associatedtype Index: Comparable
 
     var documentRange: Range<Index> { get }
@@ -26,7 +26,7 @@ public protocol DocumentContentDataSource {
 
 // MARK: - Default implementations
 
-public extension DocumentContentDataSource {
+public extension TextContentDataSource {
     func index(ofParagraphBoundaryBefore i: Index) -> Index {
         precondition(i > startIndex)
 
@@ -60,7 +60,7 @@ public extension DocumentContentDataSource {
 
 // MARK: - Internal helpers
 
-extension DocumentContentDataSource {
+extension TextContentDataSource {
     var isEmpty: Bool {
         documentRange.isEmpty
     }

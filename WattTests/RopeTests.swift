@@ -165,6 +165,26 @@ final class RopeTests: XCTestCase {
         XCTAssert(String(repeating: "a", count: 40_000) + String(repeating: "b", count: 710_000) + String(repeating: "a", count: 250_000) == String(r), "not equal")
     }
 
+    func testReplaceSubrangeOnUnicodeScalarBoundary() {
+        var r = Rope("a\u{0301}b") // "áb"
+        let start = r.unicodeScalars.index(r.startIndex, offsetBy: 1)
+        let end = r.unicodeScalars.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(start.position..<end.position, 1..<3)
+
+        r.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual("ab", String(r))
+    }
+
+    func testReplaceSubrangeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        var r = Rope("a\u{0301}b") // "áb"
+        let start = r.utf8.index(r.startIndex, offsetBy: 1)
+        let end = r.utf8.index(r.startIndex, offsetBy: 2)
+        XCTAssertEqual(start.position..<end.position, 1..<2)
+
+        r.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual("a\u{0301}b", String(r))
+    }
+
     func testAppendContentsOfInPlace() {
         var r = Rope("abc")
         r.append(contentsOf: "def")
@@ -2078,6 +2098,17 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("a\u{0301}", String(r2))
     }
 
+    func testDeltaReplaceSubrangeOnUnicodeScalarBoundary() {
+        var r = Rope("a\u{0301}b") // "áb"
+
+        var b = BTreeDeltaBuilder<Rope>(r.root.count)
+        b.replaceSubrange(1..<3, with: "")
+        let delta = b.build()
+
+        r = r.applying(delta: delta)
+        XCTAssertEqual("ab", String(r))
+    }
+
     // MARK: - Regression tests
 
     func testConvertMultiChunkRopeToStringAsSequence() {
@@ -2116,7 +2147,7 @@ final class RopeTests: XCTestCase {
     func testReadLastLineInChunkWhereChunkEndsInNewlineAndIsNotTheLastChunk() {
         // Very contrived. I don't know how to create this situation naturally
         // because of how boundaryForBulkInsert tries to put the "\n" on the right
-        // side of the rope boundary, but it has appeared in the wild.
+        // side of the chunk boundary, but it has appeared in the wild.
         var b = BTreeBuilder<Rope>()
         var breaker = Rope.GraphemeBreaker()
 
@@ -2133,6 +2164,23 @@ final class RopeTests: XCTestCase {
 
         // This shouldn't crash
         XCTAssertEqual(String(repeating: "b", count: 510) + "\n", r.lines[1])
+    }
+
+    func testPreviousNewlineWhenPreviousChunkEndsInNewline() {
+        var r = Rope(String(repeating: "a", count: 999) + "\n")
+        r += String(repeating: "b", count: 1000)
+
+        XCTAssertEqual(1, r.root.height)
+        XCTAssertEqual(2, r.root.children.count)
+        XCTAssertEqual(1000, r.root.children[0].count)
+        XCTAssertEqual(1000, r.root.children[1].count)
+
+        XCTAssertEqual("\n", r.root.children[0].leaf.string.last)
+
+        let i = r.root.index(at: 1500, using: .characters)
+        let j = r.root.index(roundingDown: i, using: .newlines)
+
+        XCTAssertEqual(1000, j.position)
     }
 
     func testMoveToPreviousLineInAFourChunkStretchOfNoNewlines() {

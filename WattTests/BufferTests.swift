@@ -146,4 +146,40 @@ final class BufferTests: XCTestCase {
 
         XCTAssertNil(iter.next())
     }
+
+    func testReplaceSubrangeOnUnicodeScalarBoundary() {
+        let b = Buffer("a\u{0301}b", language: .plainText) // áb
+        let start = b.text.unicodeScalars.index(b.text.startIndex, offsetBy: 1)
+        let end = b.text.unicodeScalars.index(b.text.startIndex, offsetBy: 2)
+
+        b.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual(b.text, "ab")
+    }
+
+    func testReplaceSubrangeWithAttributedRopeOnUnicodeScalarBoundary() {
+        let b = Buffer("a\u{0301}b", language: .plainText) // áb
+        let start = b.text.unicodeScalars.index(b.text.startIndex, offsetBy: 1)
+        let end = b.text.unicodeScalars.index(b.text.startIndex, offsetBy: 2)
+
+        b.replaceSubrange(start..<end, with: AttributedRope(""))
+        XCTAssertEqual(b.text, "ab")
+    }
+
+    func testReplaceSubrangeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        let b = Buffer("a\u{0301}b", language: .plainText) // áb
+        let start = b.text.utf8.index(b.text.utf8.startIndex, offsetBy: 1)
+        let end = b.text.utf8.index(b.text.utf8.startIndex, offsetBy: 2)
+
+        b.replaceSubrange(start..<end, with: "")
+        XCTAssertEqual(b.text, "a\u{0301}b")
+    }
+
+    func testReplaceSubrangeWithAttributedRopeOnUTF8BoundaryShouldRoundDownToUnicodeScalar() {
+        let b = Buffer("a\u{0301}b", language: .plainText) // áb
+        let start = b.text.utf8.index(b.text.utf8.startIndex, offsetBy: 1)
+        let end = b.text.utf8.index(b.text.utf8.startIndex, offsetBy: 2)
+
+        b.replaceSubrange(start..<end, with: AttributedRope(""))
+        XCTAssertEqual(b.text, "a\u{0301}b")
+    }
 }

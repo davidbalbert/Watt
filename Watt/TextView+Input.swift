@@ -196,13 +196,21 @@ extension TextView {
     }
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: AttributedRope) {
-        buffer.replaceSubrange(subrange, with: s)
-        updateStateAfterReplacingSubrange(subrange, withStringOfCount: s.count)
+        let start = buffer.text.unicodeScalars.index(roundingDown: subrange.lowerBound)
+        let end = buffer.text.unicodeScalars.index(roundingDown: subrange.upperBound)
+        let r = start..<end
+
+        buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: String) {
-        buffer.replaceSubrange(subrange, with: s)
-        updateStateAfterReplacingSubrange(subrange, withStringOfCount: s.count)
+        let start = buffer.text.unicodeScalars.index(roundingDown: subrange.lowerBound)
+        let end = buffer.text.unicodeScalars.index(roundingDown: subrange.upperBound)
+        let r = start..<end
+
+        buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func updateStateAfterReplacingSubrange(_ subrange: Range<Buffer.Index>, withStringOfCount count: Int) {

@@ -1,5 +1,5 @@
 //
-//  SelectionNavigationDataSourceTests.swift
+//  TextLayoutDataSourceTests.swift
 //  
 //
 //  Created by David Albert on 11/8/23.
@@ -8,12 +8,12 @@
 import XCTest
 @testable import StandardKeyBindingResponder
 
-final class SelectionNavigationDataSourceTests: XCTestCase {
+final class TextLayoutDataSourceTests: XCTestCase {
     // MARK: index(forCaretOffset:inLineFragmentWithRange:)
 
     func testIndexForCaretOffsetEmpty() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 0)
 
@@ -24,7 +24,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetOnlyNewline() {
         let s = "\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 1)
 
@@ -36,7 +36,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetSingleCharacter() {
         let s = "a"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 1)
 
@@ -50,7 +50,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetSingleCharacterWithNewline() {
         let s = "a\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 2)
 
@@ -66,7 +66,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetSingleLine() {
         let s = "abc"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 3)
 
@@ -83,7 +83,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetWrap() {
         let s = "0123456789wrap"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = s.index(at: 0)..<s.index(at: 10)
 
@@ -126,7 +126,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testIndexForCaretOffsetFullFragWithNewline() {
         let s = "0123456789\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = s.index(at: 0)..<s.index(at: 11)
 
@@ -169,7 +169,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testCaretOffsetForCharacterAtEmpty() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 0)
 
@@ -178,7 +178,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testCaretOffsetForCharacterAtNewline() {
         let s = "\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = s.index(at: 0)..<s.index(at: 1)
         XCTAssertEqual(0, dataSource.caretOffset(forCharacterAt: s.index(at: 0), inLineFragmentWithRange: r))
@@ -190,7 +190,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testCaretOffsetForCharacterAtSingleCharacter() {
         let s = "a"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = s.index(at: 0)..<s.index(at: 1)
 
@@ -200,7 +200,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testCaretOffsetForCharacterAtNonEmptyWithNewline() {
         let s = "a\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = s.index(at: 0)..<s.index(at: 2)
 
@@ -217,7 +217,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForCharacterEmptyString() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = dataSource.range(for: .character, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<0, Range(r, in: s))
@@ -225,7 +225,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForWordEmptyString() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = dataSource.range(for: .word, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<0, Range(r, in: s))
@@ -233,7 +233,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForLineEmptyString() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<0, Range(r, in: s))
@@ -241,7 +241,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForParagraphEmptyString() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<0, Range(r, in: s))
@@ -249,7 +249,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForCharacter() {
         let s = "abc"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .character, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<1, Range(r, in: s))
@@ -266,7 +266,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForWordCharactersAtEdges() {
         let s = "abc   def"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<3, Range(r, in: s))
@@ -301,7 +301,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForWordWhitespaceAtEdges() {
         let s = "   abc   "
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<3, Range(r, in: s))
@@ -336,7 +336,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForWordWithNewline() {
         let s = "abc  \n def"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .word, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<3, Range(r, in: s))
@@ -374,7 +374,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForLineSingleFragment() {
         let s = "abc"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<3, Range(r, in: s))
@@ -391,7 +391,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForLineWithNewline() {
         let s = "abc\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<4, Range(r, in: s))
@@ -411,7 +411,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForFullLine() {
         let s = "0123456789"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<10, Range(r, in: s))
@@ -428,7 +428,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForFullLineWithTrailingNewline() {
         let s = "0123456789\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<11, Range(r, in: s))
@@ -448,7 +448,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForWrappedLine() {
         let s = "0123456789wrap"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .line, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<10, Range(r, in: s))
@@ -471,7 +471,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForParagraph() {
         let s = "0123456789wrap\n0123456789wrap"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<15, Range(r, in: s))
@@ -491,7 +491,7 @@ final class SelectionNavigationDataSourceTests: XCTestCase {
 
     func testRangeForParagraphWithTrailingNewline() {
         let s = "foo\nbar\n"
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         var r = dataSource.range(for: .paragraph, enclosing: s.index(at: 0))
         XCTAssertEqual(0..<4, Range(r, in: s))

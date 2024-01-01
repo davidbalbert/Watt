@@ -196,12 +196,20 @@ class Buffer {
     //
     // This will also be important for Undo/Redo.
     func replaceSubrange(_ subrange: Range<Index>, with attrRope: AttributedRope) {
+        if subrange.isEmpty && attrRope.isEmpty {
+            return
+        }
+
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: attrRope)
         applying(delta: b.build())
     }
 
     func replaceSubrange(_ subrange: Range<Index>, with s: String) {
+        if subrange.isEmpty && s.isEmpty {
+            return
+        }
+
         var b = AttributedRope.DeltaBuilder(contents)
         b.replaceSubrange(subrange, with: s)
         applying(delta: b.build())
@@ -284,7 +292,7 @@ extension Buffer: HighlighterDelegate {
     }
 }
 
-extension Buffer: DocumentContentDataSource {
+extension Buffer: TextContentDataSource {
     var characterCount: Int {
         count
     }

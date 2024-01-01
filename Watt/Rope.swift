@@ -467,10 +467,13 @@ extension Rope {
         }
 
         func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            assert(offset < chunk.count)
+            assert(offset <= chunk.count)
 
             if offset < chunk.prefixCount {
                 return false
+            }
+            if offset == chunk.count {
+                return !chunk.lastCharSplits
             }
 
             let i = chunk.string.utf8Index(at: offset)
@@ -904,8 +907,11 @@ extension Rope: BidirectionalCollection {
 
 extension Rope: RangeReplaceableCollection {
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
-        let rangeStart = index(roundingDown: subrange.lowerBound)
-        let rangeEnd = index(roundingDown: subrange.upperBound)
+        subrange.lowerBound.validate(for: self)
+        subrange.upperBound.validate(for: self)
+
+        let rangeStart = unicodeScalars.index(roundingDown: subrange.lowerBound)
+        let rangeEnd = unicodeScalars.index(roundingDown: subrange.upperBound)
 
         // We have to ensure that root isn't mutated directly because that would
         // invalidate indices and counts when we push the suffix (rangeEnd..<endIndex)
@@ -1034,7 +1040,8 @@ extension Rope {
                 return
             }
 
-            let prev = chunk.characters.index(before: i)
+            let j = chunk.characters._index(roundingDown: i)
+            let prev = j == i ? chunk.characters.index(before: i) : j
 
             self.init(consuming: chunk.string[prev..<i])
         }
@@ -1573,7 +1580,7 @@ extension Rope: Equatable {
 // TODO: normalized comparisons
 extension Subrope: Equatable {
     static func == (lhs: Subrope, rhs: Subrope) -> Bool {
-        if lhs.base.root == rhs.base.root && Range(uncheckedRange: lhs.bounds) == Range(uncheckedRange: rhs.bounds) {
+        if lhs.base.root == rhs.base.root && Range(unvalidatedRange: lhs.bounds) == Range(unvalidatedRange: rhs.bounds) {
             return true
         }
         return Rope(lhs) == Rope(rhs)
@@ -1671,7 +1678,7 @@ extension Range where Bound == Rope.Index {
 
 extension Range where Bound == Int {
     // Don't use for user provided ranges.
-    init(uncheckedRange range: Range<Rope.Index>) {
+    init(unvalidatedRange range: Range<Rope.Index>) {
         self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
     }
 

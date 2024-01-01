@@ -1,5 +1,5 @@
 //
-//  SimpleSelectionDataSourceTests.swift
+//  TestTextLayoutDataSourceTests.swift
 //
 //
 //  Created by David Albert on 11/8/23.
@@ -10,12 +10,12 @@ import XCTest
 // Sanity checks to make sure we can rely on SimpleSelectionDataSource
 // for use in the rest of our tests.
 
-final class SimpleSelectionDataSourceTests: XCTestCase {
+final class TestTextLayoutDataSourceTests: XCTestCase {
     // MARK: lineFragmentRange(containing:)
 
     func testLineFragmentRangesEmptyBuffer() {
         let s = ""
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         let r = dataSource.lineFragmentRange(containing: s.startIndex)
 
@@ -26,7 +26,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
         let charsPerFrag = 10
         let s = String(repeating: "a", count: charsPerFrag*4 + 2)
-        let dataSource = TestSelectionDataSource(string: s, charsPerLine: charsPerFrag)
+        let dataSource = TestTextLayoutDataSource(string: s, charsPerLine: charsPerFrag)
 
         let start0 = s.index(s.startIndex, offsetBy: 0*charsPerFrag)
         let start1 = s.index(s.startIndex, offsetBy: 1*charsPerFrag)
@@ -54,7 +54,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         // 1 line, 5 line fragments, with the fifth fragment only holding 2 characters
         let charsPerFrag = 10
         let string = String(repeating: "a", count: charsPerFrag*4 + 2)
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: charsPerFrag)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: charsPerFrag)
 
         let i0 = string.index(string.startIndex, offsetBy: 0*charsPerFrag + 1)
         let i1 = string.index(string.startIndex, offsetBy: 1*charsPerFrag + 1)
@@ -90,7 +90,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(4, string.filter { $0 == "\n" }.count + 1)
         XCTAssertNotEqual("\n", string.last)
 
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: charsPerFrag)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: charsPerFrag)
 
         // First line: a single fragment that takes up less than the entire width.
         let start0 = string.index(string.startIndex, offsetBy: 0)
@@ -156,7 +156,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         XCTAssertEqual(2, string.filter { $0 == "\n" }.count + 1)
         XCTAssertEqual("\n", string.last)
 
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: charsPerFrag)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: charsPerFrag)
 
         // First line: two fragments
         let start0 = string.index(string.startIndex, offsetBy: 0)
@@ -182,7 +182,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testLineFragmentRangeFullFragAndNewline() {
         let string = "0123456789\n"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var r = dataSource.lineFragmentRange(containing: string.index(at: 0))
         XCTAssertEqual(0..<11, Range(r, in: string))
@@ -199,7 +199,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testLineFragmentRangeEndIndex() {
         let string = "abc"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // End index returns the last line
         let r = dataSource.lineFragmentRange(containing: string.index(at: 3))
@@ -209,7 +209,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
     // MARK: lineFragmentRange(for:)
     func testLineFragmentRangeForEmpty() {
         let string = ""
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
         XCTAssertNil(r)
@@ -226,7 +226,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testLineFragmentRangeForNewline() {
         let string = "\n"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
         XCTAssertNil(r)
@@ -253,7 +253,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
         hello
         
         """
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // before document
         var r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: -0.001))
@@ -298,7 +298,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetsEmptyLine() {
         let string = ""
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         let offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(2, offsets.count)
@@ -309,7 +309,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetsOnlyNewline() {
         let string = "\n"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(2, offsets.count)
@@ -325,7 +325,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetOneLine() {
         let string = "abc"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         let offsets = dataSource.carretOffsetsInLineFragment(containing: string.startIndex)
 
         XCTAssertEqual(6, offsets.count)
@@ -340,7 +340,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetWithNewline() {
         let string = "abc\n"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(8, offsets.count)
@@ -364,7 +364,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetsWithWrap() {
         let string = "0123456789wrap"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(20, offsets.count)
@@ -406,7 +406,7 @@ final class SimpleSelectionDataSourceTests: XCTestCase {
 
     func testEnumerateCaretOffsetFullLineFragmentPlusNewline() {
         let string = "0123456789\n"
-        let dataSource = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let dataSource = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         var offsets = dataSource.carretOffsetsInLineFragment(containing: string.index(at: 0))
 
         XCTAssertEqual(22, offsets.count)

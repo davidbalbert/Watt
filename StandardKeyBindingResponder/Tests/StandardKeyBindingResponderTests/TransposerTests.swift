@@ -8,7 +8,7 @@
 import XCTest
 @testable import StandardKeyBindingResponder
 
-fileprivate extension DocumentContentDataSource {
+fileprivate extension TextContentDataSource {
     func index(at offset: Int) -> Index {
         index(startIndex, offsetBy: offset)
     }
@@ -16,7 +16,7 @@ fileprivate extension DocumentContentDataSource {
 
 final class TransposerTests: XCTestCase {
     func testIndicesForTranspose() {
-        let tests: [(SimpleContentDataSource, Range<Int>, (Int, Int)?)] = [
+        let tests: [(TestTextContentDataSource, Range<Int>, (Int, Int)?)] = [
             ("", 0..<0, nil),          // empty document
             ("abcde", 0..<0, (0, 1)),  // caret at beginning
             ("abcde", 1..<1, (0, 1)),  // caret in between
@@ -42,7 +42,7 @@ final class TransposerTests: XCTestCase {
     }
 
     func testRangesForTransposeWords() {
-        func t(_ dataSource: SimpleContentDataSource, _ range: Range<Int>, _ expected: (Range<Int>, Range<Int>)?, file: StaticString = #file, line: UInt = #line) {
+        func t(_ dataSource: TestTextContentDataSource, _ range: Range<Int>, _ expected: (Range<Int>, Range<Int>)?, file: StaticString = #file, line: UInt = #line) {
             let r = dataSource.index(at: range.lowerBound)..<dataSource.index(at: range.upperBound)
             let result = Transposer.rangesForTransposeWords(inSelectedRange: r, dataSource: dataSource)
 

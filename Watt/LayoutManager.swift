@@ -20,6 +20,8 @@ protocol LayoutManagerDelegate: AnyObject {
 
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
+
+    func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
 }
 
 extension LayoutManagerDelegate {
@@ -28,17 +30,8 @@ extension LayoutManagerDelegate {
     }
 }
 
-protocol LayoutManagerLineNumberDelegate: AnyObject {
-    func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool
-    func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, addLineNumberForLine lineno: Int, withAlignmentFrame alignmentFrame: CGRect)
-    func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int)
-}
-
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
-    weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
     var buffer: Buffer {
         didSet {
@@ -92,32 +85,13 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-
-        let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
-        if updateLineNumbers {
-            lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
-        }
-
         let viewportRange = lineRange(intersecting: viewportBounds)
 
         lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
-        var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
-
         enumerateLines(in: viewportRange) { line, prevAlignmentFrame in
             block(line, prevAlignmentFrame)
-
-            if updateLineNumbers {
-                lineNumberDelegate!.layoutManager(self, addLineNumberForLine: lineno + 1, withAlignmentFrame: line.alignmentFrame)
-            }
-
-            lineno += 1
-
             return true
-        }
-
-        if updateLineNumbers {
-            lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
     }
 
@@ -485,8 +459,8 @@ class LayoutManager {
         }
     }
 
-    func line(containing location: Buffer.Index) -> Line {
-        let content = buffer.lines[location]
+    func line(containing index: Buffer.Index) -> Line {
+        let content = buffer.lines[index]
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
         let (line, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
@@ -756,6 +730,20 @@ class LayoutManager {
 
 extension LayoutManager: BufferDelegate {
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
+        // We should never be called with an empty delta (this would imply that contents didn't actually change).
+        //
+        // Invariant: if heights changes, the corresponding line(s) in lineCache must be invalidated.
+        //
+        // An example: consider a delta with multiple copies: e.g. [copy(0, 10), copy(10, 20)]
+        // where delta.baseCount == 20.
+        //
+        // In this situation, lineCache.invalidate(delta:) won't invalidate anything, but heights.replaceSubrange(_:with:)
+        // will reset the height of the line containing 10.
+        //
+        // This violates the invariant above. We prevent this violation by making sure
+        // buffer(_:contentsDidChangeFrom:to:withDelta:) is only called when the buffer actually changes.
+        assert(!delta.isEmpty)
+
         // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
         let (oldRange, count) = delta.summary()
 
@@ -773,11 +761,8 @@ extension LayoutManager: BufferDelegate {
         // newline, and probably for other things too.
         ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
 
+        delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
         delegate?.didInvalidateLayout(for: self)
-
-        if old.lines.count != new.lines.count {
-            lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
-        }
     }
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
@@ -801,7 +786,7 @@ extension LayoutManager {
 }
 
 
-extension LayoutManager: SelectionNavigationDataSource {
+extension LayoutManager: TextLayoutDataSource {
     var characterCount: Int {
         buffer.characterCount
     }

@@ -34,6 +34,36 @@ extension TextView {
         default:
             break
         }
+
+        var mouseEvent = event
+        var done = false
+        NSEvent.startPeriodicEvents(afterDelay: 0.1, withPeriod: 0.05)
+
+        while !done {
+            guard let nextEvent = NSApp.nextEvent(matching: [.leftMouseUp, .leftMouseDragged, .periodic], until: .distantFuture, inMode: .eventTracking, dequeue: true) else {
+                print("Unexpected nil event, should not expire")
+                continue
+            }
+
+            switch nextEvent.type {
+            case .periodic:
+                autoscroll(with: mouseEvent)
+                extendSelection(with: mouseEvent)
+                // Don't dispatch periodic events to NSApp. Doesn't really matter in practice, but
+                // NSApp doesn't normally receive periodic events, so let's not rock the boat.
+                continue
+            case .leftMouseUp:
+                done = true
+            case .leftMouseDragged:
+                mouseEvent = nextEvent
+            default:
+                print("Unexpected event type \(nextEvent.type)")
+            }
+
+            NSApp.sendEvent(nextEvent)
+        }
+
+        NSEvent.stopPeriodicEvents()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -41,8 +71,13 @@ extension TextView {
             return
         }
 
+        extendSelection(with: event)
+    }
+
+    func extendSelection(with event: NSEvent) {
         let locationInView = convert(event.locationInWindow, from: nil)
-        let point = convertToTextContainer(locationInView)
+        let clamped = locationInView.clamped(to: visibleRect)
+        let point = convertToTextContainer(clamped)
         layoutManager.selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
     }
 

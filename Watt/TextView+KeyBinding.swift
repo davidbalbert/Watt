@@ -98,23 +98,32 @@ extension TextView {
     }
 
     override func centerSelectionInVisibleArea(_ sender: Any?) {
-        let rect: CGRect
         if selection.isCaret {
-            let r = layoutManager.caretRect(for: selection.head, affinity: selection.affinity)
-            guard let r else {
+            guard let rect = layoutManager.caretRect(for: selection.head, affinity: selection.affinity) else {
                 return
             }
-            rect = r
-        } else {
-            let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
-            let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
-            guard let r1, let r2 else {
-                return
-            }
-            rect = r1.union(r2)
+            scrollToCenter(rect)
+            return
         }
 
-        scrollToCenter(rect)
+        let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
+        let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
+        guard let r1, let r2 else {
+            return
+        }
+        let rect = r1.union(r2)
+
+        let viewport = textContainerVisibleRect
+
+        if rect.height < viewport.height {
+            scrollToCenter(rect)
+        } else if viewport.minY < rect.minY {
+            let target = r1.origin
+            scroll(convertFromTextContainer(target))
+        } else if rect.maxY < viewport.maxY {
+            let target = CGPoint(x: r2.minX, y: r2.maxY - viewport.height)
+            scroll(convertFromTextContainer(target))
+        }
     }
 
 
@@ -503,83 +512,63 @@ extension TextView {
     // MARK: - Deletions
 
     override func deleteForward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound < buffer.endIndex {
-            let end = buffer.index(after: selection.lowerBound)
-            replaceSubrange(selection.lowerBound..<end, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .right, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteBackward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound > buffer.startIndex {
-            let start = buffer.index(before: selection.lowerBound)
-            replaceSubrange(start..<selection.lowerBound, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .left, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
-
+        let (range, s) = SelectionNavigator.replacementForDeleteBackwardsByDecomposing(selection, dataSource: layoutManager)
+        replaceSubrange(range, with: s)
+        unmarkText()
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound < buffer.endIndex {
-            let caret = selection.lowerBound
-            var end = caret
-
-            while end < buffer.endIndex && !isWordChar(buffer[end]) {
-                end = buffer.index(after: end)
-            }
-            while end < buffer.endIndex && isWordChar(buffer[end]) {
-                end = buffer.index(after: end)
-            }
-
-            replaceSubrange(caret..<end, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordRight, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        if selection.isRange {
-            replaceSubrange(selection.range, with: "")
-        } else if selection.lowerBound > buffer.startIndex {
-            let caret = selection.lowerBound
-            var start = buffer.index(before: caret)
-
-            // TODO: isWordChar should be defined elsewhere I think. Maybe StandardKeyBindingResponder?
-            while start > buffer.startIndex && !isWordChar(buffer[buffer.index(before: start)]) {
-                start = buffer.index(before: start)
-            }
-
-            while start > buffer.startIndex && isWordChar(buffer[buffer.index(before: start)]) {
-                start = buffer.index(before: start)
-            }
-
-            replaceSubrange(start..<caret, with: "")
-        }
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordLeft, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
         unmarkText()
     }
 
+    // Follow Xcode's lead and make deleteToBeginningOfLine: behave like deleteToBeginningOfParagraph:.
+    // I imagine this is because StandardKeyBinding.dict only includes deleteToBeginningOfLine: and
+    // deleteToEndOfPargraph: and in a text editor it's more useful for Command-Delete to delete to
+    // the beginning of the line, not the line fragment.
+    //
+    // Perhaps this would be a good place for some sort of preference in the future.
     override func deleteToBeginningOfLine(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToEndOfLine(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfLine, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToBeginningOfParagraph(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
     override func deleteToEndOfParagraph(_ sender: Any?) {
-
+        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfParagraph, dataSource: layoutManager)
+        replaceSubrange(range, with: "")
+        unmarkText()
     }
 
 
@@ -655,8 +644,4 @@ extension TextView {
     override func quickLookPreviewItems(_ sender: Any?) {
 
     }
-}
-
-fileprivate func isWordChar(_ c: Character) -> Bool {
-    !c.isWhitespace && !c.isPunctuation
 }
