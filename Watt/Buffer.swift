@@ -292,7 +292,7 @@ extension Buffer: HighlighterDelegate {
     }
 }
 
-extension Buffer: DocumentContentDataSource {
+extension Buffer: TextContentDataSource {
     var characterCount: Int {
         count
     }

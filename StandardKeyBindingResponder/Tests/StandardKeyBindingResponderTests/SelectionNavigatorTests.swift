@@ -13,7 +13,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveHorizontallyByCharacter() {
         let string = "ab\ncd\n"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .right, caretAt: string.index(at: 1), affinity: .downstream, dataSource: d)
@@ -37,7 +37,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveRightToEndOfFrag() {
         let string = "a"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
 
@@ -46,7 +46,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveRightFromSelection() {
         let string = "foo bar baz"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
         var s = TestSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
@@ -81,7 +81,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveLeftFromSelection() {
         let string = "foo bar baz"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "oo b"
         var s = TestSelection(anchor: string.index(at: 1), head: string.index(at: 5), granularity: .character)
@@ -115,7 +115,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789abcdefghijwrap
         xyz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "1"
         var s = TestSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
@@ -149,7 +149,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveVerticallyWithEmptyLastLine() {
         let string = "abc\n"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // after "\n"
         var s = TestSelection(caretAt: string.endIndex, affinity: .upstream, granularity: .character)
@@ -171,7 +171,7 @@ final class SelectionNavigatorTests: XCTestCase {
         qrst
         uvwx
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // "f" through "k"
         var s = TestSelection(anchor: string.index(at: 6), head: string.index(at: 13), granularity: .character)
@@ -202,7 +202,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveHorizontallyByWord() {
         let string = "  hello, world; this is (a test) "
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
 
@@ -244,7 +244,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveByWordApostrophe() {
         let string = "foo bar's  '' baz"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
 
@@ -265,7 +265,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveRightWordFromSelection() {
         let string = "  hello, world; this is (a test) "
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "ello, w"
         var s = TestSelection(anchor: string.index(at: 3), head: string.index(at: 10), granularity: .character)
@@ -297,7 +297,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveLeftWordFromSelection() {
         let string = "  hello, world; this is (a test) "
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "lo, w"
         var s = TestSelection(anchor: string.index(at: 5), head: string.index(at: 10), granularity: .character)
@@ -329,7 +329,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveLineEmpty() {
         let string = ""
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
         s = moveAndAssert(s, direction: .beginningOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
@@ -338,7 +338,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testMoveLineSingleFragments() {
         let string = "foo bar\nbaz qux\n"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // between "a" and "r"
         var s = TestSelection(caretAt: string.index(at: 6), affinity: .downstream, granularity: .character)
@@ -384,7 +384,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = """
         0123456789abcdefghijwrap
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // between "0" and "1"
         var s = TestSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
@@ -436,7 +436,7 @@ final class SelectionNavigatorTests: XCTestCase {
         let string = """
         0123456789abcdefghijwrap
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // upstream between "9" and "a"
         var s = TestSelection(caretAt: string.index(at: 10), affinity: .upstream, granularity: .character)
@@ -462,7 +462,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789abcdefghijwrap
         bar
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
         var s = TestSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
@@ -560,7 +560,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         baz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // no-ops
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
@@ -629,7 +629,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         baz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "0123"
         var s = TestSelection(anchor: string.index(at: 0), head: string.index(at: 4), granularity: .character)
@@ -687,7 +687,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         baz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // no-ops
         var s = TestSelection(caretAt: string.index(at: 0), affinity: .downstream, granularity: .character)
@@ -709,7 +709,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         baz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // select "ijwrap\nfoo\n\nb"
         var s = TestSelection(anchor: string.index(at: 18), head: string.index(at: 31), granularity: .character)
@@ -736,7 +736,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
 
         var s = TestSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .pageDown, caret: "r", affinity: .downstream, dataSource: d)
@@ -768,7 +768,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
 
         // "abc" downstream
         var s = TestSelection(anchor: string.index(at: 0), head: string.index(at: 3), granularity: .character)
@@ -829,7 +829,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionByCharacter() {
         let string = "Hello, world!"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "!"
         var s = TestSelection(caretAt: string.index(at: 12), affinity: .downstream, granularity: .character)
@@ -854,7 +854,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789abcdefghijwrap
         xyz
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "b"
         var s = TestSelection(caretAt: string.index(at: 15), affinity: .downstream, granularity: .character)
@@ -875,7 +875,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionByWord() {
         let string = "foo; (bar) qux"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "a"
         var s = TestSelection(caretAt: string.index(at: 7), affinity: .downstream, granularity: .character)
@@ -893,7 +893,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionByLineEmpty() {
         let string = ""
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         var s = TestSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
         s = extendAndAssert(s, direction: .endOfLine, caretAt: string.startIndex, affinity: .upstream, dataSource: d)
@@ -902,7 +902,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionByLineSoftWrap() {
         let string = "Hello, world!"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10) // Wraps after "r"
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10) // Wraps after "r"
 
         // caret at "o"
         var s = TestSelection(caretAt: string.index(at: 8), affinity: .downstream, granularity: .character)
@@ -929,7 +929,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionByLineHardWrap() {
         let string = "foo\nbar\nqux"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at first "a"
         var s = TestSelection(caretAt: string.index(at: 5), affinity: .downstream, granularity: .character)
@@ -952,7 +952,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        var d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        var d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = TestSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
@@ -980,7 +980,7 @@ final class SelectionNavigatorTests: XCTestCase {
         foo
 
         """
-        d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "\n"
         s = TestSelection(caretAt: string.index(at: 4), affinity: .upstream, granularity: .character)
@@ -996,7 +996,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = TestSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1031,7 +1031,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // caret at "5"
         var s = TestSelection(caretAt: string.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1068,7 +1068,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
 
         var s = TestSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
@@ -1084,55 +1084,55 @@ final class SelectionNavigatorTests: XCTestCase {
         s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
     }
 
-    func extendAndAssert(_ s: TestSelection, direction: Movement, caret c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func extendAndAssert(_ s: TestSelection, direction: Movement, caret c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func extendAndAssert(_ s: TestSelection, direction: Movement, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func extendAndAssert(_ s: TestSelection, direction: Movement, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func extendAndAssertNoop(_ s: TestSelection, direction: Movement, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func extendAndAssertNoop(_ s: TestSelection, direction: Movement, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
-    func extendAndAssert(_ s: TestSelection, direction: Movement, caretAt caret: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func extendAndAssert(_ s: TestSelection, direction: Movement, caretAt caret: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extending: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: TestSelection, direction: Movement, caret c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func moveAndAssert(_ s: TestSelection, direction: Movement, caret c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: TestSelection, direction: Movement, caretAfter c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func moveAndAssert(_ s: TestSelection, direction: Movement, caretAfter c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAfter: c, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: TestSelection, direction: Movement, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func moveAndAssert(_ s: TestSelection, direction: Movement, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func moveAndAssertNoop(_ s: TestSelection, direction: Movement, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func moveAndAssertNoop(_ s: TestSelection, direction: Movement, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         XCTAssertEqual(s, s2, file: file, line: line)
         return s2
     }
 
-    func moveAndAssert(_ s: TestSelection, direction: Movement, caretAt caret: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func moveAndAssert(_ s: TestSelection, direction: Movement, caretAt caret: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(moving: direction, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caret, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
@@ -1143,7 +1143,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteBackward() {
         let s = "abc def ghi"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "f"
         var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
@@ -1158,7 +1158,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteBackwardWithDecomposition() {
         func t(_ s: String, _ selectedRange: Range<Int>, _ expectedRange: Range<Int>, _ expectedString: String, file: StaticString = #file, line: UInt = #line) {
-            let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+            let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
             let sel: TestSelection
             if selectedRange.isEmpty {
                 sel = TestSelection(caretAt: s.index(at: selectedRange.lowerBound), affinity: .downstream, granularity: .character)
@@ -1207,7 +1207,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteForward() {
         let s = "abc def ghi"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "f"
         var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
@@ -1222,7 +1222,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteWordForward() {
         let s = "abc def ghi"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "e"
         var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
@@ -1237,7 +1237,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteWordBackward() {
         let s = "abc def ghi"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "f"
         var sel = TestSelection(caretAt: s.index(at: 6), affinity: .downstream, granularity: .character)
@@ -1252,7 +1252,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteToBeginningOfLine() {
         let s = "0123456789wrap"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
@@ -1287,7 +1287,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDeleteToEndOfLine() {
         let s = "0123456789wrap"
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 5), affinity: .downstream, granularity: .character)
@@ -1327,7 +1327,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
         // don't delete trailing newline
         let s2 = "foo\nbar"
-        let d2 = TestSelectionDataSource(string: s2, charsPerLine: 10)
+        let d2 = TestTextLayoutDataSource(string: s2, charsPerLine: 10)
 
         // caret at second "o"
         sel = TestSelection(caretAt: s2.index(at: 2), affinity: .downstream, granularity: .character)
@@ -1346,7 +1346,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1385,7 +1385,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1430,7 +1430,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1470,7 +1470,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1514,7 +1514,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1538,7 +1538,7 @@ final class SelectionNavigatorTests: XCTestCase {
         0123456789wrap
         bar
         """
-        let d = TestSelectionDataSource(string: s, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: s, charsPerLine: 10)
 
         // caret at "5"
         var sel = TestSelection(caretAt: s.index(at: 9), affinity: .downstream, granularity: .character)
@@ -1560,7 +1560,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testClickingOnEmptyString() {
         let string = ""
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         
         clickAndAssert(CGPoint(x: 0, y: -0.001), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
         clickAndAssert(CGPoint(x: 100, y: -0.001), caretAt: string.index(at: 0), affinity: .upstream, dataSource: d)
@@ -1580,7 +1580,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testClickingOnNewline() {
         let string = "\n"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         clickAndAssert(CGPoint(x: 0, y: -0.001), caret: "\n", affinity: .downstream, dataSource: d)
         clickAndAssert(CGPoint(x: 100, y: -0.001), caret: "\n", affinity: .downstream, dataSource: d)
@@ -1610,7 +1610,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
 
         """
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // first fragment
 
@@ -1709,7 +1709,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDraggingEmptyString() {
         let string = ""
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // click
         var s = clickAndAssert(CGPoint(x: 0, y: 0), caretAt: string.startIndex, affinity: .upstream, dataSource: d)
@@ -1721,7 +1721,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testDraggingNewline() {
         let string = "\n"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // click
         var s = clickAndAssert(CGPoint(x: 0, y: 0), caret: "\n", affinity: .downstream, dataSource: d)
@@ -1737,7 +1737,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
         """
 
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // click at "5"
         var s = clickAndAssert(CGPoint(x: 40, y: 0), caret: "5", affinity: .downstream, dataSource: d)
@@ -1790,7 +1790,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendSelectionToEnclosingEmpty() {
         let string = ""
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
         
         var s = TestSelection(caretAt: string.startIndex, affinity: .upstream, granularity: .character)
         s = SelectionNavigator(s).selection(for: .word, enclosing: CGPoint(x: 0, y: 0), dataSource: d)
@@ -1809,7 +1809,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
         """
 
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // before "0"
         var s = clickAndAssert(CGPoint(x: -1, y: 0), caret: "0", affinity: .downstream, dataSource: d)
@@ -1864,7 +1864,7 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func testExtendingSelectionToWordApostrophe() {
         let string = "foo bar's baz’s 'qux' a’'b"
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // just before "bar's"
         var s = clickAndAssert(CGPoint(x: 31.999, y: 0), caret: "b", affinity: .downstream, dataSource: d)
@@ -1925,7 +1925,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
         """
 
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // at "b"
         var s = clickAndAssert(CGPoint(x: 32, y: 0), caret: "b", affinity: .downstream, dataSource: d)
@@ -1978,7 +1978,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
         """
 
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // at "r"
         var s = clickAndAssert(CGPoint(x: 4, y: 14), caret: "r", affinity: .downstream, dataSource: d)
@@ -1997,7 +1997,7 @@ final class SelectionNavigatorTests: XCTestCase {
         hello
         """
 
-        let d = TestSelectionDataSource(string: string, charsPerLine: 10)
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
 
         // at "r"
         var s = clickAndAssert(CGPoint(x: 4, y: 14), caret: "r", affinity: .downstream, dataSource: d)
@@ -2011,54 +2011,54 @@ final class SelectionNavigatorTests: XCTestCase {
     }
 
     @discardableResult
-    func clickAndAssert(_ point: CGPoint, caret: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func clickAndAssert(_ point: CGPoint, caret: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s: TestSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
         assert(selection: s, hasCaretBefore: caret, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s
     }
 
     @discardableResult
-    func clickAndAssert(_ point: CGPoint, caretAt: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func clickAndAssert(_ point: CGPoint, caretAt: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s: TestSelection = SelectionNavigator.selection(interactingAt: point, dataSource: dataSource)
         assert(selection: s, hasCaretAt: caretAt, affinity: affinity, granularity: granularity, file: file, line: line)
         return s
     }
     
     @discardableResult
-    func dragAndAssert(_ s: TestSelection, point: CGPoint, caret: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func dragAndAssert(_ s: TestSelection, point: CGPoint, caret: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasCaretBefore: caret, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
     @discardableResult
-    func dragAndAssert(_ s: TestSelection, point: CGPoint, caretAt: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func dragAndAssert(_ s: TestSelection, point: CGPoint, caretAt: String.Index, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasCaretAt: caretAt, affinity: affinity, granularity: granularity, file: file, line: line)
         return s2
     }
 
     @discardableResult
-    func dragAndAssert(_ s: TestSelection, point: CGPoint, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func dragAndAssert(_ s: TestSelection, point: CGPoint, selected string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity = .character, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(extendingTo: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func encloseAndAssert(_ s: TestSelection, enclosing granularity: TestSelection.Granularity, point: CGPoint, selected string: String, affinity: TestSelection.Affinity, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
+    func encloseAndAssert(_ s: TestSelection, enclosing granularity: TestSelection.Granularity, point: CGPoint, selected string: String, affinity: TestSelection.Affinity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) -> TestSelection {
         let s2 = SelectionNavigator(s).selection(for: Granularity(granularity), enclosing: point, dataSource: dataSource)
         assert(selection: s2, hasRangeCovering: string, affinity: affinity, granularity: granularity, dataSource: dataSource, file: file, line: line)
         return s2
     }
 
-    func assert(selection: TestSelection, hasCaretBefore c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: TestSelection, hasCaretBefore c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
         XCTAssertEqual(dataSource.string[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
         XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
     }
 
-    func assert(selection: TestSelection, hasCaretAfter c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: TestSelection, hasCaretAfter c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
         if selection.range.lowerBound == dataSource.string.endIndex {
             XCTFail("caret is not after '\(c)'", file: file, line: line)
@@ -2069,7 +2069,7 @@ final class SelectionNavigatorTests: XCTestCase {
         XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
     }
 
-    func assert(selection: TestSelection, hasRangeCovering string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestSelectionDataSource, file: StaticString = #file, line: UInt = #line) {
+    func assert(selection: TestSelection, hasRangeCovering string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         let range = selection.range
         XCTAssert(selection.isRange, "selection is not a range", file: file, line: line)
         XCTAssertEqual(String(dataSource.string[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)

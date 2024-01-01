@@ -786,7 +786,7 @@ extension LayoutManager {
 }
 
 
-extension LayoutManager: SelectionNavigationDataSource {
+extension LayoutManager: TextLayoutDataSource {
     var characterCount: Int {
         buffer.characterCount
     }

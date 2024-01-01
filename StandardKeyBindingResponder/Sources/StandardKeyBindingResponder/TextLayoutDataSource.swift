@@ -1,5 +1,5 @@
 //
-//  SelectionNavigationDataSource.swift
+//  TextLayoutDataSource.swift
 //
 //
 //  Created by David Albert on 11/8/23.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol SelectionNavigationDataSource: DocumentContentDataSource {
+public protocol TextLayoutDataSource: TextContentDataSource {
     func lineFragmentRange(containing index: Index) -> Range<Index>
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
     func verticalOffset(forLineFragmentContaining index: Index) -> CGFloat
@@ -30,7 +30,7 @@ public protocol SelectionNavigationDataSource: DocumentContentDataSource {
 
 
 // MARK: - Internal helpers
-extension SelectionNavigationDataSource {
+extension TextLayoutDataSource {
     func range(for granularity: Granularity, enclosing i: Index) -> Range<Index> {
         if isEmpty {
             return startIndex..<startIndex

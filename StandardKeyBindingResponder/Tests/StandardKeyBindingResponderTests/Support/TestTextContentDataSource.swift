@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  TestTextContentDataSource.swift
 //  
 //
 //  Created by David Albert on 12/6/23.
@@ -8,7 +8,7 @@
 import Foundation
 @testable import StandardKeyBindingResponder
 
-struct SimpleContentDataSource: DocumentContentDataSource {
+struct TestTextContentDataSource: TextContentDataSource {
     var s: String
 
     init(_ s: String) {
@@ -36,7 +36,7 @@ struct SimpleContentDataSource: DocumentContentDataSource {
     }
 }
 
-extension SimpleContentDataSource: ExpressibleByStringLiteral {
+extension TestTextContentDataSource: ExpressibleByStringLiteral {
     init(stringLiteral value: String) {
         self.s = value
     }

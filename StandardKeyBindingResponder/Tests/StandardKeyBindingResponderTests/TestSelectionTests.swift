@@ -1,5 +1,5 @@
 //
-//  SimpleSelectionTests.swift
+//  TestSelectionTests.swift
 //  
 //
 //  Created by David Albert on 11/9/23.
@@ -8,7 +8,7 @@
 import XCTest
 @testable import StandardKeyBindingResponder
 
-final class SimpleSelectionTests: XCTestCase {
+final class TestSelectionTests: XCTestCase {
     func testCreateCaret() {
         let string = "Hello, world!"
         let s = TestSelection(caretAt: string.index(at: 1), affinity: .upstream, granularity: .character)

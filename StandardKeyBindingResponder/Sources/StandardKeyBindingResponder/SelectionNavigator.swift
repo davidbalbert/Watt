@@ -152,7 +152,7 @@ extension NavigableSelection {
 }
 
 
-public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: SelectionNavigationDataSource, Selection.Index == DataSource.Index {
+public struct SelectionNavigator<Selection, DataSource> where Selection: NavigableSelection, DataSource: TextLayoutDataSource, Selection.Index == DataSource.Index {
     public let selection: Selection
 
     public init(_ selection: Selection) {
@@ -463,6 +463,9 @@ extension SelectionNavigator {
 // MARK: - Deletion
 
 extension SelectionNavigator {
+    // TODO: I don't love having this method be separate from rangeToDelete(for:movement:dataSource:), but
+    // rangeToDelete would have to return "" in all cases besides decomposition, and decomposition is only
+    // allowed when deleting backwards. I wonder if there's a better way.
     public static func replacementForDeleteBackwardsByDecomposing(_ selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
         if selection.isRange {
             return (selection.range, "")
