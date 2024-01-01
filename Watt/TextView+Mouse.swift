@@ -49,7 +49,9 @@ extension TextView {
             case .periodic:
                 autoscroll(with: mouseEvent)
                 extendSelection(with: mouseEvent)
-                continue // don't sendEvent
+                // Don't dispatch periodic events to NSApp. Doesn't really matter in practice,
+                // but NSApp doesn't expect periodic events, so let's not rock the boat.
+                continue
             case .leftMouseUp:
                 done = true
             case .leftMouseDragged:
