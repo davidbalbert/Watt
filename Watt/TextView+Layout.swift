@@ -274,6 +274,10 @@ extension TextView: LayoutManagerDelegate {
             return attr.replace(with: attributes)
         }
     }
+
+    func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
+        lineNumberView.lineCount = new.lines.count
+    }
 }
 
 // MARK: - Text layout
@@ -283,6 +287,12 @@ extension TextView {
         textLayer.sublayers = nil
 
         var scrollAdjustment: CGFloat = 0
+        let updateLineNumbers = lineNumberView.superview != nil
+        if updateLineNumbers {
+            lineNumberView.beginUpdates()
+        }
+
+        var lineno: Int?
 
         layoutManager.layoutText { line, prevAlignmentFrame in
             let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
@@ -315,6 +325,16 @@ extension TextView {
             if oldMaxY <= previousVisibleRect.minY && delta != 0 {
                 scrollAdjustment += delta
             }
+
+            if updateLineNumbers {
+                let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: line.range.lowerBound)
+                lineNumberView.addLineNumber(n+1, withAlignmentFrame: line.alignmentFrame)
+                lineno = n+1
+            }
+        }
+
+        if updateLineNumbers {
+            lineNumberView.endUpdates()
         }
 
         previousVisibleRect = visibleRect

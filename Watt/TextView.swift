@@ -108,7 +108,7 @@ class TextView: NSView, ClipViewDelegate {
             // when they're needed in layoutManager(_:attributedRopeFor:).
             buffer.mergeAttributes(defaultAttributes)
 
-            lineNumberView.buffer = buffer
+            lineNumberView.lineCount = buffer.lines.count
         }
     }
 
@@ -176,9 +176,8 @@ class TextView: NSView, ClipViewDelegate {
         layoutManager.buffer = buffer
 
         layoutManager.delegate = self
-        layoutManager.lineNumberDelegate = lineNumberView
-        
-        lineNumberView.buffer = buffer
+
+        lineNumberView.lineCount = buffer.lines.count
         lineNumberView.font = font
         lineNumberView.textColor = theme.lineNumberColor
         lineNumberView.backgroundColor = backgroundColor

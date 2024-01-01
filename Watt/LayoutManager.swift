@@ -20,6 +20,8 @@ protocol LayoutManagerDelegate: AnyObject {
 
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
+
+    func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
 }
 
 extension LayoutManagerDelegate {
@@ -28,17 +30,8 @@ extension LayoutManagerDelegate {
     }
 }
 
-protocol LayoutManagerLineNumberDelegate: AnyObject {
-    func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool
-    func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, addLineNumberForLine lineno: Int, withAlignmentFrame alignmentFrame: CGRect)
-    func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager)
-    func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int)
-}
-
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
-    weak var lineNumberDelegate: LayoutManagerLineNumberDelegate?
 
     var buffer: Buffer {
         didSet {
@@ -92,32 +85,13 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-
-        let updateLineNumbers = lineNumberDelegate?.layoutManagerShouldUpdateLineNumbers(self) ?? false
-        if updateLineNumbers {
-            lineNumberDelegate!.layoutManagerWillUpdateLineNumbers(self)
-        }
-
         let viewportRange = lineRange(intersecting: viewportBounds)
 
         lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
 
-        var lineno = buffer.lines.distance(from: buffer.startIndex, to: viewportRange.lowerBound)
-
         enumerateLines(in: viewportRange) { line, prevAlignmentFrame in
             block(line, prevAlignmentFrame)
-
-            if updateLineNumbers {
-                lineNumberDelegate!.layoutManager(self, addLineNumberForLine: lineno + 1, withAlignmentFrame: line.alignmentFrame)
-            }
-
-            lineno += 1
-
             return true
-        }
-
-        if updateLineNumbers {
-            lineNumberDelegate!.layoutManagerDidUpdateLineNumbers(self)
         }
     }
 
@@ -787,11 +761,8 @@ extension LayoutManager: BufferDelegate {
         // newline, and probably for other things too.
         ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
 
+        delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
         delegate?.didInvalidateLayout(for: self)
-
-        if old.lines.count != new.lines.count {
-            lineNumberDelegate?.layoutManager(self, lineCountDidChangeFrom: old.lines.count, to: new.lines.count)
-        }
     }
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {

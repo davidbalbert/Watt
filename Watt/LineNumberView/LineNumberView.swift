@@ -7,17 +7,23 @@
 
 import Cocoa
 
-class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, LayoutManagerLineNumberDelegate {
+class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     @Invalidating(.intrinsicContentSize, .layout) var font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)
     @Invalidating(.intrinsicContentSize, .layout) var leadingPadding: CGFloat = 20
     @Invalidating(.intrinsicContentSize, .layout) var trailingPadding: CGFloat = 5
     @Invalidating(.display) var textColor: NSColor = .secondaryLabelColor
     @Invalidating(.display) var backgroundColor: NSColor = .textBackgroundColor
 
-    var buffer: Buffer {
+    private var _lineCount: Int {
         didSet {
-            invalidateIntrinsicContentSize()
+            if floor(log10(Double(oldValue))) != floor(log10(Double(lineCount))) {
+                invalidateIntrinsicContentSize()
+            }
         }
+    }
+    var lineCount: Int {
+        get { _lineCount }
+        set { _lineCount = max(newValue, 1) }
     }
 
     var textLayer: CALayer = CALayer()
@@ -40,13 +46,13 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
     }
 
     override init(frame frameRect: NSRect) {
-        self.buffer = Buffer()
+        _lineCount = 1
         super.init(frame: frameRect)
         commonInit()
     }
 
     required init?(coder: NSCoder) {
-        self.buffer = Buffer()
+        _lineCount = 1
         super.init(coder: coder)
         commonInit()
     }
@@ -60,7 +66,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
 
     override var intrinsicContentSize: NSSize {
         // max(1000, ...) -> minimum 4 digits worth of space
-        let lineCount = max(1000, buffer.lines.count)
+        let lineCount = max(1000, lineCount)
         let maxDigits = floor(log10(Double(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)
@@ -106,15 +112,11 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         true
     }
 
-    func layoutManagerShouldUpdateLineNumbers(_ layoutManager: LayoutManager) -> Bool {
-        superview != nil
-    }
-
-    func layoutManagerWillUpdateLineNumbers(_ layoutManager: LayoutManager) {
+    func beginUpdates() {
         textLayer.sublayers = nil
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, addLineNumberForLine lineno: Int, withAlignmentFrame alignmentFrame: CGRect) {
+    func addLineNumber(_ lineno: Int, withAlignmentFrame alignmentFrame: CGRect) {
         let l = layerCache[lineno] ?? makeLayer(for: lineno)
         l.position = alignmentFrame.origin
         l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: alignmentFrame.height)
@@ -122,7 +124,7 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate, 
         textLayer.addSublayer(l)
     }
 
-    func layoutManagerDidUpdateLineNumbers(_ layoutManager: LayoutManager) {
+    func endUpdates() {
         // no-op
     }
 
