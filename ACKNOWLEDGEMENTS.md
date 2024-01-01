@@ -222,7 +222,7 @@ Copyright Apple Inc. and the Swift project authors. Licensed under Apache Licens
 
 ## [xi-editor](https://github.com/xi-editor/xi-editor)
 
-Copyright The xi-editor Authors. Licensed under the terms of the Apache License 2.0:
+Copyright The xi-editor Authors. Licensed under Apache License 2.0:
 
 ```
                                  Apache License
