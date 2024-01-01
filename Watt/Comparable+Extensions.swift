@@ -1,5 +1,5 @@
 //
-//  Stdlib+Extensions.swift
+//  Comparable+Extensions.swift
 //  Watt
 //
 //  Created by David Albert on 12/23/23.
