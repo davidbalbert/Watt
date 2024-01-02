@@ -9,7 +9,7 @@ Reusable components for implementing NSStandardKeyBindingResponding in custom te
 
 ## Getting started
 
-1. Conform your text storage to `TextContent`. Both `String` and `AttributedString.CharacterView` can conform trivially. E.g. `extension String: TextContent {}`. This is all you need to use `Transposer`.
+1. If you're storing your text in a custom data structure, conform it to `TextContent`. `String`, `AttributedString.CharacterView` and `NSAttributedString` already conform to `TextContent`. This is all you need to use `Transposer`.
 2. If your text storage has a method of finding paragraph boundaries that's better than O(n), implement `index(ofParagraphBoundaryBefore:)` and `index(ofParagraphBoundaryAfter:)`.
 3. Implement `TextLayoutDataSource`.
 4. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
