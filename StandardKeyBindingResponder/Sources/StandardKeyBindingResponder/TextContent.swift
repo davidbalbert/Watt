@@ -1,5 +1,5 @@
 //
-//  TextContentDataSource.swift
+//  TextContent.swift
 //
 //
 //  Created by David Albert on 11/15/23.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol TextContentDataSource: BidirectionalCollection where Element == Character {
+public protocol TextContent: BidirectionalCollection where Element == Character {
     // MARK: Paragraph navigation
     func index(ofParagraphBoundaryBefore i: Index) -> Index
     func index(ofParagraphBoundaryAfter i: Index) -> Index
@@ -15,7 +15,7 @@ public protocol TextContentDataSource: BidirectionalCollection where Element == 
 
 // MARK: - Default implementations
 
-public extension TextContentDataSource {
+public extension TextContent {
     func index(ofParagraphBoundaryBefore i: Index) -> Index {
         precondition(i > startIndex)
 
@@ -49,7 +49,7 @@ public extension TextContentDataSource {
 
 // MARK: - Internal helpers
 
-extension TextContentDataSource {
+extension TextContent {
     func index(roundingDownToParagraph i: Index) -> Index {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i

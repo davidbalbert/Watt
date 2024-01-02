@@ -292,7 +292,7 @@ extension Buffer: HighlighterDelegate {
     }
 }
 
-extension Buffer: TextContentDataSource {
+extension Buffer: TextContent {
     func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
         var j = i
         if lines.isBoundary(j) {

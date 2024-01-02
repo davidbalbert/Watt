@@ -8,7 +8,7 @@
 import Foundation
 import StandardKeyBindingResponder
 
-extension String: TextContentDataSource {}
+extension String: TextContent {}
 
 // Simple monospaced grid-of-characters layout:
 // - All characters are 8 points wide

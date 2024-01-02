@@ -13,7 +13,7 @@ public enum Edge {
 }
 
 public protocol TextLayoutDataSource {
-    associatedtype Content: TextContentDataSource
+    associatedtype Content: TextContent
     typealias Index = Content.Index
 
     var content: Content { get }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum Transposer<DataSource> where DataSource: TextContentDataSource {
+public enum Transposer<DataSource> where DataSource: TextContent {
     public typealias Index = DataSource.Index
 
     public static func indicesForTranspose(inSelectedRange range: Range<Index>, dataSource: DataSource) -> (Index, Index)? {

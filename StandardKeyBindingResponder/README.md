@@ -9,7 +9,7 @@ Reusable components for implementing NSStandardKeyBindingResponding in custom te
 
 ## Getting started
 
-1. Conform your text storage to `TextContentDataSource`. Both `String` and `AttributedString.CharacterView` can conform trivially. E.g. `extension String: TextContentDataSource {}`. This is all you need to use `Transposer`.
+1. Conform your text storage to `TextContent`. Both `String` and `AttributedString.CharacterView` can conform trivially. E.g. `extension String: TextContent {}`. This is all you need to use `Transposer`.
 2. If your text storage has a method of finding paragraph boundaries that's better than O(n), implement `index(ofParagraphBoundaryBefore:)` and `index(ofParagraphBoundaryAfter:)`.
 3. Implement `TextLayoutDataSource`.
 4. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
@@ -27,7 +27,7 @@ The goal is to have a single struct `KeyBindingResponder` that manages all state
 - Kill buffer (mark/yank)
 - Writing directions (i.e. RTL support)
 - CR and CRLF line endings
-- An adapter to use `NSTextStorage` with `TextContentDataSource`
+- An adapter to use `NSTextStorage` as `TextContent`
 - Make `NSLayoutManager` and `NSTextLayoutManager` conform to `TextLayoutDataSource`
 - `KeyBindingResponder`
     - Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
