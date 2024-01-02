@@ -7,10 +7,18 @@
 
 import Foundation
 
+public enum Edge {
+    case leading
+    case trailing
+}
+
 public protocol TextLayoutDataSource: TextContentDataSource {
     func lineFragmentRange(containing index: Index) -> Range<Index>
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
     func verticalOffset(forLineFragmentContaining index: Index) -> CGFloat
+
+    // Used for pageUp/pageDown movements. NSView.visibleRect.size or
+    // similar. Should not include overdraw.
     var viewportSize: CGSize { get }
 
     // Enumerating over the first line fragment of each string:

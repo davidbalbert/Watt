@@ -7,11 +7,6 @@
 
 import Foundation
 
-public enum Edge {
-    case leading
-    case trailing
-}
-
 public enum Affinity {
     case upstream
     case downstream
