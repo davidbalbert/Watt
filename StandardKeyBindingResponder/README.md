@@ -38,7 +38,8 @@ The goal is to have a single struct `KeyBindingResponder` that manages all state
 
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue or pull request. For large features, consider opening an issue to discuss before you get started. Issues are [tagged with StandardKeyBindingResponder](https://github.com/davidbalbert/Watt/labels/StandardKeyBindingResponder).
+Contributions are welcome! If you want to help out, I can walk you through the code, answer questions, etc. Just email me.
+You can also just open an issue or pull request. For large features, consider opening an issue to discuss before you get started. Issues are [tagged with StandardKeyBindingResponder](https://github.com/davidbalbert/Watt/labels/StandardKeyBindingResponder).
 
 ## License
 
