@@ -92,14 +92,6 @@ public protocol NavigableSelection {
     associatedtype Granularity: InitializableFromGranularity & Equatable
 
     init(caretAt index: Index, affinity: Affinity, granularity: Granularity, xOffset: CGFloat?)
-
-    // xOffset will be non-nil when we extend a selection so that if
-    // we extend the selection vertically up to startIndex and then
-    // move down, or extend the selection vertically down to endIndex
-    // and then move up, the caret will jump horizontally back to the
-    // xOffset that was set following the first vertical move. This is
-    // what Xcode does. I think it's of doubious value, and confusing,
-    // so I might remove it.
     init(anchor: Index, head: Index, granularity: Granularity, xOffset: CGFloat?)
 
     var range: Range<Index> { get }
