@@ -11,7 +11,7 @@ Reusable components for implementing NSStandardKeyBindingResponding in custom te
 
 1. Implement `TextLayoutDataSource`. If you're only using `Transposer`, implement `TextContentDataSource`, which is the parent of `TextLayoutDataSource`. If you have a better than O(n) way to find paragraph boundaries, implement `index(ofParagraphBoundaryBefore:)` and `index(ofParagraphBoundaryAfter:)`.
 2. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
-3. Use the methods on `SelectionNavigation` to dervie new selections from your existing selections.
+3. Use the methods on `SelectionNavigation` to derive new selections from your existing selections.
 
 ## Future direction
 
@@ -25,9 +25,9 @@ The goal is to have a single struct `KeyBindingResponder` that manages all state
 - CR and CRLF line endings
 - `KeyBindingResponder`
     - Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
-    - Insertion and indentation key bindings (`insertNewline:` etc.)
-    - Case changes (`changeCaseOfLetter:`, etc.)
-    - Documentation
+    - Insertion and indentation key bindings (`insertNewline(_:)` etc.)
+    - Case changes (`changeCaseOfLetter(_:)`, etc.)
+- Documentation
 
 ## Contributing
 
