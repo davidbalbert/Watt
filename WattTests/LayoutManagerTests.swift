@@ -79,7 +79,7 @@ final class LayoutManagerTests: XCTestCase {
         let l = makeLayoutManager(string)
         let b = l.buffer
 
-        l.ensureLayout(for: l.documentRange)
+        l.ensureLayout(for: b.startIndex..<b.endIndex)
 
         // insert "\n" after "w"
         b.replaceSubrange(b.index(at: 11)..<b.index(at: 11), with: "\n")
