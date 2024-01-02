@@ -11,7 +11,7 @@ public enum Transposer<DataSource> where DataSource: TextContentDataSource {
     public typealias Index = DataSource.Index
 
     public static func indicesForTranspose(inSelectedRange range: Range<Index>, dataSource: DataSource) -> (Index, Index)? {
-        if dataSource.characterCount < 2 {
+        if dataSource.count < 2 {
             return nil
         }
 

@@ -9,13 +9,17 @@ Reusable components for implementing NSStandardKeyBindingResponding in custom te
 
 ## Getting started
 
-1. Implement `TextLayoutDataSource`. If you're only using `Transposer`, implement `TextContentDataSource`, which is the parent of `TextLayoutDataSource`. If you have a better than O(n) way to find paragraph boundaries, implement `index(ofParagraphBoundaryBefore:)` and `index(ofParagraphBoundaryAfter:)`.
-2. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
-3. Use the methods on `SelectionNavigation` to derive new selections from your existing selections.
+1. Conform your text storage to `TextContentDataSource`. Both `String` and `AttributedString.CharacterView` can conform trivially. E.g. `extension String: TextContentDataSource {}`. This is all you need to use `Transposer`.
+2. If your text storage has a method of finding paragraph boundaries that's better than O(n), implement `index(ofParagraphBoundaryBefore:)` and `index(ofParagraphBoundaryAfter:)`.
+3. Implement `TextLayoutDataSource`.
+4. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
+5. Use the methods on `SelectionNavigation` to derive new selections from your existing selections.
+
+**Note**: StandardKeyBindingResponder is very young and its interface is not final.
 
 ## Future direction
 
-The goal is to have a single struct `KeyBindingResponder` that manages all state related to NSStandardKeyBindingResponding. For a simple text view your key binding overrides and mouse events (`mouseDown(_:)`, `mouseDragged(_:)`, `mouseUp(_:)`) should be a single line of code.
+The goal is to have a single struct `KeyBindingResponder` that manages all state related to NSStandardKeyBindingResponding. For a simple text view your key binding overrides and mouse event handlers (`mouseDown(_:)`, `mouseDragged(_:)`, `mouseUp(_:)`) should each be a single line of code.
 
 ## Missing features
 
@@ -23,10 +27,13 @@ The goal is to have a single struct `KeyBindingResponder` that manages all state
 - Kill buffer (mark/yank)
 - Writing directions (i.e. RTL support)
 - CR and CRLF line endings
+- An adapter to use `NSTextStorage` with `TextContentDataSource`
+- Make `NSLayoutManager` and `NSTextLayoutManager` conform to `TextLayoutDataSource`
 - `KeyBindingResponder`
     - Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
     - Insertion and indentation key bindings (`insertNewline(_:)` etc.)
     - Case changes (`changeCaseOfLetter(_:)`, etc.)
+    - Allow `KeyBindingResponder` to use either `NSTextSelectionNavigation` or `SelectionNavigator`
 - Documentation
 
 ## Contributing

@@ -167,12 +167,14 @@ extension SelectionNavigator {
     }
 
     func makeSelection(movement: Movement, extending: Bool, dataSource: DataSource) -> Selection {
+        let content = dataSource.content
+
         if (movement == .paragraphBackward || movement == .paragraphForward) && !extending {
             preconditionFailure(String(describing: movement) + " can only be used when extending")
         }
 
-        if dataSource.isEmpty {
-            return Selection(caretAt: dataSource.startIndex, affinity: .upstream, granularity: .character, xOffset: nil)
+        if content.isEmpty {
+            return Selection(caretAt: content.startIndex, affinity: .upstream, granularity: .character, xOffset: nil)
         }
 
         // after this point, dataSource can't be empty, which means that moving to startIndex
@@ -186,15 +188,15 @@ extension SelectionNavigator {
         switch movement {
         case .left:
             if selection.isCaret || extending {
-                head = selection.head == dataSource.startIndex ? selection.head : dataSource.index(before: selection.head)
+                head = selection.head == content.startIndex ? selection.head : content.index(before: selection.head)
             } else {
                 head = selection.lowerBound
             }
             affinity = .downstream
         case .right:
             if selection.isCaret || extending {
-                head = selection.head == dataSource.endIndex ? selection.head : dataSource.index(after: selection.head)
-                affinity = head == dataSource.endIndex ? .upstream : .downstream
+                head = selection.head == content.endIndex ? selection.head : content.index(after: selection.head)
+                affinity = head == content.endIndex ? .upstream : .downstream
             } else {
                 // moving right from a range
                 head = selection.upperBound
@@ -205,7 +207,7 @@ extension SelectionNavigator {
                 if fragRange.lowerBound == head {
                     affinity = .upstream
                 } else {
-                    affinity = head == dataSource.endIndex ? .upstream : .downstream
+                    affinity = head == content.endIndex ? .upstream : .downstream
                 }
             }
         case .up:
@@ -214,7 +216,7 @@ extension SelectionNavigator {
             (head, affinity, xOffset) = verticalDestination(movingUp: false, byPage: false, extending: extending, dataSource: dataSource)
         case .wordLeft:
             let start = extending ? selection.head : selection.lowerBound
-            let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
+            let wordStart = content.index(beginningOfWordBefore: start) ?? content.startIndex
             let shrinking = extending && selection.isRange && selection.affinity == .downstream
 
             // if we're shrinking the selection, don't move past the anchor
@@ -222,12 +224,12 @@ extension SelectionNavigator {
             affinity = .downstream
         case .wordRight:
             let start = extending ? selection.head : selection.upperBound
-            let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
+            let wordEnd = content.index(endOfWordAfter: start) ?? content.endIndex
             let shrinking = extending && selection.isRange && selection.affinity == .upstream
 
             // if we're shrinking the selection, don't move past the anchor
             head = shrinking ? min(selection.anchor, wordEnd) : wordEnd
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == content.endIndex ? .upstream : .downstream
         case .beginningOfLine:
             let start = selection.lowerBound
             let fragRange = dataSource.range(for: .line, enclosing: start)
@@ -237,7 +239,7 @@ extension SelectionNavigator {
                 head = start
             } else if start == fragRange.lowerBound && selection.isCaret && selection.affinity == .upstream {
                 // we're actually on the previous frag
-                let prevFrag = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
+                let prevFrag = dataSource.range(for: .line, enclosing: content.index(before: start))
                 head = prevFrag.lowerBound
             } else {
                 head = fragRange.lowerBound
@@ -246,7 +248,7 @@ extension SelectionNavigator {
                 anchor = head
                 head = selection.upperBound
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == content.endIndex ? .upstream : .downstream
         case .endOfLine:
             let start = selection.upperBound
             let fragRange = dataSource.range(for: .line, enclosing: start)
@@ -261,7 +263,7 @@ extension SelectionNavigator {
                 affinity = .upstream
             } else {
                 let endsWithNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
-                head = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
+                head = endsWithNewline ? content.index(before: fragRange.upperBound) : fragRange.upperBound
                 affinity = endsWithNewline ? .downstream : .upstream
             }
             if extending {
@@ -282,11 +284,11 @@ extension SelectionNavigator {
                 anchor = head
                 head = selection.upperBound
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == content.endIndex ? .upstream : .downstream
         case .endOfParagraph:
             let range = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
             if dataSource.lastCharacter(inRange: range) == "\n" {
-                head = dataSource.index(before: range.upperBound)
+                head = content.index(before: range.upperBound)
             } else {
                 head = range.upperBound
             }
@@ -294,17 +296,17 @@ extension SelectionNavigator {
                 anchor = head
                 head = selection.lowerBound
             }
-            affinity = head == dataSource.endIndex ? .upstream : .downstream
+            affinity = head == content.endIndex ? .upstream : .downstream
         case .paragraphBackward:
             let rlow = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
             let rhigh = dataSource.range(for: .paragraph, enclosing: selection.upperBound)
             let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             if rlow == rhigh || rlow.upperBound == selection.upperBound {
-                head = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == dataSource.startIndex) ? rlow.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rlow.lowerBound)
+                head = (selection.lowerBound > rlow.lowerBound || rlow.lowerBound == content.startIndex) ? rlow.lowerBound : content.index(ofParagraphBoundaryBefore: rlow.lowerBound)
                 anchor = selection.upperBound
             } else {
-                head = selection.head > rhead.lowerBound || selection.head == dataSource.startIndex ? rhead.lowerBound : dataSource.index(ofParagraphBoundaryBefore: rhead.lowerBound)
+                head = selection.head > rhead.lowerBound || selection.head == content.startIndex ? rhead.lowerBound : content.index(ofParagraphBoundaryBefore: rhead.lowerBound)
                 anchor = selection.anchor
             }
             assert(anchor != head)
@@ -315,7 +317,7 @@ extension SelectionNavigator {
             let rhead = selection.lowerBound == selection.head ? rlow : rhigh
 
             if rlow == rhigh || rlow.upperBound == selection.upperBound {
-                head = (selection.upperBound < rlow.upperBound || rlow.upperBound == dataSource.endIndex) ? rlow.upperBound : dataSource.index(ofParagraphBoundaryAfter: rlow.upperBound)
+                head = (selection.upperBound < rlow.upperBound || rlow.upperBound == content.endIndex) ? rlow.upperBound : content.index(ofParagraphBoundaryAfter: rlow.upperBound)
                 anchor = selection.lowerBound
             } else {
                 head = rhead.upperBound
@@ -325,19 +327,19 @@ extension SelectionNavigator {
             affinity = .downstream // unused
         case .beginningOfDocument:
             if extending {
-                anchor = dataSource.startIndex
+                anchor = content.startIndex
                 head = selection.upperBound
             } else {
-                head = dataSource.startIndex
+                head = content.startIndex
                 anchor = selection.upperBound
             }
             affinity = .downstream
         case .endOfDocument:
             if extending {
-                anchor = dataSource.endIndex
+                anchor = content.endIndex
                 head = selection.lowerBound
             } else {
-                head = dataSource.endIndex
+                head = content.endIndex
                 anchor = selection.lowerBound
             }
             affinity = .upstream
@@ -375,14 +377,16 @@ extension SelectionNavigator {
     //
     // This is only called with a non-empty data source.
     func verticalDestination(movingUp: Bool, byPage: Bool, extending: Bool, dataSource: DataSource) -> (Selection.Index, Selection.Affinity, xOffset: CGFloat?) {
-        assert(!dataSource.isEmpty)
+        let content = dataSource.content
+
+        assert(!content.isEmpty)
 
         // If we're already at the start or end of the document, the destination
         // is the start or the end of the document.
-        if movingUp && selection.lowerBound == dataSource.startIndex {
+        if movingUp && selection.lowerBound == content.startIndex {
             return (selection.lowerBound, .downstream, selection.xOffset)
         }
-        if !movingUp && selection.upperBound == dataSource.endIndex {
+        if !movingUp && selection.upperBound == content.endIndex {
             return (selection.upperBound, .upstream, selection.xOffset)
         }
 
@@ -403,26 +407,26 @@ extension SelectionNavigator {
         let movingDownFromRange = selection.isRange && !extending && !movingUp
         let upstreamCaret = selection.isCaret && selection.affinity == .upstream
         if (movingDownFromRange || upstreamCaret) && !fragRange.isEmpty && fragRange.lowerBound == start {
-            assert(start != dataSource.startIndex)
+            assert(start != content.startIndex)
             // we're actually in the previous frag
-            fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: start))
+            fragRange = dataSource.range(for: .line, enclosing: content.index(before: start))
         }
 
         let endsInNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
-        let visualFragEnd = endsInNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
+        let visualFragEnd = endsInNewline ? content.index(before: fragRange.upperBound) : fragRange.upperBound
 
         // Moving up when we're in the first frag, moves left to the beginning. Moving
         // down when we're in the last frag moves right to the end.
         //
         // When we're moving (not extending), because we're going horizontally, xOffset
         // gets cleared.
-        if movingUp && fragRange.lowerBound == dataSource.startIndex {
+        if movingUp && fragRange.lowerBound == content.startIndex {
             let xOffset = extending ? selection.xOffset : nil
-            return (dataSource.startIndex, .downstream, xOffset)
+            return (content.startIndex, .downstream, xOffset)
         }
-        if !movingUp && visualFragEnd == dataSource.endIndex {
+        if !movingUp && visualFragEnd == content.endIndex {
             let xOffset = extending ? selection.xOffset : nil
-            return (dataSource.endIndex, .upstream, xOffset)
+            return (content.endIndex, .upstream, xOffset)
         }
 
         var horizAnchorFrag = fragRange
@@ -442,10 +446,10 @@ extension SelectionNavigator {
             if let r = dataSource.lineFragmentRange(for: CGPoint(x: 0, y: targetY)) {
                 targetFragRange = r
             } else {
-                targetFragRange = dataSource.lineFragmentRange(containing: targetY <= 0 ? dataSource.startIndex : dataSource.endIndex)
+                targetFragRange = dataSource.lineFragmentRange(containing: targetY <= 0 ? content.startIndex : content.endIndex)
             }
         } else {
-            let target = movingUp ? dataSource.index(before: fragRange.lowerBound) : fragRange.upperBound
+            let target = movingUp ? content.index(before: fragRange.lowerBound) : fragRange.upperBound
             targetFragRange = dataSource.range(for: .line, enclosing: target)
         }
 
@@ -462,18 +466,20 @@ extension SelectionNavigator {
     // rangeToDelete would have to return "" in all cases besides decomposition, and decomposition is only
     // allowed when deleting backwards. I wonder if there's a better way.
     public static func replacementForDeleteBackwardsByDecomposing(_ selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
+        let content = dataSource.content
+
         if selection.isRange {
             return (selection.range, "")
         }
 
-        if selection.head == dataSource.startIndex {
+        if selection.head == content.startIndex {
             return (selection.head..<selection.head, "")
         }
 
         let end = selection.head
-        let start = dataSource.index(before: end)
-        
-        var s = String(dataSource[start]).decomposedStringWithCanonicalMapping
+        let start = content.index(before: end)
+
+        var s = String(content[start]).decomposedStringWithCanonicalMapping
         s.unicodeScalars.removeLast()
 
         // If we left a trailing Zero Width Joiner, remove that too.
@@ -485,28 +491,30 @@ extension SelectionNavigator {
     }
 
     public static func rangeToDelete(for selection: Selection, movement: Movement, dataSource: DataSource) -> Range<Selection.Index> {
+        let content = dataSource.content
+
         if selection.isRange {
             return selection.range
         }
 
         switch movement {
         case .left:
-            if selection.head == dataSource.startIndex {
+            if selection.head == content.startIndex {
                 return selection.head..<selection.head
             }
-            return dataSource.index(before: selection.head)..<selection.head
+            return content.index(before: selection.head)..<selection.head
         case .right:
-            if selection.head == dataSource.endIndex {
+            if selection.head == content.endIndex {
                 return selection.head..<selection.head
             }
-            return selection.head..<dataSource.index(after: selection.head)
+            return selection.head..<content.index(after: selection.head)
         case .wordLeft:
             let start = selection.head
-            let wordStart = dataSource.index(beginningOfWordBefore: start) ?? dataSource.startIndex
+            let wordStart = content.index(beginningOfWordBefore: start) ?? content.startIndex
             return wordStart..<start
         case .wordRight:
             let start = selection.head
-            let wordEnd = dataSource.index(endOfWordAfter: start) ?? dataSource.endIndex
+            let wordEnd = content.index(endOfWordAfter: start) ?? content.endIndex
             return start..<wordEnd
         case .beginningOfLine, .endOfLine:
             var fragRange = dataSource.range(for: .line, enclosing: selection.head)
@@ -517,14 +525,14 @@ extension SelectionNavigator {
             }
             if selection.head == fragRange.lowerBound && selection.affinity == .upstream {
                 // we're actually on the previous frag
-                fragRange = dataSource.range(for: .line, enclosing: dataSource.index(before: selection.head))
+                fragRange = dataSource.range(for: .line, enclosing: content.index(before: selection.head))
             }
 
             if movement == .beginningOfLine {
                 return fragRange.lowerBound..<selection.head
             } else {
                 let endsWithNewline = dataSource.lastCharacter(inRange: fragRange) == "\n"
-                let end = endsWithNewline ? dataSource.index(before: fragRange.upperBound) : fragRange.upperBound
+                let end = endsWithNewline ? content.index(before: fragRange.upperBound) : fragRange.upperBound
                 return selection.head..<end
             }
         case .paragraphBackward, .beginningOfParagraph:
@@ -536,11 +544,11 @@ extension SelectionNavigator {
             }
             return paraRange.lowerBound..<selection.head
         case .paragraphForward, .endOfParagraph:
-            if selection.head == dataSource.endIndex {
+            if selection.head == content.endIndex {
                 return selection.head..<selection.head
             }
-            if dataSource[selection.head] == "\n" {
-                return selection.head..<dataSource.index(after: selection.head)
+            if content[selection.head] == "\n" {
+                return selection.head..<content.index(after: selection.head)
             }
 
             let paraRange = dataSource.range(for: .paragraph, enclosing: selection.head)
@@ -551,12 +559,12 @@ extension SelectionNavigator {
             }
 
             let endsWithNewline = dataSource.lastCharacter(inRange: paraRange) == "\n"
-            let end = endsWithNewline ? dataSource.index(before: paraRange.upperBound) : paraRange.upperBound
+            let end = endsWithNewline ? content.index(before: paraRange.upperBound) : paraRange.upperBound
             return selection.head..<end
         case .beginningOfDocument:
-            return dataSource.startIndex..<selection.head
+            return content.startIndex..<selection.head
         case .endOfDocument:
-            return selection.head..<dataSource.endIndex
+            return selection.head..<content.endIndex
         case .up, .down, .pageUp, .pageDown:
             preconditionFailure("rangeToDelete doesn't support vertical movement")
         }
@@ -568,6 +576,8 @@ extension SelectionNavigator {
 
 extension SelectionNavigator {
     public static func selection(interactingAt point: CGPoint, dataSource: DataSource) -> Selection {
+        let content = dataSource.content
+
         let fragRange = dataSource.lineFragmentRange(for: point)
 
         let index: Selection.Index
@@ -576,21 +586,23 @@ extension SelectionNavigator {
             (index, _) = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
             affinity = index == fragRange.upperBound ? .upstream : .downstream
         } else {
-            index = point.y < 0 ? dataSource.startIndex : dataSource.endIndex
-            affinity = index == dataSource.endIndex ? .upstream : .downstream
+            index = point.y < 0 ? content.startIndex : content.endIndex
+            affinity = index == content.endIndex ? .upstream : .downstream
         }
 
         return Selection(caretAt: index, affinity: affinity, granularity: .character, xOffset: nil)
     }
 
     public func selection(for granularity: Granularity, enclosing point: CGPoint, dataSource: DataSource) -> Selection {
+        let content = dataSource.content
+
         let fragRange: Range<Selection.Index>
         if let r = dataSource.lineFragmentRange(for: point) {
             fragRange = r
         } else if point.y < 0 {
-            fragRange = dataSource.lineFragmentRange(containing: dataSource.startIndex)
+            fragRange = dataSource.lineFragmentRange(containing: content.startIndex)
         } else {
-            fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
+            fragRange = dataSource.lineFragmentRange(containing: content.endIndex)
         }
 
         if fragRange.isEmpty {
@@ -608,11 +620,11 @@ extension SelectionNavigator {
         // glyph boundary – but it's not what we want when double clicking to expand to a selection
         // to word granularity. For the string "   foo" if you double click directly on f's caret offset
         // we want to select "foo", but if you double click one point to the left, we want to select "   ".
-        if point.x < offset && point.x >= 0 && i > dataSource.startIndex {
-            i = dataSource.index(before: i)
+        if point.x < offset && point.x >= 0 && i > content.startIndex {
+            i = content.index(before: i)
         }
 
-        var range = dataSource.range(for: granularity, enclosing: i == fragRange.upperBound ? dataSource.index(before: i) : i)
+        var range = dataSource.range(for: granularity, enclosing: i == fragRange.upperBound ? content.index(before: i) : i)
         // if fragRange isn't empty, range shouldn't be either
         assert(!range.isEmpty)
 
@@ -622,9 +634,9 @@ extension SelectionNavigator {
         // line – we should select the newline.
         if granularity == .character || granularity == .word {
             let paragraph = dataSource.range(for: .paragraph, enclosing: selection.lowerBound)
-            if dataSource[paragraph.lowerBound] != "\n" && dataSource[range.lowerBound] == "\n" {
-                assert(dataSource.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
-                range = dataSource.range(for: granularity, enclosing: dataSource.index(before: selection.lowerBound))
+            if content[paragraph.lowerBound] != "\n" && content[range.lowerBound] == "\n" {
+                assert(content.distance(from: paragraph.lowerBound, to: paragraph.upperBound) > 1)
+                range = dataSource.range(for: granularity, enclosing: content.index(before: selection.lowerBound))
             }
         }
 
@@ -632,13 +644,15 @@ extension SelectionNavigator {
     }
 
     public func selection(extendingTo point: CGPoint, dataSource: DataSource) -> Selection {
+        let content = dataSource.content
+
         let fragRange: Range<Selection.Index>
         if let r = dataSource.lineFragmentRange(for: point) {
             fragRange = r
         } else if point.y < 0 {
-            fragRange = dataSource.lineFragmentRange(containing: dataSource.startIndex)
+            fragRange = dataSource.lineFragmentRange(containing: content.startIndex)
         } else {
-            fragRange = dataSource.lineFragmentRange(containing: dataSource.endIndex)
+            fragRange = dataSource.lineFragmentRange(containing: content.endIndex)
         }
 
         let (i, _) = dataSource.index(forCaretOffset: point.x, inLineFragmentWithRange: fragRange)
@@ -667,7 +681,7 @@ extension SelectionNavigator {
             anchor = originalRange.upperBound
         } else if selection.affinity == .upstream && i >= selection.upperBound {
             // switching from upstream to downstream
-            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: dataSource.index(before: selection.anchor))
+            let originalRange = dataSource.range(for: Granularity(selection.granularity), enclosing: content.index(before: selection.anchor))
             anchor = originalRange.lowerBound
         } else {
             anchor = selection.anchor

@@ -736,7 +736,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(content: string, charsPerLine: 10, linesInViewport: 3)
 
         var s = TestSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = moveAndAssert(s, direction: .pageDown, caret: "r", affinity: .downstream, dataSource: d)
@@ -768,7 +768,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(content: string, charsPerLine: 10, linesInViewport: 3)
 
         // "abc" downstream
         var s = TestSelection(anchor: string.index(at: 0), head: string.index(at: 3), granularity: .character)
@@ -1068,7 +1068,7 @@ final class SelectionNavigatorTests: XCTestCase {
         stu
         vwx
         """
-        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10, linesInViewport: 3)
+        let d = TestTextLayoutDataSource(content: string, charsPerLine: 10, linesInViewport: 3)
 
         var s = TestSelection(caretAt: string.index(at: 1), affinity: .downstream, granularity: .character)
         s = extendAndAssert(s, direction: .pageDown, selected: "bc\ndef\n0123456789w", affinity: .downstream, dataSource: d)
@@ -2053,17 +2053,17 @@ final class SelectionNavigatorTests: XCTestCase {
 
     func assert(selection: TestSelection, hasCaretBefore c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
-        XCTAssertEqual(dataSource.string[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
+        XCTAssertEqual(dataSource.content[selection.range.lowerBound], c, "caret is not at '\(c)'", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
         XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
     }
 
     func assert(selection: TestSelection, hasCaretAfter c: Character, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         XCTAssert(selection.isCaret, "selection is not a caret", file: file, line: line)
-        if selection.range.lowerBound == dataSource.string.endIndex {
+        if selection.range.lowerBound == dataSource.content.endIndex {
             XCTFail("caret is not after '\(c)'", file: file, line: line)
         } else {
-            XCTAssertEqual(dataSource.string[dataSource.string.index(before: selection.range.lowerBound)], c, "caret is not after '\(c)'", file: file, line: line)
+            XCTAssertEqual(dataSource.content[dataSource.content.index(before: selection.range.lowerBound)], c, "caret is not after '\(c)'", file: file, line: line)
         }
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
         XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
@@ -2072,7 +2072,7 @@ final class SelectionNavigatorTests: XCTestCase {
     func assert(selection: TestSelection, hasRangeCovering string: String, affinity: TestSelection.Affinity, granularity: TestSelection.Granularity, dataSource: TestTextLayoutDataSource, file: StaticString = #file, line: UInt = #line) {
         let range = selection.range
         XCTAssert(selection.isRange, "selection is not a range", file: file, line: line)
-        XCTAssertEqual(String(dataSource.string[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)
+        XCTAssertEqual(String(dataSource.content[range]), string, "selection does not contain \"\(string)\"", file: file, line: line)
         XCTAssertEqual(affinity, selection.affinity, file: file, line: line)
         XCTAssertEqual(granularity, selection.granularity, file: file, line: line)
     }

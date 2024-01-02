@@ -8,6 +8,8 @@
 import Foundation
 import StandardKeyBindingResponder
 
+extension String: TextContentDataSource {}
+
 // Simple monospaced grid-of-characters layout:
 // - All characters are 8 points wide
 // - All lines are 14 points high
@@ -20,7 +22,7 @@ import StandardKeyBindingResponder
 //   a space after the end of a line fragment, no fancy wrapping
 //   happens. The next line fragment just starts with a space.
 struct TestTextLayoutDataSource {
-    let string: String
+    let content: String
 
     // Number of visual characters in a line fragment. Does
     // not include a trailing newline character at a hard
@@ -28,14 +30,14 @@ struct TestTextLayoutDataSource {
     let charsPerLine: Int
     let linesInViewport: Int
 
-    init(string: String, charsPerLine: Int, linesInViewport: Int) {
-        self.string = string
+    init(content: String, charsPerLine: Int, linesInViewport: Int) {
+        self.content = content
         self.charsPerLine = charsPerLine
         self.linesInViewport = linesInViewport
     }
 
     init(string: String, charsPerLine: Int) {
-        self.init(string: string, charsPerLine: charsPerLine, linesInViewport: 10)
+        self.init(content: string, charsPerLine: charsPerLine, linesInViewport: 10)
     }
 
     static var charWidth: CGFloat {
@@ -48,33 +50,13 @@ struct TestTextLayoutDataSource {
 }
 
 extension TestTextLayoutDataSource: TextLayoutDataSource {
-    var characterCount: Int {
-        string.count
-    }
-    
-    var documentRange: Range<String.Index> {
-        string.startIndex..<string.endIndex
-    }
-
-    func index(_ i: String.Index, offsetBy distance: Int) -> String.Index {
-        string.index(i, offsetBy: distance)
-    }
-
-    func distance(from start: String.Index, to end: String.Index) -> Int {
-        string.distance(from: start, to: end)
-    }
-
-    subscript(index: String.Index) -> Character {
-        string[index]
-    }
-
     func lineFragmentRange(containing i: String.Index) -> Range<String.Index> {
         let paraStart = index(roundingDownToParagraph: i)
-        let paraEnd = paraStart == string.endIndex ? paraStart : index(ofParagraphBoundaryAfter: paraStart)
-        let paraLen = string.distance(from: paraStart, to: paraEnd)
-        let offsetInParagraph = string.distance(from: paraStart, to: i)
+        let paraEnd = paraStart == content.endIndex ? paraStart : content.index(ofParagraphBoundaryAfter: paraStart)
+        let paraLen = content.distance(from: paraStart, to: paraEnd)
+        let offsetInParagraph = content.distance(from: paraStart, to: i)
 
-        let endsWithNewline = string[paraStart..<paraEnd].last == "\n"
+        let endsWithNewline = content[paraStart..<paraEnd].last == "\n"
 
         // A trailing "\n", doesn't contribute to the number of fragments a
         // paragraph takes up.
@@ -85,7 +67,7 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
         let beforeTrailingNewline = endsWithNewline && offsetInParagraph == paraLen - 1
 
         let fragIndex: Int
-        if onTrailingBoundary && (beforeTrailingNewline || i == string.endIndex) {
+        if onTrailingBoundary && (beforeTrailingNewline || i == content.endIndex) {
             fragIndex = (offsetInParagraph/charsPerLine) - 1
         } else {
             fragIndex = offsetInParagraph/charsPerLine
@@ -95,8 +77,8 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
 
         let fragOffset = fragIndex * charsPerLine
         let fragLen = inLastFrag ? paraLen - fragOffset : charsPerLine
-        let fragStart = string.index(paraStart, offsetBy: fragOffset)
-        let fragEnd = string.index(fragStart, offsetBy: fragLen)
+        let fragStart = content.index(paraStart, offsetBy: fragOffset)
+        let fragEnd = content.index(fragStart, offsetBy: fragLen)
 
         return fragStart..<fragEnd
     }
@@ -107,8 +89,8 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
         }
 
         var y: CGFloat = 0
-        var i = string.startIndex
-        while i < string.endIndex {
+        var i = content.startIndex
+        while i < content.endIndex {
             let fragRange = lineFragmentRange(containing: i)
             if y <= point.y && point.y < y + Self.lineHeight {
                 return fragRange
@@ -117,7 +99,7 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
             i = fragRange.upperBound
         }
 
-        assert(i == string.endIndex)
+        assert(i == content.endIndex)
         let fragRange = lineFragmentRange(containing: i)
         // empty last line
         if fragRange.isEmpty && y <= point.y && point.y < y + Self.lineHeight {
@@ -129,8 +111,8 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
 
     func verticalOffset(forLineFragmentContaining i: String.Index) -> CGFloat {
         var y: CGFloat = 0
-        var j = string.startIndex
-        while j < string.endIndex {
+        var j = content.startIndex
+        while j < content.endIndex {
             let fragRange = lineFragmentRange(containing: j)
             if fragRange.contains(i) {
                 break
@@ -156,7 +138,7 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
             return
         }
 
-        let endsInNewline = string[fragRange].last == "\n"
+        let endsInNewline = content[fragRange].last == "\n"
 
         var i = fragRange.lowerBound
         var offset: CGFloat = 0
@@ -166,13 +148,13 @@ extension TestTextLayoutDataSource: TextLayoutDataSource {
                 return
             }
 
-            let isNewline = endsInNewline && i == string.index(before: fragRange.upperBound)
+            let isNewline = endsInNewline && i == content.index(before: fragRange.upperBound)
 
             if edge == .leading && !isNewline {
                 offset += Self.charWidth
             }
             if edge == .trailing {
-                i = string.index(after: i)
+                i = content.index(after: i)
             }
             edge = edge == .leading ? .trailing : .leading
         }
@@ -204,10 +186,10 @@ extension TestTextLayoutDataSource {
     }
 
     func index(roundingDownToParagraph i: Index) -> Index {
-        if i == string.startIndex || self[string.index(before: i)] == "\n" {
+        if i == content.startIndex || content[content.index(before: i)] == "\n" {
             return i
         }
-        return index(ofParagraphBoundaryBefore: i)
+        return content.index(ofParagraphBoundaryBefore: i)
     }
 }
 

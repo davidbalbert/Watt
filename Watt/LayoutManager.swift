@@ -787,24 +787,8 @@ extension LayoutManager {
 
 
 extension LayoutManager: TextLayoutDataSource {
-    var characterCount: Int {
-        buffer.characterCount
-    }
-    
-    var documentRange: Range<Buffer.Index> {
-        buffer.documentRange
-    }
-
-    func index(_ i: Buffer.Index, offsetBy distance: Int) -> Buffer.Index {
-        buffer.index(i, offsetBy: distance)
-    }
-
-    func distance(from start: Buffer.Index, to end: Buffer.Index) -> Int {
-        buffer.distance(from: start, to: end)
-    }
-
-    subscript(index: Buffer.Index) -> Character {
-        buffer[index]
+    var content: Buffer {
+        buffer
     }
 
     func lineFragmentRange(containing index: Buffer.Index) -> Range<Buffer.Index> {
@@ -812,12 +796,12 @@ extension LayoutManager: TextLayoutDataSource {
         return line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!.range
     }
 
-    func lineFragmentRange(for point: CGPoint) -> Range<AttributedRope.Index>? {
+    func lineFragmentRange(for point: CGPoint) -> Range<Buffer.Index>? {
         let line = line(forVerticalOffset: point.y)
         return line.fragment(forVerticalOffset: point.y)?.range
     }
 
-    func verticalOffset(forLineFragmentContaining index: AttributedRope.Index) -> CGFloat {
+    func verticalOffset(forLineFragmentContaining index: Buffer.Index) -> CGFloat {
         let line = line(containing: index)
         let frag = line.fragment(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream)!
         return convert(frag.origin, from: line).y
@@ -837,13 +821,5 @@ extension LayoutManager: TextLayoutDataSource {
         enumerateCaretRects(containing: index, affinity: index == buffer.endIndex ? .upstream : .downstream) { rect, i, edge in
             block(rect.minX, i, edge)
         }
-    }
-
-    func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
-        buffer.index(ofParagraphBoundaryBefore: i)
-    }
-
-    func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
-        buffer.index(ofParagraphBoundaryAfter: i)
     }
 }

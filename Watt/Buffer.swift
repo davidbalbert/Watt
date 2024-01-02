@@ -293,10 +293,6 @@ extension Buffer: HighlighterDelegate {
 }
 
 extension Buffer: TextContentDataSource {
-    var characterCount: Int {
-        count
-    }
-
     func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
         var j = i
         if lines.isBoundary(j) {

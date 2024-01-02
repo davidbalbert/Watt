@@ -7,18 +7,7 @@
 
 import Foundation
 
-public protocol TextContentDataSource {
-    associatedtype Index: Comparable
-
-    var documentRange: Range<Index> { get }
-
-    func index(_ i: Index, offsetBy distance: Int) -> Index
-    func distance(from start: Index, to end: Index) -> Int
-
-    var characterCount: Int { get }
-
-    subscript(index: Index) -> Character { get }
-
+public protocol TextContentDataSource: BidirectionalCollection where Element == Character {
     // MARK: Paragraph navigation
     func index(ofParagraphBoundaryBefore i: Index) -> Index
     func index(ofParagraphBoundaryAfter i: Index) -> Index
@@ -61,26 +50,6 @@ public extension TextContentDataSource {
 // MARK: - Internal helpers
 
 extension TextContentDataSource {
-    var isEmpty: Bool {
-        documentRange.isEmpty
-    }
-
-    var startIndex: Index {
-        documentRange.lowerBound
-    }
-
-    var endIndex: Index {
-        documentRange.upperBound
-    }
-
-    func index(before i: Index) -> Index {
-        index(i, offsetBy: -1)
-    }
-
-    func index(after i: Index) -> Index {
-        index(i, offsetBy: 1)
-    }
-
     func index(roundingDownToParagraph i: Index) -> Index {
         if i == startIndex || self[index(before: i)] == "\n" {
             return i

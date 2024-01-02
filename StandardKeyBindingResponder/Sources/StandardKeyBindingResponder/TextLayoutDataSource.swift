@@ -12,7 +12,12 @@ public enum Edge {
     case trailing
 }
 
-public protocol TextLayoutDataSource: TextContentDataSource {
+public protocol TextLayoutDataSource {
+    associatedtype Content: TextContentDataSource
+    typealias Index = Content.Index
+
+    var content: Content { get }
+
     func lineFragmentRange(containing index: Index) -> Range<Index>
     func lineFragmentRange(for point: CGPoint) -> Range<Index>?
     func verticalOffset(forLineFragmentContaining index: Index) -> CGFloat
@@ -40,24 +45,24 @@ public protocol TextLayoutDataSource: TextContentDataSource {
 // MARK: - Internal helpers
 extension TextLayoutDataSource {
     func range(for granularity: Granularity, enclosing i: Index) -> Range<Index> {
-        if isEmpty {
-            return startIndex..<startIndex
+        if content.isEmpty {
+            return content.startIndex..<content.startIndex
         }
 
         switch granularity {
         case .character:
             var start = i
-            if i == endIndex {
-                start = index(before: start)
+            if i == content.endIndex {
+                start = content.index(before: start)
             }
 
-            return start..<index(after: start)
+            return start..<content.index(after: start)
         case .word:
             return wordGranuleRange(containing: i)
         case .line:
             return lineFragmentRange(containing: i)
         case .paragraph:
-            return paragraph(containing: i)
+            return content.paragraph(containing: i)
         }
     }
 
@@ -65,7 +70,7 @@ extension TextLayoutDataSource {
         precondition(fragRange.contains(target) || fragRange.upperBound == target)
         assert(fragRange == lineFragmentRange(containing: fragRange.lowerBound))
 
-        let count = distance(from: fragRange.lowerBound, to: fragRange.upperBound)
+        let count = content.distance(from: fragRange.lowerBound, to: fragRange.upperBound)
         let endsInNewline = lastCharacter(inRange: fragRange) == "\n"
         let targetIsAfterNewline = endsInNewline && target == fragRange.upperBound
 
@@ -81,9 +86,9 @@ extension TextLayoutDataSource {
 
         let trailingTarget: Index
         if targetIsAfterNewline && count > 1 {
-            trailingTarget = index(fragRange.upperBound, offsetBy: -2)
-        } else if target > fragRange.lowerBound && (target == fragRange.upperBound || (endsInNewline && target == index(before: fragRange.upperBound))) {
-            trailingTarget = index(before: target)
+            trailingTarget = content.index(fragRange.upperBound, offsetBy: -2)
+        } else if target > fragRange.lowerBound && (target == fragRange.upperBound || (endsInNewline && target == content.index(before: fragRange.upperBound))) {
+            trailingTarget = content.index(before: target)
         } else {
             trailingTarget = target
         }
@@ -131,7 +136,7 @@ extension TextLayoutDataSource {
             // "a\n" -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (8.0, 1, trailing)]
             // "ab"  -> [(0.0, 0, leading), (8.0, 0, trailing), (8.0, 1, leading), (16.0, 1, trailing)]
 
-            let nleft = distance(from: i, to: fragRange.upperBound)
+            let nleft = content.distance(from: i, to: fragRange.upperBound)
             let isFinal = edge == .trailing && (fragRange.isEmpty || nleft == 1)
 
             // skip all but the last trailing edge
@@ -164,7 +169,7 @@ extension TextLayoutDataSource {
             } else if edge == .leading {
                 res = (i, offset)
             } else if fragRange.isEmpty || endsInNewline {
-                assert(isFinal && (i == fragRange.lowerBound || self[i] == "\n"))
+                assert(isFinal && (i == fragRange.lowerBound || content[i] == "\n"))
                 // Even though we're on a trailing edge, you can't click to the
                 // right of "" or "\n", so we don't increment i.
                 res = (i, offset)
@@ -172,7 +177,7 @@ extension TextLayoutDataSource {
                 assert(isFinal)
                 // We're on a trailing edge, which means our target index is the one
                 // after the current one.
-                res = (index(after: i), offset)
+                res = (content.index(after: i), offset)
             }
 
             return false
@@ -186,38 +191,38 @@ extension TextLayoutDataSource {
             return nil
         }
 
-        return self[index(before: range.upperBound)]
+        return content[content.index(before: range.upperBound)]
     }
 
     // "granule" because in addition to expanding to cover a word
     // this will also expand to cover one or more space characters
     // or any other non-word character.
     func wordGranuleRange(containing i: Index) -> Range<Index> {
-        assert(!isEmpty)
+        assert(!content.isEmpty)
 
         var i = i
-        if i == endIndex {
-            i = index(before: i)
+        if i == content.endIndex {
+            i = content.index(before: i)
         }
 
-        if self[i] == " " {
-            var j = index(after: i)
+        if content[i] == " " {
+            var j = content.index(after: i)
 
-            while i > startIndex && self[index(before: i)] == " " {
-                i = index(before: i)
+            while i > content.startIndex && content[content.index(before: i)] == " " {
+                i = content.index(before: i)
             }
 
-            while j < endIndex && self[j] == " " {
-                j = index(after: j)
+            while j < content.endIndex && content[j] == " " {
+                j = content.index(after: j)
             }
 
             return i..<j
         }
 
-        if let r = wordRange(containing: i) {
+        if let r = content.wordRange(containing: i) {
             return r
         }
 
-        return i..<index(after: i)
+        return i..<content.index(after: i)
     }
 }

@@ -8,15 +8,9 @@
 import XCTest
 @testable import StandardKeyBindingResponder
 
-fileprivate extension TextContentDataSource {
-    func index(at offset: Int) -> Index {
-        index(startIndex, offsetBy: offset)
-    }
-}
-
 final class TransposerTests: XCTestCase {
     func testIndicesForTranspose() {
-        let tests: [(TestTextContentDataSource, Range<Int>, (Int, Int)?)] = [
+        let tests: [(String, Range<Int>, (Int, Int)?)] = [
             ("", 0..<0, nil),          // empty document
             ("abcde", 0..<0, (0, 1)),  // caret at beginning
             ("abcde", 1..<1, (0, 1)),  // caret in between
@@ -42,7 +36,7 @@ final class TransposerTests: XCTestCase {
     }
 
     func testRangesForTransposeWords() {
-        func t(_ dataSource: TestTextContentDataSource, _ range: Range<Int>, _ expected: (Range<Int>, Range<Int>)?, file: StaticString = #file, line: UInt = #line) {
+        func t(_ dataSource: String, _ range: Range<Int>, _ expected: (Range<Int>, Range<Int>)?, file: StaticString = #file, line: UInt = #line) {
             let r = dataSource.index(at: range.lowerBound)..<dataSource.index(at: range.upperBound)
             let result = Transposer.rangesForTransposeWords(inSelectedRange: r, dataSource: dataSource)
 
@@ -52,8 +46,8 @@ final class TransposerTests: XCTestCase {
                     return
                 }
 
-                let i1 = Range(w1, in: dataSource.s)
-                let i2 = Range(w2, in: dataSource.s)
+                let i1 = Range(w1, in: dataSource)
+                let i2 = Range(w2, in: dataSource)
 
                 if i1 != e1 && i2 != e2 {
                     XCTFail("expected (\(e1), \(e2)), got (\(i1), \(i2))", file: file, line: line)
