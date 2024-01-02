@@ -1,11 +1,11 @@
 # StandardKeyBindingResponder
 
-Resuable components for implementing NSStandardKeyBindingResponding.
+Reusable components for implementing NSStandardKeyBindingResponding in custom text views.
 
 ## Components
 
 - SelectionNavigator - Create, modify and extend selections from keyboard and mouse events. Analogous to `NSTextSelectionNavigation`, but more Swifty.
-- Transposer - Implementations for `transpose:` and `transposeWords:`
+- Transposer - Logic for `transpose:` and `transposeWords:`
 
 ## Getting started
 
@@ -15,14 +15,17 @@ Resuable components for implementing NSStandardKeyBindingResponding.
 
 ## Future direction
 
-The goal is to have a single struct that manages all state related to NSStandardKeyBindingResponding. For a simple text view, your NSStandardKeyBindingResponding overrides and mouse events (`mouseDown:`, `mouseDragged:`, `mouseUp:`) should be doable in a single line of code.
+The goal is to have a single struct `KeyBindingResponder` that manages all state related to NSStandardKeyBindingResponding. For a simple text view your key binding overrides and mouse events (`mouseDown(_:)`, `mouseDragged(_:)`, `mouseUp(_:)`) should be a single line of code.
 
 ## Missing features
 
 - Multiple selections
 - Kill buffer (mark/yank)
-- Writing directions (RTL support)
+- Writing directions (i.e. RTL support)
 - CR and CRLF line endings
+- Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
+- Insertion and indentation key bindings (`insertNewline:` etc.)
+- Case changes (`changeCaseOfLetter:`, etc.)
 - Documentation
 
 ## Contributing
