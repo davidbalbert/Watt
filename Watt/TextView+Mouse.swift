@@ -20,17 +20,17 @@ extension TextView {
         let point = convertToTextContainer(locationInView)
 
         if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift {
-            layoutManager.selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
+            selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
             return
         }
 
         switch event.clickCount {
         case 1:
-            layoutManager.selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
+            selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
         case 2:
-            layoutManager.selection = SelectionNavigator(selection).selection(for: .word, enclosing: point, dataSource: layoutManager)
+            selection = SelectionNavigator(selection).selection(for: .word, enclosing: point, dataSource: layoutManager)
         case 3:
-            layoutManager.selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
+            selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
         default:
             break
         }
@@ -78,7 +78,7 @@ extension TextView {
         let locationInView = convert(event.locationInWindow, from: nil)
         let clamped = locationInView.clamped(to: visibleRect)
         let point = convertToTextContainer(clamped)
-        layoutManager.selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
+        selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
     }
 
     override func mouseUp(with event: NSEvent) {

@@ -101,7 +101,7 @@ class TextView: NSView, ClipViewDelegate {
             layoutManager.buffer = newValue
 
             // TODO: this is wrong. If there are two TextViews with the
-            // with the same buffer but differnt fonts, this will
+            // with the same buffer but different fonts, this will
             // overwrite the font in both views.
             //
             // The solution is to merge the default attributes in only
@@ -109,13 +109,20 @@ class TextView: NSView, ClipViewDelegate {
             buffer.mergeAttributes(defaultAttributes)
 
             lineNumberView.lineCount = buffer.lines.count
+            selection = Selection(atStartOf: newValue)
         }
     }
 
     let layoutManager: LayoutManager
 
     var selection: Selection {
-        layoutManager.selection
+        didSet {
+            setTypingAttributes()
+
+            selectionLayer.setNeedsLayout()
+            insertionPointLayer.setNeedsLayout()
+            updateInsertionPointTimer()
+        }
     }
 
     var lineNumberView: LineNumberView
@@ -161,6 +168,7 @@ class TextView: NSView, ClipViewDelegate {
     override init(frame frameRect: NSRect) {
         layoutManager = LayoutManager()
         lineNumberView = LineNumberView()
+        selection = Selection(atStartOf: layoutManager.buffer)
         super.init(frame: frameRect)
         commonInit()
     }
@@ -168,6 +176,7 @@ class TextView: NSView, ClipViewDelegate {
     required init?(coder: NSCoder) {
         layoutManager = LayoutManager()
         lineNumberView = LineNumberView()
+        selection = Selection(atStartOf: layoutManager.buffer)
         super.init(coder: coder)
         commonInit()
     }

@@ -16,11 +16,11 @@ extension TextView {
     // KeyBinding Inspector: https://github.com/davidbalbert/KeyBinding-Inspector
 
     func moveSelection(_ movement: Movement) {
-        layoutManager.selection = SelectionNavigator(layoutManager.selection).selection(moving: movement, dataSource: layoutManager)
+        selection = SelectionNavigator(selection).selection(moving: movement, dataSource: layoutManager)
     }
 
     func extendSelection(_ movement: Movement) {
-        layoutManager.selection = SelectionNavigator(layoutManager.selection).selection(extending: movement, dataSource: layoutManager)
+        selection = SelectionNavigator(selection).selection(extending: movement, dataSource: layoutManager)
     }
 
     // MARK: Selection movement and scrolling
@@ -114,8 +114,8 @@ extension TextView {
             return
         }
 
-        let r1 = layoutManager.caretRect(for: layoutManager.selection.lowerBound, affinity: .downstream)
-        let r2 = layoutManager.caretRect(for: layoutManager.selection.upperBound, affinity: .upstream)
+        let r1 = layoutManager.caretRect(for: selection.lowerBound, affinity: .downstream)
+        let r2 = layoutManager.caretRect(for: selection.upperBound, affinity: .upstream)
         guard let r1, let r2 else {
             return
         }
@@ -401,7 +401,7 @@ extension TextView {
 
         let anchor = buffer.index(fromOldIndex: i)
         let head = buffer.index(anchor, offsetBy: 2)
-        layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
+        selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
 
     override func transposeWords(_ sender: Any?) {
@@ -419,7 +419,7 @@ extension TextView {
         let anchor = buffer.index(fromOldIndex: word1.lowerBound)
         let head = buffer.index(fromOldIndex: word2.upperBound)
 
-        layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character)
+        selection = Selection(anchor: anchor, head: head, granularity: .character)
     }
 
 
@@ -433,7 +433,7 @@ extension TextView {
             return
         }
 
-        layoutManager.selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
+        selection = Selection(anchor: buffer.startIndex, head: buffer.endIndex, granularity: .character)
     }
 
     override func selectParagraph(_ sender: Any?) {

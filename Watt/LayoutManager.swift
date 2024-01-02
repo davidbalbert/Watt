@@ -15,8 +15,9 @@ protocol LayoutManagerDelegate: AnyObject {
     // Text container coordinates. No overdraw.
     func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
-    func selectionDidChange(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
+
+    func selections(for layoutManager: LayoutManager) -> [Selection]
 
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
@@ -41,9 +42,6 @@ class LayoutManager {
             heights = Heights(rope: buffer.text)
             lineCache = IntervalCache(upperBound: buffer.utf8.count)
             delegate?.didInvalidateLayout(for: self)
-
-            let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
-            selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
         }
     }
 
@@ -57,22 +55,15 @@ class LayoutManager {
         }
     }
 
-    var selection: Selection {
-        didSet {
-            delegate?.selectionDidChange(for: self)
-        }
-    }
-
     var lineCache: IntervalCache<Line>
 
     init() {
-        self.heights = Heights()
-        self.textContainer = TextContainer()
-        self.lineCache = IntervalCache(upperBound: 0)
-        self.buffer = Buffer()
+        heights = Heights()
+        textContainer = TextContainer()
+        lineCache = IntervalCache(upperBound: 0)
+        buffer = Buffer()
 
-        let affinity: Affinity = buffer.isEmpty ? .upstream : .downstream
-        selection = Selection(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
+        buffer.addDelegate(self)
     }
 
     var contentHeight: CGFloat {
@@ -103,21 +94,23 @@ class LayoutManager {
         let viewportBounds = delegate.viewportBounds(for: self)
         let viewportRange = lineRange(intersecting: viewportBounds)
 
-        let rangeInViewport = selection.range.clamped(to: viewportRange)
+        for selection in delegate.selections(for: self) {
+            let rangeInViewport = selection.range.clamped(to: viewportRange)
 
-        if rangeInViewport.isEmpty {
-            return
-        }
-
-        enumerateTextSegments(in: rangeInViewport, type: .selection) { range, rect in
-            if range.isEmpty {
-                assert(range.upperBound == buffer.endIndex)
-                return false
+            if rangeInViewport.isEmpty {
+                continue
             }
 
-            block(rect)
+            enumerateTextSegments(in: rangeInViewport, type: .selection) { range, rect in
+                if range.isEmpty {
+                    assert(range.upperBound == buffer.endIndex)
+                    return false
+                }
 
-            return true
+                block(rect)
+
+                return true
+            }
         }
     }
 
@@ -126,43 +119,46 @@ class LayoutManager {
             return
         }
 
-        guard selection.isCaret else {
-            return
-        }
-
         let viewportBounds = delegate.viewportBounds(for: self)
         let viewportRange = lineRange(intersecting: viewportBounds)
 
-        guard viewportRange.contains(selection.lowerBound) || viewportRange.upperBound == selection.upperBound else {
-            return
-        }
-
-        let leadingCaretIndex = selection.lowerBound
-        let trailingCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
-
-        var rect: CGRect?
-        enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge in
-            let leadingMatch = edge == .leading && i == leadingCaretIndex
-            let trailingMatch = edge == .trailing && i == trailingCaretIndex
-
-            guard leadingMatch || trailingMatch else {
-                return true
+        for selection in delegate.selections(for: self) {
+            guard selection.isCaret else {
+                continue
             }
 
-            rect = CGRect(
-                x: round(min(caretRect.minX, textContainer.width - textContainer.lineFragmentPadding)) - 0.5,
-                y: caretRect.minY,
-                width: caretRect.width,
-                height: caretRect.height
-            )
-            return false
-        }
+            guard viewportRange.contains(selection.lowerBound) || viewportRange.upperBound == selection.upperBound else {
+                continue
+            }
 
-        guard let rect else {
-            return
-        }
+            let leadingCaretIndex = selection.lowerBound
+            let trailingCaretIndex = buffer.index(selection.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex)
 
-        block(rect)
+            var rect: CGRect?
+            enumerateCaretRects(containing: selection.lowerBound, affinity: selection.affinity) { caretRect, i, edge in
+                let leadingMatch = edge == .leading && i == leadingCaretIndex
+                let trailingMatch = edge == .trailing && i == trailingCaretIndex
+
+                guard leadingMatch || trailingMatch else {
+                    return true
+                }
+
+                rect = CGRect(
+                    x: round(min(caretRect.minX, textContainer.width - textContainer.lineFragmentPadding)) - 0.5,
+                    y: caretRect.minY,
+                    width: caretRect.width,
+                    height: caretRect.height
+                )
+                return false
+            }
+
+            guard let rect else {
+                // should never be nil
+                continue
+            }
+
+            block(rect)
+        }
     }
 
     func firstRect(forRange range: Range<Buffer.Index>) -> (CGRect, Range<Buffer.Index>)? {

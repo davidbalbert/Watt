@@ -232,16 +232,12 @@ extension TextView: LayoutManagerDelegate {
         updateFrameHeightIfNeeded()
     }
 
-    func selectionDidChange(for layoutManager: LayoutManager) {
-        setTypingAttributes()
-
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-        updateInsertionPointTimer()
-    }
-
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
         defaultAttributes
+    }
+
+    func selections(for layoutManager: LayoutManager) -> [Selection] {
+        [selection]
     }
 
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {

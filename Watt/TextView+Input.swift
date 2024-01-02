@@ -73,16 +73,16 @@ extension TextView: NSTextInputClient {
         }
 
         if anchor == head {
-            layoutManager.selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
+            selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
         } else {
-            layoutManager.selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
+            selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
         }
     }
 
     func unmarkText() {
         print("unmarkText")
 
-        layoutManager.selection = layoutManager.selection.unmarked
+        selection = selection.unmarked
 
         // TODO: if we're the only one who calls unmarkText(), we can remove
         // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
@@ -92,11 +92,11 @@ extension TextView: NSTextInputClient {
     }
 
     func selectedRange() -> NSRange {
-        NSRange(layoutManager.selection.range, in: buffer)
+        NSRange(selection.range, in: buffer)
     }
 
     func markedRange() -> NSRange {
-        guard let markedRange = layoutManager.selection.markedRange else {
+        guard let markedRange = selection.markedRange else {
             return .notFound
         }
 
@@ -104,7 +104,7 @@ extension TextView: NSTextInputClient {
     }
 
     func hasMarkedText() -> Bool {
-        layoutManager.selection.markedRange != nil
+        selection.markedRange != nil
     }
 
     func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? {
@@ -177,7 +177,7 @@ extension TextView {
             return Range(proposed, in: buffer)
         }
 
-        return layoutManager.selection.markedRange ?? layoutManager.selection.range
+        return selection.markedRange ?? selection.range
     }
 
     func discardMarkedText() {
@@ -190,7 +190,7 @@ extension TextView {
         // For mouse events, however, that doesn't seem to happen happen. Ditto for
         // things the text system doesn't know about, like selectAll(_:), etc. So
         // here we manually clear the marked text styles.
-        if let markedRange = layoutManager.selection.markedRange {
+        if let markedRange = selection.markedRange {
             buffer.setAttributes(typingAttributes, in: markedRange)
         }
     }
@@ -218,7 +218,7 @@ extension TextView {
         // selection in the correct location.
         let head = buffer.index(buffer.index(fromOldIndex: subrange.lowerBound), offsetBy: count)
         let affinity: Affinity = head == buffer.endIndex ? .upstream : .downstream
-        layoutManager.selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
+        selection = Selection(caretAt: head, affinity: affinity, granularity: .character, xOffset: nil, markedRange: nil)
         
         scrollSelectionToVisible()
     }

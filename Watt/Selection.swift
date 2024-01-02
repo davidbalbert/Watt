@@ -71,6 +71,11 @@ struct Selection {
         self.init(range: i..<j, affinity: affinity, granularity: granularity, xOffset: xOffset, markedRange: markedRange)
     }
 
+    init(atStartOf buffer: Buffer) {
+        let affinity: Selection.Affinity = buffer.isEmpty ? .upstream : .downstream
+        self.init(caretAt: buffer.startIndex, affinity: affinity, granularity: .character, xOffset: nil)
+    }
+
     var isCaret: Bool {
         head == anchor
     }
