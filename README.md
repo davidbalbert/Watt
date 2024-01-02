@@ -1,6 +1,6 @@
 # Watt
 
-A work-in-progress text editor for macOS. Not much to see for now, though you might be interested in the StandardKeyBindingResponder package.
+A work-in-progress text editor for macOS. Not much to see for now, though you might be interested in the [StandardKeyBindingResponder](https://github.com/davidbalbert/Watt/tree/main/StandardKeyBindingResponder) package.
 
 ## License
 
