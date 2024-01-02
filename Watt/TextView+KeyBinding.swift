@@ -512,31 +512,31 @@ extension TextView {
     // MARK: - Deletions
 
     override func deleteForward(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .right, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .right, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteBackward(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .left, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .left, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
-        let (range, s) = SelectionNavigator.replacementForDeleteBackwardsByDecomposing(selection, dataSource: layoutManager)
+        let (range, s) = SelectionNavigator(selection).replacementForDeleteBackwardsByDecomposing(dataSource: layoutManager)
         replaceSubrange(range, with: s)
         unmarkText()
     }
 
     override func deleteWordForward(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordRight, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .wordRight, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteWordBackward(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .wordLeft, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .wordLeft, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
@@ -548,25 +548,25 @@ extension TextView {
     //
     // Perhaps this would be a good place for some sort of preference in the future.
     override func deleteToBeginningOfLine(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .beginningOfParagraph, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteToEndOfLine(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfLine, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .endOfLine, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteToBeginningOfParagraph(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .beginningOfParagraph, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .beginningOfParagraph, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }
 
     override func deleteToEndOfParagraph(_ sender: Any?) {
-        let range = SelectionNavigator.rangeToDelete(for: selection, movement: .endOfParagraph, dataSource: layoutManager)
+        let range = SelectionNavigator(selection).rangeToDelete(movement: .endOfParagraph, dataSource: layoutManager)
         replaceSubrange(range, with: "")
         unmarkText()
     }

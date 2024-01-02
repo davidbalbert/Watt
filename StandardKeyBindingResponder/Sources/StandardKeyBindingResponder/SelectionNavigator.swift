@@ -465,7 +465,7 @@ extension SelectionNavigator {
     // TODO: I don't love having this method be separate from rangeToDelete(for:movement:dataSource:), but
     // rangeToDelete would have to return "" in all cases besides decomposition, and decomposition is only
     // allowed when deleting backwards. I wonder if there's a better way.
-    public static func replacementForDeleteBackwardsByDecomposing(_ selection: Selection, dataSource: DataSource) -> (Range<Selection.Index>, String) {
+    public func replacementForDeleteBackwardsByDecomposing(dataSource: DataSource) -> (Range<Selection.Index>, String) {
         let content = dataSource.content
 
         if selection.isRange {
@@ -490,7 +490,7 @@ extension SelectionNavigator {
         return (start..<end, s)
     }
 
-    public static func rangeToDelete(for selection: Selection, movement: Movement, dataSource: DataSource) -> Range<Selection.Index> {
+    public func rangeToDelete(movement: Movement, dataSource: DataSource) -> Range<Selection.Index> {
         let content = dataSource.content
 
         if selection.isRange {
