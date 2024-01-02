@@ -775,17 +775,6 @@ extension LayoutManager: BufferDelegate {
 
 // MARK: - Selection navigation
 
-extension LayoutManager {
-    func moveSelection(_ movement: Movement) {
-        selection = SelectionNavigator(selection).selection(moving: movement, dataSource: self)
-    }
-
-    func extendSelection(_ movement: Movement) {
-        selection = SelectionNavigator(selection).selection(extending: movement, dataSource: self)
-    }
-}
-
-
 extension LayoutManager: TextLayoutDataSource {
     var content: Buffer {
         buffer

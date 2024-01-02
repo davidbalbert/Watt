@@ -15,85 +15,93 @@ extension TextView {
     // NSStandardKeyBindingResponding: https://developer.apple.com/documentation/appkit/nsstandardkeybindingresponding
     // KeyBinding Inspector: https://github.com/davidbalbert/KeyBinding-Inspector
 
+    func moveSelection(_ movement: Movement) {
+        layoutManager.selection = SelectionNavigator(layoutManager.selection).selection(moving: movement, dataSource: layoutManager)
+    }
+
+    func extendSelection(_ movement: Movement) {
+        layoutManager.selection = SelectionNavigator(layoutManager.selection).selection(extending: movement, dataSource: layoutManager)
+    }
+
     // MARK: Selection movement and scrolling
 
     override func moveForward(_ sender: Any?) {
-        layoutManager.moveSelection(.right)
+        moveSelection(.right)
         scrollSelectionToVisible()
     }
 
     override func moveRight(_ sender: Any?) {
-        layoutManager.moveSelection(.right)
+        moveSelection(.right)
         scrollSelectionToVisible()
     }
 
     override func moveBackward(_ sender: Any?) {
-        layoutManager.moveSelection(.left)
+        moveSelection(.left)
         scrollSelectionToVisible()
     }
 
     override func moveLeft(_ sender: Any?) {
-        layoutManager.moveSelection(.left)
+        moveSelection(.left)
         scrollSelectionToVisible()
     }
 
     override func moveUp(_ sender: Any?) {
-        layoutManager.moveSelection(.up)
+        moveSelection(.up)
         scrollSelectionToVisible()
     }
 
     override func moveDown(_ sender: Any?) {
-        layoutManager.moveSelection(.down)
+        moveSelection(.down)
         scrollSelectionToVisible()
     }
 
     override func moveWordForward(_ sender: Any?) {
-        layoutManager.moveSelection(.wordRight)
+        moveSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordBackward(_ sender: Any?) {
-        layoutManager.moveSelection(.wordLeft)
+        moveSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfLine(_ sender: Any?) {
-        layoutManager.moveSelection(.beginningOfLine)
+        moveSelection(.beginningOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfLine(_ sender: Any?) {
-        layoutManager.moveSelection(.endOfLine)
+        moveSelection(.endOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfParagraph(_ sender: Any?) {
-        layoutManager.moveSelection(.beginningOfParagraph)
+        moveSelection(.beginningOfParagraph)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfParagraph(_ sender: Any?) {
-        layoutManager.moveSelection(.endOfParagraph)
+        moveSelection(.endOfParagraph)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfDocument(_ sender: Any?) {
-        layoutManager.moveSelection(.endOfDocument)
+        moveSelection(.endOfDocument)
         scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfDocument(_ sender: Any?) {
-        layoutManager.moveSelection(.beginningOfDocument)
+        moveSelection(.beginningOfDocument)
         scrollSelectionToVisible()
     }
 
     override func pageDown(_ sender: Any?) {
-        layoutManager.moveSelection(.pageDown)
+        moveSelection(.pageDown)
         centerSelectionHead()
     }
 
     override func pageUp(_ sender: Any?) {
-        layoutManager.moveSelection(.pageUp)
+        moveSelection(.pageUp)
         centerSelectionHead()
     }
 
@@ -129,138 +137,138 @@ extension TextView {
 
 
     override func moveBackwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.left)
+        extendSelection(.left)
         scrollSelectionToVisible()
     }
 
     override func moveForwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.right)
+        extendSelection(.right)
         scrollSelectionToVisible()
     }
 
     override func moveWordForwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.wordRight)
+        extendSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordBackwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.wordLeft)
+        extendSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
     override func moveUpAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.up)
+        extendSelection(.up)
         scrollSelectionToVisible()
     }
 
     override func moveDownAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.down)
+        extendSelection(.down)
         scrollSelectionToVisible()
     }
 
 
 
     override func moveToBeginningOfLineAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.beginningOfLine)
+        extendSelection(.beginningOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfLineAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.endOfLine)
+        extendSelection(.endOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfParagraphAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.beginningOfParagraph)
+        extendSelection(.beginningOfParagraph)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfParagraphAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.endOfParagraph)
+        extendSelection(.endOfParagraph)
         scrollSelectionToVisible()
     }
 
     override func moveToEndOfDocumentAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.endOfDocument)
+        extendSelection(.endOfDocument)
         scrollSelectionToVisible()
     }
 
     override func moveToBeginningOfDocumentAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.beginningOfDocument)
+        extendSelection(.beginningOfDocument)
         scrollSelectionToVisible()
     }
 
     override func pageDownAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.pageDown)
+        extendSelection(.pageDown)
         centerSelectionHead()
     }
 
     override func pageUpAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.pageUp)
+        extendSelection(.pageUp)
         centerSelectionHead()
     }
 
     override func moveParagraphForwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.paragraphForward)
+        extendSelection(.paragraphForward)
         scrollSelectionToVisible()
     }
 
     override func moveParagraphBackwardAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.paragraphBackward)
+        extendSelection(.paragraphBackward)
         scrollSelectionToVisible()
     }
 
 
 
     override func moveWordRight(_ sender: Any?) {
-        layoutManager.moveSelection(.wordRight)
+        moveSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordLeft(_ sender: Any?) {
-        layoutManager.moveSelection(.wordLeft)
+        moveSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
     override func moveRightAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.right)
+        extendSelection(.right)
         scrollSelectionToVisible()
     }
 
     override func moveLeftAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.left)
+        extendSelection(.left)
         scrollSelectionToVisible()
     }
 
     override func moveWordRightAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.wordRight)
+        extendSelection(.wordRight)
         scrollSelectionToVisible()
     }
 
     override func moveWordLeftAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.wordLeft)
+        extendSelection(.wordLeft)
         scrollSelectionToVisible()
     }
 
 
 
     override func moveToLeftEndOfLine(_ sender: Any?) {
-        layoutManager.moveSelection(.beginningOfLine)
+        moveSelection(.beginningOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToRightEndOfLine(_ sender: Any?) {
-        layoutManager.moveSelection(.endOfLine)
+        moveSelection(.endOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToLeftEndOfLineAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.beginningOfLine)
+        extendSelection(.beginningOfLine)
         scrollSelectionToVisible()
     }
 
     override func moveToRightEndOfLineAndModifySelection(_ sender: Any?) {
-        layoutManager.extendSelection(.endOfLine)
+        extendSelection(.endOfLine)
         scrollSelectionToVisible()
     }
 
