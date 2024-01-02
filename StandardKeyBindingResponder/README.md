@@ -15,6 +15,8 @@ Reusable components for implementing NSStandardKeyBindingResponding in custom te
 4. Implement `InitializableFromAffinity`, `InitializableFromGranularity` and `NavigableSelection` for your affinity, granularity, and selection types.
 5. Use the methods on `SelectionNavigation` to derive new selections from your existing selections.
 
+If you're adding StandardKeyBindingResponder to your project [KeyBinding Inspector](https://github.com/davidbalbert/KeyBinding-Inspector) might be helpful for testing.
+
 **Note**: StandardKeyBindingResponder is very young and its API is not final.
 
 ## Future direction
