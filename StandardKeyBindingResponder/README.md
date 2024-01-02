@@ -23,10 +23,11 @@ The goal is to have a single struct `KeyBindingResponder` that manages all state
 - Kill buffer (mark/yank)
 - Writing directions (i.e. RTL support)
 - CR and CRLF line endings
-- Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
-- Insertion and indentation key bindings (`insertNewline:` etc.)
-- Case changes (`changeCaseOfLetter:`, etc.)
-- Documentation
+- `KeyBindingResponder`
+    - Scroll handling – scroll to the appropriate location after modifying a selection and scroll key bindings (`scrollPageUp:` etc.).
+    - Insertion and indentation key bindings (`insertNewline:` etc.)
+    - Case changes (`changeCaseOfLetter:`, etc.)
+    - Documentation
 
 ## Contributing
 
