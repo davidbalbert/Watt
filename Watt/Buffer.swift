@@ -19,11 +19,22 @@ class Buffer {
 
     var contents: AttributedRope
 
-    var language: Language {
+    var _language: Language {
         didSet {
             if type(of: language) != type(of: oldValue) {
                 highlighter = language.highlighter
             }
+        }
+    }
+
+    var language: Language {
+        get {
+            _language
+        }
+        set {
+            _language = newValue
+            // This will only highlight if _language has actually changed.
+            highlighter?.highlightIfNecessary()
         }
     }
 
@@ -34,19 +45,6 @@ class Buffer {
     }
 
     var delegates: WeakHashSet<BufferDelegate>
-
-    var string: String {
-        get {
-            String(contents.text)
-        }
-        set {
-            contents = AttributedRope(newValue)
-
-            for delegate in delegates {
-                delegate.bufferDidReload(self)
-            }
-        }
-    }
 
     var data: Data {
         Data(contents.text)
@@ -62,11 +60,12 @@ class Buffer {
 
     init(_ attrRope: AttributedRope, language: Language) {
         self.contents = attrRope
-        self.language = language
+        self._language = language
         self.delegates = WeakHashSet<BufferDelegate>()
 
         self.highlighter = language.highlighter
         highlighter?.delegate = self
+        highlighter?.highlight()
     }
 
     var utf8: Rope.UTF8View {
@@ -151,12 +150,28 @@ class Buffer {
 
     func addDelegate(_ delegate: BufferDelegate) {
         delegates.insert(delegate)
-        highlighter?.highlightIfNecessary()
     }
 
     func removeDelegate(_ delegate: BufferDelegate) {
         delegates.remove(delegate)
-   }
+    }
+
+    // TODO: port LineHashDiff from xi-editor and then use applying(delta:) on the resulting diff.
+    // Then we can get rid of BufferDelegate.bufferDidReload(_:) and use whatever smarts we have
+    // in TextView.layoutManager(_:buffer:contentsDidChangeFrom:to:withDelta:) to keep selections
+    // that are still valid in the right place.
+    func replaceContents(with string: String, language: Language) {
+        // use _language instead of language so that we don't trigger a highlight until
+        // after replacing content.
+        self._language = language
+        contents = AttributedRope(string)
+
+        for delegate in delegates {
+            delegate.bufferDidReload(self)
+        }
+
+        highlighter?.highlight()
+    }
 
     // TODO: at some point, we're going to add editing transactions. You will be
     // able to open a transaction, make a bunch of edits, and then end the transaction

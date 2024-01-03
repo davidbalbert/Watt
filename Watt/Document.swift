@@ -45,8 +45,7 @@ class Document: NSDocument {
         fileType = typeName
 
         let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
-        buffer.string = try String(contentsOf: url)
-        buffer.language = UTType(typeName)?.language ?? .plainText
+        buffer.replaceContents(with: try String(contentsOf: url), language: UTType(typeName)?.language ?? .plainText)
     }
 
     override func makeWindowControllers() {
@@ -67,8 +66,7 @@ class Document: NSDocument {
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        buffer.string = String(decoding: data, as: UTF8.self)
-        buffer.language = UTType(typeName)?.language ?? .plainText
+        buffer.replaceContents(with: String(decoding: data, as: UTF8.self), language: UTType(typeName)?.language ?? .plainText)
     }
 }
 
