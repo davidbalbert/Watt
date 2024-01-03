@@ -437,22 +437,22 @@ extension TextView {
     }
 
     override func selectParagraph(_ sender: Any?) {
-
+        super.selectParagraph(sender)
     }
 
     override func selectLine(_ sender: Any?) {
-
+        super.selectLine(sender)
     }
 
     override func selectWord(_ sender: Any?) {
-
+        super.selectWord(sender)
     }
 
 
     // MARK: - Insertions and Indentations
 
     override func indent(_ sender: Any?) {
-
+        super.indent(sender)
     }
 
     override func insertTab(_ sender: Any?) {
@@ -461,7 +461,7 @@ extension TextView {
     }
 
     override func insertBacktab(_ sender: Any?) {
-
+        super.insertBacktab(sender)
     }
 
     override func insertNewline(_ sender: Any?) {
@@ -470,7 +470,7 @@ extension TextView {
     }
 
     override func insertParagraphSeparator(_ sender: Any?) {
-
+        super.insertParagraphSeparator(sender)
     }
 
     override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
@@ -482,38 +482,38 @@ extension TextView {
     }
 
     override func insertLineBreak(_ sender: Any?) {
-
+        super.insertLineBreak(sender)
     }
 
     override func insertContainerBreak(_ sender: Any?) {
-
+        super.insertContainerBreak(sender)
     }
 
     override func insertSingleQuoteIgnoringSubstitution(_ sender: Any?) {
-
+        super.insertSingleQuoteIgnoringSubstitution(sender)
     }
 
     override func insertDoubleQuoteIgnoringSubstitution(_ sender: Any?) {
-
+        super.insertDoubleQuoteIgnoringSubstitution(sender)
     }
 
 
     // MARK: - Case changes
 
     override func changeCaseOfLetter(_ sender: Any?) {
-
+        super.changeCaseOfLetter(sender)
     }
 
     override func uppercaseWord(_ sender: Any?) {
-
+        super.uppercaseWord(sender)
     }
 
     override func lowercaseWord(_ sender: Any?) {
-
+        super.lowercaseWord(sender)
     }
 
     override func capitalizeWord(_ sender: Any?) {
-
+        super.capitalizeWord(sender)
     }
 
 
@@ -582,74 +582,74 @@ extension TextView {
 
 
     override func yank(_ sender: Any?) {
-
+        super.yank(sender)
     }
 
 
     // MARK: - Completion
 
     override func complete(_ sender: Any?) {
-
+        super.complete(sender)
     }
 
 
     // MARK: - Mark/Point manipulation
     
     override func setMark(_ sender: Any?) {
-
+        super.setMark(sender)
     }
 
     override func deleteToMark(_ sender: Any?) {
-
+        super.deleteToMark(sender)
     }
 
     override func selectToMark(_ sender: Any?) {
-
+        super.selectToMark(sender)
     }
 
     override func swapWithMark(_ sender: Any?) {
-
+        super.swapWithMark(sender)
     }
 
 
     // MARK: - Cancellation
 
     override func cancelOperation(_ sender: Any?) {
-
+        super.cancelOperation(sender)
     }
 
 
     // MARK: - Writing Direction
 
     override func makeBaseWritingDirectionNatural(_ sender: Any?) {
-
+        super.makeBaseWritingDirectionNatural(sender)
     }
 
     override func makeBaseWritingDirectionLeftToRight(_ sender: Any?) {
-
+        super.makeBaseWritingDirectionLeftToRight(sender)
     }
 
     override func makeBaseWritingDirectionRightToLeft(_ sender: Any?) {
-
+        super.makeBaseWritingDirectionRightToLeft(sender)
     }
 
 
     override func makeTextWritingDirectionNatural(_ sender: Any?) {
-
+        super.makeTextWritingDirectionNatural(sender)
     }
 
     override func makeTextWritingDirectionLeftToRight(_ sender: Any?) {
-
+        super.makeTextWritingDirectionLeftToRight(sender)
     }
 
     override func makeTextWritingDirectionRightToLeft(_ sender: Any?) {
-
+        super.makeTextWritingDirectionRightToLeft(sender)
     }
 
 
     // MARK: - Quick Look
 
     override func quickLookPreviewItems(_ sender: Any?) {
-
+        super.quickLookPreviewItems(sender)
     }
 }
