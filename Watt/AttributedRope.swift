@@ -90,16 +90,16 @@ extension AttributedRope {
             self.contents = contents
         }
 
-        mutating func merge(_ other: Attributes) {
-            contents.merge(other.contents, uniquingKeysWith: { $1 })
+        mutating func merge(_ other: Attributes, mergePolicy: AttributeMergePolicy = .keepNew) {
+            contents.merge(other.contents, uniquingKeysWith: mergePolicy.combine)
         }
 
-        func merging(_ other: Attributes) -> Attributes {
-            Attributes(contents.merging(other.contents, uniquingKeysWith: { $1 }))
+        func merging(_ other: Attributes, mergePolicy: AttributeMergePolicy = .keepNew) -> Attributes {
+            Attributes(contents.merging(other.contents, uniquingKeysWith: mergePolicy.combine))
         }
 
-        func merging(_ dictionary: [NSAttributedString.Key: Any]) -> Attributes {
-            merging(Attributes(dictionary))
+        func merging(_ dictionary: [NSAttributedString.Key: Any], mergePolicy: AttributeMergePolicy = .keepNew) -> Attributes {
+            merging(Attributes(dictionary), mergePolicy: mergePolicy)
         }
     }
 
@@ -352,6 +352,20 @@ extension AttributedRope.Attributes {
 }
 
 extension AttributedRope {
+    enum AttributeMergePolicy: Equatable {
+        case keepCurrent
+        case keepNew
+
+        var combine: (Any, Any) -> Any {
+            switch self {
+            case .keepCurrent:
+                { a, b in a }
+            case .keepNew:
+                { a, b in b }
+            }
+        }
+    }
+
     subscript<K>(_ attribute: K.Type) -> K.Value? where K: AttributedRopeKey {
         get { self[startIndex..<endIndex][K.self] }
         set { self[startIndex..<endIndex][K.self] = newValue }
@@ -363,21 +377,19 @@ extension AttributedRope {
     }
 
     mutating func setAttributes(_ attributes: Attributes) {
-        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: 0..<text.utf8.count)
-        spans = b.build()
+        self[...].setAttributes(attributes)
     }
 
-    mutating func mergeAttributes(_ attributes: Attributes) {
-        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: 0..<text.utf8.count)
-        spans = spans.merging(b.build()) { a, b in
-            if let a, let b {
-                return a.merging(b)
-            } else {
-                return a ?? b
-            }
-        }
+    func setingAttributes(_ attributes: Attributes) -> AttributedRope {
+        self[...].settingAttributes(attributes)
+    }
+
+    mutating func mergeAttributes(_ attributes: Attributes, mergePolicy: AttributeMergePolicy = .keepNew) {
+        self[...].mergeAttributes(attributes, mergePolicy: mergePolicy)
+    }
+
+    func mergingAttributes(_ attributes: Attributes, mergePolicy: AttributeMergePolicy = .keepNew) -> AttributedRope {
+        self[...].mergingAttributes(attributes, mergePolicy: mergePolicy)
     }
 
     func getAttributes(at i: Index) -> Attributes {
@@ -468,29 +480,63 @@ extension AttributedSubrope {
             return
         }
 
-        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(unvalidatedRange: bounds))
+        let range = Range(unvalidatedRange: bounds)
 
-        spans = spans.merging(b.build()) { a, b in
-            b ?? a
-        }
+        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: range.count)
+        sb.add(attributes, covering: range)
+
+        var new = sb.build()
+
+        var dup = spans
+        var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
+        b.push(&dup.root, slicedBy: 0..<range.lowerBound)
+        b.push(&new.root)
+        b.push(&dup.root, slicedBy: range.upperBound..<dup.upperBound)
+
+        spans = b.build()
+
+        assert(spans.upperBound == text.utf8.count)
     }
 
-    mutating func mergeAttributes(_ attributes: AttributedRope.Attributes) {
+    func settingAttributes(_ attributes: AttributedRope.Attributes) -> AttributedRope {
+        var dup = self
+        dup.setAttributes(attributes)
+        return AttributedRope(dup)
+    }
+
+    mutating func mergeAttributes(_ attributes: AttributedRope.Attributes, mergePolicy: AttributedRope.AttributeMergePolicy = .keepNew) {
         if bounds.isEmpty {
             return
         }
 
-        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
-        b.add(attributes, covering: Range(unvalidatedRange: bounds))
+        let range = Range(unvalidatedRange: bounds)
 
-        spans = spans.merging(b.build()) { a, b in
+        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: range.count)
+        sb.add(attributes, covering: range)
+
+        var new = spans[range].merging(sb.build()) { a, b in
             if let a, let b {
-                return a.merging(b)
+                return a.merging(b, mergePolicy: mergePolicy)
             } else {
                 return b ?? a
             }
         }
+
+        var dup = spans
+        var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
+        b.push(&dup.root, slicedBy: 0..<range.lowerBound)
+        b.push(&new.root)
+        b.push(&dup.root, slicedBy: range.upperBound..<dup.upperBound)
+
+        spans = b.build()
+
+        assert(spans.upperBound == text.utf8.count)
+    }
+
+    func mergingAttributes(_ attributes: AttributedRope.Attributes, mergePolicy: AttributedRope.AttributeMergePolicy = .keepNew) -> AttributedRope {
+        var dup = self
+        dup.mergeAttributes(attributes, mergePolicy: mergePolicy)
+        return AttributedRope(dup)
     }
 }
 
@@ -689,6 +735,15 @@ extension AttributedRope {
 
             text = r.text
             spans = r.spans
+        }
+    }
+
+    subscript(x: (UnboundedRange_) -> ()) -> AttributedSubrope {
+        _read {
+            yield self[startIndex..<endIndex]
+        }
+        _modify {
+            yield &self[startIndex..<endIndex]
         }
     }
 }
