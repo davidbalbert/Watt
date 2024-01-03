@@ -533,7 +533,7 @@ extension TextView {
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
         let (range, s) = SelectionNavigator(selection).replacementForDeleteBackwardsByDecomposing(dataSource: layoutManager)
-        replaceSubrange(range, with: s)
+        replaceSubrange(range, with: AttributedRope(s, attributes: typingAttributes))
         unmarkText()
     }
 
