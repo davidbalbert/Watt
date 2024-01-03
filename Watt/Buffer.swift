@@ -313,6 +313,10 @@ extension Range where Bound == Buffer.Index {
     init?(_ range: NSRange, in buffer: Buffer) {
         self.init(range, in: buffer.text)
     }
+
+    init(_ range: Range<Int>, in buffer: Buffer) {
+        self.init(range, in: buffer.text)
+    }
 }
 
 extension Range where Bound == Int {

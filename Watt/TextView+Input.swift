@@ -200,7 +200,17 @@ extension TextView {
         let end = buffer.text.unicodeScalars.index(roundingDown: subrange.upperBound)
         let r = start..<end
 
+        let undoContents = AttributedRope(buffer[r])
+
         buffer.replaceSubrange(r, with: s)
+
+        let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
+
+        undoManager?.registerUndo(withTarget: self) { target in
+            let u = Range(undoRange, in: target.buffer)
+            target.replaceSubrange(u, with: undoContents)
+        }
+
         updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
@@ -209,7 +219,17 @@ extension TextView {
         let end = buffer.text.unicodeScalars.index(roundingDown: subrange.upperBound)
         let r = start..<end
 
+        let undoContents = String(buffer[r])
+
         buffer.replaceSubrange(r, with: s)
+
+        let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
+
+        undoManager?.registerUndo(withTarget: self) { target in
+            let u = Range(undoRange, in: target.buffer)
+            target.replaceSubrange(u, with: undoContents)
+        }
+
         updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
