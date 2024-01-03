@@ -44,6 +44,7 @@
 		637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */; };
 		63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */; };
 		6396DD262B433781000F85D1 /* Comparable+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6396DD252B433775000F85D1 /* Comparable+Extensions.swift */; };
+		6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */; };
 		63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */ = {isa = PBXBuildFile; fileRef = 63A618612A0C3AE200E70B0E /* Moby Dick.txt */; };
 		63A618722A0EAF2000E70B0E /* Weak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618712A0EAF2000E70B0E /* Weak.swift */; };
 		63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618732A0EC37700E70B0E /* LineNumberView.swift */; };
@@ -136,6 +137,7 @@
 		6396DD282B434DE3000F85D1 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		6396DD292B434E55000F85D1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		6396DD2C2B435273000F85D1 /* ACKNOWLEDGEMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ACKNOWLEDGEMENTS.md; sourceTree = "<group>"; };
+		6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Pasteboard.swift"; sourceTree = "<group>"; };
 		6396DEFD2AA9074D00B1D03B /* TreeSitterLanguages */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TreeSitterLanguages; sourceTree = "<group>"; };
 		63A618612A0C3AE200E70B0E /* Moby Dick.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Moby Dick.txt"; sourceTree = "<group>"; };
 		63A618712A0EAF2000E70B0E /* Weak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weak.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
+				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
@@ -497,6 +500,7 @@
 				63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Mouse.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
+				6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* Weak.swift in Sources */,
 				6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */,
 				63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */,
