@@ -11,6 +11,10 @@ protocol ClipViewDelegate: AnyObject {
     func viewDidMoveToClipView()
 }
 
+extension ClipViewDelegate {
+    func viewDidMoveToClipView() {}
+}
+
 class ClipView: NSClipView {
     override var documentView: NSView? {
         didSet {
