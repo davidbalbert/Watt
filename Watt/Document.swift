@@ -46,6 +46,12 @@ class Document: NSDocument {
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
         addWindowController(c)
+
+        if let p = NSApp.mainWindow?.cascadeTopLeft(from: .zero) {
+            w.cascadeTopLeft(from: p)
+        } else {
+            w.center()
+        }
     }
 
     override func data(ofType typeName: String) throws -> Data {
