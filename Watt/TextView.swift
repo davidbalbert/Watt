@@ -82,9 +82,9 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     var defaultAttributes: AttributedRope.Attributes {
-        AttributedRope.Attributes([
-               .font: font
-       ])
+        AttributedRope.Attributes
+            .font(font)
+            .foregroundColor(foregroundColor)
     }
 
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
@@ -99,17 +99,6 @@ class TextView: NSView, ClipViewDelegate {
         }
         set {
             layoutManager.buffer = newValue
-
-            // TODO: this is wrong. If there are two TextViews with the
-            // with the same buffer but different fonts, this will
-            // overwrite the font in both views.
-            //
-            // The solution is to merge the default attributes in only
-            // when they're needed in layoutManager(_:attributedRopeFor:).
-            buffer.mergeAttributes(defaultAttributes)
-
-            lineNumberView.lineCount = buffer.lines.count
-            selection = Selection(atStartOf: newValue)
         }
     }
 

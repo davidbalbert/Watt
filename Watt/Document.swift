@@ -20,14 +20,14 @@ class Document: NSDocument {
     //     which tells the compiler to use dynamic dispatch to access that attribute.
     //
     // Buffer isn't an NSObject subclass. Will that cause any issues?
-    var buffer: Buffer = {
-        let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
-        let text = try! String(contentsOf: url)
-        return Buffer(text, language: .plainText)
-    }()
+    var buffer: Buffer = Buffer()
 
     override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {
         true
+    }
+
+    override class var autosavesInPlace: Bool {
+        return true
     }
 
     // TODO: canAsynchronouslyWrite(to:ofType:for:)
@@ -37,8 +37,16 @@ class Document: NSDocument {
         case save
     }
 
-    override class var autosavesInPlace: Bool {
-        return true
+    convenience init(type typeName: String) throws {
+        // The docs say to call super.init(typeName:), but that's a convenience initializer,
+        // so we can't do it. The docs also say this just calls super.init() and sets fileType
+        // so hopefully this is good enough.
+        self.init()
+        fileType = typeName
+
+        let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
+        buffer.string = try String(contentsOf: url)
+        buffer.language = UTType(typeName)?.language ?? .plainText
     }
 
     override func makeWindowControllers() {
@@ -59,7 +67,8 @@ class Document: NSDocument {
     }
 
     override func read(from data: Data, ofType typeName: String) throws {
-        buffer = Buffer(String(decoding: data, as: UTF8.self), language: UTType(typeName)?.language ?? .plainText)
+        buffer.string = String(decoding: data, as: UTF8.self)
+        buffer.language = UTType(typeName)?.language ?? .plainText
     }
 }
 

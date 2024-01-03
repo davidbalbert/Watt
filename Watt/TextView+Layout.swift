@@ -241,10 +241,7 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
-        var new = attrRope
-
-        // TODO: this ignores any foregroundColor that's set on buffer.content. Find a better way to do this.
-        new.foregroundColor = theme.foregroundColor
+        let new = attrRope.mergingAttributes(defaultAttributes, mergePolicy: .keepCurrent)
 
         return new.transformingAttributes(\.token) { attr in
             var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
@@ -269,6 +266,11 @@ extension TextView: LayoutManagerDelegate {
 
             return attr.replace(with: attributes)
         }
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {
+        lineNumberView.lineCount = buffer.lines.count
+        selection = Selection(atStartOf: buffer)
     }
 
     // TODO: once we're showing the same Buffer in more than one TextView, editing the text in one TextView

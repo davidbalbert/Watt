@@ -9,6 +9,7 @@ import Foundation
 import StandardKeyBindingResponder
 
 protocol BufferDelegate: AnyObject {
+    func bufferDidReload(_ buffer: Buffer)
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>])
 }
@@ -20,7 +21,9 @@ class Buffer {
 
     var language: Language {
         didSet {
-            highlighter = language.highlighter
+            if type(of: language) != type(of: oldValue) {
+                highlighter = language.highlighter
+            }
         }
     }
 
@@ -31,6 +34,23 @@ class Buffer {
     }
 
     var delegates: WeakHashSet<BufferDelegate>
+
+    var string: String {
+        get {
+            String(contents.text)
+        }
+        set {
+            contents = AttributedRope(newValue)
+
+            for delegate in delegates {
+                delegate.bufferDidReload(self)
+            }
+        }
+    }
+
+    var data: Data {
+        Data(contents.text)
+    }
 
     convenience init() {
         self.init("", language: .plainText)
@@ -47,10 +67,6 @@ class Buffer {
 
         self.highlighter = language.highlighter
         highlighter?.delegate = self
-    }
-
-    var data: Data {
-        Data(contents.text)
     }
 
     var utf8: Rope.UTF8View {

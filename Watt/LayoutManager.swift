@@ -22,6 +22,7 @@ protocol LayoutManagerDelegate: AnyObject {
     // An opportunity for the delegate to return a custom AttributedRope.
     func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
 
+    func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
 }
 
@@ -36,12 +37,12 @@ class LayoutManager {
 
     var buffer: Buffer {
         didSet {
+            // addDelegate triggers highlighting, so we need to reload first
+            // so that hights and lineCache are the correct length.
+            reloadFromBuffer()
+
             oldValue.removeDelegate(self)
             buffer.addDelegate(self)
-
-            heights = Heights(rope: buffer.text)
-            lineCache = IntervalCache(upperBound: buffer.utf8.count)
-            delegate?.didInvalidateLayout(for: self)
         }
     }
 
@@ -675,6 +676,13 @@ class LayoutManager {
         delegate?.didInvalidateLayout(for: self)
     }
 
+    func reloadFromBuffer() {
+        heights = Heights(rope: buffer.text)
+        lineCache = IntervalCache(upperBound: buffer.utf8.count)
+        delegate?.layoutManager(self, bufferDidReload: buffer)
+        delegate?.didInvalidateLayout(for: self)
+    }
+
     // MARK: - Converting coordinates
 
     func convert(_ rect: CGRect, from line: Line) -> CGRect {
@@ -725,6 +733,10 @@ class LayoutManager {
 // MARK: - BufferDelegate
 
 extension LayoutManager: BufferDelegate {
+    func bufferDidReload(_ buffer: Buffer) {
+        reloadFromBuffer()
+    }
+
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
         // We should never be called with an empty delta (this would imply that contents didn't actually change).
         //
