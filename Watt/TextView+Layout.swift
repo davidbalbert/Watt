@@ -271,6 +271,15 @@ extension TextView: LayoutManagerDelegate {
         }
     }
 
+    // TODO: once we're showing the same Buffer in more than one TextView, editing the text in one TextView
+    // will cause the selection indexes in the other TextViews to become invalid, and trigger a precondition
+    // failure on the next render.
+    //
+    // Really what we want to do is update all selections here in a reasonable way (e.g. delete them if the
+    // selected text has been deleted), and then in the TextView that caused the edit, reset the selections
+    // again to be what they should be after the edit.
+    //
+    // KeyBindingResponder should probably be responsible for this.
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
         lineNumberView.lineCount = new.lines.count
     }
