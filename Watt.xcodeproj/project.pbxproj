@@ -62,6 +62,8 @@
 		63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907892A795F1B00E4D7C9 /* Spans.swift */; };
 		63D546402AFC304B00C72CDE /* LayoutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */; };
 		63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */; };
+		63DC93242B4624B0001018FE /* WorkspaceBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */; };
+		63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
@@ -156,6 +158,8 @@
 		63C907892A795F1B00E4D7C9 /* Spans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spans.swift; sourceTree = "<group>"; };
 		63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerTests.swift; sourceTree = "<group>"; };
 		63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+FirstResponder.swift"; sourceTree = "<group>"; };
+		63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceBrowser.swift; sourceTree = "<group>"; };
+		63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewController.swift; sourceTree = "<group>"; };
 		63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = StandardKeyBindingResponder; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
@@ -292,6 +296,8 @@
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
+				63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */,
+				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				63B863C92A1314E50082B4A6 /* LineNumberView */,
@@ -482,6 +488,7 @@
 			files = (
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
+				63DC93242B4624B0001018FE /* WorkspaceBrowser.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
@@ -523,6 +530,7 @@
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
+				63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */,
 				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -633,7 +641,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -691,7 +699,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -720,6 +728,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.Watt;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -748,6 +757,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.Watt;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -765,7 +775,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -784,7 +794,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -802,6 +812,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -819,6 +830,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = is.dave.WattUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

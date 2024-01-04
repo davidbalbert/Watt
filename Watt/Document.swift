@@ -49,7 +49,8 @@ class Document: NSDocument {
     }
 
     override func makeWindowControllers() {
-        let w = NSWindow(contentViewController: TextViewController(buffer))
+        let w = NSWindow(contentViewController: WorkspaceViewController(buffer: buffer))
+
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
         addWindowController(c)
