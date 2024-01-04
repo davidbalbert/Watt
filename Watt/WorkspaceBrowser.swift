@@ -69,7 +69,7 @@ extension Dirent: Comparable {
 }
 
 @Observable
-class Project {
+class Workspace {
     let url: URL
     let root: Dirent
 
@@ -89,10 +89,11 @@ class Project {
 }
 
 struct WorkspaceBrowser: View {
-    @State var project: Project
+    @State var workspace: Workspace
+    @State var selection: Set<URL> = []
 
     var body: some View {
-        List(project.root.children!, children: \.children) { dirent in
+        List(workspace.root.children!, children: \.children, selection: $selection) { dirent in
             HStack {
                 Image(nsImage: dirent.icon)
                     .resizable()
@@ -113,6 +114,6 @@ let previewData = Dirent(directoryURL: URL(filePath: #file).deletingLastPathComp
 #endif
 
 #Preview {
-    WorkspaceBrowser(project: Project(url: URL(filePath: "/tmp"), root: previewData))
+    WorkspaceBrowser(workspace: Workspace(url: URL(filePath: "/tmp"), root: previewData))
         .frame(width: 300, height: 600)
 }

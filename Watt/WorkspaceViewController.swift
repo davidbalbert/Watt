@@ -23,7 +23,7 @@ class WorkspaceViewController: NSSplitViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let browserVC = NSHostingController(rootView: WorkspaceBrowser(project: Project(url: URL(filePath: "/Users/david/Developer/Watt"))!))
+        let browserVC = NSHostingController(rootView: WorkspaceBrowser(workspace: Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))!))
         let textVC = TextViewController(buffer)
 
         let browserItem = NSSplitViewItem(sidebarWithViewController: browserVC)
