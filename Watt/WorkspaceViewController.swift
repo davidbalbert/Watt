@@ -26,10 +26,12 @@ class WorkspaceViewController: NSSplitViewController {
         let browserVC = NSHostingController(rootView: WorkspaceBrowser(project: Project(url: URL(filePath: "/Users/david/Developer/Watt"))!))
         let textVC = TextViewController(buffer)
 
-        let browserItem = NSSplitViewItem(contentListWithViewController: browserVC)
+        let browserItem = NSSplitViewItem(sidebarWithViewController: browserVC)
         let textItem = NSSplitViewItem(viewController: textVC)
 
         addSplitViewItem(browserItem)
         addSplitViewItem(textItem)
+
+        splitView.setPosition(275, ofDividerAt: 0)
     }
 }

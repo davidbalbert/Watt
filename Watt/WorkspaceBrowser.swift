@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-struct Dirent: Hashable, Identifiable {
+struct Dirent: Identifiable {
     static let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey, .isPackageKey, .creationDateKey, .contentModificationDateKey, .isHiddenKey]
     static let resourceSet = Set(resourceKeys)
 
     let url: URL
+    let icon: NSImage
     let children: [Dirent]?
 
     var id: URL { url }
@@ -25,6 +26,7 @@ struct Dirent: Hashable, Identifiable {
 
     init(url: URL, children: [Dirent]? = nil) {
         self.url = url
+        self.icon = NSWorkspace.shared.icon(forFile: url.path)
         self.children = children
     }
 
@@ -62,13 +64,7 @@ struct Dirent: Hashable, Identifiable {
 
 extension Dirent: Comparable {
     static func < (lhs: Dirent, rhs: Dirent) -> Bool {
-        if lhs.isDirectory && !rhs.isDirectory {
-            return true
-        } else if !lhs.isDirectory && rhs.isDirectory {
-            return false
-        } else {
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
+        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
     }
 }
 
@@ -96,10 +92,17 @@ struct WorkspaceBrowser: View {
     @State var project: Project
 
     var body: some View {
-        List(project.root.children!, children: \.children) {
-            Text($0.name)
-                .lineLimit(1)
-                .listRowSeparator(.hidden)
+        List(project.root.children!, children: \.children) { dirent in
+            HStack {
+                Image(nsImage: dirent.icon)
+                    .resizable()
+                    .frame(width: 16, height: 16)
+
+                Text(dirent.name)
+                    .lineLimit(1)
+            }
+            .listRowSeparator(.hidden)
+
         }
     }
 }
