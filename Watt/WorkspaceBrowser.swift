@@ -68,31 +68,12 @@ extension Dirent: Comparable {
     }
 }
 
-@Observable
-class Workspace {
-    let url: URL
-    let root: Dirent
-
-    init?(url: URL) {
-        guard let root = Dirent(directoryURL: url) else {
-            return nil
-        }
-
-        self.url = url
-        self.root = root
-    }
-
-    init(url: URL, root: Dirent) {
-        self.url = url
-        self.root = root
-    }
-}
-
 struct WorkspaceBrowser: View {
     @State var workspace: Workspace
     @State var selection: Set<URL> = []
 
     var body: some View {
+        // Should never be nil because workspace is guaranteed to be a directory
         List(workspace.root.children!, children: \.children, selection: $selection) { dirent in
             HStack {
                 Image(nsImage: dirent.icon)
@@ -103,7 +84,6 @@ struct WorkspaceBrowser: View {
                     .lineLimit(1)
             }
             .listRowSeparator(.hidden)
-
         }
     }
 }

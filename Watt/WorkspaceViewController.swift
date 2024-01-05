@@ -10,6 +10,9 @@ import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
     var buffer: Buffer
+    var workspace: Workspace = Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))!
+
+    var task: Task<(), Never>?
 
     init(buffer: Buffer) {
         self.buffer = buffer
@@ -17,13 +20,14 @@ class WorkspaceViewController: NSSplitViewController {
     }
     
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        buffer = Buffer()
+        super.init(coder: coder)
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let browserVC = NSHostingController(rootView: WorkspaceBrowser(workspace: Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))!))
+        let browserVC = NSHostingController(rootView: WorkspaceBrowser(workspace: workspace))
         let textVC = TextViewController(buffer)
 
         let browserItem = NSSplitViewItem(sidebarWithViewController: browserVC)
@@ -33,5 +37,15 @@ class WorkspaceViewController: NSSplitViewController {
         addSplitViewItem(textItem)
 
         splitView.setPosition(275, ofDividerAt: 0)
+    }
+
+    override func viewWillAppear() {
+        task = Task {
+            await workspace.watchForChanges()
+        }
+    }
+
+    override func viewWillDisappear() {
+        task?.cancel()
     }
 }
