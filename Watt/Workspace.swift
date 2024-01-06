@@ -74,7 +74,7 @@ struct Dirent: Identifiable {
             return
         }
 
-        if !isDirectory || !isPackage {
+        if !isDirectory && !isPackage {
             print("expected directory or package")
             return
         }
@@ -84,8 +84,11 @@ struct Dirent: Identifiable {
             return
         }
 
+        let targetComponents = target.pathComponents
         for i in 0..<_children!.count {
-            if target.path.hasPrefix(_children![i].url.path) {
+            let childComponents = _children![i].url.pathComponents
+
+            if childComponents[...] == targetComponents[0..<childComponents.count] {
                 _children![i].updateDescendent(withURL: target, using: block)
                 return
             }
