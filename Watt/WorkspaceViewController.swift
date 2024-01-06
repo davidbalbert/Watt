@@ -10,7 +10,7 @@ import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
     var buffer: Buffer
-    var workspace: Workspace = Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))!
+    var workspace: Workspace = Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))
 
     var task: Task<(), Never>?
 
