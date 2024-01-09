@@ -16,7 +16,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
 
-    var defaultRowAnimation: NSTableView.AnimationOptions = .effectFade
+    var insertRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideDown]
+    var removeRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideUp]
 
     private(set) var snapshot: OutlineViewSnapshot<Data>?
 
@@ -184,9 +185,9 @@ extension OutlineViewDiffableDataSource {
             for change in diff.changes {
                 switch change {
                 case let .insert(newIndex, _, _):
-                    outlineView.insertItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: defaultRowAnimation)
+                    outlineView.insertItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: insertRowAnimation)
                 case let .remove(newIndex, _, _):
-                    outlineView.removeItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: defaultRowAnimation)
+                    outlineView.removeItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: removeRowAnimation)
                 }
             }
         }
