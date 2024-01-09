@@ -28,6 +28,15 @@
       }
     },
     {
+      "identity" : "tree",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dnadoba/Tree",
+      "state" : {
+        "branch" : "main",
+        "revision" : "bfc39ec9e3537c47a5004c27c0ffdbc1c2a0c64e"
+      }
+    },
+    {
       "identity" : "tree-sitter",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/simonbs/tree-sitter",

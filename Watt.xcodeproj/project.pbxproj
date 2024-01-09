@@ -56,6 +56,9 @@
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B8B1762A9F890100F32C2C /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B8B1752A9F890100F32C2C /* Utilities.swift */; };
 		63B8B1782A9F8A3A00F32C2C /* UtilitiesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */; };
+		63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */; };
+		63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */; };
+		63C2C0422B4D97E700BFB976 /* Tree in Frameworks */ = {isa = PBXBuildFile; productRef = 63C2C0412B4D97E700BFB976 /* Tree */; };
 		63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 63C541E52B477CDD001C370B /* FSEventsWrapper */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
 		63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */; };
@@ -155,6 +158,8 @@
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B8B1752A9F890100F32C2C /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UtilitiesTest.swift; path = WattTests/UtilitiesTest.swift; sourceTree = SOURCE_ROOT; };
+		63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceBrowserViewController.swift; sourceTree = "<group>"; };
+		63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlineViewDiffableDataSource.swift; sourceTree = "<group>"; };
 		63C541EA2B486210001C370B /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AsyncStream+Extensions.swift"; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTests.swift; sourceTree = "<group>"; };
@@ -181,6 +186,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63C2C0422B4D97E700BFB976 /* Tree in Frameworks */,
 				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
 				63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */,
 				63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */,
@@ -305,6 +311,8 @@
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */,
+				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
+				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
@@ -369,6 +377,7 @@
 				635F815A2AA9198200553E23 /* TreeSitterObjC */,
 				63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */,
 				63C541E52B477CDD001C370B /* FSEventsWrapper */,
+				63C2C0412B4D97E700BFB976 /* Tree */,
 			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
@@ -451,6 +460,7 @@
 				63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */,
 				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
 				63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */,
+				63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -535,6 +545,7 @@
 				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
+				63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
@@ -544,6 +555,7 @@
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
 				63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */,
 				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
+				63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -910,6 +922,14 @@
 				minimumVersion = 2.2.0;
 			};
 		};
+		63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dnadoba/Tree";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Frizlab/FSEventsWrapper";
@@ -942,6 +962,11 @@
 		635F815A2AA9198200553E23 /* TreeSitterObjC */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TreeSitterObjC;
+		};
+		63C2C0412B4D97E700BFB976 /* Tree */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */;
+			productName = Tree;
 		};
 		63C541E52B477CDD001C370B /* FSEventsWrapper */ = {
 			isa = XCSwiftPackageProductDependency;

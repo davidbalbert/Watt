@@ -7,7 +7,11 @@
 
 import SwiftUI
 
-struct DirentLabel: View {
+// Currently unused due to FB13526560. Using DisclosureGroups inside a List when
+// the leftmost leaf of the data is a "folder" (i.e. children == []) causes the list
+// to unnest itself and not display disclosure triangles.
+
+struct DirentView: View {
     let dirent: Dirent
 
     var body: some View {
@@ -23,20 +27,20 @@ struct DirentLabel: View {
     }
 }
 
-struct DirentView: View {
+struct DirentGroup: View {
     let dirent: Dirent
 
     var body: some View {
         if let children = dirent.children {
             DisclosureGroup {
                 ForEach(children) { child in
-                    DirentView(dirent: child)
+                    DirentGroup(dirent: child)
                 }
             } label: {
-                DirentLabel(dirent: dirent)
+                DirentView(dirent: dirent)
             }
         } else {
-            DirentLabel(dirent: dirent)
+            DirentView(dirent: dirent)
         }
     }
 }
@@ -50,7 +54,7 @@ struct WorkspaceBrowser: View {
         // Should never be nil because workspace is guaranteed to be a directory
         List {
             ForEach(workspace.root.children!) { dirent in
-                DirentView(dirent: dirent)
+                DirentGroup(dirent: dirent)
             }
         }
     }

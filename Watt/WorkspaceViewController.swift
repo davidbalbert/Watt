@@ -27,10 +27,10 @@ class WorkspaceViewController: NSSplitViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let browserVC = NSHostingController(rootView: WorkspaceBrowser(workspace: workspace))
+        let browserVC = WorkspaceBrowserViewController(workspace: workspace)
         let textVC = TextViewController(buffer)
 
-        let browserItem = NSSplitViewItem(sidebarWithViewController: browserVC)
+        let browserItem = NSSplitViewItem(contentListWithViewController: browserVC)
         let textItem = NSSplitViewItem(viewController: textVC)
 
         addSplitViewItem(browserItem)
