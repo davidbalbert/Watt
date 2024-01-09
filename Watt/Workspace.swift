@@ -37,13 +37,13 @@ struct Dirent: Identifiable {
         url.lastPathComponent
     }
 
-    init(url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
+    init(url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
         self.url = url
         self.isDirectory = isDirectory
         self.isPackage = isPackage
         self.isHidden = isHidden
         self.icon = NSWorkspace.shared.icon(forFile: url.path)
-        self._children = nil
+        self._children = children
     }
 
     subscript(url: URL) -> Dirent? {
