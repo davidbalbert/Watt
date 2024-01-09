@@ -18,7 +18,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     var defaultRowAnimation: NSTableView.AnimationOptions = .effectFade
 
-    private(set) var snapshot: Snapshot?
+    private(set) var snapshot: OutlineViewSnapshot<Data>?
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -111,44 +111,42 @@ extension TreeList {
     }
 }
 
-extension OutlineViewDiffableDataSource {
-    struct Snapshot {
-        let ids: TreeList<Data.Element.ID>
-        let children: KeyPath<Data.Element, Data?>
-        let index: [Data.Element.ID: Data.Element]
+struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Element: Identifiable {
+    let ids: TreeList<Data.Element.ID>
+    let children: KeyPath<Data.Element, Data?>
+    let index: [Data.Element.ID: Data.Element]
 
-        init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
-            self.ids = TreeList(data, children: children)
-            self.children = children
-            self.index = Dictionary(data.map { ($0.id, $0) }) { left, right in
-                print("duplicate id=\(left.id) for values left=\(left) right=\(right). Using left=\(left)")
-                return left
-            }
+    init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
+        self.ids = TreeList(data, children: children)
+        self.children = children
+        self.index = Dictionary(data.map { ($0.id, $0) }) { left, right in
+            print("duplicate id=\(left.id) for values left=\(left) right=\(right). Using left=\(left)")
+            return left
         }
+    }
 
-        subscript(id: Data.Element.ID) -> Data.Element? {
-            index[id]
-        }
+    subscript(id: Data.Element.ID) -> Data.Element? {
+        index[id]
+    }
 
-        func childId(atOffset offset: Int, of id: Data.Element.ID?) -> Data.Element.ID? {
-            childIds(of: id)?[offset]
-        }
+    func childId(atOffset offset: Int, of id: Data.Element.ID?) -> Data.Element.ID? {
+        childIds(of: id)?[offset]
+    }
 
-        func childIds(of id: Data.Element.ID?) -> [Data.Element.ID]? {
-            if let id {
-                return index[id]?[keyPath: children]?.map(\.id)
-            } else {
-                return ids.nodes.map(\.value)
-            }
+    func childIds(of id: Data.Element.ID?) -> [Data.Element.ID]? {
+        if let id {
+            return index[id]?[keyPath: children]?.map(\.id)
+        } else {
+            return ids.nodes.map(\.value)
         }
+    }
 
-        func difference(from other: Snapshot) -> Difference {
-            Difference(treeDiff: ids.difference(from: other.ids).inferringMoves())
-        }
+    func difference(from other: Self) -> Difference {
+        Difference(treeDiff: ids.difference(from: other.ids).inferringMoves())
     }
 }
 
-extension OutlineViewDiffableDataSource {
+extension OutlineViewSnapshot {
     struct Difference {
         typealias Change = TreeDifference<Data.Element.ID>.Change
 
@@ -167,7 +165,7 @@ extension OutlineViewDiffableDataSource {
 }
 
 extension OutlineViewDiffableDataSource {
-    func apply(_ snapshot: Snapshot, animatingDifferences: Bool = true) {
+    func apply(_ snapshot: OutlineViewSnapshot<Data>, animatingDifferences: Bool = true) {
         let new = snapshot
         
         guard let old = self.snapshot, animatingDifferences else {

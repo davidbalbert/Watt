@@ -49,7 +49,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     override func viewDidLoad() {
-        let snapshot = OutlineViewDiffableDataSource<[Dirent]>.Snapshot(workspace.root.children!, children: \.children)
+        let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
         dataSource.apply(snapshot)
     }
 }
