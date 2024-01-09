@@ -59,6 +59,7 @@
 		63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */; };
 		63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */; };
 		63C2C0422B4D97E700BFB976 /* Tree in Frameworks */ = {isa = PBXBuildFile; productRef = 63C2C0412B4D97E700BFB976 /* Tree */; };
+		63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */; };
 		63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 63C541E52B477CDD001C370B /* FSEventsWrapper */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
 		63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */; };
@@ -160,6 +161,9 @@
 		63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UtilitiesTest.swift; path = WattTests/UtilitiesTest.swift; sourceTree = SOURCE_ROOT; };
 		63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceBrowserViewController.swift; sourceTree = "<group>"; };
 		63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlineViewDiffableDataSource.swift; sourceTree = "<group>"; };
+		63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleProxy.h; sourceTree = "<group>"; };
+		63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SimpleProxy.m; sourceTree = "<group>"; };
+		63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Watt-Bridging-Header.h"; sourceTree = "<group>"; };
 		63C541EA2B486210001C370B /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AsyncStream+Extensions.swift"; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTests.swift; sourceTree = "<group>"; };
@@ -264,6 +268,9 @@
 			children = (
 				6356588F2ACD9D5400F1DC63 /* Themes */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
+				63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */,
+				63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */,
+				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
 				63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */,
@@ -546,6 +553,7 @@
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
 				63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */,
+				63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
@@ -671,6 +679,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -728,6 +737,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};
 			name = Release;

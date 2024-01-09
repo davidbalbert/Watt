@@ -11,8 +11,9 @@ import SwiftUI
 import Tree
 
 final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
+
     let outlineView: NSOutlineView
-    let delegate: NSOutlineViewDelegate?
+    let delegate: Delegate
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
 
@@ -23,11 +24,13 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
-        self.delegate = delegate
+        self.delegate = Delegate(target: delegate ?? EmptyOutlineViewDelegate())
         self.cellProvider = cellProvider
         super.init()
-        outlineView.dataSource = self
-        outlineView.delegate = self
+
+        self.delegate.dataSource = self
+        self.outlineView.dataSource = self
+        self.outlineView.delegate = self.delegate
     }
 
     convenience init<Body>(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, @ViewBuilder cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> Body) where Body: View {
@@ -82,21 +85,31 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
         return snapshot.childIds(of: id(for: item)) != nil
     }
+}
 
-    // MARK: - NSOutlineViewDelegate
+extension OutlineViewDiffableDataSource {
+    class EmptyOutlineViewDelegate: NSObject, NSOutlineViewDelegate {}
 
-    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-        guard let snapshot, let tableColumn else {
-            return nil
+    class Delegate: SimpleProxy, NSOutlineViewDelegate {
+        weak var dataSource: OutlineViewDiffableDataSource?
+
+        init(target: NSOutlineViewDelegate) {
+            super.init(target: target)
         }
-        return cellProvider(outlineView, tableColumn, snapshot[id(for: item)!]!)
-    }
 
-    func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
-        guard let snapshot else {
-            return nil
+        func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+            guard let dataSource, let snapshot = dataSource.snapshot, let tableColumn else {
+                return nil
+            }
+            return dataSource.cellProvider(outlineView, tableColumn, snapshot[dataSource.id(for: item)!]!)
         }
-        return rowViewProvider?(outlineView, snapshot[id(for: item)!]!)
+
+        func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
+            guard let dataSource, let snapshot = dataSource.snapshot else {
+                return nil
+            }
+            return dataSource.rowViewProvider?(outlineView, snapshot[dataSource.id(for: item)!]!)
+        }
     }
 }
 
