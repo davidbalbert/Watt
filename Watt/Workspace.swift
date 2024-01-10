@@ -9,10 +9,26 @@ import Foundation
 import Cocoa
 import FSEventsWrapper
 
+struct FileID {
+    let id: NSCopying & NSSecureCoding & NSObjectProtocol
+}
+
+extension FileID: Hashable {
+    static func == (lhs: FileID, rhs: FileID) -> Bool {
+        return lhs.id.isEqual(rhs.id)
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id.hash)
+    }
+}
+
 struct Dirent: Identifiable {
-    static let resourceKeys: [URLResourceKey] = [.nameKey, .isDirectoryKey, .isPackageKey, .creationDateKey, .contentModificationDateKey, .isHiddenKey]
+    static let resourceKeys: [URLResourceKey] = [.fileResourceIdentifierKey, .nameKey, .isDirectoryKey, .isPackageKey, .creationDateKey, .isHiddenKey, .contentModificationDateKey]
     static let resourceSet = Set(resourceKeys)
 
+    let id: FileID
+    let name: String
     let url: URL
     let isDirectory: Bool
     let isPackage: Bool
@@ -32,12 +48,9 @@ struct Dirent: Identifiable {
         isDirectory && !isPackage
     }
 
-    var id: URL { url }
-    var name: String {
-        url.lastPathComponent
-    }
-
-    init(url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
+    init(id: FileID, name: String, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
+        self.id = id
+        self.name = name
         self.url = url
         self.isDirectory = isDirectory
         self.isPackage = isPackage
@@ -111,10 +124,15 @@ class Workspace {
     var tasks: [URL: Task<(), Never>] = [:]
 
     init(url: URL) {
-        self.url = url
-        self.root = Dirent(url: url, isDirectory: true, isPackage: false, isHidden: false)
+        // TODO: Don't force unwrap. Throw errors and show an alert.
+        let resourceValues = try! url.resourceValues(forKeys: [.nameKey, .fileResourceIdentifierKey])
+        let id = FileID(id: resourceValues.fileResourceIdentifier!)
+        let name = resourceValues.name ?? url.lastPathComponent
 
-        scheduleFetchChildren(url: url)
+        self.url = url
+        self.root = Dirent(id: id, name: name, url: url, isDirectory: true, isPackage: false, isHidden: false)
+
+        fetchChildren(url: url)
     }
 
     func fetchChildren(url target: URL) {
@@ -127,7 +145,14 @@ class Workspace {
                     continue
                 }
 
+                guard let id = resourceValues.fileResourceIdentifier else {
+                    print("missing fileResourceIdentifier for \(u)")
+                    continue
+                }
+
                 let child = Dirent(
+                    id: FileID(id: id),
+                    name: resourceValues.name ?? u.lastPathComponent,
                     url: u,
                     isDirectory: resourceValues.isDirectory ?? false,
                     isPackage: resourceValues.isPackage ?? false,
@@ -153,22 +178,6 @@ class Workspace {
             }
         } catch {
             print(error)
-        }
-
-    }
-
-    func scheduleFetchChildren(url target: URL) {
-        if tasks[target] != nil {
-            return
-        }
-
-        tasks[target] = Task {
-            fetchChildren(url: target)
-        }
-    }
-    deinit {
-        for task in tasks.values {
-            task.cancel()
         }
     }
 
