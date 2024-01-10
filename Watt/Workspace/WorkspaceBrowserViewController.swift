@@ -31,6 +31,7 @@ class WorkspaceBrowserViewController: NSViewController {
         column.title = "Name"
         outlineView.addTableColumn(column)
         outlineView.outlineTableColumn = column
+        outlineView.autoresizesOutlineColumn = false
 
         let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { _, _, dirent in
             HStack {
