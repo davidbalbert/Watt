@@ -60,6 +60,7 @@
 		63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */; };
 		63C2C0422B4D97E700BFB976 /* Tree in Frameworks */ = {isa = PBXBuildFile; productRef = 63C2C0412B4D97E700BFB976 /* Tree */; };
 		63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */; };
+		63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C04F2B4F3BB700BFB976 /* Dirent.swift */; };
 		63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 63C541E52B477CDD001C370B /* FSEventsWrapper */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
 		63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */; };
@@ -164,6 +165,7 @@
 		63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleProxy.h; sourceTree = "<group>"; };
 		63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SimpleProxy.m; sourceTree = "<group>"; };
 		63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Watt-Bridging-Header.h"; sourceTree = "<group>"; };
+		63C2C04F2B4F3BB700BFB976 /* Dirent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dirent.swift; sourceTree = "<group>"; };
 		63C541EA2B486210001C370B /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AsyncStream+Extensions.swift"; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTests.swift; sourceTree = "<group>"; };
@@ -317,14 +319,11 @@
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
-				63C541EA2B486210001C370B /* Workspace.swift */,
-				63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */,
-				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
-				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				63B863C92A1314E50082B4A6 /* LineNumberView */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
+				63C2C04E2B4F3B8E00BFB976 /* Workspace */,
 			);
 			path = Watt;
 			sourceTree = "<group>";
@@ -360,6 +359,18 @@
 				63A618732A0EC37700E70B0E /* LineNumberView.swift */,
 			);
 			path = LineNumberView;
+			sourceTree = "<group>";
+		};
+		63C2C04E2B4F3B8E00BFB976 /* Workspace */ = {
+			isa = PBXGroup;
+			children = (
+				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
+				63C541EA2B486210001C370B /* Workspace.swift */,
+				63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */,
+				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
+				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
+			);
+			path = Workspace;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -526,6 +537,7 @@
 				637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */,
 				637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */,
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
+				63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
 				63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */,
 				63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */,
