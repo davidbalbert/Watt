@@ -54,6 +54,7 @@ class WorkspaceBrowserViewController: NSViewController {
         self.dataSource = dataSource
 
         let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
         scrollView.documentView = outlineView
 
         view = scrollView

@@ -81,7 +81,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     // MARK: - NSOutlineViewDataSource
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-        print("numberOfChildrenOfItem")
         let id = id(from: item)
         loadChildrenIfNecessary(for: id)
 
@@ -92,7 +91,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-        print("childOfItem")
         let id = id(from: item)
         loadChildrenIfNecessary(for: id)
 
