@@ -39,6 +39,17 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         }
 
+        dataSource.loadChildren = { [weak self] dirent in
+            guard let self else { return nil }
+
+            if dirent.isLoaded {
+                return nil
+            }
+
+            workspace.fetchChildren(url: dirent.url)
+            return OutlineViewSnapshot(workspace.root.children!, children: \.children)
+        }
+
         self.outlineView = outlineView
         self.dataSource = dataSource
 
@@ -49,6 +60,10 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     override func viewDidLoad() {
+        updateView()
+    }
+
+    func updateView() {
         let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
         dataSource.apply(snapshot)
     }

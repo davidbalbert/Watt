@@ -48,6 +48,10 @@ struct Dirent: Identifiable {
         isDirectory && !isPackage
     }
 
+    var isLoaded: Bool {
+        isFolder && _children != nil
+    }
+
     init(id: FileID, name: String, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
         self.id = id
         self.name = name
@@ -57,28 +61,6 @@ struct Dirent: Identifiable {
         self.isHidden = isHidden
         self.icon = NSWorkspace.shared.icon(forFile: url.path)
         self._children = children
-    }
-
-    subscript(url: URL) -> Dirent? {
-        if self.url == url {
-            return self
-        }
-
-        if !isDirectory || !isPackage {
-            return nil
-        }
-
-        if _children == nil {
-            return nil
-        }
-
-        for child in _children! {
-            if let result = child[url] {
-                return result
-            }
-        }
-
-        return nil
     }
 
     mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) {

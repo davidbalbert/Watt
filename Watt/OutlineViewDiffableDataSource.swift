@@ -11,11 +11,11 @@ import SwiftUI
 import Tree
 
 final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
-
     let outlineView: NSOutlineView
     let delegate: Delegate
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
+    var loadChildren: ((Data.Element) -> OutlineViewSnapshot<Data>?)?
 
     var insertRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideDown]
     var removeRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideUp]
@@ -55,7 +55,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
     }
 
-    func id(for item: Any?) -> Data.Element.ID? {
+    private func id(from item: Any?) -> Data.Element.ID? {
         if let item {
             return (item as! Data.Element.ID?)
         } else {
@@ -63,27 +63,51 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
     }
 
+    func element(for id: Data.Element.ID) -> Data.Element? {
+        snapshot?[id]
+    }
+
+    func loadChildrenIfNecessary(for id: Data.Element.ID?) {
+        guard let lazyDataLoader = loadChildren, let id, let snapshot, let element = snapshot[id] else {
+            return
+        }
+
+        if let newSnapshot = lazyDataLoader(element) {
+            // Snapshot should be the same except for the new data, so no need to diff.
+            self.snapshot = newSnapshot
+        }
+    }
+
     // MARK: - NSOutlineViewDataSource
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+        print("numberOfChildrenOfItem")
+        let id = id(from: item)
+        loadChildrenIfNecessary(for: id)
+
         guard let snapshot else {
             return 0
         }
-        return snapshot.childIds(of: id(for: item))?.count ?? 0
+        return snapshot.childIds(of: id)?.count ?? 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+        print("childOfItem")
+        let id = id(from: item)
+        loadChildrenIfNecessary(for: id)
+
         guard let snapshot else {
             fatalError("unexpected call to outlineView(_:child:ofItem:) with no snapshot")
         }
-        return snapshot.childId(atOffset: index, of: id(for: item))!
+
+        return snapshot.childId(atOffset: index, of: id)!
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
         guard let snapshot else {
             return false
         }
-        return snapshot.childIds(of: id(for: item)) != nil
+        return snapshot.childIds(of: id(from: item)) != nil
     }
 }
 
@@ -101,14 +125,14 @@ extension OutlineViewDiffableDataSource {
             guard let dataSource, let snapshot = dataSource.snapshot, let tableColumn else {
                 return nil
             }
-            return dataSource.cellProvider(outlineView, tableColumn, snapshot[dataSource.id(for: item)!]!)
+            return dataSource.cellProvider(outlineView, tableColumn, snapshot[dataSource.id(from: item)!]!)
         }
 
         func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
             guard let dataSource, let snapshot = dataSource.snapshot else {
                 return nil
             }
-            return dataSource.rowViewProvider?(outlineView, snapshot[dataSource.id(for: item)!]!)
+            return dataSource.rowViewProvider?(outlineView, snapshot[dataSource.id(from: item)!]!)
         }
     }
 }
@@ -133,10 +157,18 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
     init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
         self.ids = TreeList(data, children: children)
         self.children = children
-        self.index = Dictionary(data.map { ($0.id, $0) }) { left, right in
-            print("duplicate id=\(left.id) for values left=\(left) right=\(right). Using left=\(left)")
-            return left
+
+        var index: [Data.Element.ID: Data.Element] = [:]
+        var pending: [Data.Element] = Array(data)
+        while !pending.isEmpty {
+            let element = pending.removeFirst()
+            index[element.id] = element
+            if let children = element[keyPath: children] {
+                pending.append(contentsOf: children)
+            }
         }
+
+        self.index = index
     }
 
     subscript(id: Data.Element.ID) -> Data.Element? {
@@ -157,6 +189,12 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
 
     func difference(from other: Self) -> Difference {
         Difference(treeDiff: ids.difference(from: other.ids).inferringMoves())
+    }
+}
+
+extension OutlineViewSnapshot where Data: RangeReplaceableCollection {
+    init(_ root: Data.Element, children: KeyPath<Data.Element, Data?>) {
+        self.init(Data([root]), children: children)
     }
 }
 
