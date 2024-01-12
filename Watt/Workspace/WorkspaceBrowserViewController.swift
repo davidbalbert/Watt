@@ -8,6 +8,22 @@
 import Cocoa
 import SwiftUI
 
+struct DirentView: View {
+    let dirent: Dirent
+
+    var body: some View {
+        HStack {
+            Image(nsImage: dirent.icon)
+                .resizable()
+                .frame(width: 16, height: 16)
+
+            Text(dirent.name)
+                .lineLimit(1)
+        }
+        .listRowSeparator(.hidden)
+    }
+}
+
 class WorkspaceBrowserViewController: NSViewController {
     let workspace: Workspace
 
@@ -17,6 +33,7 @@ class WorkspaceBrowserViewController: NSViewController {
     init(workspace: Workspace) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
+        workspace.delegate = self
     }
     
     required init?(coder: NSCoder) {
@@ -47,7 +64,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 return nil
             }
 
-            workspace.fetchChildren(url: dirent.url)
+            workspace.loadDirectory(url: dirent.url, highPriority: true)
             return OutlineViewSnapshot(workspace.root.children!, children: \.children)
         }
 
@@ -67,6 +84,12 @@ class WorkspaceBrowserViewController: NSViewController {
 
     func updateView() {
         let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
-        dataSource.apply(snapshot)
+        dataSource.apply(snapshot, animatingDifferences: !dataSource.isEmpty)
+   }
+}
+
+extension WorkspaceBrowserViewController: WorkspaceDelegate {
+    func workspaceDidChange(_ workspace: Workspace) {
+        updateView()
     }
 }

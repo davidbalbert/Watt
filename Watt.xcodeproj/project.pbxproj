@@ -49,6 +49,7 @@
 		63A618722A0EAF2000E70B0E /* Weak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618712A0EAF2000E70B0E /* Weak.swift */; };
 		63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618732A0EC37700E70B0E /* LineNumberView.swift */; };
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
+		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
@@ -70,7 +71,6 @@
 		63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907892A795F1B00E4D7C9 /* Spans.swift */; };
 		63D546402AFC304B00C72CDE /* LayoutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */; };
 		63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */; };
-		63DC93242B4624B0001018FE /* WorkspaceBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */; };
 		63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
@@ -174,7 +174,6 @@
 		63C907892A795F1B00E4D7C9 /* Spans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spans.swift; sourceTree = "<group>"; };
 		63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerTests.swift; sourceTree = "<group>"; };
 		63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+FirstResponder.swift"; sourceTree = "<group>"; };
-		63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceBrowser.swift; sourceTree = "<group>"; };
 		63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewController.swift; sourceTree = "<group>"; };
 		63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = StandardKeyBindingResponder; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
@@ -198,6 +197,7 @@
 				63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */,
 				63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */,
 				635F815B2AA9198200553E23 /* TreeSitterObjC in Frameworks */,
+				63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -366,7 +366,6 @@
 			children = (
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
-				63DC93232B4624B0001018FE /* WorkspaceBrowser.swift */,
 				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 			);
@@ -396,6 +395,7 @@
 				63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */,
 				63C541E52B477CDD001C370B /* FSEventsWrapper */,
 				63C2C0412B4D97E700BFB976 /* Tree */,
+				63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */,
 			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
@@ -479,6 +479,7 @@
 				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
 				63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */,
 				63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */,
+				63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -526,7 +527,6 @@
 			files = (
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
-				63DC93242B4624B0001018FE /* WorkspaceBrowser.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
@@ -693,6 +693,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
 			};
 			name = Debug;
 		};
@@ -751,6 +752,7 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/$(SWIFT_MODULE_NAME)-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
 			};
 			name = Release;
 		};
@@ -944,6 +946,14 @@
 				minimumVersion = 2.2.0;
 			};
 		};
+		63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 		63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/dnadoba/Tree";
@@ -984,6 +994,11 @@
 		635F815A2AA9198200553E23 /* TreeSitterObjC */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TreeSitterObjC;
+		};
+		63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
 		};
 		63C2C0412B4D97E700BFB976 /* Tree */ = {
 			isa = XCSwiftPackageProductDependency;

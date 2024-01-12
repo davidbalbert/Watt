@@ -10,6 +10,7 @@ import SwiftUI
 
 import Tree
 
+@MainActor
 final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
     let outlineView: NSOutlineView
     let delegate: Delegate
@@ -53,6 +54,10 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
             return view
         }
+    }
+
+    var isEmpty: Bool {
+        snapshot?.isEmpty ?? true
     }
 
     private func id(from item: Any?) -> Data.Element.ID? {
@@ -167,6 +172,10 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
         }
 
         self.index = index
+    }
+
+    var isEmpty: Bool {
+        ids.isEmpty
     }
 
     subscript(id: Data.Element.ID) -> Data.Element? {

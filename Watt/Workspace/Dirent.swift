@@ -73,7 +73,7 @@ struct Dirent: Identifiable {
         }
 
         if _children == nil {
-            print("missing children")
+            print("Missing ancestor of \(target). Ignoring.")
             return
         }
 
