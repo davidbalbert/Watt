@@ -50,6 +50,7 @@
 		63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618732A0EC37700E70B0E /* LineNumberView.swift */; };
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
 		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
+		63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D832B5462D60032E8B9 /* FSEvents.swift */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
@@ -62,7 +63,6 @@
 		63C2C0422B4D97E700BFB976 /* Tree in Frameworks */ = {isa = PBXBuildFile; productRef = 63C2C0412B4D97E700BFB976 /* Tree */; };
 		63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */; };
 		63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C04F2B4F3BB700BFB976 /* Dirent.swift */; };
-		63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 63C541E52B477CDD001C370B /* FSEventsWrapper */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
 		63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */; };
 		63C907822A7319E300E4D7C9 /* HeightsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907812A7319E300E4D7C9 /* HeightsTests.swift */; };
@@ -153,6 +153,7 @@
 		63A618712A0EAF2000E70B0E /* Weak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weak.swift; sourceTree = "<group>"; };
 		63A618732A0EC37700E70B0E /* LineNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberView.swift; sourceTree = "<group>"; };
 		63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+LineNumbers.swift"; sourceTree = "<group>"; };
+		63A95D832B5462D60032E8B9 /* FSEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSEvents.swift; sourceTree = "<group>"; };
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
@@ -195,7 +196,6 @@
 				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
 				63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */,
 				63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */,
-				63C541E62B477CDD001C370B /* FSEventsWrapper in Frameworks */,
 				635F815B2AA9198200553E23 /* TreeSitterObjC in Frameworks */,
 				63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */,
 			);
@@ -286,6 +286,7 @@
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
 				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
+				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				631FD2642A696D27005FA854 /* Heights.swift */,
 				635B36AE2AAE5424002FAE70 /* Highlighter.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
@@ -393,7 +394,6 @@
 				63359A3D2AA9115100082762 /* TreeSitterC */,
 				635F815A2AA9198200553E23 /* TreeSitterObjC */,
 				63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */,
-				63C541E52B477CDD001C370B /* FSEventsWrapper */,
 				63C2C0412B4D97E700BFB976 /* Tree */,
 				63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */,
 			);
@@ -477,7 +477,6 @@
 				63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */,
 				63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */,
 				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
-				63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */,
 				63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */,
 				63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
@@ -528,6 +527,7 @@
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
+				63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
 				637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */,
 				6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */,
@@ -962,14 +962,6 @@
 				kind = branch;
 			};
 		};
-		63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Frizlab/FSEventsWrapper";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.1.0;
-			};
-		};
 		63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/simonbs/tree-sitter";
@@ -1004,11 +996,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */;
 			productName = Tree;
-		};
-		63C541E52B477CDD001C370B /* FSEventsWrapper */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 63C541E42B477CDD001C370B /* XCRemoteSwiftPackageReference "FSEventsWrapper" */;
-			productName = FSEventsWrapper;
 		};
 		63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */ = {
 			isa = XCSwiftPackageProductDependency;

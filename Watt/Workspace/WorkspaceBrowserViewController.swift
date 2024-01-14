@@ -65,7 +65,7 @@ class WorkspaceBrowserViewController: NSViewController {
             }
 
             do {
-                try workspace.loadDirectory(url: dirent.url, notifyDelegate: false)
+                try workspace.loadDirectory(url: dirent.url)
             } catch {
                 print("dataSource.loadChildren: error while loading \(dirent.url): \(error)")
             }

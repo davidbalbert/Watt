@@ -31,3 +31,7 @@ func isEqual(_ a: Any?, _ b: Any?) -> Bool {
         return helper(a)
     }
 }
+
+func zip4<A, B, C, D>(_ a: A, _ b: B, _ c: C, _ d: D) -> some Sequence<(A.Element, B.Element, C.Element, D.Element)> where A: Sequence, B: Sequence, C: Sequence, D: Sequence {
+    zip(zip(a, b), zip(c, d)).map { ($0.0.0, $0.0.1, $0.1.0, $0.1.1) }
+}

@@ -7,7 +7,6 @@
 
 import Foundation
 import Cocoa
-import FSEventsWrapper
 import AsyncAlgorithms
 
 protocol WorkspaceDelegate: AnyObject {
@@ -26,6 +25,17 @@ class Workspace {
 
         init(tree url: URL) {
             self = .tree(url.standardizedFileURL)
+        }
+
+        init?(event: FSEvent) {
+            switch event {
+            case let .generic(path: path, eventId: _, fromUs: _, extendedData: _):
+                self = .directory(URL(filePath: path))
+            case let .mustScanSubDirs(path: path, reason: _, fromUs: _, extendedData: _):
+                self = .tree(URL(filePath: path))
+            default:
+                return nil
+            }
         }
 
         var url: URL {
@@ -68,12 +78,9 @@ class Workspace {
     }
 
     @discardableResult
-    func loadDirectory(url: URL, notifyDelegate: Bool = true) throws -> [Dirent] {
-        print("loadDirectory", url)
-
+    func loadDirectory(url: URL) throws -> [Dirent] {
         // Don't load a directory unless we have somewhere to put it.
         guard url == root.url || loaded.contains(url.deletingLastPathComponent()) else {
-            print("skip!")
             return []
         }
 
@@ -81,27 +88,22 @@ class Workspace {
         try updateChildren(of: url, to: children)
         loaded.insert(url)
 
-        if notifyDelegate {
-            delegate?.workspaceDidChange(self)
-        }
-
         return children
     }
 
     func listen() async {
-        var continuation: AsyncStream<LoadRequest>.Continuation?
+        var continuation: AsyncStream<[LoadRequest]>.Continuation?
 
-        let reqs = AsyncStream<LoadRequest> { cont in
-            let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagIgnoreSelf)
-            let stream = FSEventStream(path: root.url.path, fsEventStreamFlags: flags) { _, event in
-                switch event {
-                case let .generic(path: path, eventId: _, fromUs: _):
-                    cont.yield(LoadRequest(directory: (URL(filePath: path))))
-                case let .mustScanSubDirs(path: path, reason: _):
-                    cont.yield(LoadRequest(tree: (URL(filePath: path))))
-                default:
-                    print("Unhandled FSEvent type: \(event)")
+        let requestsStream = AsyncStream<[LoadRequest]> { cont in
+            let stream = FSEventStream(root.url.path, flags: .ignoreSelf) { _, events in
+                let requests = events.compactMap { event in
+                    let req = LoadRequest(event: event)
+                    if req == nil {
+                        print("Unhandled FSEvent type: \(event)")
+                    }
+                    return req
                 }
+                cont.yield(requests)
             }
 
             guard let stream else {
@@ -111,13 +113,13 @@ class Workspace {
             }
 
             cont.onTermination = { _ in
-                stream.stopWatching()
+                stream.stop()
             }
-            stream.startWatching()
+
+            stream.start()
 
             // Reload self ot make sure we're up to date.
-            cont.yield(LoadRequest(tree: root.url))
-
+            cont.yield([LoadRequest(tree: root.url)])
             continuation = cont
         }
 
@@ -125,28 +127,34 @@ class Workspace {
             return
         }
 
-        for await req in reqs {
-            if !loaded.contains(req.url) {
-                continue
-            }
-            
-            let children: [Dirent]
-            do {
-                children = try loadDirectory(url: req.url)
-                try updateChildren(of: req.url, to: children)
-            } catch {
-                print("Workspace.listen: error while loading children of \(req.url): \(error)")
-                continue
-            }
+        for await requests in requestsStream {
+            for req in requests {
+                if !loaded.contains(req.url) {
+                    continue
+                }
 
-            if req.isRecursive {
-                for c in children {
-                    // only reload directories where we already have data (which is now stale)
-                    if loaded.contains(c.url) {
-                        continuation.yield(LoadRequest(tree: c.url))
+                let children: [Dirent]
+                do {
+                    children = try loadDirectory(url: req.url)
+                    try updateChildren(of: req.url, to: children)
+                } catch {
+                    print("Workspace.listen: error while loading children of \(req.url): \(error)")
+                    continue
+                }
+
+                if req.isRecursive {
+                    var newReqs: [LoadRequest] = []
+                    for c in children {
+                        // only reload directories where we already have data (which is now stale)
+                        if loaded.contains(c.url) {
+                            newReqs.append(LoadRequest(tree: c.url))
+                        }
                     }
+                    continuation.yield(newReqs)
                 }
             }
+
+            delegate?.workspaceDidChange(self)
         }
     }
 
