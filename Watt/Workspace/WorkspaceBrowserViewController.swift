@@ -64,7 +64,11 @@ class WorkspaceBrowserViewController: NSViewController {
                 return nil
             }
 
-            workspace.loadDirectory(url: dirent.url, highPriority: true)
+            do {
+                try workspace.loadDirectory(url: dirent.url, notifyDelegate: false)
+            } catch {
+                print("dataSource.loadChildren: error while loading \(dirent.url): \(error)")
+            }
             return OutlineViewSnapshot(workspace.root.children!, children: \.children)
         }
 

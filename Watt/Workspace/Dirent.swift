@@ -22,8 +22,15 @@ extension FileID: Hashable {
 }
 
 struct Dirent: Identifiable {
-    static let resourceKeys: [URLResourceKey] = [.fileResourceIdentifierKey, .nameKey, .isDirectoryKey, .isPackageKey, .creationDateKey, .isHiddenKey, .contentModificationDateKey]
+    static let resourceKeys: [URLResourceKey] = [.fileResourceIdentifierKey, .nameKey, .isDirectoryKey, .isPackageKey, .isHiddenKey]
     static let resourceSet = Set(resourceKeys)
+
+    enum Errors: Error {
+        case isNotDirectory(URL)
+        case missingAncestor(URL)
+        case missingMetadata(URL)
+        case missingChild(parent: URL, target: URL)
+    }
 
     let id: FileID
     let name: String
@@ -50,7 +57,7 @@ struct Dirent: Identifiable {
         isFolder && _children != nil
     }
 
-    init(id: FileID, name: String, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
+    init(id: FileID, name: String, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
         self.id = id
         self.name = name
         self.url = url
@@ -58,23 +65,39 @@ struct Dirent: Identifiable {
         self.isPackage = isPackage
         self.isHidden = isHidden
         self.icon = NSWorkspace.shared.icon(forFile: url.path)
-        self._children = children
+        self._children = nil
     }
 
-    mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) {
+    init(for url: URL) throws {
+        let url = url.standardizedFileURL
+        let rv = try url.resourceValues(forKeys: Dirent.resourceSet)
+
+        guard let resID = rv.fileResourceIdentifier, let isDirectory = rv.isDirectory, let isPackage = rv.isPackage, let isHidden = rv.isHidden else {
+            throw Errors.missingMetadata(url)
+        }
+
+        self.init(
+            id: FileID(id: resID),
+            name: rv.name ?? url.lastPathComponent,
+            url: url,
+            isDirectory: isDirectory,
+            isPackage: isPackage,
+            isHidden: isHidden
+        )
+    }
+
+    mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) throws {
         if url == target {
             block(&self)
             return
         }
 
-        if !isDirectory && !isPackage {
-            print("expected directory or package")
-            return
+        if !isDirectory {
+            throw Errors.isNotDirectory(target)
         }
 
         if _children == nil {
-            print("Missing ancestor of \(target). Ignoring.")
-            return
+            throw Errors.missingAncestor(target)
         }
 
         let targetComponents = target.pathComponents
@@ -82,12 +105,12 @@ struct Dirent: Identifiable {
             let childComponents = _children![i].url.pathComponents
 
             if childComponents[...] == targetComponents[0..<childComponents.count] {
-                _children![i].updateDescendent(withURL: target, using: block)
+                try _children![i].updateDescendent(withURL: target, using: block)
                 return
             }
         }
 
-        print("couldn't find child with url \(target)")
+        throw Errors.missingChild(parent: url, target: target)
     }
 }
 

@@ -73,11 +73,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func loadChildrenIfNecessary(for id: Data.Element.ID?) {
-        guard let lazyDataLoader = loadChildren, let id, let snapshot, let element = snapshot[id] else {
+        guard let loadChildren, let id, let snapshot, let element = snapshot[id] else {
             return
         }
 
-        if let newSnapshot = lazyDataLoader(element) {
+        if let newSnapshot = loadChildren(element) {
             // Snapshot should be the same except for the new data, so no need to diff.
             self.snapshot = newSnapshot
         }
