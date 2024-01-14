@@ -18,8 +18,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
     var loadChildren: ((Data.Element) -> OutlineViewSnapshot<Data>?)?
 
-    var insertRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideDown]
-    var removeRowAnimation: NSTableView.AnimationOptions = [.effectFade, .slideUp]
+    var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
+    var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
 
     private(set) var snapshot: OutlineViewSnapshot<Data>?
 
