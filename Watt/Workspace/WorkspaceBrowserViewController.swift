@@ -30,6 +30,8 @@ class WorkspaceBrowserViewController: NSViewController {
     @ViewLoading var outlineView: NSOutlineView
     @ViewLoading var dataSource: OutlineViewDiffableDataSource<[Dirent]>
 
+    var shouldAnimateObservation: NSKeyValueObservation?
+
     init(workspace: Workspace) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
@@ -80,6 +82,19 @@ class WorkspaceBrowserViewController: NSViewController {
         scrollView.documentView = outlineView
 
         view = scrollView
+
+        configureAnimation()
+        shouldAnimateObservation = UserDefaults.standard.observe(\.workspaceBrowserAnimationsEnabled) { [weak self] _, _ in
+            self?.configureAnimation()
+        }
+    }
+
+    func configureAnimation() {
+        let enabled = UserDefaults.standard.workspaceBrowserAnimationsEnabled
+        print("configure", enabled)
+        dataSource.insertRowAnimation = enabled ? .slideDown : []
+        dataSource.removeRowAnimation = enabled ? .slideUp : []
+        dataSource.moveRowAnimationsEnabled = enabled
     }
 
     override func viewDidLoad() {

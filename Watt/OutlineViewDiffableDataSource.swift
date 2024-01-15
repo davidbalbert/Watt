@@ -20,6 +20,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
+    var moveRowAnimationsEnabled: Bool = true
 
     private(set) var snapshot: OutlineViewSnapshot<Data>?
 
@@ -237,7 +238,7 @@ extension OutlineViewDiffableDataSource {
         self.snapshot = new
 
         outlineView.beginUpdates()
-        if diff.isSingleMove, case let .insert(newIndex, _, .some(oldIndex)) = diff.changes.last {
+        if moveRowAnimationsEnabled && diff.isSingleMove, case let .insert(newIndex, _, .some(oldIndex)) = diff.changes.last {
             outlineView.moveItem(at: oldIndex.offset, inParent: oldIndex.parent, to: newIndex.offset, inParent: newIndex.parent)
         } else {
             for change in diff.changes {

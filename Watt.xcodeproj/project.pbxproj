@@ -51,6 +51,7 @@
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
 		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
 		63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D832B5462D60032E8B9 /* FSEvents.swift */; };
+		63A95D882B55B9D70032E8B9 /* UserDefaults+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
@@ -154,6 +155,7 @@
 		63A618732A0EC37700E70B0E /* LineNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberView.swift; sourceTree = "<group>"; };
 		63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+LineNumbers.swift"; sourceTree = "<group>"; };
 		63A95D832B5462D60032E8B9 /* FSEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSEvents.swift; sourceTree = "<group>"; };
+		63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+Extensions.swift"; sourceTree = "<group>"; };
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
 				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
+				63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
@@ -568,6 +571,7 @@
 				63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
+				63A95D882B55B9D70032E8B9 /* UserDefaults+Extensions.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
