@@ -240,10 +240,10 @@ extension TextView: LayoutManagerDelegate {
         [selection]
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
-        let new = attrRope.mergingAttributes(defaultAttributes, mergePolicy: .keepCurrent)
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: consuming AttributedRope) -> AttributedRope {
+        attrRope.mergeAttributes(defaultAttributes, mergePolicy: .keepCurrent)
 
-        return new.transformingAttributes(\.token) { attr in
+        return attrRope.transformingAttributes(\.token) { attr in
             var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
 
             if attributes.font != nil {
