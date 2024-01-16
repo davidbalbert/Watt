@@ -12,8 +12,6 @@ class WorkspaceViewController: NSSplitViewController {
     var buffer: Buffer
     var workspace: Workspace = try! Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))
 
-    var task: Task<(), Never>?
-
     init(buffer: Buffer) {
         self.buffer = buffer
         super.init(nibName: nil, bundle: nil)
@@ -37,15 +35,5 @@ class WorkspaceViewController: NSSplitViewController {
         addSplitViewItem(textItem)
 
         splitView.setPosition(275, ofDividerAt: 0)
-    }
-
-    override func viewWillAppear() {
-        task = Task {
-            await workspace.listen()
-        }
-    }
-
-    override func viewWillDisappear() {
-        task?.cancel()
     }
 }

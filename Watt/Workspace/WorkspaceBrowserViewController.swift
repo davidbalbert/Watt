@@ -30,7 +30,7 @@ class WorkspaceBrowserViewController: NSViewController {
     @ViewLoading var outlineView: NSOutlineView
     @ViewLoading var dataSource: OutlineViewDiffableDataSource<[Dirent]>
 
-    var shouldAnimateObservation: NSKeyValueObservation?
+    var task: Task<(), Never>?
 
     init(workspace: Workspace) {
         self.workspace = workspace
@@ -82,28 +82,25 @@ class WorkspaceBrowserViewController: NSViewController {
         scrollView.documentView = outlineView
 
         view = scrollView
-
-        configureAnimation()
-        shouldAnimateObservation = UserDefaults.standard.observe(\.workspaceBrowserAnimationsEnabled) { [weak self] _, _ in
-            self?.configureAnimation()
-        }
-    }
-
-    func configureAnimation() {
-        let enabled = UserDefaults.standard.workspaceBrowserAnimationsEnabled
-        print("configure", enabled)
-        dataSource.insertRowAnimation = enabled ? .slideDown : []
-        dataSource.removeRowAnimation = enabled ? .slideUp : []
-        dataSource.moveRowAnimationsEnabled = enabled
     }
 
     override func viewDidLoad() {
         updateView()
     }
 
+    override func viewWillAppear() {
+        task = Task {
+            await workspace.listen()
+        }
+    }
+
+    override func viewWillDisappear() {
+        task?.cancel()
+    }
+
     func updateView() {
-        let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
-        dataSource.apply(snapshot, animatingDifferences: !dataSource.isEmpty)
+        let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
+        dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
    }
 }
 

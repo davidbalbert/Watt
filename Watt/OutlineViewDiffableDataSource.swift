@@ -20,7 +20,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
-    var moveRowAnimationsEnabled: Bool = true
 
     private(set) var snapshot: OutlineViewSnapshot<Data>?
 
@@ -228,7 +227,7 @@ extension OutlineViewDiffableDataSource {
     func apply(_ snapshot: OutlineViewSnapshot<Data>, animatingDifferences: Bool = true) {
         let new = snapshot
         
-        guard let old = self.snapshot, animatingDifferences else {
+        guard let old = self.snapshot else {
             self.snapshot = new
             outlineView.reloadData()
             return
@@ -238,15 +237,15 @@ extension OutlineViewDiffableDataSource {
         self.snapshot = new
 
         outlineView.beginUpdates()
-        if moveRowAnimationsEnabled && diff.isSingleMove, case let .insert(newIndex, _, .some(oldIndex)) = diff.changes.last {
+        if animatingDifferences && diff.isSingleMove, case let .insert(newIndex, _, .some(oldIndex)) = diff.changes.last {
             outlineView.moveItem(at: oldIndex.offset, inParent: oldIndex.parent, to: newIndex.offset, inParent: newIndex.parent)
         } else {
             for change in diff.changes {
                 switch change {
                 case let .insert(newIndex, _, _):
-                    outlineView.insertItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: insertRowAnimation)
+                    outlineView.insertItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: animatingDifferences ? insertRowAnimation : [])
                 case let .remove(newIndex, _, _):
-                    outlineView.removeItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: removeRowAnimation)
+                    outlineView.removeItems(at: [newIndex.offset], inParent: newIndex.parent, withAnimation: animatingDifferences ? removeRowAnimation : [])
                 }
             }
         }
