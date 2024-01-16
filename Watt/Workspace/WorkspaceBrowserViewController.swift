@@ -71,7 +71,7 @@ class WorkspaceBrowserViewController: NSViewController {
             } catch {
                 print("dataSource.loadChildren: error while loading \(dirent.url): \(error)")
             }
-            return OutlineViewSnapshot(workspace.root.children!, children: \.children)
+            return OutlineViewSnapshot(workspace.children, children: \.children)
         }
 
         self.outlineView = outlineView
@@ -99,7 +99,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func updateView() {
-        let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
+        let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
    }
 }

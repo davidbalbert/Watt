@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.Keys.textInsertionPointBlinkPeriodOn: 500,
             UserDefaults.Keys.textInsertionPointBlinkPeriodOff: 500,
             UserDefaults.Keys.workspaceBrowserAnimationsEnabled: false,
+            UserDefaults.Keys.showHiddenFiles: false,
         ])
     }
 

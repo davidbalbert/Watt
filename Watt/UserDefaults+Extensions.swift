@@ -11,7 +11,8 @@ extension UserDefaults {
     enum Keys {
         static let textInsertionPointBlinkPeriodOn = "NSTextInsertionPointBlinkPeriodOn"
         static let textInsertionPointBlinkPeriodOff = "NSTextInsertionPointBlinkPeriodOff"
-        static let workspaceBrowserAnimationsEnabled = "WorkspaceBrowserAnimationsEnabled"
+        static let workspaceBrowserAnimationsEnabled = "workspaceBrowserAnimationsEnabled"
+        static let showHiddenFiles = "showHiddenFiles"
     }
 
     @objc var textInsertionPointBlinkPeriodOn: TimeInterval {
@@ -38,6 +39,15 @@ extension UserDefaults {
         }
         set {
             set(newValue, forKey: Keys.workspaceBrowserAnimationsEnabled)
+        }
+    }
+
+    @objc var showHiddenFiles: Bool {
+        get {
+            bool(forKey: Keys.showHiddenFiles)
+        }
+        set {
+            set(newValue, forKey: Keys.showHiddenFiles)
         }
     }
 }

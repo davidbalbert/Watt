@@ -49,6 +49,16 @@ struct Dirent: Identifiable {
         }
     }
 
+    func filteringChildren(showHidden: Bool) -> Dirent {
+        if showHidden {
+            return self
+        } else {
+            var copy = self
+            copy._children = _children?.filter { !$0.isHidden }.map { $0.filteringChildren(showHidden: showHidden) }
+            return copy
+        }
+    }
+
     var isFolder: Bool {
         isDirectory && !isPackage
     }

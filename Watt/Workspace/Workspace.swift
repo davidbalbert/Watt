@@ -61,8 +61,19 @@ class Workspace {
         case rootIsNotFolder
     }
 
+    var showHiddenFilesObservation: NSKeyValueObservation?
+    var showHidden: Bool {
+        didSet {
+            delegate?.workspaceDidChange(self)
+        }
+    }
+
     var loaded: Set<URL> = []
     private(set) var root: Dirent
+
+    var children: [Dirent] {
+        return root.filteringChildren(showHidden: showHidden).children!
+    }
 
     weak var delegate: WorkspaceDelegate?
 
@@ -73,6 +84,13 @@ class Workspace {
         }
 
         self.root = dirent
+        self.showHidden = UserDefaults.standard.showHiddenFiles
+
+        showHiddenFilesObservation = UserDefaults.standard.observe(\.showHiddenFiles) { _, _ in
+            MainActor.assumeIsolated { [weak self] in
+                self?.showHidden = UserDefaults.standard.showHiddenFiles
+            }
+        }
 
         try loadDirectory(url: root.url)
     }
@@ -93,7 +111,6 @@ class Workspace {
 
     func listen() async {
         var continuation: AsyncStream<[LoadRequest]>.Continuation?
-
         let requestsStream = AsyncStream<[LoadRequest]> { cont in
             let stream = FSEventStream(root.url.path, flags: .ignoreSelf) { _, events in
                 let requests = events.compactMap { event in
