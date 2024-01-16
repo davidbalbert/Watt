@@ -20,7 +20,7 @@ protocol LayoutManagerDelegate: AnyObject {
     func selections(for layoutManager: LayoutManager) -> [Selection]
 
     // An opportunity for the delegate to return a custom AttributedRope.
-    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope
+    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: consuming AttributedRope) -> AttributedRope
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
