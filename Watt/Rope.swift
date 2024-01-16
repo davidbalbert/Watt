@@ -1266,6 +1266,8 @@ extension Rope {
     }
 
     struct UnicodeScalarView: RopeView {
+        typealias Element = UnicodeScalar
+
         let base: Rope
         let bounds: Range<Index>
 
