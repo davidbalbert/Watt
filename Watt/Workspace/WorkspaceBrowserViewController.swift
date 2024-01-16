@@ -99,7 +99,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func updateView() {
-        let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
+        let snapshot = OutlineViewSnapshot(workspace.root.children!, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
    }
 }
