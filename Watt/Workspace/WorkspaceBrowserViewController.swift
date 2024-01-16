@@ -89,8 +89,8 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     override func viewWillAppear() {
-        task = Task {
-            await workspace.listen()
+        task = Task.detached(priority: .medium) { [weak self] in
+            await self?.workspace.listen()
         }
     }
 

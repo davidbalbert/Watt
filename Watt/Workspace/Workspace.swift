@@ -158,7 +158,7 @@ class Workspace {
         }
     }
 
-    static nonisolated func fetchChildren(of url: URL) throws -> [Dirent] {
+    static func fetchChildren(of url: URL) throws -> [Dirent] {
         do {
             let urls = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: Dirent.resourceKeys, options: [])
 
