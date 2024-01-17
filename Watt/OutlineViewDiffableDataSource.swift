@@ -195,7 +195,15 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
     }
 
     func difference(from other: Self) -> Difference {
-        Difference(treeDiff: ids.difference(from: other.ids).inferringMoves())
+        let treeDiff = ids.difference(from: other.ids).inferringMoves()
+
+        var reloads: [Data.Element.ID] = []
+        for (id, element) in index {
+            if let otherElement = other[id], element is any Equatable && !isEqual(element, otherElement) {
+                reloads.append(id)
+            }
+        }
+        return Difference(treeDiff: treeDiff, reloads: reloads)
     }
 }
 
@@ -210,6 +218,7 @@ extension OutlineViewSnapshot {
         typealias Change = TreeDifference<Data.Element.ID>.Change
 
         let treeDiff: TreeDifference<Data.Element.ID>
+        let reloads: [Data.Element.ID]
 
         var isSingleMove: Bool {
             guard changes.count == 2 else { return false }
@@ -249,6 +258,11 @@ extension OutlineViewDiffableDataSource {
                 }
             }
         }
+
+        for id in diff.reloads {
+            outlineView.reloadItem(id, reloadChildren: false)
+        }
+
         outlineView.endUpdates()
     }
 }

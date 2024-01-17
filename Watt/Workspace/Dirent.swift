@@ -125,8 +125,12 @@ struct Dirent: Identifiable {
 }
 
 extension Dirent: Comparable {
+    static func == (lhs: Dirent, rhs: Dirent) -> Bool {
+        lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedSame
+    }
+
     static func < (lhs: Dirent, rhs: Dirent) -> Bool {
-        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
     }
 }
 
