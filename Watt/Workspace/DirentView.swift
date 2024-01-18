@@ -14,6 +14,9 @@ struct DirentView: View {
     @State var isEditing: Bool = false
     @FocusState var isFocused: Bool
 
+    // See comment in .onKeyPress(.escape)
+    @State var didCancel: Bool = false
+
     @MainActor
     var isSelected: Bool {
         workspace.selection.contains(dirent.id)
@@ -22,6 +25,12 @@ struct DirentView: View {
     @MainActor
     var isEditable: Bool {
         isSelected && workspace.selection.count == 1
+    }
+
+    func beginEditing() {
+        isEditing = true
+        isFocused = true
+        name = dirent.name
     }
 
     var body: some View {
@@ -38,7 +47,18 @@ struct DirentView: View {
                     .focused($isFocused)
                     .onSubmit {
                         // TODO: something other than try!
-                        try! workspace.renameFile()
+//                        try! workspace.renameFile()
+                    }
+                    .onKeyPress(.escape) {
+                        // Hack: using onExitCommand or .onCommand(#selector(NSResponder.cancelOperation(_:))) causes
+                        // the NSOutlineView to lose first responder (gray selection, no keyboard navigation). Ditto
+                        // for using onKeyPress and returning .handled.
+                        //
+                        // Instead, we use onKeyPress and let the key event bubble up to our superview. In addition, we
+                        // set didCancel so that our change handler knows not to rename the file.
+                        didCancel = true
+                        isEditing = false
+                        return .ignored
                     }
             } else {
                 Text(dirent.name)
@@ -47,17 +67,15 @@ struct DirentView: View {
 
             Spacer()
         }
-        .listRowSeparator(.hidden)
         .allowsHitTesting(isEditable)
         .onTapGesture {
-            isEditing = true
-            isFocused = true
-            name = dirent.name
+            beginEditing()
         }
         .onChange(of: isFocused) {
-            if !isFocused {
+            if !isFocused && !didCancel {
                 isEditing = false
             }
+            didCancel = false
         }
     }
 }
