@@ -14,68 +14,44 @@ protocol WorkspaceDelegate: AnyObject {
 }
 
 @MainActor
+@Observable
 class Workspace {
-    enum LoadRequest {
-        case directory(URL)
-        case tree(URL)
-
-        init(directory url: URL) {
-            self = .directory(url.standardizedFileURL)
-        }
-
-        init(tree url: URL) {
-            self = .tree(url.standardizedFileURL)
-        }
-
-        init?(event: FSEvent) {
-            switch event {
-            case let .generic(path: path, eventId: _, fromUs: _, extendedData: _):
-                self = .directory(URL(filePath: path))
-            case let .mustScanSubDirs(path: path, reason: _, fromUs: _, extendedData: _):
-                self = .tree(URL(filePath: path))
-            default:
-                return nil
-            }
-        }
-
-        var url: URL {
-            switch self {
-            case let .directory(url):
-                url
-            case let .tree(url):
-                url
-            }
-        }
-
-        var isRecursive: Bool {
-            switch self {
-            case .directory:
-                false
-            case .tree:
-                true
-            }
-        }
-    }
-
     enum Errors: Error {
         case rootIsNotFolder
     }
 
-    var showHiddenFilesObservation: NSKeyValueObservation?
+    private(set) var root: Dirent
+    var children: [Dirent] {
+        return root.filteringChildren(showHidden: showHidden).children!
+    }
+
+    var selection: Set<Dirent.ID> = []
+
     var showHidden: Bool {
         didSet {
             delegate?.workspaceDidChange(self)
         }
     }
 
-    var loaded: Set<URL> = []
-    private(set) var root: Dirent
+    weak var delegate: WorkspaceDelegate?
 
-    var children: [Dirent] {
-        return root.filteringChildren(showHidden: showHidden).children!
+    private var loaded: Set<URL> = []
+    private var index: [Dirent.ID: Dirent]
+
+    var showHiddenFilesObservation: NSKeyValueObservation?
+
+    func renameFile() throws {
+        // guard let id = editState.id, let dirent = index[id] else {
+        //     return
+        // }
+
+        // let newURL = dirent.url.deletingLastPathComponent().appending(component: editState.name, directoryHint: dirent.isDirectory ? .isDirectory : .notDirectory)
+
+        // try FileManager.default.moveItem(at: dirent.url, to: newURL)
+
+        // editState = EditState()
     }
 
-    weak var delegate: WorkspaceDelegate?
 
     init(url: URL) throws {
         let dirent = try Dirent(for: url)
@@ -85,6 +61,7 @@ class Workspace {
 
         self.root = dirent
         self.showHidden = UserDefaults.standard.showHiddenFiles
+        self.index = [:]
 
         showHiddenFilesObservation = UserDefaults.standard.observe(\.showHiddenFiles) { _, _ in
             MainActor.assumeIsolated { [weak self] in
@@ -106,13 +83,17 @@ class Workspace {
         try updateChildren(of: url, to: children)
         loaded.insert(url)
 
+        for c in children {
+            index[c.id] = c
+        }
+
         return children
     }
 
     func listen() async {
         var continuation: AsyncStream<[LoadRequest]>.Continuation?
         let requestsStream = AsyncStream<[LoadRequest]> { cont in
-            let stream = FSEventStream(root.url.path, flags: .ignoreSelf) { _, events in
+            let stream = FSEventStream(root.url.path) { _, events in
                 let requests = events.compactMap { event in
                     let req = LoadRequest(event: event)
                     if req == nil {

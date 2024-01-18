@@ -8,22 +8,6 @@
 import Cocoa
 import SwiftUI
 
-struct DirentView: View {
-    let dirent: Dirent
-
-    var body: some View {
-        HStack {
-            Image(nsImage: dirent.icon)
-                .resizable()
-                .frame(width: 16, height: 16)
-
-            Text(dirent.name)
-                .lineLimit(1)
-        }
-        .listRowSeparator(.hidden)
-    }
-}
-
 class WorkspaceBrowserViewController: NSViewController {
     let workspace: Workspace
 
@@ -52,16 +36,15 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
 
-        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { _, _, dirent in
-            HStack {
-                DirentView(dirent: dirent)
-                Spacer()
-            }
+        let workspace = workspace
+        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView, delegate: self) { outlineView, _, dirent in
+            DirentView(
+                dirent: dirent,
+                workspace: workspace
+            )
         }
 
-        dataSource.loadChildren = { [weak self] dirent in
-            guard let self else { return nil }
-
+        dataSource.loadChildren = { dirent in
             if dirent.isLoaded {
                 return nil
             }
@@ -102,6 +85,12 @@ class WorkspaceBrowserViewController: NSViewController {
         let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
    }
+}
+
+extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
+    func outlineViewSelectionDidChange(_ notification: Notification) {
+        workspace.selection = Set(outlineView.selectedRowIndexes.map { outlineView.item(atRow: $0) as! Dirent.ID })
+    }
 }
 
 extension WorkspaceBrowserViewController: WorkspaceDelegate {
