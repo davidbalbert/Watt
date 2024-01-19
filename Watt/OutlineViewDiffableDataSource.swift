@@ -68,8 +68,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
     }
 
-    func element(for id: Data.Element.ID) -> Data.Element? {
-        snapshot?[id]
+    subscript(item: Any?) -> Data.Element? {
+        guard let id = id(from: item) else {
+            return nil
+        }
+
+        return snapshot?[id]
     }
 
     func loadChildrenIfNecessary(for id: Data.Element.ID?) {

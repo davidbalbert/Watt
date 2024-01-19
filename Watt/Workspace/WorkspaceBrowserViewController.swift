@@ -175,9 +175,6 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
     }
 
     func dirent(for textField: NSTextField) -> Dirent? {
-        guard let id = (textField.superview as? NSTableCellView)?.objectValue as? Dirent.ID else {
-            return nil
-        }
-        return workspace[id]
+        dataSource[(textField.superview as? NSTableCellView)?.objectValue]
     }
 }

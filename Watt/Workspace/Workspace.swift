@@ -68,10 +68,6 @@ class Workspace {
         try loadDirectory(url: root.url)
     }
 
-    subscript(id: Dirent.ID) -> Dirent? {
-        index[id]
-    }
-
     @discardableResult
     func loadDirectory(url: URL) throws -> [Dirent] {
         // Don't load a directory unless we have somewhere to put it.
