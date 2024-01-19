@@ -51,8 +51,12 @@ class WorkspaceBrowserViewController: NSViewController {
                 textField.isEditable = true
                 textField.focusRingType = .none
                 textField.lineBreakMode = .byTruncatingMiddle
+                textField.cell?.sendsActionOnEndEditing = true
 
                 textField.delegate = self
+
+                textField.target = self
+                textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
 
                 view.addSubview(imageView)
                 view.addSubview(textField)
@@ -118,7 +122,18 @@ class WorkspaceBrowserViewController: NSViewController {
     func updateView() {
         let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
-   }
+    }
+
+    @objc func onSubmit(_ sender: WorkspaceTextField) {
+        print("onSubmit", sender)
+        // TODO: rename file
+        // TODO: hide file extension
+    }
+
+    @objc func onCancel(_ sender: WorkspaceTextField) {
+        print("onCancel", sender)
+        // TODO: hide file extension
+    }
 }
 
 extension WorkspaceBrowserViewController: WorkspaceDelegate {
@@ -128,31 +143,13 @@ extension WorkspaceBrowserViewController: WorkspaceDelegate {
 }
 
 extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
-    func controlTextDidBeginEditing(_ obj: Notification) {
-        print("didBeginEditing")
-    }
-
-    func controlTextDidEndEditing(_ obj: Notification) {
-        print("didEndEditing")
-        guard let textField = obj.object as? WorkspaceTextField,
-              let dirent = dirent(for: textField) else {
-            return
-        }
-
-        textField.stringValue = dirent.name
-    }
-
     func textFieldDidBecomeFirstResponder(_ textField: WorkspaceTextField) {
-        print("didBecomeFirstResponder")
         guard let dirent = dirent(for: textField) else {
             return
         }
 
         textField.stringValue = dirent.nameWithExtension
-    }
-
-    func textFieldDidResignFirstResponder(_ textField: WorkspaceTextField) {
-        print("didResignFirstResponder")
+        // TODO: select dirent.name
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -160,13 +157,9 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
             return false
         }
 
-        print("doCommandBy", commandSelector)
-
         switch commandSelector {
         case #selector(cancelOperation):
-            if let dirent = dirent(for: textField) {
-                textField.stringValue = dirent.name
-            }
+            onCancel(textField)
         default:
             break
         }
