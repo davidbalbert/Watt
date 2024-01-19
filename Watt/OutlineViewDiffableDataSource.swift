@@ -112,6 +112,10 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
         return snapshot.childIds(of: id(from: item)) != nil
     }
+
+    func outlineView(_ outlineView: NSOutlineView, objectValueFor tableColumn: NSTableColumn?, byItem item: Any?) -> Any? {
+        id(from: item)
+    }
 }
 
 extension OutlineViewDiffableDataSource {

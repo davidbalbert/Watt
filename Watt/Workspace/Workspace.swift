@@ -7,14 +7,12 @@
 
 import Foundation
 import Cocoa
-import AsyncAlgorithms
 
 protocol WorkspaceDelegate: AnyObject {
     func workspaceDidChange(_ workspace: Workspace)
 }
 
 @MainActor
-@Observable
 class Workspace {
     enum Errors: Error {
         case rootIsNotFolder
@@ -24,8 +22,6 @@ class Workspace {
     var children: [Dirent] {
         return root.filteringChildren(showHidden: showHidden).children!
     }
-
-    var selection: Set<Dirent.ID> = []
 
     var showHidden: Bool {
         didSet {
@@ -70,6 +66,10 @@ class Workspace {
         }
 
         try loadDirectory(url: root.url)
+    }
+
+    subscript(id: Dirent.ID) -> Dirent? {
+        index[id]
     }
 
     @discardableResult

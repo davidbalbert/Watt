@@ -6,7 +6,6 @@
 //
 
 import Cocoa
-import SwiftUI
 
 class WorkspaceBrowserViewController: NSViewController {
     let workspace: Workspace
@@ -36,14 +35,49 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
 
-        let workspace = workspace
-        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView, delegate: self) { outlineView, _, dirent in
-            DirentView(
-                dirent: dirent,
-                workspace: workspace
-            )
+        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { outlineView, column, dirent in
+            let view: NSTableCellView
+            if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
+                view = v
+            } else {
+                view = NSTableCellView()
+                view.identifier = column.identifier
+
+                let imageView = NSImageView()
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+
+                let textField = WorkspaceTextField(labelWithString: "")
+                textField.translatesAutoresizingMaskIntoConstraints = false
+                textField.isEditable = true
+                textField.focusRingType = .none
+                textField.lineBreakMode = .byTruncatingMiddle
+
+                textField.delegate = self
+
+                view.addSubview(imageView)
+                view.addSubview(textField)
+                view.imageView = imageView
+                view.textField = textField
+
+                NSLayoutConstraint.activate([
+                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
+                    imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 16),
+                    imageView.heightAnchor.constraint(equalToConstant: 16),
+
+                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
+                    textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
+                    textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                ])
+            }
+
+            view.imageView!.image = dirent.icon
+            view.textField!.stringValue = dirent.name
+
+            return view
         }
 
+        let workspace = workspace
         dataSource.loadChildren = { dirent in
             if dirent.isLoaded {
                 return nil
@@ -87,14 +121,63 @@ class WorkspaceBrowserViewController: NSViewController {
    }
 }
 
-extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
-    func outlineViewSelectionDidChange(_ notification: Notification) {
-        workspace.selection = Set(outlineView.selectedRowIndexes.map { outlineView.item(atRow: $0) as! Dirent.ID })
-    }
-}
-
 extension WorkspaceBrowserViewController: WorkspaceDelegate {
     func workspaceDidChange(_ workspace: Workspace) {
         updateView()
+    }
+}
+
+extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
+    func controlTextDidBeginEditing(_ obj: Notification) {
+        print("didBeginEditing")
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        print("didEndEditing")
+        guard let textField = obj.object as? WorkspaceTextField,
+              let dirent = dirent(for: textField) else {
+            return
+        }
+
+        textField.stringValue = dirent.name
+    }
+
+    func textFieldDidBecomeFirstResponder(_ textField: WorkspaceTextField) {
+        print("didBecomeFirstResponder")
+        guard let dirent = dirent(for: textField) else {
+            return
+        }
+
+        textField.stringValue = dirent.nameWithExtension
+    }
+
+    func textFieldDidResignFirstResponder(_ textField: WorkspaceTextField) {
+        print("didResignFirstResponder")
+    }
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        guard let textField = control as? WorkspaceTextField else {
+            return false
+        }
+
+        print("doCommandBy", commandSelector)
+
+        switch commandSelector {
+        case #selector(cancelOperation):
+            if let dirent = dirent(for: textField) {
+                textField.stringValue = dirent.name
+            }
+        default:
+            break
+        }
+
+        return false
+    }
+
+    func dirent(for textField: NSTextField) -> Dirent? {
+        guard let id = (textField.superview as? NSTableCellView)?.objectValue as? Dirent.ID else {
+            return nil
+        }
+        return workspace[id]
     }
 }

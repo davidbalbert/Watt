@@ -22,7 +22,7 @@ extension FileID: Hashable {
 }
 
 struct Dirent: Identifiable {
-    static let resourceKeys: [URLResourceKey] = [.fileResourceIdentifierKey, .nameKey, .isDirectoryKey, .isPackageKey, .isHiddenKey]
+    static let resourceKeys: [URLResourceKey] = [.fileResourceIdentifierKey, .isDirectoryKey, .isPackageKey, .isHiddenKey]
     static let resourceSet = Set(resourceKeys)
 
     enum Errors: Error {
@@ -33,7 +33,6 @@ struct Dirent: Identifiable {
     }
 
     let id: FileID
-    let name: String
     let url: URL
     let isDirectory: Bool
     let isPackage: Bool
@@ -49,14 +48,12 @@ struct Dirent: Identifiable {
         }
     }
 
-    func filteringChildren(showHidden: Bool) -> Dirent {
-        if showHidden {
-            return self
-        } else {
-            var copy = self
-            copy._children = _children?.filter { !$0.isHidden }.map { $0.filteringChildren(showHidden: showHidden) }
-            return copy
-        }
+    var name: String {
+        url.deletingPathExtension().lastPathComponent
+    }
+
+    var nameWithExtension: String {
+        url.lastPathComponent
     }
 
     var isFolder: Bool {
@@ -67,9 +64,8 @@ struct Dirent: Identifiable {
         isFolder && _children != nil
     }
 
-    init(id: FileID, name: String, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
+    init(id: FileID, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
         self.id = id
-        self.name = name
         self.url = url
         self.isDirectory = isDirectory
         self.isPackage = isPackage
@@ -88,12 +84,21 @@ struct Dirent: Identifiable {
 
         self.init(
             id: FileID(id: resID),
-            name: rv.name ?? url.lastPathComponent,
             url: url,
             isDirectory: isDirectory,
             isPackage: isPackage,
             isHidden: isHidden
         )
+    }
+
+    func filteringChildren(showHidden: Bool) -> Dirent {
+        if showHidden {
+            return self
+        } else {
+            var copy = self
+            copy._children = _children?.filter { !$0.isHidden }.map { $0.filteringChildren(showHidden: showHidden) }
+            return copy
+        }
     }
 
     mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) throws {
@@ -126,11 +131,11 @@ struct Dirent: Identifiable {
 
 extension Dirent: Comparable {
     static func == (lhs: Dirent, rhs: Dirent) -> Bool {
-        lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedSame
+        lhs.nameWithExtension.localizedCaseInsensitiveCompare(rhs.nameWithExtension) == .orderedSame
     }
 
     static func < (lhs: Dirent, rhs: Dirent) -> Bool {
-        lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        lhs.nameWithExtension.localizedCaseInsensitiveCompare(rhs.nameWithExtension) == .orderedAscending
     }
 }
 
