@@ -161,7 +161,8 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
         }
 
         textField.stringValue = dirent.nameWithExtension
-        // TODO: select dirent.name
+        let range = dirent.name.startIndex..<dirent.name.endIndex
+        textField.currentEditor()?.selectedRange = NSRange(range, in: dirent.name)
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
