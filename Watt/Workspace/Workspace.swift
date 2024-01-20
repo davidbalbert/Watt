@@ -56,7 +56,7 @@ class Workspace {
     }
 
     func rename(_ dirent: Dirent, to name: String) throws -> Dirent {
-        let newURL = dirent.url.deletingLastPathComponent().appendingPathComponent(name)
+        let newURL = dirent.url.deletingLastPathComponent().appending(path: name, directoryHint: dirent.directoryHint)
         try FileManager.default.moveItem(at: dirent.url, to: newURL)
         let newDirent = try Dirent(for: newURL)
 

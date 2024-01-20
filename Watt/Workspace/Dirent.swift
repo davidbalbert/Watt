@@ -64,6 +64,10 @@ struct Dirent: Identifiable {
         isFolder && _children != nil
     }
 
+    var directoryHint: URL.DirectoryHint {
+        isDirectory ? .isDirectory : .notDirectory
+    }
+
     init(id: FileID, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
         self.id = id
         self.url = url

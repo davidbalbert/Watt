@@ -132,15 +132,9 @@ class WorkspaceBrowserViewController: NSViewController {
         do {
             let newDirent = try workspace.rename(dirent, to: sender.stringValue)
             sender.stringValue = newDirent.name
-        } catch let error as NSError {
+        } catch {
             sender.stringValue = dirent.name
-            if let window = view.window {
-                Task {
-                    await NSAlert(error: error).beginSheetModal(for: window)
-                }
-            } else {
-                NSAlert(error: error).runModal()
-            }
+            presentErrorAsSheetWithFallback(error)
         }
     }
 
