@@ -36,19 +36,6 @@ class Workspace {
 
     var showHiddenFilesObservation: NSKeyValueObservation?
 
-    func renameFile() throws {
-        // guard let id = editState.id, let dirent = index[id] else {
-        //     return
-        // }
-
-        // let newURL = dirent.url.deletingLastPathComponent().appending(component: editState.name, directoryHint: dirent.isDirectory ? .isDirectory : .notDirectory)
-
-        // try FileManager.default.moveItem(at: dirent.url, to: newURL)
-
-        // editState = EditState()
-    }
-
-
     init(url: URL) throws {
         let dirent = try Dirent(for: url)
         if !dirent.isFolder {
@@ -66,6 +53,28 @@ class Workspace {
         }
 
         try loadDirectory(url: root.url)
+    }
+
+    func rename(_ dirent: Dirent, to name: String) throws -> Dirent {
+        let newURL = dirent.url.deletingLastPathComponent().appendingPathComponent(name)
+        try FileManager.default.moveItem(at: dirent.url, to: newURL)
+        let newDirent = try Dirent(for: newURL)
+
+        let parentURL = dirent.url.deletingLastPathComponent()
+
+        try root.updateDescendent(withURL: parentURL) { parent in
+            parent._children = parent._children?.map { child in
+                if child.id == dirent.id {
+                    return newDirent
+                } else {
+                    return child
+                }
+            }
+
+            parent._children?.sort()
+        }
+        
+        return newDirent
     }
 
     @discardableResult

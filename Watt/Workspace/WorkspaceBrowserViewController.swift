@@ -126,12 +126,22 @@ class WorkspaceBrowserViewController: NSViewController {
 
     @objc func onSubmit(_ sender: WorkspaceTextField) {
         print("onSubmit", sender)
-        // TODO: rename file
         guard let dirent = dirent(for: sender) else {
             return
         }
-
-        sender.stringValue = dirent.name
+        do {
+            let newDirent = try workspace.rename(dirent, to: sender.stringValue)
+            sender.stringValue = newDirent.name
+        } catch let error as NSError {
+            sender.stringValue = dirent.name
+            if let window = view.window {
+                Task {
+                    await NSAlert(error: error).beginSheetModal(for: window)
+                }
+            } else {
+                NSAlert(error: error).runModal()
+            }
+        }
     }
 
     @objc func onCancel(_ sender: WorkspaceTextField) {
