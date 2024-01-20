@@ -195,21 +195,24 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
             return false
         }
 
-        let caretIndex = textView.string.utf16Index(at: textView.selectedRange.location)
-        let afterDot = textView.string.range(of: ".", options: .backwards, range: textView.string.startIndex..<caretIndex)?.upperBound
+        let s = textView.string
 
-        guard let afterDot, afterDot != caretIndex else {
-            return false
+        let caret = s.utf16Index(at: textView.selectedRange.location)
+        let target = caret == s.startIndex ? s.startIndex : s.index(before: caret)
+        let afterDot = s.range(of: ".", options: .backwards, range: s.startIndex..<target)?.upperBound ?? s.startIndex
+
+        var i: String.Index?
+        s.enumerateSubstrings(in: s.startIndex..<caret, options: [.byWords, .reverse, .substringNotRequired]) { _, range, _, stop in
+            i = range.lowerBound
+            stop = true
         }
+        let wordStart = i ?? s.startIndex
 
-        let wordBoundary = textView.string.rangeOfCharacter(from: .whitespacesAndNewlines, options: .backwards, range: textView.string.startIndex..<caretIndex)?.upperBound ?? textView.string.startIndex
+        let range = max(wordStart, afterDot)..<caret
+        let nsRange = NSRange(range, in: s)
 
-        if wordBoundary > afterDot {
-            return false
-        }
-
-        let range = afterDot..<caretIndex
-        let nsRange = NSRange(range, in: textView.string)
+        // don't copy textStorage
+        _ = consume s
 
         if textView.shouldChangeText(in: nsRange, replacementString: "") {
             textView.textStorage?.replaceCharacters(in: nsRange, with: "")
