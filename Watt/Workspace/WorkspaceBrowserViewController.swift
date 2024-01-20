@@ -172,6 +172,9 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
         switch commandSelector {
         case #selector(cancelOperation):
             onCancel(textField)
+        case #selector(insertTab):
+            view.window?.makeFirstResponder(outlineView)
+            return true
         default:
             break
         }
