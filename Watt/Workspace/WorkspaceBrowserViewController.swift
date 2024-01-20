@@ -127,12 +127,24 @@ class WorkspaceBrowserViewController: NSViewController {
     @objc func onSubmit(_ sender: WorkspaceTextField) {
         print("onSubmit", sender)
         // TODO: rename file
-        // TODO: hide file extension
+        guard let dirent = dirent(for: sender) else {
+            return
+        }
+
+        sender.stringValue = dirent.name
     }
 
     @objc func onCancel(_ sender: WorkspaceTextField) {
         print("onCancel", sender)
-        // TODO: hide file extension
+        guard let dirent = dirent(for: sender) else {
+            return
+        }
+
+        sender.stringValue = dirent.name
+    }
+
+    func dirent(for textField: WorkspaceTextField) -> Dirent? {
+        dataSource[(textField.superview as? NSTableCellView)?.objectValue]
     }
 }
 
@@ -165,9 +177,5 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
         }
 
         return false
-    }
-
-    func dirent(for textField: NSTextField) -> Dirent? {
-        dataSource[(textField.superview as? NSTableCellView)?.objectValue]
     }
 }
