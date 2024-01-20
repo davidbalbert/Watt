@@ -180,10 +180,41 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
         case #selector(insertTab):
             view.window?.makeFirstResponder(outlineView)
             return true
+        case #selector(deleteWordBackward):
+            return deleteFileExtensionOrWordBackward(textView)
         default:
             break
         }
 
         return false
+    }
+
+    func deleteFileExtensionOrWordBackward(_ textView: NSTextView) -> Bool {
+        if textView.selectedRanges.count != 1 || textView.selectedRange.length > 0 {
+            return false
+        }
+
+        let caretIndex = textView.string.utf16Index(at: textView.selectedRange.location)
+        let afterDot = textView.string.range(of: ".", options: .backwards, range: textView.string.startIndex..<caretIndex)?.upperBound
+
+        guard let afterDot, afterDot != caretIndex else {
+            return false
+        }
+
+        let wordBoundary = textView.string.rangeOfCharacter(from: .whitespacesAndNewlines, options: .backwards, range: textView.string.startIndex..<caretIndex)?.upperBound ?? textView.string.startIndex
+
+        if wordBoundary > afterDot {
+            return false
+        }
+
+        let range = afterDot..<caretIndex
+        let nsRange = NSRange(range, in: textView.string)
+
+        if textView.shouldChangeText(in: nsRange, replacementString: "") {
+            textView.textStorage?.replaceCharacters(in: nsRange, with: "")
+            textView.didChangeText()
+        }
+
+        return true
     }
 }
