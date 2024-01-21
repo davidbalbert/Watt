@@ -35,7 +35,11 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
 
-        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { outlineView, column, dirent in
+        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { [weak self] outlineView, column, dirent in
+            guard let self else {
+                return NSView()
+            }
+
             let view: NSTableCellView
             if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
                 view = v
