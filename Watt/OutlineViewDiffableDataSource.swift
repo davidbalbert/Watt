@@ -76,8 +76,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         return snapshot?[id]
     }
 
-    func loadChildrenIfNecessary(for id: Data.Element.ID?) {
-        guard let loadChildren, let id, let snapshot, let element = snapshot[id] else {
+    func loadChildren(ofElementWithID id: Data.Element.ID?) {
+        guard let loadChildren, let id, let element = snapshot?[id] else {
             return
         }
 
@@ -91,30 +91,19 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         let id = id(from: item)
-        loadChildrenIfNecessary(for: id)
-
-        guard let snapshot else {
-            return 0
-        }
-        return snapshot.childIds(of: id)?.count ?? 0
+        loadChildren(ofElementWithID: id)
+        return snapshot?.childIds(ofElementWithID: id)?.count ?? 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         let id = id(from: item)
-        loadChildrenIfNecessary(for: id)
-
-        guard let snapshot else {
-            fatalError("unexpected call to outlineView(_:child:ofItem:) with no snapshot")
-        }
-
-        return snapshot.childId(atOffset: index, of: id)!
+        loadChildren(ofElementWithID: id)
+        // we should only be asked for children of an item if it has children
+        return snapshot!.childIds(ofElementWithID: id)![index]
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        guard let snapshot else {
-            return false
-        }
-        return snapshot.childIds(of: id(from: item)) != nil
+        snapshot?.childIds(ofElementWithID: id(from: item)) != nil
     }
 
     func outlineView(_ outlineView: NSOutlineView, objectValueFor tableColumn: NSTableColumn?, byItem item: Any?) -> Any? {
@@ -190,11 +179,7 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
         index[id]
     }
 
-    func childId(atOffset offset: Int, of id: Data.Element.ID?) -> Data.Element.ID? {
-        childIds(of: id)?[offset]
-    }
-
-    func childIds(of id: Data.Element.ID?) -> [Data.Element.ID]? {
+    func childIds(ofElementWithID id: Data.Element.ID?) -> [Data.Element.ID]? {
         if let id {
             return index[id]?[keyPath: children]?.map(\.id)
         } else {
