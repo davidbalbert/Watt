@@ -152,7 +152,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func dirent(for textField: WorkspaceTextField) -> Dirent? {
-        dataSource[(textField.superview as? NSTableCellView)?.objectValue]
+        dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
     }
 }
 
