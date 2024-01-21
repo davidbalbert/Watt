@@ -21,12 +21,13 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
 
-    private(set) var snapshot: OutlineViewSnapshot<Data>?
+    private(set) var snapshot: OutlineViewSnapshot<Data>
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
         self.delegate = Delegate(target: delegate ?? EmptyOutlineViewDelegate())
         self.cellProvider = cellProvider
+        self.snapshot = OutlineViewSnapshot()
         super.init()
 
         self.delegate.dataSource = self
@@ -57,7 +58,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     var isEmpty: Bool {
-        snapshot?.isEmpty ?? true
+        snapshot.isEmpty
     }
 
     private func id(from item: Any?) -> Data.Element.ID? {
@@ -69,15 +70,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     subscript(item: Any?) -> Data.Element? {
-        guard let id = id(from: item) else {
-            return nil
-        }
-
-        return snapshot?[id]
+        snapshot[id(from: item)]
     }
 
     func loadChildren(ofElementWithID id: Data.Element.ID?) {
-        guard let loadChildren, let id, let element = snapshot?[id] else {
+        guard let loadChildren, let element = snapshot[id] else {
             return
         }
 
@@ -92,18 +89,18 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         let id = id(from: item)
         loadChildren(ofElementWithID: id)
-        return snapshot?.childIds(ofElementWithID: id)?.count ?? 0
+        return snapshot.childIds(ofElementWithID: id)?.count ?? 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         let id = id(from: item)
         loadChildren(ofElementWithID: id)
         // we should only be asked for children of an item if it has children
-        return snapshot!.childIds(ofElementWithID: id)![index]
+        return snapshot.childIds(ofElementWithID: id)![index]
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        snapshot?.childIds(ofElementWithID: id(from: item)) != nil
+        snapshot.childIds(ofElementWithID: id(from: item)) != nil
     }
 
     func outlineView(_ outlineView: NSOutlineView, objectValueFor tableColumn: NSTableColumn?, byItem item: Any?) -> Any? {
@@ -122,17 +119,17 @@ extension OutlineViewDiffableDataSource {
         }
 
         func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-            guard let dataSource, let snapshot = dataSource.snapshot, let tableColumn else {
+            guard let dataSource, let tableColumn else {
                 return nil
             }
-            return dataSource.cellProvider(outlineView, tableColumn, snapshot[dataSource.id(from: item)!]!)
+            return dataSource.cellProvider(outlineView, tableColumn, dataSource[item]!)
         }
 
         func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
-            guard let dataSource, let snapshot = dataSource.snapshot else {
+            guard let dataSource else {
                 return nil
             }
-            return dataSource.rowViewProvider?(outlineView, snapshot[dataSource.id(from: item)!]!)
+            return dataSource.rowViewProvider?(outlineView, dataSource[item]!)
         }
     }
 }
@@ -150,13 +147,41 @@ extension TreeList {
 }
 
 struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Element: Identifiable {
-    let ids: TreeList<Data.Element.ID>
-    let children: KeyPath<Data.Element, Data?>
+    // Necessary because we can't create an empty Data. Only RangeReplaceableCollections let you
+    // create an empty collection.
+    enum Content {
+        case empty
+        case data(TreeList<Data.Element.ID>, KeyPath<Data.Element, Data?>)
+
+        var isEmpty: Bool {
+            switch self {
+            case .empty:
+                return true
+            case let .data(ids, _):
+                return ids.isEmpty
+            }
+        }
+
+        var ids: TreeList<Data.Element.ID> {
+            switch self {
+            case .empty:
+                return TreeList([])
+            case let .data(ids, _):
+                return ids
+            }
+        }
+    }
+
+    let content: Content
     let index: [Data.Element.ID: Data.Element]
 
+    init() {
+        self.content = .empty
+        self.index = [:]
+    }
+
     init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
-        self.ids = TreeList(data, children: children)
-        self.children = children
+        self.content = .data(TreeList(data, children: children), children)
 
         var index: [Data.Element.ID: Data.Element] = [:]
         var pending: [Data.Element] = Array(data)
@@ -172,19 +197,31 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
     }
 
     var isEmpty: Bool {
-        ids.isEmpty
+        content.isEmpty
     }
 
-    subscript(id: Data.Element.ID) -> Data.Element? {
-        index[id]
+    var ids: TreeList<Data.Element.ID> {
+        content.ids
+    }
+
+    subscript(id: Data.Element.ID?) -> Data.Element? {
+        guard let id else {
+            return nil
+        }
+
+        return index[id]
     }
 
     func childIds(ofElementWithID id: Data.Element.ID?) -> [Data.Element.ID]? {
-        if let id {
-            return index[id]?[keyPath: children]?.map(\.id)
-        } else {
+        guard let id else {
             return ids.nodes.map(\.value)
         }
+
+        guard case let .data(_, children) = content else {
+            return nil
+        }
+
+        return index[id]?[keyPath: children]?.map(\.id)
     }
 
     func difference(from other: Self) -> Difference {
@@ -227,9 +264,10 @@ extension OutlineViewSnapshot {
 
 extension OutlineViewDiffableDataSource {
     func apply(_ snapshot: OutlineViewSnapshot<Data>, animatingDifferences: Bool = true) {
+        let old = self.snapshot
         let new = snapshot
-        
-        guard let old = self.snapshot else {
+
+        if old.isEmpty {
             self.snapshot = new
             outlineView.reloadData()
             return
