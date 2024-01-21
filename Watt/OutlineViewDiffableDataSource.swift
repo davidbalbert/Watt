@@ -147,41 +147,19 @@ extension TreeList {
 }
 
 struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Element: Identifiable {
-    // Necessary because we can't create an empty Data. Only RangeReplaceableCollections let you
-    // create an empty collection.
-    enum Content {
-        case empty
-        case data(TreeList<Data.Element.ID>, KeyPath<Data.Element, Data?>)
-
-        var isEmpty: Bool {
-            switch self {
-            case .empty:
-                return true
-            case let .data(ids, _):
-                return ids.isEmpty
-            }
-        }
-
-        var ids: TreeList<Data.Element.ID> {
-            switch self {
-            case .empty:
-                return TreeList([])
-            case let .data(ids, _):
-                return ids
-            }
-        }
-    }
-
-    let content: Content
+    let ids: TreeList<Data.Element.ID>
+    let children: KeyPath<Data.Element, Data?>?
     let index: [Data.Element.ID: Data.Element]
 
     init() {
-        self.content = .empty
+        self.ids = TreeList()
+        self.children = nil
         self.index = [:]
     }
 
     init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
-        self.content = .data(TreeList(data, children: children), children)
+        self.ids = TreeList(data, children: children)
+        self.children = children
 
         var index: [Data.Element.ID: Data.Element] = [:]
         var pending: [Data.Element] = Array(data)
@@ -197,11 +175,7 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
     }
 
     var isEmpty: Bool {
-        content.isEmpty
-    }
-
-    var ids: TreeList<Data.Element.ID> {
-        content.ids
+        ids.isEmpty
     }
 
     subscript(id: Data.Element.ID?) -> Data.Element? {
@@ -217,7 +191,8 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
             return ids.nodes.map(\.value)
         }
 
-        guard case let .data(_, children) = content else {
+        guard let children else {
+            assert(isEmpty)
             return nil
         }
 
