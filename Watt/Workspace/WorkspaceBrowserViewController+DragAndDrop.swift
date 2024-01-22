@@ -40,64 +40,46 @@ extension WorkspaceBrowserViewController: OutlineViewDragAndDropDelegate {
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, element: Dirent?, childIndex index: Int) -> Bool {
         print("acceptDrop url=\(element?.url) isFolder=\(element?.isFolder) index=\(index) onItem=\(index == NSOutlineViewDropOnItemIndex)")
 
-        let targetDir = element ?? workspace.root
-
         guard let items = info.draggingPasteboard.readObjects(forClasses: [NSFilePromiseReceiver.self, NSURL.self]) else {
             return false
         }
 
+        let targetDirectoryURL = (element ?? workspace.root).url
 
-        for item in items {
-            switch item {
-            case let receiver as NSFilePromiseReceiver:
-//                Task {
-//                    do {
-//                        print("do it!")
-//                        let url = try await receiver.receivePromisedFiles(atDestination: targetDir.url, operationQueue: fileQueue)
-//                        print("url from file promise", url)
+        Task {
+            do {
+                try await withThrowingTaskGroup(of: URL.self) { group in
+                    for item in items {
+                        switch item {
+                        case let receiver as NSFilePromiseReceiver:
+                            group.addTask { @MainActor in
+                                return try await receiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: self.fileQueue)
+                            }
+                        case let srcURL as URL:
+                            let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
+                            let srcIntent = NSFileAccessIntent.readingIntent(with: srcURL)
+                            let dstIntent = NSFileAccessIntent.writingIntent(with: dstURL, options: .forReplacing)
+                            let coordinator = NSFileCoordinator()
 
-                        receiver.receivePromisedFiles(atDestination: targetDir.url, operationQueue: fileQueue) { url, error in
-                            DispatchQueue.main.async {
-                                if let error {
-                                    self.presentErrorAsSheetWithFallback(error)
-                                } else {
-                                    do {
-                                        try self.workspace.add(url: url)
-                                    } catch {
-                                        self.presentErrorAsSheetWithFallback(error)
-                                    }
+                            group.addTask { @MainActor in
+                                return try await coordinator.coordinate(with: [srcIntent, dstIntent], queue: self.fileQueue) {
+                                    try FileManager.default.copyItem(at: srcIntent.url, to: dstIntent.url)
+                                    return dstIntent.url
                                 }
                             }
+                        default:
+                            break
                         }
-//                        try workspace.add(url: url)
-//                    } catch {
-//                        presentErrorAsSheetWithFallback(error)
-//                    }
-//                }
+                    }
 
-            case let srcURL as URL:
-                Task {
-                    let dstURL = targetDir.url.appendingPathComponent(srcURL.lastPathComponent)
-                    let coordinator = NSFileCoordinator()
-
-                    let srcIntent = NSFileAccessIntent.readingIntent(with: srcURL)
-                    let dstIntent = NSFileAccessIntent.writingIntent(with: dstURL, options: .forReplacing)
-                    do {
-                        let url = try await coordinator.coordinate(with: [srcIntent, dstIntent], queue: fileQueue) {
-                            try FileManager.default.copyItem(at: srcIntent.url, to: dstIntent.url)
-                            return dstIntent.url
-                        }
-                        print("url from copying file URL", url)
+                    for try await url in group {
                         try workspace.add(url: url)
-                    } catch {
-                        presentErrorAsSheetWithFallback(error)
                     }
                 }
-            default:
-                break
+            } catch {
+                presentErrorAsSheetWithFallback(error)
             }
         }
-
         return true
     }
 }
