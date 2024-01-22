@@ -15,6 +15,8 @@ class WorkspaceBrowserViewController: NSViewController {
 
     var task: Task<(), Never>?
 
+    let fileQueue: OperationQueue = OperationQueue()
+
     init(workspace: Workspace) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
@@ -98,6 +100,15 @@ class WorkspaceBrowserViewController: NSViewController {
             }
             return OutlineViewSnapshot(workspace.children, children: \.children)
         }
+
+        dataSource.dragAndDropDelegate = self
+        outlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
+        outlineView.registerForDraggedTypes(
+            NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) }
+        )
+        outlineView.registerForDraggedTypes([
+            .fileURL
+        ])
 
         self.outlineView = outlineView
         self.dataSource = dataSource

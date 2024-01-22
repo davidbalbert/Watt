@@ -11,6 +11,27 @@ import SwiftUI
 import Tree
 
 @MainActor
+protocol OutlineViewDragAndDropDelegate<Element>: AnyObject {
+    associatedtype Element where Element: Identifiable
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forElements draggedElements: [Element])
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForElement element: Element) -> NSPasteboardWriting?
+    func outlineView(_ outlineView: NSOutlineView, updateDraggingElementsForDrag draggingInfo: NSDraggingInfo)
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedElement element: Element?, proposedChildIndex index: Int) -> NSDragOperation
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, element: Element?, childIndex index: Int) -> Bool
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation)
+}
+
+extension OutlineViewDragAndDropDelegate {
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forElements draggedElements: [Element]) {}
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForElement element: Element) -> NSPasteboardWriting? { nil }
+    func outlineView(_ outlineView: NSOutlineView, updateDraggingElementsForDrag draggingInfo: NSDraggingInfo) {}
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedElement element: Element?, proposedChildIndex index: Int) -> NSDragOperation { [] }
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, element: Element?, childIndex index: Int) -> Bool { false }
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {}
+}
+
+@MainActor
 final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
     let outlineView: NSOutlineView
     let delegate: Delegate
@@ -22,6 +43,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
 
     private(set) var snapshot: OutlineViewSnapshot<Data>
+
+    weak var dragAndDropDelegate: (any OutlineViewDragAndDropDelegate<Data.Element>)?
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -109,6 +132,50 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     func outlineView(_ outlineView: NSOutlineView, objectValueFor tableColumn: NSTableColumn?, byItem item: Any?) -> Any? {
         id(from: item)
+    }
+
+    // MARK: Drag and Drop
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
+        let elements = draggedItems.compactMap { self[$0] }
+
+        if elements.count != draggedItems.count {
+            fatalError("outlineView(_:draggingSession:willBeginAt:forItems:): not all items have an element")
+        }
+
+        dragAndDropDelegate?.outlineView(outlineView, draggingSession: session, willBeginAt: screenPoint, forElements: elements)
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+        guard let element = self[item] else {
+            fatalError("outlineView(_:pasteboardWriterForItem:): no element for item")
+        }
+        return dragAndDropDelegate?.outlineView(outlineView, pasteboardWriterForElement: element)
+    }
+    func outlineView(_ outlineView: NSOutlineView, updateDraggingItemsForDrag draggingInfo: NSDraggingInfo) {
+        dragAndDropDelegate?.outlineView(outlineView, updateDraggingElementsForDrag: draggingInfo)
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+        let element = self[item]
+        if element == nil && item != nil {
+            fatalError("outlineView(_:validateDrop:proposedItem:proposedChildIndex:): no element for item")
+        }
+
+        return dragAndDropDelegate?.outlineView(outlineView, validateDrop: info, proposedElement: element, proposedChildIndex: index) ?? []
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+        let element = self[item]
+        if element == nil && item != nil {
+            fatalError("outlineView(_:validateDrop:proposedItem:proposedChildIndex:): no element for item")
+        }
+
+        return dragAndDropDelegate?.outlineView(outlineView, acceptDrop: info, element: element, childIndex: index) ?? false
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        dragAndDropDelegate?.outlineView(outlineView, draggingSession: session, endedAt: screenPoint, operation: operation)
     }
 }
 

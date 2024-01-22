@@ -77,6 +77,23 @@ class Workspace {
         return newDirent
     }
 
+    func add(url: URL) throws {
+        let dirent = try Dirent(for: url)
+
+        let parentURL = url.deletingLastPathComponent()
+        try root.updateDescendent(withURL: parentURL) { parent in
+            if parent._children == nil {
+                return
+            }
+
+            let alreadyPresent = parent._children!.contains { $0.id == dirent.id }
+            if !alreadyPresent {
+                parent._children!.append(dirent)
+                parent._children!.sort()
+            }
+        }
+    }
+
     @discardableResult
     func loadDirectory(url: URL) throws -> [Dirent] {
         // Don't load a directory unless we have somewhere to put it.
