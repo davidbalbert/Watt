@@ -10,7 +10,7 @@ import Foundation
 // NSMapTable, but the keys can be any Hashable (if keys
 // are objects, they are held strongly).
 
-final class WeakRef<Value> where Value: AnyObject {
+struct Weak<Value> where Value: AnyObject {
     weak var value: Value?
 
     init(_ value: Value) {
@@ -23,19 +23,7 @@ final class WeakRef<Value> where Value: AnyObject {
 }
 
 struct WeakDictionary<Key: Hashable, Value: AnyObject> {
-    struct Weak {
-        weak var value: Value?
-
-        init(_ value: Value) {
-            self.value = value
-        }
-
-        init() {
-            self.value = nil
-        }
-    }
-
-    private var storage: [Key: Weak]
+    private var storage: [Key: Weak<Value>]
 
     init() {
         storage = [:]
