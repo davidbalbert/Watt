@@ -95,13 +95,17 @@ class Workspace {
     }
 
     @discardableResult
-    func loadDirectory(url: URL) throws -> [Dirent] {
+    func loadDirectory(url: URL) throws -> [Dirent]? {
         // Don't load a directory unless we have somewhere to put it.
-        guard url == root.url || loaded.contains(url.deletingLastPathComponent()) else {
-            return []
+        if url != root.url && !loaded.contains(url.deletingLastPathComponent()) {
+            return nil
         }
 
-        let children = try Workspace.fetchChildren(of: url)
+        let urls = try NSFileCoordinator().coordinate(readingItemAt: url) { actualURL in
+            try FileManager.default.contentsOfDirectory(at: actualURL, includingPropertiesForKeys: Dirent.resourceKeys)
+        }
+
+        let children = try urls.map { try Dirent(for: $0) }.sorted()
         try updateChildren(of: url, to: children)
         loaded.insert(url)
 
@@ -153,12 +157,20 @@ class Workspace {
                     continue
                 }
 
-                let children: [Dirent]
+                let children: [Dirent]?
                 do {
                     children = try loadDirectory(url: req.url)
-                    try updateChildren(of: req.url, to: children)
-                } catch {
-                    print("Workspace.listen: error while loading children of \(req.url): \(error)")
+                } catch let error as NSError {
+                    // Consider the directory hierarchy /foo/bar. If bar is deleted, we get two FSEvents,
+                    // One for /foo/bar and one for /foo. Processing /foo/bar will fail because bar doesn't
+                    // exist any more. That's an expected case, so we don't want to log that message.
+                    if !(error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoSuchFileError) {
+                        print("Workspace.listen: error while loading children of \(req.url): \(error)")
+                    }
+                    continue
+                }
+
+                guard let children else {
                     continue
                 }
 
@@ -176,19 +188,6 @@ class Workspace {
 
             delegate?.workspaceDidChange(self)
         }
-    }
-
-    static func fetchChildren(of url: URL) throws -> [Dirent] {
-        let urls = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: Dirent.resourceKeys, options: [])
-
-        var children: [Dirent] = []
-        for u in urls {
-            children.append(try Dirent(for: u))
-        }
-
-        children.sort()
-
-        return children
     }
 
     func updateChildren(of url: URL, to newChildren: consuming [Dirent]) throws {

@@ -27,4 +27,18 @@ extension NSFileCoordinator {
             }
         }
     }
+
+    func coordinate<T>(readingItemAt url: URL, options: NSFileCoordinator.ReadingOptions = [], byAccessor reader: (URL) throws -> T) throws -> T {
+        var result: Result<T, Error>?
+        var error: NSError?
+        coordinate(readingItemAt: url, error: &error) { actualURL in
+            result = Result {
+                try reader(actualURL)
+            }
+        }
+        if let error {
+            throw error
+        }
+        return try result!.get()
+    }
 }
