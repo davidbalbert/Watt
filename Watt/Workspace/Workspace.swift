@@ -179,16 +179,16 @@ class Workspace {
     }
 
     static func fetchChildren(of url: URL) throws -> [Dirent] {
-            let urls = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: Dirent.resourceKeys, options: [])
+        let urls = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: Dirent.resourceKeys, options: [])
 
-            var children: [Dirent] = []
-            for u in urls {
-                children.append(try Dirent(for: u))
-            }
+        var children: [Dirent] = []
+        for u in urls {
+            children.append(try Dirent(for: u))
+        }
 
-            children.sort()
+        children.sort()
 
-            return children
+        return children
     }
 
     func updateChildren(of url: URL, to newChildren: consuming [Dirent]) throws {
