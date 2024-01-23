@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 
 enum FSEvent {
     struct Flags: OptionSet {
@@ -286,7 +287,7 @@ enum FSEvent {
     }
 }
 
-class FSEventStream {
+final class FSEventStream: Sendable {
     struct Flags: OptionSet {
         let rawValue: FSEventStreamCreateFlags
 
@@ -302,16 +303,14 @@ class FSEventStream {
         static let withDocID =       Flags(rawValue: FSEventStreamCreateFlags(kFSEventStreamCreateWithDocID))
     }
 
-    private(set) var streamRef: FSEventStreamRef?
+    let streamRef: FSEventStreamRef
     let flags: Flags
     let queue: DispatchQueue
-    let callback: (FSEventStream, [FSEvent]) -> Void
+    let callback: @Sendable (FSEventStream, [FSEvent]) -> Void
 
-    var isRunning: Bool
+    let isRunning: OSAllocatedUnfairLock<Bool>
 
-    init?(paths: [String], since: FSEventStreamEventId? = nil, latency: CFTimeInterval = 0, flags: Flags = .none, queue: DispatchQueue = .global(), callback: @escaping (FSEventStream, [FSEvent]) -> Void) {
-        self.streamRef = nil
-
+    init?(paths: [String], since: FSEventStreamEventId? = nil, latency: CFTimeInterval = 0, flags: Flags = .none, queue: DispatchQueue = .global(), callback: @escaping @Sendable (FSEventStream, [FSEvent]) -> Void) {
         var flags = flags
         flags.insert(.useCFTypes)
         if flags.contains(.withDocID) {
@@ -322,18 +321,30 @@ class FSEventStream {
         self.queue = queue
         self.callback = callback
 
-        self.isRunning = false
+        self.isRunning = OSAllocatedUnfairLock(initialState: false)
+
+        let ref = WeakRef<FSEventStream>()
 
         var context = FSEventStreamContext(
             version: 0,
-            info: Unmanaged.passUnretained(self).toOpaque(),
-            retain: nil,
-            release: nil,
+            info: Unmanaged.passUnretained(ref).toOpaque(),
+            retain: { ptr -> UnsafeRawPointer? in
+                guard let ptr else { return nil }
+                _ = Unmanaged<WeakRef<FSEventStream>>.fromOpaque(ptr).retain()
+                return ptr
+            },
+            release: { ptr in
+                guard let ptr else { return }
+                Unmanaged<WeakRef<FSEventStream>>.fromOpaque(ptr).release()
+            },
             copyDescription: nil
         )
 
         let streamCallback: FSEventStreamCallback = { streamRef, clientCallBackInfo, numEvents, eventPaths, eventFlags, eventIds in
-            let stream = Unmanaged<FSEventStream>.fromOpaque(clientCallBackInfo!).takeUnretainedValue()
+            let ref = Unmanaged<WeakRef<FSEventStream>>.fromOpaque(clientCallBackInfo!).takeUnretainedValue()
+            guard let stream = ref.value else {
+                return
+            }
 
             let paths: [String]
             let extendedData: [FSEvent.ExtendedData?]
@@ -376,37 +387,39 @@ class FSEventStream {
         FSEventStreamSetDispatchQueue(streamRef, queue)
 
         self.streamRef = streamRef
+        ref.value = self
     }
 
-    convenience init?(_ path: String, since: FSEventStreamEventId? = nil, latency: CFTimeInterval = 0, flags: consuming Flags = .none, queue: DispatchQueue = .global(), callback: @escaping (FSEventStream, [FSEvent]) -> Void) {
+    convenience init?(_ path: String, since: FSEventStreamEventId? = nil, latency: CFTimeInterval = 0, flags: consuming Flags = .none, queue: DispatchQueue = .global(), callback: @escaping @Sendable (FSEventStream, [FSEvent]) -> Void) {
         self.init(paths: [path], since: since, latency: latency, flags: flags, queue: queue, callback: callback)
     }
 
     deinit {
         stop()
 
-        guard let streamRef else {
-            return
-        }
         FSEventStreamInvalidate(streamRef)
         FSEventStreamRelease(streamRef)
     }
 
     func start() {
-        guard let streamRef, !isRunning else {
-            return
-        }
+        isRunning.withLock { isRunning in
+            if isRunning {
+                return
+            }
 
-        FSEventStreamStart(streamRef)
-        isRunning = true
+            FSEventStreamStart(streamRef)
+            isRunning = true
+        }
     }
 
     func stop() {
-        guard let streamRef, isRunning else {
-            return
-        }
+        isRunning.withLock { isRunning in
+            if !isRunning {
+                return
+            }
 
-        FSEventStreamStop(streamRef)
-        isRunning = false
+            FSEventStreamStop(streamRef)
+            isRunning = false
+        }
     }
 }
