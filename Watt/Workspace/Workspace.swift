@@ -55,26 +55,26 @@ class Workspace {
         try loadDirectory(url: root.url)
     }
 
-    func rename(_ dirent: Dirent, to name: String) throws -> Dirent {
-        let newURL = dirent.url.deletingLastPathComponent().appending(path: name, directoryHint: dirent.directoryHint)
-        try FileManager.default.moveItem(at: dirent.url, to: newURL)
-        let newDirent = try Dirent(for: newURL)
+    func replace(_ dirent: Dirent, with newDirent: Dirent) throws {
+        let oldParentURL = dirent.url.deletingLastPathComponent()
+        let newParentURL = newDirent.url.deletingLastPathComponent()
 
-        let parentURL = dirent.url.deletingLastPathComponent()
+        // TODO: transactions!
+        try root.updateDescendent(withURL: oldParentURL) { parent in
+            parent._children = parent._children?.filter { $0.id != dirent.id }
+        }
 
-        try root.updateDescendent(withURL: parentURL) { parent in
-            parent._children = parent._children?.map { child in
-                if child.id == dirent.id {
-                    return newDirent
-                } else {
-                    return child
-                }
+        try root.updateDescendent(withURL: newParentURL) { parent in
+            if parent._children == nil {
+                return
             }
 
-            parent._children?.sort()
+            let alreadyPresent = parent._children!.contains { $0.id == newDirent.id }
+            if !alreadyPresent {
+                parent._children!.append(newDirent)
+                parent._children!.sort()
+            }
         }
-        
-        return newDirent
     }
 
     func add(url: URL) throws {

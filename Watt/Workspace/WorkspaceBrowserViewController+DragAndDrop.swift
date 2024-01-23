@@ -56,16 +56,9 @@ extension WorkspaceBrowserViewController: OutlineViewDragAndDropDelegate {
                                 return try await receiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: self.fileQueue)
                             }
                         case let srcURL as URL:
-                            let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
-                            let srcIntent = NSFileAccessIntent.readingIntent(with: srcURL)
-                            let dstIntent = NSFileAccessIntent.writingIntent(with: dstURL, options: .forReplacing)
-                            let coordinator = NSFileCoordinator()
-
                             group.addTask { @MainActor in
-                                return try await coordinator.coordinate(with: [srcIntent, dstIntent], queue: self.fileQueue) {
-                                    try FileManager.default.copyItem(at: srcIntent.url, to: dstIntent.url)
-                                    return dstIntent.url
-                                }
+                                let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
+                                return try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: self.fileQueue)
                             }
                         default:
                             break

@@ -144,12 +144,21 @@ class WorkspaceBrowserViewController: NSViewController {
         guard let dirent = dirent(for: sender) else {
             return
         }
-        do {
-            let newDirent = try workspace.rename(dirent, to: sender.stringValue)
-            sender.stringValue = newDirent.name
-        } catch {
-            sender.stringValue = dirent.name
-            presentErrorAsSheetWithFallback(error)
+
+        Task {
+            do {
+                let name = sender.stringValue
+                let newURL = dirent.url.deletingLastPathComponent().appending(path: name, directoryHint: dirent.directoryHint)
+
+                let actualURL = try await FileManager.default.coordinatedMoveItem(at: dirent.url, to: newURL, operationQueue: fileQueue)
+                let newDirent = try Dirent(for: actualURL)
+                sender.stringValue = newDirent.name
+
+                try workspace.replace(dirent, with: newDirent)
+            } catch {
+                sender.stringValue = dirent.name
+                presentErrorAsSheetWithFallback(error)
+            }
         }
     }
 
