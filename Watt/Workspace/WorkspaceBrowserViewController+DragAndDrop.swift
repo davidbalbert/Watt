@@ -9,19 +9,8 @@ import Cocoa
 import UniformTypeIdentifiers
 
 extension WorkspaceBrowserViewController: OutlineViewDragAndDropDelegate {
-    typealias Element = Dirent
-
     func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForElement dirent: Dirent) -> NSPasteboardWriting? {
-        let type: UTType
-        if dirent.isDirectory {
-            type = .directory
-        } else {
-            type = UTType(filenameExtension: dirent.url.pathExtension) ?? .data
-        }
-
-        let provider = NSFilePromiseProvider(fileType: type.identifier, delegate: self)
-        provider.userInfo = dirent.url
-        return provider
+        WorkspaceFilePromiseProvider(dirent: dirent, delegate: self)
     }
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedElement element: Dirent?, proposedChildIndex index: Int) -> NSDragOperation {
@@ -79,15 +68,16 @@ extension WorkspaceBrowserViewController: OutlineViewDragAndDropDelegate {
 
 extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
     func filePromiseProvider(_ filePromiseProvider: NSFilePromiseProvider, fileNameForType fileType: String) -> String {
-        let url = url(forFilePromiseProvider: filePromiseProvider)!
-        return url.lastPathComponent
+        let provider = filePromiseProvider as! WorkspaceFilePromiseProvider
+        return provider.dirent.url.lastPathComponent
     }
     
     nonisolated func filePromiseProvider(_ filePromiseProvider: NSFilePromiseProvider, writePromiseTo destinationURL: URL, completionHandler: @escaping (Error?) -> Void) {
+        let provider = filePromiseProvider as! WorkspaceFilePromiseProvider
+
         do {
-            if let sourceURL = url(forFilePromiseProvider: filePromiseProvider) {
-                try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-            }
+            let sourceURL = provider.dirent.url
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
             completionHandler(nil)
         } catch {
             Task { @MainActor in
@@ -99,9 +89,5 @@ extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
     
     func operationQueue(for filePromiseProvider: NSFilePromiseProvider) -> OperationQueue {
         fileQueue
-    }
-
-    nonisolated func url(forFilePromiseProvider filePromiseProvider: NSFilePromiseProvider) -> URL? {
-        filePromiseProvider.userInfo as? URL
     }
 }
