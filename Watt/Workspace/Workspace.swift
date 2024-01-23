@@ -179,7 +179,6 @@ class Workspace {
     }
 
     static func fetchChildren(of url: URL) throws -> [Dirent] {
-        do {
             let urls = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: Dirent.resourceKeys, options: [])
 
             var children: [Dirent] = []
@@ -190,10 +189,6 @@ class Workspace {
             children.sort()
 
             return children
-        } catch {
-            print("error fetching children of \(url): \(error)")
-            return []
-        }
     }
 
     func updateChildren(of url: URL, to newChildren: consuming [Dirent]) throws {
