@@ -125,26 +125,29 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
-        let operations = validOperations(for: source(for: info))
+        let handlers = handlers(for: info)
+        let classes = handlers.map { $0.type }
 
         var operation: NSDragOperation = []
-        info.enumerateDraggingItems(for: outlineView, classes: operations.values.map(\.type)) { item, index, stop in
-            let ops = operations[ObjectIdentifier(type(of: item.item))]?.operations ?? []
-            for op in ops {
-                let nsop = NSDragOperation(op)
-                if info.draggingSourceOperationMask.contains(nsop) {
-                    operation = nsop
-                    stop.pointee = true
-                    break
-                }
+        info.enumerateDraggingItems(for: outlineView, classes: classes) { draggingItem, index, stop in
+            let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }
+            guard let handler else {
+                return
             }
 
+            let nsop = NSDragOperation(handler.operation)
+            if info.draggingSourceOperationMask.contains(nsop) {
+                operation = nsop
+                stop.pointee = true
+            }
         }
         return operation
     }
 
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
-        let handlers = handlers(for: source(for: info))
+        let handlers = handlers(for: info)
+        // I had this as handlers.map(\.type) but I got this error at runtime:
+        //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
         let classes = handlers.map { $0.type }
 
         var success = false // can only transition from false to true
@@ -241,10 +244,6 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    // var selfDropHandlers: [any OutlineViewDropHandler<Data>] = []
-    // var localDropHandlers: [any OutlineViewDropHandler<Data>] = []
-    // var remoteDropHandlers: [any OutlineViewDropHandler<Data>] = []
-
     func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: NSPasteboardReading {
         let handler = DropHandler(type: T.self, operation: operation, onDrop: block)
         addHandler(handler, source: source)
@@ -266,18 +265,8 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    func validOperations(for source: DragSource) -> OrderedDictionary<ObjectIdentifier, (type: NSPasteboardReading.Type, operations: [DragOperation])> {
-        var operations: OrderedDictionary<ObjectIdentifier, (type: NSPasteboardReading.Type, operations: [DragOperation])> = [:]
-
-        for handler in handlers(for: source) {
-            operations[ObjectIdentifier(handler.type), default: (handler.type, [])].operations.append(handler.operation)
-        }
-
-        return operations
-    }
-
-    func handlers(for source: DragSource) -> [any OutlineViewDropHandler<Data.Element>] {
-        switch source {
+    func handlers(for info: NSDraggingInfo) -> [any OutlineViewDropHandler<Data.Element>] {
+        switch source(for: info) {
         case .self:
             return selfDropHandlers
         case .local:
