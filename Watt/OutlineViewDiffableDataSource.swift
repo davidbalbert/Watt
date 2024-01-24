@@ -23,12 +23,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
 
-    private var selfDropHandlers: [any OutlineViewDropHandler<Data.Element>] = []
-    private var localDropHandlers: [any OutlineViewDropHandler<Data.Element>] = []
-    private var remoteDropHandlers: [any OutlineViewDropHandler<Data.Element>] = []
-
-
     private(set) var snapshot: OutlineViewSnapshot<Data>
+
+    // keys are ObjectIdentifier of the types of the NSPasteboardReading classes
+    private var selfDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
+    private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
+    private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -257,22 +257,22 @@ extension OutlineViewDiffableDataSource {
     func addHandler(_ handler: any OutlineViewDropHandler<Data.Element>, source: DragSource) {
         switch source {
         case .self:
-            selfDropHandlers.append(handler)
+            selfDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
         case .local:
-            localDropHandlers.append(handler)
+            localDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
         case .remote:
-            remoteDropHandlers.append(handler)
+            remoteDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
         }
     }
 
     func handlers(for info: NSDraggingInfo) -> [any OutlineViewDropHandler<Data.Element>] {
         switch source(for: info) {
         case .self:
-            return selfDropHandlers
+            Array(selfDropHandlers.values.joined())
         case .local:
-            return selfDropHandlers + localDropHandlers
+            Array(selfDropHandlers.values.joined()) + Array(localDropHandlers.values.joined())
         case .remote:
-            return remoteDropHandlers
+            Array(remoteDropHandlers.values.joined())
         }
     }
 
