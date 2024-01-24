@@ -101,7 +101,6 @@ class WorkspaceBrowserViewController: NSViewController {
             return OutlineViewSnapshot(workspace.children, children: \.children)
         }
 
-        dataSource.dragAndDropDelegate = self
         outlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
         outlineView.registerForDraggedTypes(
             NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) }
@@ -109,6 +108,37 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.registerForDraggedTypes([
             .fileURL
         ])
+
+        dataSource.onDrag = { dirent in
+            WorkspacePasteboardWriter(dirent: dirent, delegate: self)
+        }
+
+        let fileQueue = self.fileQueue
+        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] destination, receiver in
+            Task {
+                do {
+                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
+                    let url = try await receiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
+                    try workspace.add(url: url)
+                } catch {
+                    self?.presentErrorAsSheetWithFallback(error)
+                }
+            }
+        }
+
+        dataSource.onDrop(of: NSURL.self, operation: .copy, source: .remote) { [weak self] destination, url in
+            Task {
+                do {
+                    let srcURL = url as URL
+                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
+                    let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
+                    let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
+                    try workspace.add(url: actualURL)
+                } catch {
+                    self?.presentErrorAsSheetWithFallback(error)
+                }
+            }
+        }
 
         self.outlineView = outlineView
         self.dataSource = dataSource
@@ -244,5 +274,31 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
         }
 
         return true
+    }
+}
+
+extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
+    func filePromiseProvider(_ filePromiseProvider: NSFilePromiseProvider, fileNameForType fileType: String) -> String {
+        let provider = filePromiseProvider as! WorkspacePasteboardWriter
+        return provider.dirent.url.lastPathComponent
+    }
+
+    nonisolated func filePromiseProvider(_ filePromiseProvider: NSFilePromiseProvider, writePromiseTo destinationURL: URL, completionHandler: @escaping (Error?) -> Void) {
+        let provider = filePromiseProvider as! WorkspacePasteboardWriter
+
+        do {
+            let sourceURL = provider.dirent.url
+            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            completionHandler(nil)
+        } catch {
+            Task { @MainActor in
+                self.presentErrorAsSheetWithFallback(error)
+            }
+            completionHandler(error)
+        }
+    }
+
+    func operationQueue(for filePromiseProvider: NSFilePromiseProvider) -> OperationQueue {
+        fileQueue
     }
 }
