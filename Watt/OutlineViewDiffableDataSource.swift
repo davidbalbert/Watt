@@ -128,10 +128,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         let handlers = handlers(for: info)
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
+        let destination = DropDestination(parent: self[item], index: index)
 
         var operation: NSDragOperation = []
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }
+            let handler = handlers.first { $0.validate(for: draggingItem, operation: info.draggingSourceOperationMask, destination: destination) }
             guard let handler else {
                 return
             }
@@ -151,11 +152,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
+        let destination = DropDestination(parent: self[item], index: index)
 
         var success = false // can only transition from false to true
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }!
-            let destination = DropDestination(parent: self[item], index: index)
+            let handler = handlers.first { $0.validate(for: draggingItem, operation: info.draggingSourceOperationMask, destination: destination) }!
             handler.run(draggingItem: draggingItem, destination: destination)
             success = true
         }
@@ -185,17 +186,21 @@ protocol DropHandler<Destination> {
     var type: T.Type { get }
     var operation: DragOperation { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
-
-    func run(value: T, destination: Destination)
+    var action: (T, Destination) -> Void { get }
+    var validator: (T, Destination) -> Bool { get }
 }
 
 extension DropHandler {
-    func isValid(for draggingItem: NSDraggingItem, operation: NSDragOperation) -> Bool {
-        draggingItem.item is T && operation.contains(NSDragOperation(self.operation))
+    func validate(for draggingItem: NSDraggingItem, operation: NSDragOperation, destination: Destination) -> Bool {
+        guard let value = draggingItem.item as? T else {
+            return false
+        }
+
+        return operation.contains(NSDragOperation(self.operation)) && validator(value, destination)
     }
 
     func run(draggingItem: NSDraggingItem, destination: Destination) {
-        run(value: draggingItem.item as! T, destination: destination)
+        action(draggingItem.item as! T, destination)
     }
 }
 
@@ -224,27 +229,40 @@ extension OutlineViewDiffableDataSource {
         let type: T.Type
         let operation: DragOperation
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-        let onDrop: (T, DropDestination) -> Void
-
-        func run(value: T, destination: DropDestination) {
-            onDrop(value, destination)
-        }
+        let action: (T, DropDestination) -> Void
+        let validator: (T, DropDestination) -> Bool
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (T, DropDestination) -> Void) where T: NSPasteboardReading {
+    func onDrop<T>(
+        of type: T.Type,
+        operation: DragOperation,
+        source: DragSource,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping (T, DropDestination) -> Void,
+        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true }
+    ) where T: NSPasteboardReading {
         if type == NSURL.self, let fileURLsOnly = searchOptions[.urlReadingFileURLsOnly] as? Bool, fileURLsOnly == true {
             outlineView.registerForDraggedTypes([.fileURL])
         } else {
             outlineView.registerForDraggedTypes(type.readableTypes(for: NSPasteboard(name: .drag)))
         }
 
-        let handler = OutlineViewDropHandler(type: T.self, operation: operation, searchOptions: searchOptions, onDrop: block)
+        let handler = OutlineViewDropHandler(type: T.self, operation: operation, searchOptions: searchOptions, action: action, validator: validator)
         addHandler(handler, source: source)
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (T, DropDestination) -> Void) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+    func onDrop<T>(
+        of type: T.Type,
+        operation: DragOperation,
+        source: DragSource,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
+        action: @escaping (T, DropDestination) -> Void,
+        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true }
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDrop(of: T.ReferenceType.self, operation: operation, source: source, searchOptions: searchOptions) { value, destination in
-            block(value as! T, destination)
+            action(value as! T, destination)
+        } validator: { value, destination in
+            validator(value as! T, destination)
         }
     }
 

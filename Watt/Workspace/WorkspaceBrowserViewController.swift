@@ -119,6 +119,8 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
             }
+        } validator: { _, destination in
+            destination.index != NSOutlineViewDropOnItemIndex
         }
 
         dataSource.onDrop(of: URL.self, operation: .copy, source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] url, destination in
@@ -133,6 +135,8 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
             }
+        } validator: { _, destination in
+            destination.index != NSOutlineViewDropOnItemIndex
         }
 
         self.outlineView = outlineView
