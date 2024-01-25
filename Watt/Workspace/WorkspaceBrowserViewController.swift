@@ -109,11 +109,11 @@ class WorkspaceBrowserViewController: NSViewController {
         }
 
         let fileQueue = self.fileQueue
-        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] destination, receiver in
+        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination in
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    let url = try await receiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
+                    let url = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
                     try workspace.add(url: url)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
@@ -121,7 +121,7 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         }
 
-        dataSource.onDrop(of: URL.self, operation: .copy, source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] destination, url in
+        dataSource.onDrop(of: URL.self, operation: .copy, source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] url, destination in
             Task {
                 do {
                     let srcURL = url

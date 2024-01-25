@@ -26,9 +26,9 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     private(set) var snapshot: OutlineViewSnapshot<Data>
 
     // keys are ObjectIdentifier of the types of the NSPasteboardReading classes
-    private var selfDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
-    private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
-    private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [any OutlineViewDropHandler<Data.Element>]> = [:]
+    private var selfDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
+    private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
+    private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -155,8 +155,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         var success = false // can only transition from false to true
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }!
-            let destination = OutlineViewDropDestination(parent: self[item], index: index)
-            handler.performOnDrop(destination: destination, draggingItem: draggingItem)
+            let destination = DropDestination(parent: self[item], index: index)
+            handler.run(draggingItem: draggingItem, destination: destination)
             success = true
         }
         return success
@@ -178,24 +178,24 @@ extension NSDragOperation {
     }
 }
 
-protocol OutlineViewDropHandler<Element> {
-    associatedtype Element: Identifiable
+protocol DropHandler<Destination> {
     associatedtype T: NSPasteboardReading
+    associatedtype Destination
 
     var type: T.Type { get }
     var operation: DragOperation { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
 
-    func performOnDrop(destination: OutlineViewDropDestination<Element>, value: T)
+    func run(value: T, destination: Destination)
 }
 
-extension OutlineViewDropHandler {
-    func isValid(for item: NSDraggingItem, operation: NSDragOperation) -> Bool {
-        item.item is T && operation.contains(NSDragOperation(self.operation))
+extension DropHandler {
+    func isValid(for draggingItem: NSDraggingItem, operation: NSDragOperation) -> Bool {
+        draggingItem.item is T && operation.contains(NSDragOperation(self.operation))
     }
 
-    func performOnDrop(destination: OutlineViewDropDestination<Element>, draggingItem: NSDraggingItem) {
-        performOnDrop(destination: destination, value: draggingItem.item as! T)
+    func run(draggingItem: NSDraggingItem, destination: Destination) {
+        run(value: draggingItem.item as! T, destination: destination)
     }
 }
 
@@ -214,41 +214,41 @@ enum DragOperation: Hashable {
     case delete
 }
 
-struct OutlineViewDropDestination<Element> where Element: Identifiable {
-    let parent: Element?
-    let index: Int
-}
-
 extension OutlineViewDiffableDataSource {
-    struct DropHandler<T>: OutlineViewDropHandler where T: NSPasteboardReading {
+    struct DropDestination {
+        let parent: Data.Element?
+        let index: Int
+    }
+
+    struct OutlineViewDropHandler<T>: DropHandler where T: NSPasteboardReading {
         let type: T.Type
         let operation: DragOperation
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-        let onDrop: (OutlineViewDropDestination<Data.Element>, T) -> Void
+        let onDrop: (T, DropDestination) -> Void
 
-        func performOnDrop(destination: OutlineViewDropDestination<Data.Element>, value: T) {
-            onDrop(destination, value)
+        func run(value: T, destination: DropDestination) {
+            onDrop(value, destination)
         }
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: NSPasteboardReading {
+    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (T, DropDestination) -> Void) where T: NSPasteboardReading {
         if type == NSURL.self, let fileURLsOnly = searchOptions[.urlReadingFileURLsOnly] as? Bool, fileURLsOnly == true {
             outlineView.registerForDraggedTypes([.fileURL])
         } else {
             outlineView.registerForDraggedTypes(type.readableTypes(for: NSPasteboard(name: .drag)))
         }
 
-        let handler = DropHandler(type: T.self, operation: operation, searchOptions: searchOptions, onDrop: block)
+        let handler = OutlineViewDropHandler(type: T.self, operation: operation, searchOptions: searchOptions, onDrop: block)
         addHandler(handler, source: source)
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDrop(of: T.ReferenceType.self, operation: operation, source: source, searchOptions: searchOptions) { destination, value in
-            block(destination, value as! T)
+    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (T, DropDestination) -> Void) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDrop(of: T.ReferenceType.self, operation: operation, source: source, searchOptions: searchOptions) { value, destination in
+            block(value as! T, destination)
         }
     }
 
-    func addHandler(_ handler: any OutlineViewDropHandler<Data.Element>, source: DragSource) {
+    func addHandler(_ handler: any DropHandler<DropDestination>, source: DragSource) {
         switch source {
         case .self:
             selfDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
@@ -259,7 +259,7 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    func handlers(for info: NSDraggingInfo) -> [any OutlineViewDropHandler<Data.Element>] {
+    func handlers(for info: NSDraggingInfo) -> [any DropHandler<DropDestination>] {
         switch source(for: info) {
         case .self:
             Array(selfDropHandlers.values.joined())
