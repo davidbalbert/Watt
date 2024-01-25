@@ -127,9 +127,10 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
         let handlers = handlers(for: info)
         let classes = handlers.map { $0.type }
+        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
         var operation: NSDragOperation = []
-        info.enumerateDraggingItems(for: outlineView, classes: classes) { draggingItem, index, stop in
+        info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }
             guard let handler else {
                 return
@@ -149,9 +150,10 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         // I had this as handlers.map(\.type) but I got this error at runtime:
         //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
         let classes = handlers.map { $0.type }
+        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
         var success = false // can only transition from false to true
-        info.enumerateDraggingItems(for: outlineView, classes: classes) { draggingItem, index, stop in
+        info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.isValid(for: draggingItem, operation: info.draggingSourceOperationMask ) }!
             let destination = OutlineViewDropDestination(parent: self[item], index: index)
             handler.performOnDrop(destination: destination, draggingItem: draggingItem)
@@ -162,12 +164,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 }
 
 // MARK: - Drag and Drop
-
-protocol CustomReferenceConvertible {
-    associatedtype ReferenceType: AnyObject
-    init(_ reference: ReferenceType)
-    var reference: ReferenceType { get }
-}
 
 extension NSDragOperation {
     init(_ operation: DragOperation) {
@@ -188,6 +184,7 @@ protocol OutlineViewDropHandler<Element> {
 
     var type: Reader.Type { get }
     var operation: DragOperation { get }
+    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
 
     func performOnDrop(destination: OutlineViewDropDestination<Element>, reader: Reader)
 }
@@ -226,6 +223,7 @@ extension OutlineViewDiffableDataSource {
     struct DropHandler<Reader>: OutlineViewDropHandler where Reader: NSPasteboardReading {
         let type: Reader.Type
         let operation: DragOperation
+        let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
         let onDrop: (OutlineViewDropDestination<Data.Element>, Reader) -> Void
 
         func performOnDrop(destination: OutlineViewDropDestination<Data.Element>, reader: Reader) {
@@ -233,24 +231,37 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    struct ReferenceConvertibleDropHandler<T>: OutlineViewDropHandler where T: CustomReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+    struct ReferenceConvertibleDropHandler<T>: OutlineViewDropHandler where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         typealias Reader = T.ReferenceType
         let type: Reader.Type
         let operation: DragOperation
+        let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
         let onDrop: (OutlineViewDropDestination<Data.Element>, T) -> Void
 
         func performOnDrop(destination: OutlineViewDropDestination<Data.Element>, reader: Reader) {
-            onDrop(destination, T(reader))
+            onDrop(destination, reader as! T)
         }
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: NSPasteboardReading {
-        let handler = DropHandler(type: T.self, operation: operation, onDrop: block)
+    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: NSPasteboardReading {
+        if type == NSURL.self, let fileURLsOnly = searchOptions[.urlReadingFileURLsOnly] as? Bool, fileURLsOnly == true {
+            outlineView.registerForDraggedTypes([.fileURL])
+        } else {
+            outlineView.registerForDraggedTypes(type.readableTypes(for: NSPasteboard(name: .drag)))
+        }
+
+        let handler = DropHandler(type: T.self, operation: operation, searchOptions: searchOptions, onDrop: block)
         addHandler(handler, source: source)
     }
 
-    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: CustomReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        let handler = ReferenceConvertibleDropHandler(type: T.ReferenceType.self, operation: operation, onDrop: block)
+    func onDrop<T>(of type: T.Type, operation: DragOperation, source: DragSource, searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], perform block: @escaping (OutlineViewDropDestination<Data.Element>, T) -> Void) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        if T.ReferenceType.self == NSURL.self, let fileURLsOnly = searchOptions[.urlReadingFileURLsOnly] as? Bool, fileURLsOnly == true {
+            outlineView.registerForDraggedTypes([.fileURL])
+        } else {
+            outlineView.registerForDraggedTypes(T.ReferenceType.readableTypes(for: NSPasteboard(name: .drag)))
+        }
+
+        let handler = ReferenceConvertibleDropHandler(type: T.ReferenceType.self, operation: operation, searchOptions: searchOptions, onDrop: block)
         addHandler(handler, source: source)
     }
 

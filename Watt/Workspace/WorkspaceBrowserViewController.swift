@@ -102,12 +102,7 @@ class WorkspaceBrowserViewController: NSViewController {
         }
 
         outlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
-        outlineView.registerForDraggedTypes(
-            NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) }
-        )
-        outlineView.registerForDraggedTypes([
-            .fileURL
-        ])
+        outlineView.setDraggingSourceOperationMask(.move, forLocal: true)
 
         dataSource.onDrag = { dirent in
             WorkspacePasteboardWriter(dirent: dirent, delegate: self)
@@ -126,10 +121,10 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         }
 
-        dataSource.onDrop(of: NSURL.self, operation: .copy, source: .remote) { [weak self] destination, url in
+        dataSource.onDrop(of: URL.self, operation: .copy, source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] destination, url in
             Task {
                 do {
-                    let srcURL = url as URL
+                    let srcURL = url
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
                     let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
                     let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
