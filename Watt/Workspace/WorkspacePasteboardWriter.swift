@@ -8,10 +8,6 @@
 import Cocoa
 import UniformTypeIdentifiers
 
-extension NSPasteboard.PasteboardType {
-    static let dirent = NSPasteboard.PasteboardType("is.dave.Watt.Dirent")
-}
-
 // Having to subclass this is annoying. I had a ComposedPasteboardWriter where you could do
 // ComposedPastboardWriter(writers: [filePromiseProvider, url as NSURL]), which seemed to work,
 // however when using it, the drag pasteboard was missing the dyn.* types ("Apple files promise
@@ -55,6 +51,8 @@ class WorkspacePasteboardWriter: NSFilePromiseProvider {
         switch type {
         case .fileURL:
             (dirent.url as NSURL).writingOptions(forType: type, pasteboard: pasteboard)
+        case .dirent:
+            []
         default:
             super.writingOptions(forType: type, pasteboard: pasteboard)
         }

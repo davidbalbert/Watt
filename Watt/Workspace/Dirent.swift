@@ -68,14 +68,14 @@ struct Dirent: Identifiable {
         isDirectory ? .isDirectory : .notDirectory
     }
 
-    init(id: FileID, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool) {
+    init(id: FileID, url: URL, isDirectory: Bool, isPackage: Bool, isHidden: Bool, children: [Dirent]? = nil) {
         self.id = id
         self.url = url
         self.isDirectory = isDirectory
         self.isPackage = isPackage
         self.isHidden = isHidden
         self.icon = NSWorkspace.shared.icon(forFile: url.path)
-        self._children = nil
+        self._children = children
     }
 
     init(for url: URL) throws {
@@ -92,6 +92,17 @@ struct Dirent: Identifiable {
             isDirectory: isDirectory,
             isPackage: isPackage,
             isHidden: isHidden
+        )
+    }
+
+    init(moving old: Dirent, to newURL: URL) {
+        self.init(
+            id: old.id,
+            url: newURL,
+            isDirectory: old.isDirectory,
+            isPackage: old.isPackage,
+            isHidden: old.isHidden,
+            children: old._children?.map { Dirent(moving: $0, to: newURL.appendingPathComponent($0.nameWithExtension)) }
         )
     }
 
@@ -143,3 +154,40 @@ extension Dirent: Comparable {
     }
 }
 
+extension NSPasteboard.PasteboardType {
+    static let dirent = NSPasteboard.PasteboardType("is.dave.Watt.ReferenceDirent")
+}
+
+class ReferenceDirent: NSObject {
+    let url: URL
+
+    init(_ dirent: Dirent) {
+        self.url = dirent.url
+    }
+
+    required init?(pasteboardPropertyList propertyList: Any, ofType type: NSPasteboard.PasteboardType) {
+        guard let data = propertyList as? Data, let string = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        guard let url = URL(string: string) else {
+            return nil
+        }
+
+        self.url = url
+    }
+}
+
+extension ReferenceDirent: NSPasteboardReading, NSPasteboardWriting {
+    static func readableTypes(for pasteboard: NSPasteboard) -> [NSPasteboard.PasteboardType] {
+        [.dirent]
+    }
+
+    func writableTypes(for pasteboard: NSPasteboard) -> [NSPasteboard.PasteboardType] {
+        [.dirent]
+    }
+
+    func pasteboardPropertyList(forType type: NSPasteboard.PasteboardType) -> Any? {
+        Data(url.absoluteString.utf8)
+    }
+}

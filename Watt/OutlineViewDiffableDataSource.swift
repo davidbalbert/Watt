@@ -259,10 +259,10 @@ extension OutlineViewDiffableDataSource {
         action: @escaping (T, DropDestination) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true }
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDrop(of: T.ReferenceType.self, operation: operation, source: source, searchOptions: searchOptions) { value, destination in
-            action(value as! T, destination)
-        } validator: { value, destination in
-            validator(value as! T, destination)
+        onDrop(of: T.ReferenceType.self, operation: operation, source: source, searchOptions: searchOptions) { reference, destination in
+            action(reference as! T, destination)
+        } validator: { reference, destination in
+            validator(reference as! T, destination)
         }
     }
 

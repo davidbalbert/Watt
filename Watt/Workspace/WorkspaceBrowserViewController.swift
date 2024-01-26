@@ -139,6 +139,22 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
+        dataSource.onDrop(of: ReferenceDirent.self, operation: .move, source: .self) { [weak self] ref, destination in
+            Task {
+                do {
+                    let srcURL = ref.url
+                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
+                    let dstURL = targetDirectoryURL.appending(path: srcURL.lastPathComponent)
+                    let actualURL = try await FileManager.default.coordinatedMoveItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
+                    try workspace.move(direntFrom: srcURL, to: actualURL)
+                } catch {
+                    self?.presentErrorAsSheetWithFallback(error)
+                }
+            }
+        } validator: { _, destination in
+            destination.index != NSOutlineViewDropOnItemIndex
+        }
+
         self.outlineView = outlineView
         self.dataSource = dataSource
 

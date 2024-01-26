@@ -77,6 +77,32 @@ class Workspace {
         }
     }
 
+    func move(direntFrom oldURL: URL, to newURL: URL) throws {
+        let oldParentURL = oldURL.deletingLastPathComponent()
+        let newParentURL = newURL.deletingLastPathComponent()
+
+        // TODO: transactions!
+        var dirent: Dirent?
+        try root.updateDescendent(withURL: oldParentURL) { parent in
+            let i = parent._children!.firstIndex { $0.url == oldURL }
+            dirent = parent._children!.remove(at: i!)
+        }
+
+        let newDirent = Dirent(moving: dirent!, to: newURL)
+
+        try root.updateDescendent(withURL: newParentURL) { parent in
+            if parent._children == nil {
+                return
+            }
+
+            let alreadyPresent = parent._children!.contains { $0.id == newDirent.id }
+            precondition(!alreadyPresent, "Attempted to move \(oldURL) to \(newURL), but \(newURL) already exists")
+
+            parent._children!.append(newDirent)
+            parent._children!.sort()
+        }
+    }
+
     func add(url: URL) throws {
         let dirent = try Dirent(for: url)
 
