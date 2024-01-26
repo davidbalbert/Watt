@@ -55,29 +55,8 @@ class Workspace {
         try loadDirectory(url: root.url)
     }
 
-    func replace(_ dirent: Dirent, with newDirent: Dirent) throws {
-        let oldParentURL = dirent.url.deletingLastPathComponent()
-        let newParentURL = newDirent.url.deletingLastPathComponent()
-
-        // TODO: transactions!
-        try root.updateDescendent(withURL: oldParentURL) { parent in
-            parent._children = parent._children?.filter { $0.id != dirent.id }
-        }
-
-        try root.updateDescendent(withURL: newParentURL) { parent in
-            if parent._children == nil {
-                return
-            }
-
-            let alreadyPresent = parent._children!.contains { $0.id == newDirent.id }
-            if !alreadyPresent {
-                parent._children!.append(newDirent)
-                parent._children!.sort()
-            }
-        }
-    }
-
-    func move(direntFrom oldURL: URL, to newURL: URL) throws {
+    @discardableResult
+    func move(direntFrom oldURL: URL, to newURL: URL) throws -> Dirent {
         let oldParentURL = oldURL.deletingLastPathComponent()
         let newParentURL = newURL.deletingLastPathComponent()
 
@@ -101,6 +80,8 @@ class Workspace {
             parent._children!.append(newDirent)
             parent._children!.sort()
         }
+
+        return newDirent
     }
 
     func add(url: URL) throws {

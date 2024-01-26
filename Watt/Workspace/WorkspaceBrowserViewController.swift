@@ -142,11 +142,10 @@ class WorkspaceBrowserViewController: NSViewController {
         dataSource.onDrop(of: ReferenceDirent.self, operation: .move, source: .self) { [weak self] ref, destination in
             Task {
                 do {
-                    let srcURL = ref.url
-                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    let dstURL = targetDirectoryURL.appending(path: srcURL.lastPathComponent)
-                    let actualURL = try await FileManager.default.coordinatedMoveItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
-                    try workspace.move(direntFrom: srcURL, to: actualURL)
+                    let oldURL = ref.url
+                    let newURL = (destination.parent ?? workspace.root).url.appending(path: oldURL.lastPathComponent)
+                    let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
+                    try workspace.move(direntFrom: oldURL, to: actualURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -192,14 +191,11 @@ class WorkspaceBrowserViewController: NSViewController {
 
         Task {
             do {
-                let name = sender.stringValue
-                let newURL = dirent.url.deletingLastPathComponent().appending(path: name, directoryHint: dirent.directoryHint)
-
-                let actualURL = try await FileManager.default.coordinatedMoveItem(at: dirent.url, to: newURL, operationQueue: fileQueue)
-                let newDirent = try Dirent(for: actualURL)
+                let oldURL = dirent.url
+                let newURL = dirent.url.deletingLastPathComponent().appending(path: sender.stringValue, directoryHint: dirent.directoryHint)
+                let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
+                let newDirent = try workspace.move(direntFrom: oldURL, to: actualURL)
                 sender.stringValue = newDirent.name
-
-                try workspace.replace(dirent, with: newDirent)
             } catch {
                 sender.stringValue = dirent.name
                 presentErrorAsSheetWithFallback(error)
