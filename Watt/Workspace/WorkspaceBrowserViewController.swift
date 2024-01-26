@@ -113,8 +113,11 @@ class WorkspaceBrowserViewController: NSViewController {
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    let url = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
-                    try workspace.add(url: url)
+                    let urls = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
+                    for url in urls {
+                        // TODO: transaction
+                        try workspace.add(url: url)
+                    }
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
