@@ -260,6 +260,11 @@ extension OutlineViewDiffableDataSource {
     // The first DragOperation you specify for a given handler is the one reported to the outline
     // view. I.e. if operations is [.move, .generic], .move will be reported to the outline view
     // so that it can show the correct cursor.
+    //
+    // If we're receiving a drop from .self (source and destination are our NSOutlineView), both
+    // .self and .local handlers will be considered with all .self handlers considered before any
+    // .local handlers. If we're receiving the drop from some other view in our app (.local), only
+    // .local handlers will be considered.
     func onDrop<T>(
         of type: T.Type,
         operations: [DragOperation],
@@ -333,9 +338,9 @@ extension OutlineViewDiffableDataSource {
     func handlers(for info: NSDraggingInfo) -> [any DropHandler<DropDestination>] {
         switch source(for: info) {
         case .self:
-            Array(selfDropHandlers.values.joined())
-        case .local:
             Array(selfDropHandlers.values.joined()) + Array(localDropHandlers.values.joined())
+        case .local:
+            Array(localDropHandlers.values.joined())
         case .remote:
             Array(remoteDropHandlers.values.joined())
         }
