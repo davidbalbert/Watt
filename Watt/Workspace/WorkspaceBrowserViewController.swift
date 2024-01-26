@@ -101,8 +101,8 @@ class WorkspaceBrowserViewController: NSViewController {
             return OutlineViewSnapshot(workspace.children, children: \.children)
         }
 
+        outlineView.setDraggingSourceOperationMask([.move, .copy, .generic], forLocal: true)
         outlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
-        outlineView.setDraggingSourceOperationMask(.move, forLocal: true)
 
         dataSource.onDrag = { dirent in
             WorkspacePasteboardWriter(dirent: dirent, delegate: self)
@@ -139,13 +139,28 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        dataSource.onDrop(of: ReferenceDirent.self, operation: .move, source: .self) { [weak self] ref, destination in
+        dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] ref, destination in
             Task {
                 do {
                     let oldURL = ref.url
                     let newURL = (destination.parent ?? workspace.root).url.appending(path: oldURL.lastPathComponent)
                     let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
                     try workspace.move(direntFrom: oldURL, to: actualURL)
+                } catch {
+                    self?.presentErrorAsSheetWithFallback(error)
+                }
+            }
+        } validator: { _, destination in
+            destination.index != NSOutlineViewDropOnItemIndex
+        }
+
+        dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] ref, destination in
+            Task {
+                do {
+                    let srcURL = ref.url
+                    let dstURL = (destination.parent ?? workspace.root).url.appending(path: srcURL.lastPathComponent)
+                    let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
+                    try workspace.add(url: actualURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
