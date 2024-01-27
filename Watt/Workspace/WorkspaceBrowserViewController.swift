@@ -26,7 +26,50 @@ class WorkspaceBrowserViewController: NSViewController {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    func makeTableCellView(for column: NSTableColumn, isEditable: Bool) -> NSTableCellView {
+        let view: NSTableCellView
+        if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
+            view = v
+        } else {
+            view = NSTableCellView()
+            view.identifier = column.identifier
+
+            let imageView = NSImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+
+            let textField = WorkspaceTextField(labelWithString: "")
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            textField.isEditable = isEditable
+            textField.focusRingType = .none
+            textField.lineBreakMode = .byTruncatingMiddle
+            textField.cell?.sendsActionOnEndEditing = true
+
+            textField.delegate = self
+
+            textField.target = self
+            textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
+
+            view.addSubview(imageView)
+            view.addSubview(textField)
+            view.imageView = imageView
+            view.textField = textField
+
+            NSLayoutConstraint.activate([
+                imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
+                imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 16),
+                imageView.heightAnchor.constraint(equalToConstant: 16),
+
+                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
+                textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
+                textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            ])
+        }
+        
+        return view
+    }
+
     override func loadView() {
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
@@ -42,45 +85,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 return NSView()
             }
 
-            let view: NSTableCellView
-            if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
-                view = v
-            } else {
-                view = NSTableCellView()
-                view.identifier = column.identifier
-
-                let imageView = NSImageView()
-                imageView.translatesAutoresizingMaskIntoConstraints = false
-
-                let textField = WorkspaceTextField(labelWithString: "")
-                textField.translatesAutoresizingMaskIntoConstraints = false
-                textField.isEditable = true
-                textField.focusRingType = .none
-                textField.lineBreakMode = .byTruncatingMiddle
-                textField.cell?.sendsActionOnEndEditing = true
-
-                textField.delegate = self
-
-                textField.target = self
-                textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
-
-                view.addSubview(imageView)
-                view.addSubview(textField)
-                view.imageView = imageView
-                view.textField = textField
-
-                NSLayoutConstraint.activate([
-                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
-                    imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: 16),
-                    imageView.heightAnchor.constraint(equalToConstant: 16),
-
-                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
-                    textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
-                    textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                ])
-            }
-
+            let view = makeTableCellView(for: column, isEditable: true)
             view.imageView!.image = dirent.icon
             view.textField!.stringValue = dirent.name
 
@@ -140,50 +145,13 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         } validator: { _, destination in
             destination.index != NSOutlineViewDropOnItemIndex
-        } preview: { url in
-            guard let dirent = try? Dirent(for: url) else {
+        } preview: { [weak self] url in
+            guard let self, let dirent = try? Dirent(for: url) else {
                 return nil
             }
 
-            // TODO: this is duplicated with the cell provider. Maybe dedup?
-            let view: NSTableCellView
-            if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
-                view = v
-            } else {
-                view = NSTableCellView()
-
-                let imageView = NSImageView()
-                imageView.translatesAutoresizingMaskIntoConstraints = false
-
-                let textField = WorkspaceTextField(labelWithString: "")
-                textField.translatesAutoresizingMaskIntoConstraints = false
-                textField.isEditable = false
-                textField.focusRingType = .none
-                textField.lineBreakMode = .byTruncatingMiddle
-                textField.cell?.sendsActionOnEndEditing = true
-
-                textField.delegate = self
-
-                textField.target = self
-                textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
-
-                view.addSubview(imageView)
-                view.addSubview(textField)
-                view.imageView = imageView
-                view.textField = textField
-
-                NSLayoutConstraint.activate([
-                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
-                    imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    imageView.widthAnchor.constraint(equalToConstant: 16),
-                    imageView.heightAnchor.constraint(equalToConstant: 16),
-
-                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
-                    textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
-                    textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                ])
-            }
-
+            // drag previews don't show text unless they're not editable
+            let view = makeTableCellView(for: column, isEditable: false)
             view.imageView!.image = dirent.icon
             view.textField!.stringValue = dirent.name
 
