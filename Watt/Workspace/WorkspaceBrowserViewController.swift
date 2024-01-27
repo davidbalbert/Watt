@@ -140,6 +140,52 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         } validator: { _, destination in
             destination.index != NSOutlineViewDropOnItemIndex
+        } preview: { url in
+            guard let dirent = try? Dirent(for: url) else {
+                return nil
+            }
+
+            // TODO: this is duplicated with the cell provider. Maybe dedup?
+            let view: NSTableCellView
+            if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
+                view = v
+            } else {
+                view = NSTableCellView()
+
+                let imageView = NSImageView()
+                imageView.translatesAutoresizingMaskIntoConstraints = false
+
+                let textField = WorkspaceTextField(labelWithString: "")
+                textField.translatesAutoresizingMaskIntoConstraints = false
+                textField.isEditable = false
+                textField.lineBreakMode = .byTruncatingMiddle
+
+                view.addSubview(imageView)
+                view.addSubview(textField)
+                view.imageView = imageView
+                view.textField = textField
+
+                NSLayoutConstraint.activate([
+                    imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
+                    imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                    imageView.widthAnchor.constraint(equalToConstant: 16),
+                    imageView.heightAnchor.constraint(equalToConstant: 16),
+
+                    textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
+                    textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
+                    textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                ])
+            }
+
+            view.imageView!.image = dirent.icon
+            view.textField!.stringValue = dirent.name
+
+            view.frame.size = NSSize(width: view.fittingSize.width, height: outlineView.rowHeight)
+            view.layoutSubtreeIfNeeded()
+
+            return DragPreview(frame: view.frame) {
+                return view.draggingImageComponents
+            }
         }
 
         dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] ref, destination in

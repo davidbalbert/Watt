@@ -219,7 +219,7 @@ protocol DropHandler<Destination> {
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
     var action: (T, Destination) -> Void { get }
     var validator: (T, Destination) -> Bool { get }
-    var preview: ((T) -> DragPreview)? { get }
+    var preview: ((T) -> DragPreview?)? { get }
 }
 
 extension DropHandler {
@@ -278,7 +278,7 @@ extension OutlineViewDiffableDataSource {
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
         let action: (T, DropDestination) -> Void
         let validator: (T, DropDestination) -> Bool
-        let preview: ((T) -> DragPreview)?
+        let preview: ((T) -> DragPreview?)?
     }
 
     // Register a handler for dropping an object of a given type onto the outline view.
@@ -313,7 +313,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping (T, DropDestination) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview)? = nil
+        preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         precondition(!operations.isEmpty, "Must specify at least one operation")
 
@@ -335,7 +335,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping (T, DropDestination) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview)? = nil
+        preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
     }
@@ -348,9 +348,9 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
         action: @escaping (T, DropDestination) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview)? = nil
+        preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        var wrappedPreview: ((T.ReferenceType) -> DragPreview)?
+        var wrappedPreview: ((T.ReferenceType) -> DragPreview?)?
         if let preview {
             wrappedPreview = { reference in
                 preview(reference as! T)
@@ -371,7 +371,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
         action: @escaping (T, DropDestination) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview)? = nil
+        preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
     }
