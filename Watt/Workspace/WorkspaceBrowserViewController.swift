@@ -158,7 +158,14 @@ class WorkspaceBrowserViewController: NSViewController {
                 let textField = WorkspaceTextField(labelWithString: "")
                 textField.translatesAutoresizingMaskIntoConstraints = false
                 textField.isEditable = false
+                textField.focusRingType = .none
                 textField.lineBreakMode = .byTruncatingMiddle
+                textField.cell?.sendsActionOnEndEditing = true
+
+                textField.delegate = self
+
+                textField.target = self
+                textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
 
                 view.addSubview(imageView)
                 view.addSubview(textField)
