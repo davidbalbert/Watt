@@ -5,8 +5,8 @@
 //  Created by David Albert on 1/5/24.
 //
 
-import Foundation
 import Cocoa
+import System
 
 protocol WorkspaceDelegate: AnyObject {
     func workspaceDidChange(_ workspace: Workspace)
@@ -16,6 +16,7 @@ protocol WorkspaceDelegate: AnyObject {
 class Workspace {
     enum Errors: Error {
         case rootIsNotFolder
+        case isNotInWorkspace(URL)
     }
 
     private(set) var root: Dirent
@@ -34,7 +35,14 @@ class Workspace {
     private var loaded: Set<URL> = []
     private var index: [Dirent.ID: Dirent]
 
-    var showHiddenFilesObservation: NSKeyValueObservation?
+    private var showHiddenFilesObservation: NSKeyValueObservation?
+
+    let fileQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "Workspace File Queue"
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
 
     init(url: URL) throws {
         let dirent = try Dirent(for: url)
@@ -55,36 +63,85 @@ class Workspace {
         try loadDirectory(url: root.url)
     }
 
-    @discardableResult
-    func move(direntFrom oldURL: URL, to newURL: URL) throws -> Dirent {
-        let oldParentURL = oldURL.deletingLastPathComponent()
-        let newParentURL = newURL.deletingLastPathComponent()
-
-        // TODO: transactions!
-        var dirent: Dirent?
-        try root.updateDescendent(withURL: oldParentURL) { parent in
-            let i = parent._children!.firstIndex { $0.url == oldURL }
-            dirent = parent._children!.remove(at: i!)
-        }
-
-        let newDirent = Dirent(moving: dirent!, to: newURL)
-
-        try root.updateDescendent(withURL: newParentURL) { parent in
-            if parent._children == nil {
-                return
-            }
-
-            let alreadyPresent = parent._children!.contains { $0.id == newDirent.id }
-            precondition(!alreadyPresent, "Attempted to move \(oldURL) to \(newURL), but \(newURL) already exists")
-
-            parent._children!.append(newDirent)
-            parent._children!.sort()
-        }
-
-        return newDirent
+    private func delegateWorkspaceDidChange() {
+        delegate?.workspaceDidChange(self)
     }
 
-    func add(url: URL) throws {
+    // Doesn't care whether oldURL and newURL are present in the workspace. Returns the new dirent if it's present.
+    @discardableResult
+    func move(fileAt oldURL: URL, to newURL: URL, notifyDelegate: Bool = true) async throws -> Dirent? {
+        let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
+
+        let oldParentURL = oldURL.deletingLastPathComponent()
+        let actualParentURL = actualURL.deletingLastPathComponent()
+
+        // TODO: we need to handle the case where root moves
+        let newDirent: Dirent
+        if root.hasDescendent(at: oldURL) && root.url != oldURL {
+            var oldDirent: Dirent?
+            try root.updateDescendent(withURL: oldParentURL) { parent in
+                let i = parent._children!.firstIndex { $0.url == oldURL }
+                oldDirent = parent._children!.remove(at: i!)
+            }
+            newDirent = Dirent(moving: oldDirent!, to: actualURL)
+        } else {
+            newDirent = try Dirent(for: actualURL)
+        }
+
+        var didAdd = false
+        if root.hasDescendent(at: actualParentURL) {
+            try root.updateDescendent(withURL: actualParentURL) { parent in
+                if parent._children == nil {
+                    return
+                }
+
+                parent._children!.append(newDirent)
+                parent._children!.sort()
+            }
+            didAdd = true
+        }
+
+        if notifyDelegate {
+            delegateWorkspaceDidChange()
+        }
+        return didAdd ? newDirent : nil
+    }
+
+    // Used for drag and drop from other apps. Throws if dstURL isn't in the workspace or
+    // isn't loaded.
+    func copy(fileAt srcURL: URL, intoWorkspaceAt dstURL: URL) async throws {
+        let rootPath = FilePath(root.url.path)
+        let dstPath = FilePath(dstURL.path)
+
+        if dstPath == rootPath || !dstPath.starts(with: rootPath) {
+            throw Errors.isNotInWorkspace(dstURL)
+        }
+
+        let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)    
+        try add(direntFor: actualURL)
+
+        delegateWorkspaceDidChange()
+    }
+
+    // Used for drag and drop from other apps. Throws if targetDirectoryURL isn't in the workspace
+    // or isn't loaded.
+    func receive(filesFrom filePromiseReceiver: NSFilePromiseReceiver, atDestination targetDirectoryURL: URL) async throws {
+        let rootPath = FilePath(root.url.path)
+        let dstPath = FilePath(targetDirectoryURL.path)
+
+        if dstPath == rootPath || !dstPath.starts(with: rootPath) {
+            throw Errors.isNotInWorkspace(targetDirectoryURL)
+        }
+
+        let urls = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
+        for url in urls {
+            try add(direntFor: url)
+        }
+
+        delegateWorkspaceDidChange()
+    }
+
+    private func add(direntFor url: URL) throws {
         let dirent = try Dirent(for: url)
 
         let parentURL = url.deletingLastPathComponent()
@@ -193,7 +250,7 @@ class Workspace {
                 }
             }
 
-            delegate?.workspaceDidChange(self)
+            delegateWorkspaceDidChange()
         }
     }
 

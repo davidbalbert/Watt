@@ -15,7 +15,12 @@ class WorkspaceBrowserViewController: NSViewController {
 
     var task: Task<(), Never>?
 
-    let fileQueue: OperationQueue = OperationQueue()
+    let filePromiseQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "NSFilePromiseProvider queue"
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
 
     init(workspace: Workspace) {
         self.workspace = workspace
@@ -113,16 +118,11 @@ class WorkspaceBrowserViewController: NSViewController {
             WorkspacePasteboardWriter(dirent: dirent, delegate: self)
         }
 
-        let fileQueue = self.fileQueue
         dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination in
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    let urls = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
-                    for url in urls {
-                        // TODO: transaction
-                        try workspace.add(url: url)
-                    }
+                    try await workspace.receive(filesFrom: filePromiseReceiver, atDestination: targetDirectoryURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -137,8 +137,7 @@ class WorkspaceBrowserViewController: NSViewController {
                     let srcURL = url
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
                     let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
-                    let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
-                    try workspace.add(url: actualURL)
+                    try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -168,8 +167,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 do {
                     let oldURL = ref.url
                     let newURL = (destination.parent ?? workspace.root).url.appending(path: oldURL.lastPathComponent)
-                    let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
-                    try workspace.move(direntFrom: oldURL, to: actualURL)
+                    try await workspace.move(fileAt: oldURL, to: newURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -183,8 +181,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 do {
                     let srcURL = ref.url
                     let dstURL = (destination.parent ?? workspace.root).url.appending(path: srcURL.lastPathComponent)
-                    let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)
-                    try workspace.add(url: actualURL)
+                    try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -223,8 +220,12 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     @objc func onSubmit(_ sender: DirentTextField) {
-        print("onSubmit", sender)
         guard let dirent = dirent(for: sender) else {
+            return
+        }
+
+        if dirent.nameWithExtension == sender.stringValue {
+            sender.stringValue = dirent.name
             return
         }
 
@@ -232,9 +233,16 @@ class WorkspaceBrowserViewController: NSViewController {
             do {
                 let oldURL = dirent.url
                 let newURL = dirent.url.deletingLastPathComponent().appending(path: sender.stringValue, directoryHint: dirent.directoryHint)
-                let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
-                let newDirent = try workspace.move(direntFrom: oldURL, to: actualURL)
-                sender.stringValue = newDirent.name
+
+                // skip delegate notifications and call updateView() manually so we can eliminate a flicker when
+                // updating the file name and image. This doesn't always work (I don't know why) but it works
+                // most of the time.
+                let newDirent = try await workspace.move(fileAt: oldURL, to: newURL, notifyDelegate: false)
+                // newDirent should always be present because we're editing a row that already exists.
+                sender.stringValue = newDirent!.name
+                (sender.superview as! NSTableCellView).imageView!.image = newDirent!.icon
+                updateView()
+
             } catch {
                 sender.stringValue = dirent.name
                 presentErrorAsSheetWithFallback(error)
@@ -243,7 +251,6 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     @objc func onCancel(_ sender: DirentTextField) {
-        print("onCancel", sender)
         guard let dirent = dirent(for: sender) else {
             return
         }
@@ -355,6 +362,6 @@ extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
     }
 
     func operationQueue(for filePromiseProvider: NSFilePromiseProvider) -> OperationQueue {
-        fileQueue
+        filePromiseQueue
     }
 }

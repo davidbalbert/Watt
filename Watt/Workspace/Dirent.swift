@@ -116,6 +116,31 @@ struct Dirent: Identifiable {
         }
     }
 
+    func hasDescendent(at url: URL) -> Bool {
+        if self.url == url {
+            return true
+        }
+
+        if !isDirectory {
+            return false
+        }
+
+        if _children == nil {
+            return false
+        }
+
+        let targetComponents = url.pathComponents
+        for child in _children! {
+            let childComponents = child.url.pathComponents
+
+            if childComponents[...] == targetComponents[0..<childComponents.count] {
+                return child.hasDescendent(at: url)
+            }
+        }
+
+        return false
+    }
+
     mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) throws {
         if url == target {
             block(&self)
