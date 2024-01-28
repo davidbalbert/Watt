@@ -116,8 +116,8 @@ struct Dirent: Identifiable {
         }
     }
 
-    func hasDescendent(at url: URL) -> Bool {
-        if self.url == url {
+    func hasDescendent(at targetURL: URL) -> Bool {
+        if self.url == targetURL {
             return true
         }
 
@@ -129,12 +129,12 @@ struct Dirent: Identifiable {
             return false
         }
 
-        let targetComponents = url.pathComponents
+        let targetComponents = targetURL.pathComponents
         for child in _children! {
             let childComponents = child.url.pathComponents
 
             if childComponents[...] == targetComponents[0..<childComponents.count] {
-                return child.hasDescendent(at: url)
+                return child.hasDescendent(at: targetURL)
             }
         }
 

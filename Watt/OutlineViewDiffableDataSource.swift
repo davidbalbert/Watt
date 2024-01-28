@@ -115,7 +115,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             }
 
             if handler.isValid(draggingItem, destination: destination) {
-                operation = NSDragOperation(handler.operations.first!)
+                if info.draggingSourceOperationMask.rawValue % 2 == 0 {
+                    operation = info.draggingSourceOperationMask
+                } else {
+                    operation = NSDragOperation(handler.operations.first!)
+                }
             }
             stop.pointee = true
         }
@@ -156,7 +160,20 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         var success = false // can only transition from false to true
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }!
-            handler.run(draggingItem: draggingItem, destination: destination)
+
+            let operation: DragOperation
+            if info.draggingSourceOperationMask.rawValue % 2 == 0 {
+                // Force unwrap justification: At this point, draggingSourceOperationMask should be a power of two,
+                // so we're guaranteed to have a known DragOperation. While it's possible Apple could add a new
+                // NSDragOperation flag in the future, all handlers are specified with DragOperations, which means
+                // we should never see the new NSDragOperation here until we add it to DragOperation.
+
+                operation = DragOperation(info.draggingSourceOperationMask)!
+            } else {
+                operation = handler.operations.first!
+            }
+
+            handler.run(draggingItem: draggingItem, destination: destination, operation: operation)
             success = true
         }
         return success
@@ -164,23 +181,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 }
 
 // MARK: - Drag and Drop
-
-extension NSDragOperation {
-    init(_ operation: DragOperation) {
-        switch operation {
-        case .copy: self = .copy
-        case .link: self = .link
-        case .generic: self = .generic
-        case .private: self = .private
-        case .move: self = .move
-        case .delete: self = .delete
-        }
-    }
-
-    init(_ operations: [DragOperation]) {
-        self = operations.reduce(into: []) { $0.insert(NSDragOperation($1)) }
-    }
-}
 
 struct DragPreview {
     let frame: NSRect
@@ -194,7 +194,7 @@ protocol DropHandler<Destination> {
     var type: T.Type { get }
     var operations: [DragOperation] { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
-    var action: (T, Destination) -> Void { get }
+    var action: (T, Destination, DragOperation) -> Void { get }
     var validator: (T, Destination) -> Bool { get }
     var preview: ((T) -> DragPreview?)? { get }
 }
@@ -223,8 +223,8 @@ extension DropHandler {
         return nil
     }
 
-    func run(draggingItem: NSDraggingItem, destination: Destination) {
-        action(draggingItem.item as! T, destination)
+    func run(draggingItem: NSDraggingItem, destination: Destination, operation: DragOperation) {
+        action(draggingItem.item as! T, destination, operation)
     }
 }
 
@@ -241,6 +241,35 @@ enum DragOperation: Hashable {
     case `private`
     case move
     case delete
+
+    init?(_ operation: NSDragOperation) {
+        switch operation {
+        case .copy: self = .copy
+        case .link: self = .link
+        case .generic: self = .generic
+        case .private: self = .private
+        case .move: self = .move
+        case .delete: self = .delete
+        default: return nil
+        }
+    }
+}
+
+extension NSDragOperation {
+    init(_ operation: DragOperation) {
+        switch operation {
+        case .copy: self = .copy
+        case .link: self = .link
+        case .generic: self = .generic
+        case .private: self = .private
+        case .move: self = .move
+        case .delete: self = .delete
+        }
+    }
+
+    init(_ operations: [DragOperation]) {
+        self = operations.reduce(into: []) { $0.insert(NSDragOperation($1)) }
+    }
 }
 
 extension OutlineViewDiffableDataSource {
@@ -253,7 +282,7 @@ extension OutlineViewDiffableDataSource {
         let type: T.Type
         let operations: [DragOperation]
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-        let action: (T, DropDestination) -> Void
+        let action: (T, DropDestination, DragOperation) -> Void
         let validator: (T, DropDestination) -> Bool
         let preview: ((T) -> DragPreview?)?
     }
@@ -275,9 +304,10 @@ extension OutlineViewDiffableDataSource {
     // You can register a single handler for multiple operations – i.e. to make a normal drag and
     // Command + drag (.generic) use the same handler.
     //
-    // The first DragOperation you specify for a given handler is the one reported to the outline
-    // view. I.e. if operations is [.move, .generic], .move will be reported to the outline view
-    // so that it can show the correct cursor.
+    // If you specify multiple operations and you drag over the outline view without holding any
+    // keys down, the first DragOperation you specify for the handler is the one reported to the
+    // outline view. I.e. if operations is [.move, .generic], and you're not holding down any
+    // keys, .move will be reported to the outline view so that it can show the correct cursor.
     //
     // If we're receiving a drop from .self (source and destination are our NSOutlineView), both
     // .self and .local handlers will be considered with all .self handlers considered before any
@@ -288,7 +318,7 @@ extension OutlineViewDiffableDataSource {
         operations: [DragOperation],
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping (T, DropDestination) -> Void,
+        action: @escaping (T, DropDestination, DragOperation) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
@@ -310,7 +340,7 @@ extension OutlineViewDiffableDataSource {
         operation: DragOperation,
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping (T, DropDestination) -> Void,
+        action: @escaping (T, DropDestination, DragOperation) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
@@ -323,7 +353,7 @@ extension OutlineViewDiffableDataSource {
         operations: [DragOperation],
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
-        action: @escaping (T, DropDestination) -> Void,
+        action: @escaping (T, DropDestination, DragOperation) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
@@ -334,8 +364,8 @@ extension OutlineViewDiffableDataSource {
             }
         }
 
-        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { reference, destination in
-            action(reference as! T, destination)
+        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { reference, destination, operation in
+            action(reference as! T, destination, operation)
         }, validator: { reference, destination in
             validator(reference as! T, destination)
         }, preview: wrappedPreview)
@@ -346,7 +376,7 @@ extension OutlineViewDiffableDataSource {
         operation: DragOperation,
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
-        action: @escaping (T, DropDestination) -> Void,
+        action: @escaping (T, DropDestination, DragOperation) -> Void,
         validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {

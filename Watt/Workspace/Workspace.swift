@@ -67,6 +67,14 @@ class Workspace {
         delegate?.workspaceDidChange(self)
     }
 
+    func isInWorkspace(_ url: URL) -> Bool {
+        return FilePath(url.path).starts(with: FilePath(root.url.path))
+    }
+
+    func isLoaded(_ url: URL) -> Bool {
+        return isInWorkspace(url) && root.hasDescendent(at: url)
+    }
+
     // Doesn't care whether oldURL and newURL are present in the workspace. Returns the new dirent if it's present.
     @discardableResult
     func move(fileAt oldURL: URL, to newURL: URL, notifyDelegate: Bool = true) async throws -> Dirent? {
@@ -75,27 +83,50 @@ class Workspace {
         try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
             try FileManager.default.moveItem(at: src.url, to: dst.url)
         }
-        let actualURL = dst.url
 
-        let oldParentURL = oldURL.deletingLastPathComponent()
-        let actualParentURL = actualURL.deletingLastPathComponent()
+        defer {
+            if notifyDelegate {
+                delegateWorkspaceDidChange()
+            }
+        }
+
+        let actualOldURL = src.url
+        let actualNewURL = dst.url
+
+        if oldURL != actualOldURL && isLoaded(oldURL) && isLoaded(actualOldURL) {
+            // The source URL changed while we were waiting on the coordinator, and both URLs
+            // are present in the workspace. This is pretty unexpected and complicated, so
+            // we'll just reload the parent directories and notify the delegate.
+
+            try loadDirectory(url: oldURL.deletingLastPathComponent())
+            try loadDirectory(url: actualOldURL.deletingLastPathComponent())
+            if isInWorkspace(actualNewURL) {
+                try loadDirectory(url: actualNewURL.deletingLastPathComponent())
+            }
+            return nil
+        }
+
+        let oldURLToRemove = isLoaded(actualOldURL) ? actualOldURL : oldURL
+        let oldParentURL = oldURLToRemove.deletingLastPathComponent()
 
         // TODO: we need to handle the case where root moves
         let newDirent: Dirent
-        if root.hasDescendent(at: oldURL) && root.url != oldURL {
+        if root.url != oldURLToRemove && isLoaded(oldParentURL) {
             var oldDirent: Dirent?
             try root.updateDescendent(withURL: oldParentURL) { parent in
-                let i = parent._children!.firstIndex { $0.url == oldURL }
+                let i = parent._children!.firstIndex { $0.url == oldURLToRemove }
                 oldDirent = parent._children!.remove(at: i!)
             }
-            newDirent = Dirent(moving: oldDirent!, to: actualURL)
+            newDirent = Dirent(moving: oldDirent!, to: actualNewURL)
         } else {
-            newDirent = try Dirent(for: actualURL)
+            newDirent = try Dirent(for: actualNewURL)
         }
 
+        let newParentURL = actualNewURL.deletingLastPathComponent()
+
         var didAdd = false
-        if root.hasDescendent(at: actualParentURL) {
-            try root.updateDescendent(withURL: actualParentURL) { parent in
+        if root.url != actualNewURL && isLoaded(newParentURL) {
+            try root.updateDescendent(withURL: newParentURL) { parent in
                 if parent._children == nil {
                     return
                 }
@@ -106,19 +137,13 @@ class Workspace {
             didAdd = true
         }
 
-        if notifyDelegate {
-            delegateWorkspaceDidChange()
-        }
         return didAdd ? newDirent : nil
     }
 
     // Used for drag and drop from other apps. Throws if dstURL isn't in the workspace or
     // isn't loaded.
     func copy(fileAt srcURL: URL, intoWorkspaceAt dstURL: URL) async throws {
-        let rootPath = FilePath(root.url.path)
-        let dstPath = FilePath(dstURL.path)
-
-        if dstPath == rootPath || !dstPath.starts(with: rootPath) {
+        if dstURL == root.url || !isInWorkspace(dstURL) {
             throw Errors.isNotInWorkspace(dstURL)
         }
 

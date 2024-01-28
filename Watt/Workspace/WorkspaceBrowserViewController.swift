@@ -75,6 +75,20 @@ class WorkspaceBrowserViewController: NSViewController {
         return view
     }
 
+    func dragPreview(for column: NSTableColumn, dirent: Dirent) -> DragPreview {
+        // drag previews don't show text unless they're not editable
+        let view = makeTableCellView(for: column, isEditable: false)
+        view.imageView!.image = dirent.icon
+        view.textField!.stringValue = dirent.name
+
+        view.frame.size = NSSize(width: view.fittingSize.width, height: outlineView.rowHeight)
+        view.layoutSubtreeIfNeeded()
+
+        return DragPreview(frame: view.frame) {
+            return view.draggingImageComponents
+        }
+    }
+
     override func loadView() {
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
@@ -118,7 +132,7 @@ class WorkspaceBrowserViewController: NSViewController {
             WorkspacePasteboardWriter(dirent: dirent, delegate: self)
         }
 
-        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination in
+        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination, _ in
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
@@ -131,13 +145,18 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        dataSource.onDrop(of: URL.self, operation: .copy, source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] url, destination in
+        dataSource.onDrop(of: URL.self, operations: [.copy, .generic], source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] srcURL, destination, operation in
             Task {
                 do {
-                    let srcURL = url
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
                     let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
-                    try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
+
+                    if operation == .generic {
+                        try await workspace.move(fileAt: srcURL, to: dstURL)
+                    } else {
+                        assert(operation == .copy)
+                        try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
+                    }
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -145,24 +164,11 @@ class WorkspaceBrowserViewController: NSViewController {
         } validator: { _, destination in
             destination.index != NSOutlineViewDropOnItemIndex
         } preview: { [weak self] url in
-            guard let self, let dirent = try? Dirent(for: url) else {
-                return nil
-            }
-
-            // drag previews don't show text unless they're not editable
-            let view = makeTableCellView(for: column, isEditable: false)
-            view.imageView!.image = dirent.icon
-            view.textField!.stringValue = dirent.name
-
-            view.frame.size = NSSize(width: view.fittingSize.width, height: outlineView.rowHeight)
-            view.layoutSubtreeIfNeeded()
-
-            return DragPreview(frame: view.frame) {
-                return view.draggingImageComponents
-            }
+            guard let dirent = try? Dirent(for: url) else { return nil }
+            return self?.dragPreview(for: column, dirent: dirent)
         }
 
-        dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] ref, destination in
+        dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] ref, destination, _ in
             Task {
                 do {
                     let oldURL = ref.url
@@ -176,7 +182,7 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] ref, destination in
+        dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] ref, destination, _ in
             Task {
                 do {
                     let srcURL = ref.url
@@ -238,9 +244,10 @@ class WorkspaceBrowserViewController: NSViewController {
                 // updating the file name and image. This doesn't always work (I don't know why) but it works
                 // most of the time.
                 let newDirent = try await workspace.move(fileAt: oldURL, to: newURL, notifyDelegate: false)
-                // newDirent should always be present because we're editing a row that already exists.
-                sender.stringValue = newDirent!.name
-                (sender.superview as! NSTableCellView).imageView!.image = newDirent!.icon
+                if let newDirent {
+                    sender.stringValue = newDirent.name
+                    (sender.superview as! NSTableCellView).imageView!.image = newDirent.icon
+                }
                 updateView()
 
             } catch {
