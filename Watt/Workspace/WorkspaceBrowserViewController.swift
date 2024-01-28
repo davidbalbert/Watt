@@ -338,7 +338,13 @@ extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
 
         do {
             let sourceURL = provider.dirent.url
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+
+            // The NSFilePromiseProviderDelegate docs are a bit unclear about whether we need
+            // to coordinate writing to destinationURL, but when I tried doing that, I hit
+            // what looked like a deadlock, so I assume we shouldn't.
+            try NSFileCoordinator().coordinate(readingItemAt: sourceURL) { actualSourceURL in
+                try FileManager.default.copyItem(at: actualSourceURL, to: destinationURL)
+            }
             completionHandler(nil)
         } catch {
             Task { @MainActor in

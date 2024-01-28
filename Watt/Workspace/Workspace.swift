@@ -149,7 +149,7 @@ class Workspace {
 
             stream.start()
 
-            // Reload self ot make sure we're up to date.
+            // Reload self to make sure we're up to date.
             cont.yield([LoadRequest(tree: root.url)])
             continuation = cont
         }
