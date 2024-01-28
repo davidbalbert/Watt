@@ -6,7 +6,6 @@
 //
 
 import Cocoa
-import SwiftUI
 
 import Tree
 import OrderedCollections
@@ -40,28 +39,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         self.delegate.dataSource = self
         self.outlineView.dataSource = self
         self.outlineView.delegate = self.delegate
-    }
-
-    convenience init<Body>(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, @ViewBuilder cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> Body) where Body: View {
-        self.init(outlineView, delegate: delegate) { outlineView, column, element in
-            let rootView = cellProvider(outlineView, column, element)
-
-            let hostingView: NSHostingView<Body>
-            if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSHostingView<Body> {
-                hostingView = v
-            } else {
-                hostingView = NSHostingView(rootView: rootView)
-                hostingView.identifier = column.identifier
-            }
-
-            hostingView.rootView = rootView
-            hostingView.autoresizingMask = [.width, .height]
-
-            let view = NSTableCellView()
-            view.addSubview(hostingView)
-
-            return view
-        }
     }
 
     var isEmpty: Bool {
