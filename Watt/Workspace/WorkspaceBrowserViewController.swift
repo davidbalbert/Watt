@@ -38,7 +38,7 @@ class WorkspaceBrowserViewController: NSViewController {
             let imageView = NSImageView()
             imageView.translatesAutoresizingMaskIntoConstraints = false
 
-            let textField = WorkspaceTextField(labelWithString: "")
+            let textField = DirentTextField(labelWithString: "")
             textField.translatesAutoresizingMaskIntoConstraints = false
             textField.isEditable = isEditable
             textField.focusRingType = .none
@@ -222,7 +222,7 @@ class WorkspaceBrowserViewController: NSViewController {
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
     }
 
-    @objc func onSubmit(_ sender: WorkspaceTextField) {
+    @objc func onSubmit(_ sender: DirentTextField) {
         print("onSubmit", sender)
         guard let dirent = dirent(for: sender) else {
             return
@@ -242,7 +242,7 @@ class WorkspaceBrowserViewController: NSViewController {
         }
     }
 
-    @objc func onCancel(_ sender: WorkspaceTextField) {
+    @objc func onCancel(_ sender: DirentTextField) {
         print("onCancel", sender)
         guard let dirent = dirent(for: sender) else {
             return
@@ -251,7 +251,7 @@ class WorkspaceBrowserViewController: NSViewController {
         sender.stringValue = dirent.name
     }
 
-    func dirent(for textField: WorkspaceTextField) -> Dirent? {
+    func dirent(for textField: DirentTextField) -> Dirent? {
         dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
     }
 }
@@ -262,8 +262,8 @@ extension WorkspaceBrowserViewController: WorkspaceDelegate {
     }
 }
 
-extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
-    func textFieldDidBecomeFirstResponder(_ textField: WorkspaceTextField) {
+extension WorkspaceBrowserViewController: DirentTextFieldDelegate {
+    func textFieldDidBecomeFirstResponder(_ textField: DirentTextField) {
         guard let dirent = dirent(for: textField) else {
             return
         }
@@ -275,7 +275,7 @@ extension WorkspaceBrowserViewController: WorkspaceTextFieldDelegate {
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-        guard let textField = control as? WorkspaceTextField else {
+        guard let textField = control as? DirentTextField else {
             return false
         }
 

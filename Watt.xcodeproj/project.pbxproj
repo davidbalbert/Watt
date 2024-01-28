@@ -71,7 +71,7 @@
 		63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907832A7847BC00E4D7C9 /* IntervalCache.swift */; };
 		63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */; };
 		63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907892A795F1B00E4D7C9 /* Spans.swift */; };
-		63D280892B5B275900CDCF04 /* WorkspaceTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D280882B5B275900CDCF04 /* WorkspaceTextField.swift */; };
+		63D280892B5B275900CDCF04 /* DirentTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D280882B5B275900CDCF04 /* DirentTextField.swift */; };
 		63D2808B2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */; };
 		63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */; };
 		63D280922B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */; };
@@ -183,7 +183,7 @@
 		63C907832A7847BC00E4D7C9 /* IntervalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCache.swift; sourceTree = "<group>"; };
 		63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCacheTests.swift; sourceTree = "<group>"; };
 		63C907892A795F1B00E4D7C9 /* Spans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spans.swift; sourceTree = "<group>"; };
-		63D280882B5B275900CDCF04 /* WorkspaceTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTextField.swift; sourceTree = "<group>"; };
+		63D280882B5B275900CDCF04 /* DirentTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirentTextField.swift; sourceTree = "<group>"; };
 		63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSViewController+Extensions.swift"; sourceTree = "<group>"; };
 		63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSFilePromiseReceiver+Extensions.swift"; sourceTree = "<group>"; };
 		63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSFileCoordinator+Extensions.swift"; sourceTree = "<group>"; };
@@ -391,7 +391,7 @@
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
 				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
-				63D280882B5B275900CDCF04 /* WorkspaceTextField.swift */,
+				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 			);
 			path = Workspace;
@@ -551,7 +551,7 @@
 				63D280AB2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift in Sources */,
 				6372888E29FD8E19005B95E5 /* Document.swift in Sources */,
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
-				63D280892B5B275900CDCF04 /* WorkspaceTextField.swift in Sources */,
+				63D280892B5B275900CDCF04 /* DirentTextField.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
 				63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
