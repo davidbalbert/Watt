@@ -70,7 +70,12 @@ class Workspace {
     // Doesn't care whether oldURL and newURL are present in the workspace. Returns the new dirent if it's present.
     @discardableResult
     func move(fileAt oldURL: URL, to newURL: URL, notifyDelegate: Bool = true) async throws -> Dirent? {
-        let actualURL = try await FileManager.default.coordinatedMoveItem(at: oldURL, to: newURL, operationQueue: fileQueue)
+        let src: NSFileAccessIntent = .writingIntent(with: oldURL, options: .forMoving)
+        let dst: NSFileAccessIntent = .writingIntent(with: newURL, options: .forReplacing)
+        try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
+            try FileManager.default.moveItem(at: src.url, to: dst.url)
+        }
+        let actualURL = dst.url
 
         let oldParentURL = oldURL.deletingLastPathComponent()
         let actualParentURL = actualURL.deletingLastPathComponent()
@@ -117,8 +122,12 @@ class Workspace {
             throw Errors.isNotInWorkspace(dstURL)
         }
 
-        let actualURL = try await FileManager.default.coordinatedCopyItem(at: srcURL, to: dstURL, operationQueue: fileQueue)    
-        try add(direntFor: actualURL)
+        let src: NSFileAccessIntent = .readingIntent(with: srcURL)
+        let dst: NSFileAccessIntent = .writingIntent(with: dstURL, options: .forReplacing)
+        try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
+            try FileManager.default.copyItem(at: src.url, to: dst.url)
+        }
+        try add(direntFor: dst.url)
 
         delegateWorkspaceDidChange()
     }
