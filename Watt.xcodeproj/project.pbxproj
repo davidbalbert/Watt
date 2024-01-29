@@ -53,7 +53,7 @@
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
 		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
 		63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D832B5462D60032E8B9 /* FSEvents.swift */; };
-		63A95D882B55B9D70032E8B9 /* UserDefaults+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */; };
+		63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */; };
 		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
@@ -164,7 +164,7 @@
 		63A618732A0EC37700E70B0E /* LineNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberView.swift; sourceTree = "<group>"; };
 		63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+LineNumbers.swift"; sourceTree = "<group>"; };
 		63A95D832B5462D60032E8B9 /* FSEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSEvents.swift; sourceTree = "<group>"; };
-		63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+Extensions.swift"; sourceTree = "<group>"; };
+		63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+Keys.swift"; sourceTree = "<group>"; };
 		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
@@ -250,6 +250,25 @@
 			path = Support;
 			sourceTree = "<group>";
 		};
+		636E84652B68215200772ECE /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */,
+				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
+				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
+				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
+				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
+				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
+				63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */,
+				63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */,
+				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
+				63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */,
+				635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */,
+				636E84632B681BB900772ECE /* URL+Extensions.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
@@ -291,16 +310,10 @@
 				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */,
 				6315D2FF2A9B769100B8A077 /* AttributedRope.swift */,
 				63F046892A65D3EA001B8DA8 /* BTree.swift */,
 				63F25BD82A683CC500DEACCF /* Buffer.swift */,
-				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
-				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
-				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
-				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
-				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				631FD2642A696D27005FA854 /* Heights.swift */,
@@ -312,16 +325,11 @@
 				63F25BE02A689D2400DEACCF /* Line.swift */,
 				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
 				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
-				63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */,
-				63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */,
-				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
-				63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */,
 				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
 				63F0468B2A65D3F8001B8DA8 /* Rope.swift */,
 				637BC1312A151F5F0089A34D /* Selection.swift */,
 				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
 				63C907892A795F1B00E4D7C9 /* Spans.swift */,
-				635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */,
 				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
 				63B61A1529FDA2B800787BB9 /* TextView.swift */,
 				63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */,
@@ -335,14 +343,14 @@
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
 				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
-				636E84632B681BB900772ECE /* URL+Extensions.swift */,
-				63A95D872B55B9D70032E8B9 /* UserDefaults+Extensions.swift */,
+				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
+				636E84652B68215200772ECE /* Extensions */,
 				63B863C92A1314E50082B4A6 /* LineNumberView */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
 				63C2C04E2B4F3B8E00BFB976 /* Workspace */,
@@ -599,7 +607,7 @@
 				63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
-				63A95D882B55B9D70032E8B9 /* UserDefaults+Extensions.swift in Sources */,
+				63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
