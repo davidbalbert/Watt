@@ -16,6 +16,7 @@ protocol WorkspaceDelegate: AnyObject {
 class Workspace {
     enum Errors: Error {
         case rootIsNotFolder
+        case cantMoveRoot
         case isNotInWorkspace(URL)
     }
 
@@ -33,7 +34,6 @@ class Workspace {
     weak var delegate: WorkspaceDelegate?
 
     private var loaded: Set<URL> = []
-    private var index: [Dirent.ID: Dirent]
 
     private var showHiddenFilesObservation: NSKeyValueObservation?
 
@@ -52,7 +52,6 @@ class Workspace {
 
         self.root = dirent
         self.showHidden = UserDefaults.standard.showHiddenFiles
-        self.index = [:]
 
         showHiddenFilesObservation = UserDefaults.standard.observe(\.showHiddenFiles) { _, _ in
             MainActor.assumeIsolated { [weak self] in
@@ -68,82 +67,44 @@ class Workspace {
     }
 
     func isInWorkspace(_ url: URL) -> Bool {
-        return FilePath(url.path).starts(with: FilePath(root.url.path))
+        return url != root.url && FilePath(url.path).starts(with: FilePath(root.url.path))
     }
 
-    func isLoaded(_ url: URL) -> Bool {
-        return isInWorkspace(url) && root.hasDescendent(at: url)
-    }
-
-    // Doesn't care whether oldURL and newURL are present in the workspace. Returns the new dirent if it's present.
+    // Doesn't care whether oldURL and newURL are in the workspace. Returns the actual new URL.
     @discardableResult
-    func move(fileAt oldURL: URL, to newURL: URL, notifyDelegate: Bool = true) async throws -> Dirent? {
+    func move(fileAt oldURL: URL, to newURL: URL) async throws -> URL {
+        if oldURL == root.url || newURL == root.url {
+            throw Errors.cantMoveRoot
+        }
+
         let src: NSFileAccessIntent = .writingIntent(with: oldURL, options: .forMoving)
         let dst: NSFileAccessIntent = .writingIntent(with: newURL, options: .forReplacing)
         try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
             try FileManager.default.moveItem(at: src.url, to: dst.url)
         }
 
-        defer {
-            if notifyDelegate {
-                delegateWorkspaceDidChange()
-            }
+        // None of these URLs are guaranteed to be in the workspace, so just ignore errors.
+        let d1 = try? remove(direntFor: oldURL)
+        let d2 = try? remove(direntFor: src.url)
+        let oldDirent = d2 ?? d1
+
+        if let oldDirent, isInWorkspace(dst.url) {
+            let newDirent = Dirent(moving: oldDirent, to: dst.url)
+            try add(dirent: newDirent)
+        } else if isInWorkspace(dst.url) {
+            try add(direntFor: dst.url)
         }
 
-        let actualOldURL = src.url
-        let actualNewURL = dst.url
+        delegateWorkspaceDidChange()
 
-        if oldURL != actualOldURL && isLoaded(oldURL) && isLoaded(actualOldURL) {
-            // The source URL changed while we were waiting on the coordinator, and both URLs
-            // are present in the workspace. This is pretty unexpected and complicated, so
-            // we'll just reload the parent directories and notify the delegate.
-
-            try loadDirectory(url: oldURL.deletingLastPathComponent())
-            try loadDirectory(url: actualOldURL.deletingLastPathComponent())
-            if isInWorkspace(actualNewURL) {
-                try loadDirectory(url: actualNewURL.deletingLastPathComponent())
-            }
-            return nil
-        }
-
-        let oldURLToRemove = isLoaded(actualOldURL) ? actualOldURL : oldURL
-        let oldParentURL = oldURLToRemove.deletingLastPathComponent()
-
-        // TODO: we need to handle the case where root moves
-        let newDirent: Dirent
-        if root.url != oldURLToRemove && isLoaded(oldParentURL) {
-            var oldDirent: Dirent?
-            try root.updateDescendent(withURL: oldParentURL) { parent in
-                let i = parent._children!.firstIndex { $0.url == oldURLToRemove }
-                oldDirent = parent._children!.remove(at: i!)
-            }
-            newDirent = Dirent(moving: oldDirent!, to: actualNewURL)
-        } else {
-            newDirent = try Dirent(for: actualNewURL)
-        }
-
-        let newParentURL = actualNewURL.deletingLastPathComponent()
-
-        var didAdd = false
-        if root.url != actualNewURL && isLoaded(newParentURL) {
-            try root.updateDescendent(withURL: newParentURL) { parent in
-                if parent._children == nil {
-                    return
-                }
-
-                parent._children!.append(newDirent)
-                parent._children!.sort()
-            }
-            didAdd = true
-        }
-
-        return didAdd ? newDirent : nil
+        return dst.url
     }
 
     // Used for drag and drop from other apps. Throws if dstURL isn't in the workspace or
     // isn't loaded.
-    func copy(fileAt srcURL: URL, intoWorkspaceAt dstURL: URL) async throws {
-        if dstURL == root.url || !isInWorkspace(dstURL) {
+    @discardableResult
+    func copy(fileAt srcURL: URL, intoWorkspaceAt dstURL: URL) async throws -> URL {
+        if !isInWorkspace(dstURL) {
             throw Errors.isNotInWorkspace(dstURL)
         }
 
@@ -155,15 +116,15 @@ class Workspace {
         try add(direntFor: dst.url)
 
         delegateWorkspaceDidChange()
+
+        return dst.url
     }
 
     // Used for drag and drop from other apps. Throws if targetDirectoryURL isn't in the workspace
     // or isn't loaded.
-    func receive(filesFrom filePromiseReceiver: NSFilePromiseReceiver, atDestination targetDirectoryURL: URL) async throws {
-        let rootPath = FilePath(root.url.path)
-        let dstPath = FilePath(targetDirectoryURL.path)
-
-        if dstPath == rootPath || !dstPath.starts(with: rootPath) {
+    @discardableResult
+    func receive(filesFrom filePromiseReceiver: NSFilePromiseReceiver, atDestination targetDirectoryURL: URL) async throws -> [URL] {
+        if !isInWorkspace(targetDirectoryURL) {
             throw Errors.isNotInWorkspace(targetDirectoryURL)
         }
 
@@ -173,13 +134,18 @@ class Workspace {
         }
 
         delegateWorkspaceDidChange()
+
+        return urls
     }
 
     private func add(direntFor url: URL) throws {
         let dirent = try Dirent(for: url)
+        try add(dirent: dirent)
+    }
 
-        let parentURL = url.deletingLastPathComponent()
-        try root.updateDescendent(withURL: parentURL) { parent in
+    private func add(dirent: Dirent) throws {
+        let parentURL = dirent.url.deletingLastPathComponent()
+        try root.updateDescendant(withURL: parentURL) { parent in
             if parent._children == nil {
                 return
             }
@@ -190,6 +156,22 @@ class Workspace {
                 parent._children!.sort()
             }
         }
+    }
+
+    private func remove(direntFor url: URL) throws -> Dirent? {
+        let parentURL = url.deletingLastPathComponent()
+        var dirent: Dirent?
+        try root.updateDescendant(withURL: parentURL) { parent in
+            if parent._children == nil {
+                return
+            }
+
+            let i = parent._children!.firstIndex { $0.url == url }
+            if let i {
+                dirent = parent._children!.remove(at: i)
+            }
+        }
+        return dirent
     }
 
     @discardableResult
@@ -206,10 +188,6 @@ class Workspace {
         let children = try urls.map { try Dirent(for: $0) }.sorted()
         try updateChildren(of: url, to: children)
         loaded.insert(url)
-
-        for c in children {
-            index[c.id] = c
-        }
 
         return children
     }
@@ -289,7 +267,7 @@ class Workspace {
     }
 
     func updateChildren(of url: URL, to newChildren: consuming [Dirent]) throws {
-        try root.updateDescendent(withURL: url) { dirent in
+        try root.updateDescendant(withURL: url) { dirent in
             let pairs = dirent._children?.enumerated().map { ($0.element.url, $0.offset) } ?? []
             let urlToIndex = Dictionary(uniqueKeysWithValues: pairs)
 

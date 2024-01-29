@@ -13,7 +13,8 @@ class WorkspaceBrowserViewController: NSViewController {
     @ViewLoading var outlineView: NSOutlineView
     @ViewLoading var dataSource: OutlineViewDiffableDataSource<[Dirent]>
 
-    var task: Task<(), Never>?
+    private var task: Task<(), Never>?
+    private var skipWorkspaceDidChange = false
 
     let filePromiseQueue: OperationQueue = {
         let queue = OperationQueue()
@@ -243,18 +244,27 @@ class WorkspaceBrowserViewController: NSViewController {
                 // skip delegate notifications and call updateView() manually so we can eliminate a flicker when
                 // updating the file name and image. This doesn't always work (I don't know why) but it works
                 // most of the time.
-                let newDirent = try await workspace.move(fileAt: oldURL, to: newURL, notifyDelegate: false)
-                if let newDirent {
-                    sender.stringValue = newDirent.name
-                    (sender.superview as! NSTableCellView).imageView!.image = newDirent.icon
+                var actualURL: URL?
+                try await withoutWorkspaceDidChange {
+                    actualURL = try await workspace.move(fileAt: oldURL, to: newURL)
                 }
-                updateView()
 
+                let dirent = try Dirent(for: actualURL!)
+                sender.stringValue = dirent.name
+                (sender.superview as! NSTableCellView).imageView!.image = dirent.icon
+
+                updateView()
             } catch {
                 sender.stringValue = dirent.name
                 presentErrorAsSheetWithFallback(error)
             }
         }
+    }
+
+    func withoutWorkspaceDidChange(perform block: () async throws -> Void) async throws {
+        skipWorkspaceDidChange = true
+        defer { skipWorkspaceDidChange = false }
+        try await block()
     }
 
     @objc func onCancel(_ sender: DirentTextField) {
@@ -272,6 +282,9 @@ class WorkspaceBrowserViewController: NSViewController {
 
 extension WorkspaceBrowserViewController: WorkspaceDelegate {
     func workspaceDidChange(_ workspace: Workspace) {
+        if skipWorkspaceDidChange {
+            return
+        }
         updateView()
     }
 }

@@ -30,6 +30,7 @@ struct Dirent: Identifiable {
         case missingAncestor(URL)
         case missingMetadata(URL)
         case missingChild(parent: URL, target: URL)
+        case notDescendant(URL)
     }
 
     let id: FileID
@@ -116,56 +117,36 @@ struct Dirent: Identifiable {
         }
     }
 
-    func hasDescendent(at targetURL: URL) -> Bool {
-        if self.url == targetURL {
-            return true
+    mutating func updateDescendant(withURL target: URL, using block: (inout Dirent) -> Void) throws {
+        guard target.isDescendant(ofFileURL: url) else {
+            throw Errors.notDescendant(target)
         }
 
-        if !isDirectory {
-            return false
-        }
-
-        if _children == nil {
-            return false
-        }
-
-        let targetComponents = targetURL.pathComponents
-        for child in _children! {
-            let childComponents = child.url.pathComponents
-
-            if childComponents[...] == targetComponents[0..<childComponents.count] {
-                return child.hasDescendent(at: targetURL)
-            }
-        }
-
-        return false
-    }
-
-    mutating func updateDescendent(withURL target: URL, using block: (inout Dirent) -> Void) throws {
-        if url == target {
-            block(&self)
-            return
-        }
-
-        if !isDirectory {
-            throw Errors.isNotDirectory(target)
-        }
-
-        if _children == nil {
-            throw Errors.missingAncestor(target)
-        }
-
-        let targetComponents = target.pathComponents
-        for i in 0..<_children!.count {
-            let childComponents = _children![i].url.pathComponents
-
-            if childComponents[...] == targetComponents[0..<childComponents.count] {
-                try _children![i].updateDescendent(withURL: target, using: block)
+        func helper(_ dirent: inout Dirent) throws {
+            if dirent.url == target {
+                block(&dirent)
                 return
             }
+
+            if !dirent.isDirectory {
+                throw Errors.isNotDirectory(target)
+            }
+
+            if dirent._children == nil {
+                throw Errors.missingAncestor(target)
+            }
+
+            for i in 0..<dirent._children!.count {
+                if target.isDescendant(ofFileURL: dirent._children![i].url) {
+                    try helper(&dirent._children![i])
+                    return
+                }
+            }
+
+            throw Errors.missingChild(parent: dirent.url, target: target)
         }
 
-        throw Errors.missingChild(parent: url, target: target)
+        try helper(&self)
     }
 }
 

@@ -1303,7 +1303,7 @@ struct BTreeBuilder<Tree> where Tree: BTree {
         skipFixup = false
     }
 
-    // For descendents of root, isKnownUniquelyReferenced isn't enough to know whether
+    // For descendants of root, isKnownUniquelyReferenced isn't enough to know whether
     // a node is safe to mutate or not. A node can have refcount=1 but a parent with
     // refcount=2. To get around this, we pass down isUnique, a flag that starts out
     // as isKnownUniquelyReferenced(&root.storage), and can only transition from true
