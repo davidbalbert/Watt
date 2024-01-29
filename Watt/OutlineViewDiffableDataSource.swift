@@ -29,6 +29,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
     private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
 
+    private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [any DragEndHandler]> = [:]
+
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
         self.delegate = Delegate(target: delegate ?? NullOutlineViewDelegate())
@@ -102,7 +104,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
-        let handlers = handlers(for: info)
+        let handlers = dropHandlers(for: info)
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
         let destination = DropDestination(parent: self[item], index: index)
@@ -131,7 +133,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             return
         }
 
-        let handlers = handlers(for: draggingInfo)
+        let handlers = dropHandlers(for: draggingInfo)
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
@@ -150,7 +152,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
-        let handlers = handlers(for: info)
+        let handlers = dropHandlers(for: info)
         // I had this as handlers.map(\.type) but I got this error at runtime:
         //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
         let classes = handlers.map { $0.type }
@@ -177,6 +179,29 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             success = true
         }
         return success
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
+        let handlers = dragEndHandlers.values.joined()
+        let classes = handlers.map { $0.type }
+        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
+
+        // NSDragOperation should always be a single flag (power of two)
+        let dragOperation = DragOperation(operation)!
+
+        var invocations: OrderedDictionary<ObjectIdentifier, (any DragEndHandler, [NSDraggingItem])> = [:]
+        session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
+            let handler = handlers.first { $0.matches(draggingItem, operation: dragOperation) }
+            guard let handler else {
+                return
+            }
+
+            invocations[ObjectIdentifier(handler.type), default: (handler, [])].1.append(draggingItem)
+        }
+
+        for (handler, draggingItems) in invocations.values {
+            handler.run(draggingItems: draggingItems, operation: dragOperation)
+        }
     }
 }
 
@@ -228,6 +253,25 @@ extension DropHandler {
     }
 }
 
+protocol DragEndHandler {
+    associatedtype T: NSPasteboardReading
+
+    var type: T.Type { get }
+    var operations: [DragOperation] { get }
+    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
+    var action: ([T], DragOperation) -> Void { get }
+}
+
+extension DragEndHandler {
+    func matches(_ draggingItem: NSDraggingItem, operation: DragOperation) -> Bool {
+        draggingItem.item is T && operations.contains(operation)
+    }
+
+    func run(draggingItems: [NSDraggingItem], operation: DragOperation) {
+        action(draggingItems.map { $0.item as! T }, operation)
+    }
+}
+
 enum DragSource {
     case `self`
     case local // includes self
@@ -235,6 +279,7 @@ enum DragSource {
 }
 
 enum DragOperation: Hashable {
+    case none
     case copy
     case link
     case generic
@@ -244,6 +289,7 @@ enum DragOperation: Hashable {
 
     init?(_ operation: NSDragOperation) {
         switch operation {
+        case []: self = .none
         case .copy: self = .copy
         case .link: self = .link
         case .generic: self = .generic
@@ -258,6 +304,7 @@ enum DragOperation: Hashable {
 extension NSDragOperation {
     init(_ operation: DragOperation) {
         switch operation {
+        case .none: self = []
         case .copy: self = .copy
         case .link: self = .link
         case .generic: self = .generic
@@ -331,7 +378,7 @@ extension OutlineViewDiffableDataSource {
         }
 
         let handler = OutlineViewDropHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
-        addHandler(handler, source: source)
+        addDropHandler(handler, source: source)
     }
 
     // Conveience method for registering a handler with a single DragOperation.
@@ -346,7 +393,6 @@ extension OutlineViewDiffableDataSource {
     ) where T: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
     }
-
 
     func onDrop<T>(
         of type: T.Type,
@@ -383,7 +429,7 @@ extension OutlineViewDiffableDataSource {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
     }
 
-    func addHandler(_ handler: any DropHandler<DropDestination>, source: DragSource) {
+    private func addDropHandler(_ handler: any DropHandler<DropDestination>, source: DragSource) {
         switch source {
         case .self:
             selfDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
@@ -394,7 +440,7 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    func handlers(for info: NSDraggingInfo) -> [any DropHandler<DropDestination>] {
+    private func dropHandlers(for info: NSDraggingInfo) -> [any DropHandler<DropDestination>] {
         switch source(for: info) {
         case .self:
             Array(selfDropHandlers.values.joined()) + Array(localDropHandlers.values.joined())
@@ -405,7 +451,7 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    func source(for info: NSDraggingInfo) -> DragSource {
+    private func source(for info: NSDraggingInfo) -> DragSource {
         if info.draggingSource as? NSOutlineView == outlineView {
             return .self
         } else if info.draggingSource != nil {
@@ -413,6 +459,58 @@ extension OutlineViewDiffableDataSource {
         } else {
             return .remote
         }
+    }
+
+    // MARK: Completion handlers
+
+    struct OutlineViewDragEndHandler<T>: DragEndHandler where T: NSPasteboardReading {
+        let type: T.Type
+        let operations: [DragOperation]
+        let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
+        let action: ([T], DragOperation) -> Void
+    }
+
+    func onDragEnd<T>(
+        for type: T.Type,
+        operations: [DragOperation],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: NSPasteboardReading {
+        let handler = OutlineViewDragEndHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action)
+        addDragEndHandler(handler)
+    }
+
+    func onDragEnd<T>(
+        for type: T.Type,
+        operation: DragOperation,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: NSPasteboardReading {
+        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
+    }
+
+    func onDragEnd<T>(
+        for type: T.Type,
+        operations: [DragOperation],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragEnd(for: T.ReferenceType.self, operations: operations, searchOptions: searchOptions) { references, operation in
+            action(references.map { $0 as! T }, operation)
+        }
+    }
+
+    func onDragEnd<T>(
+        for type: T.Type,
+        operation: DragOperation,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
+    }
+
+    private func addDragEndHandler(_ handler: any DragEndHandler) {
+        dragEndHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
     }
 }
 

@@ -128,10 +128,20 @@ class WorkspaceBrowserViewController: NSViewController {
         }
 
         outlineView.setDraggingSourceOperationMask([.move, .copy, .generic], forLocal: true)
-        outlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
+        outlineView.setDraggingSourceOperationMask([.copy, .delete], forLocal: false)
 
         dataSource.onDrag = { dirent in
             WorkspacePasteboardWriter(dirent: dirent, delegate: self)
+        }
+
+        dataSource.onDragEnd(for: URL.self, operation: .delete, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] urls, operation in
+             Task {
+                 do {
+                     try await workspace.trash(filesAt: urls)
+                 } catch {
+                     self?.presentErrorAsSheetWithFallback(error)
+                 }
+             }
         }
 
         dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination, _ in
@@ -338,7 +348,7 @@ class WorkspaceBrowserViewController: NSViewController {
             }
 
             do {
-                try await workspace.delete(filesAt: urls)
+                try await workspace.trash(filesAt: urls)
             } catch {
                 presentErrorAsSheetWithFallback(error)
             }

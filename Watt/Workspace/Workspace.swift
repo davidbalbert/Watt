@@ -120,7 +120,7 @@ class Workspace {
         return dst.url
     }
 
-    func delete(filesAt urls: [URL]) async throws {
+    func trash(filesAt urls: [URL]) async throws {
         let intents = urls.map { NSFileAccessIntent.writingIntent(with: $0, options: .forDeleting) }
         try await NSFileCoordinator().coordinate(with: intents, queue: fileQueue) {
             for intent in intents {
