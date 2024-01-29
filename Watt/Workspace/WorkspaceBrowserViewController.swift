@@ -99,6 +99,7 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.addTableColumn(column)
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
+        outlineView.allowsMultipleSelection = true
 
         let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { [weak self] outlineView, column, dirent in
             guard let self else {
