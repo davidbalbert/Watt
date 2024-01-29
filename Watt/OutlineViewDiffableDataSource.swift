@@ -123,8 +123,14 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
                 } else {
                     operation = NSDragOperation(handler.operations.first!)
                 }
+
+                // We just find the first draggingItem with a valid matching handler, and use that operation.
+                // This isn't principled because we don't match in order of registration (onDrop calls), but
+                // in the order of the draggingItems.
+                //
+                // It might be nice to change this, but it's not important enough for my usecase.
+                stop.pointee = true
             }
-            stop.pointee = true
         }
         return operation
     }
