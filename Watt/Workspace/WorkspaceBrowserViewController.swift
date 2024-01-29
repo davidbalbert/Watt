@@ -54,7 +54,7 @@ class WorkspaceBrowserViewController: NSViewController {
             textField.delegate = self
 
             textField.target = self
-            textField.action = #selector(WorkspaceBrowserViewController.onSubmit(_:))
+            textField.action = #selector(WorkspaceBrowserViewController.submit(_:))
 
             view.addSubview(imageView)
             view.addSubview(textField)
@@ -227,7 +227,7 @@ class WorkspaceBrowserViewController: NSViewController {
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
     }
 
-    @objc func onSubmit(_ sender: DirentTextField) {
+    @objc func submit(_ sender: DirentTextField) {
         guard let dirent = dirent(for: sender) else {
             return
         }
@@ -262,6 +262,89 @@ class WorkspaceBrowserViewController: NSViewController {
         }
     }
 
+    @objc func delete(_ sender: Any) {
+        let indexes = outlineView.selectedRowIndexes
+        if indexes.isEmpty {
+            // should never happen because of menu validation
+            return
+        }
+
+        let messageText: String
+        let informativeText: String
+        if indexes.count == 1 {
+            guard let i = indexes.first, let id = outlineView.item(atRow: i) as? Dirent.ID else {
+                let error = NSError(wattErrorWithCode: .invalidDirentID, userInfo: [
+                    NSLocalizedDescriptionKey: String(localized: "Invalid Dirent ID"),
+                    NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
+                ])
+
+                presentErrorAsSheetWithFallback(error)
+                return
+            }
+
+            guard let dirent = dataSource[id] else {
+                let error = NSError(wattErrorWithCode: .noDirentInWorkspace, userInfo: [
+                    NSLocalizedDescriptionKey: String(localized: "Unable to find Dirent with ID \(String(describing: id)) in workspace."),
+                    NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
+                ])
+                presentErrorAsSheetWithFallback(error)
+                return
+            }
+
+            var name = dirent.nameWithExtension
+            if name.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
+                name = "\"\(name)\""
+            }
+
+            messageText = String(localized: "Are you sure you want to delete \(name)?")
+            informativeText = String(localized: "The selected item will be moved to the Trash.")
+        } else {
+            messageText = String(localized: "Are you sure you want to delete the selected \(indexes.count) items?")
+            informativeText = String(localized: "The selected items will be moved to the Trash.")
+        }
+
+        let alert = NSAlert()
+        alert.messageText = messageText
+        alert.informativeText = informativeText
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: String(localized: "Delete"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+
+        Task {
+            let response = await alert.beginSheetModal(for: view.window!)
+            guard response == .alertFirstButtonReturn else {
+                return
+            }
+
+            let ids = indexes.compactMap { outlineView.item(atRow: $0) as? Dirent.ID }
+            if ids.count < indexes.count {
+                let error = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
+                presentErrorAsSheetWithFallback(error)
+                return
+            }
+
+            var urls: [URL] = []
+            for id in ids {
+                guard let dirent = dataSource[id] else {
+                    let error = NSError(wattErrorWithCode: .noDirentInWorkspace, userInfo: [
+                        NSLocalizedDescriptionKey: String(localized: "Unable to find Dirent with ID \(String(describing: id)) in workspace."),
+                        NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
+                    ])
+                    presentErrorAsSheetWithFallback(error)
+                    return
+                }
+
+                urls.append(dirent.url)
+            }
+
+            do {
+                try await workspace.delete(filesAt: urls)
+            } catch {
+                presentErrorAsSheetWithFallback(error)
+            }
+        }   
+    }
+
     func withoutWorkspaceDidChange(perform block: () async throws -> Void) async throws {
         skipWorkspaceDidChange = true
         defer { skipWorkspaceDidChange = false }
@@ -278,6 +361,17 @@ class WorkspaceBrowserViewController: NSViewController {
 
     func dirent(for textField: DirentTextField) -> Dirent? {
         dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
+    }
+}
+
+extension WorkspaceBrowserViewController: NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        switch menuItem.action {
+        case #selector(delete(_:)):
+            return !outlineView.selectedRowIndexes.isEmpty
+        default:
+            return true
+        }
     }
 }
 

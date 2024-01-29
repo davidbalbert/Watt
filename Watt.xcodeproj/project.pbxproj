@@ -25,6 +25,8 @@
 		635F815D2AA9E51900553E23 /* TreeSitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635F815C2AA9E51900553E23 /* TreeSitter.swift */; };
 		636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */; };
 		636E84642B681BB900772ECE /* URL+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636E84632B681BB900772ECE /* URL+Extensions.swift */; };
+		636E84672B683F3A00772ECE /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 636E84662B683F3A00772ECE /* Localizable.xcstrings */; };
+		636E84692B68406200772ECE /* WattErrorDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636E84682B68406200772ECE /* WattErrorDomain.swift */; };
 		6372888C29FD8E19005B95E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888B29FD8E19005B95E5 /* AppDelegate.swift */; };
 		6372888E29FD8E19005B95E5 /* Document.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6372888D29FD8E19005B95E5 /* Document.swift */; };
 		6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6372889229FD8E1A005B95E5 /* Assets.xcassets */; };
@@ -124,6 +126,8 @@
 		635F815C2AA9E51900553E23 /* TreeSitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeSitter.swift; sourceTree = "<group>"; };
 		636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Workspace+LoadRequest.swift"; sourceTree = "<group>"; };
 		636E84632B681BB900772ECE /* URL+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+Extensions.swift"; sourceTree = "<group>"; };
+		636E84662B683F3A00772ECE /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		636E84682B68406200772ECE /* WattErrorDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WattErrorDomain.swift; sourceTree = "<group>"; };
 		6372888829FD8E19005B95E5 /* Watt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Watt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6372888B29FD8E19005B95E5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6372888D29FD8E19005B95E5 /* Document.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Document.swift; sourceTree = "<group>"; };
@@ -346,10 +350,12 @@
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
+				636E84682B68406200772ECE /* WattErrorDomain.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
+				636E84662B683F3A00772ECE /* Localizable.xcstrings */,
 				636E84652B68215200772ECE /* Extensions */,
 				63B863C92A1314E50082B4A6 /* LineNumberView */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
@@ -529,6 +535,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				635658902ACD9D5400F1DC63 /* Themes in Resources */,
+				636E84672B683F3A00772ECE /* Localizable.xcstrings in Resources */,
 				6372889329FD8E1A005B95E5 /* Assets.xcassets in Resources */,
 				6372889629FD8E1A005B95E5 /* MainMenu.xib in Resources */,
 				63A618622A0C3AE200E70B0E /* Moby Dick.txt in Resources */,
@@ -570,6 +577,7 @@
 				63F25BE12A689D2400DEACCF /* Line.swift in Sources */,
 				637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */,
 				637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */,
+				636E84692B68406200772ECE /* WattErrorDomain.swift in Sources */,
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
 				63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,

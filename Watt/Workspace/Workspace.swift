@@ -120,6 +120,21 @@ class Workspace {
         return dst.url
     }
 
+    func delete(filesAt urls: [URL]) async throws {
+        let intents = urls.map { NSFileAccessIntent.writingIntent(with: $0, options: .forDeleting) }
+        try await NSFileCoordinator().coordinate(with: intents, queue: fileQueue) {
+            for intent in intents {
+                try FileManager.default.trashItem(at: intent.url, resultingItemURL: nil)
+            }
+        }
+
+        for url in urls {
+            try remove(direntFor: url)
+        }
+
+        delegateWorkspaceDidChange()
+    }
+
     // Used for drag and drop from other apps. Throws if targetDirectoryURL isn't in the workspace
     // or isn't loaded.
     @discardableResult
