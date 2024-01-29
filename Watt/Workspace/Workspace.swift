@@ -173,6 +173,7 @@ class Workspace {
         }
     }
 
+    @discardableResult
     private func remove(direntFor url: URL) throws -> Dirent? {
         let parentURL = url.deletingLastPathComponent()
         var dirent: Dirent?
@@ -218,7 +219,7 @@ class Workspace {
                     }
                     return req
                 }
-                cont.yield(requests)
+                cont.yield(requests.removingDuplicates())
             }
 
             guard let stream else {
@@ -243,6 +244,7 @@ class Workspace {
         }
 
         for await requests in requestsStream {
+            print(requests)
             for req in requests {
                 if !loaded.contains(req.url) {
                     continue
