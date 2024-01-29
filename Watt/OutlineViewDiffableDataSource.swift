@@ -29,6 +29,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
     private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [any DropHandler<DropDestination>]> = [:]
 
+    private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [any DragStartHandler]> = [:]
     private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [any DragEndHandler]> = [:]
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
@@ -181,6 +182,26 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         return success
     }
 
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
+        let handlers = dragStartHandlers.values.joined()
+        let classes = handlers.map { $0.type }
+        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
+
+        var invocations: OrderedDictionary<ObjectIdentifier, (any DragStartHandler, [NSDraggingItem])> = [:]
+        session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
+            let handler = handlers.first { $0.matches(draggingItem) }
+            guard let handler else {
+                return
+            }
+
+            invocations[ObjectIdentifier(handler.type), default: (handler, [])].1.append(draggingItem)
+        }
+
+        for (handler, draggingItems) in invocations.values {
+            handler.run(draggingItems: draggingItems)
+        }
+    }
+
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
         let handlers = dragEndHandlers.values.joined()
         let classes = handlers.map { $0.type }
@@ -206,6 +227,44 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 }
 
 // MARK: - Drag and Drop
+
+protocol DragStartHandler {
+    associatedtype T: NSPasteboardReading
+
+    var type: T.Type { get }
+    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
+    var action: ([T]) -> Void { get }
+}
+
+extension DragStartHandler {
+    func matches(_ draggingItem: NSDraggingItem) -> Bool {
+        draggingItem.item is T
+    }
+
+    func run(draggingItems: [NSDraggingItem]) {
+        action(draggingItems.map { $0.item as! T })
+    }
+}
+
+
+protocol DragEndHandler {
+    associatedtype T: NSPasteboardReading
+
+    var type: T.Type { get }
+    var operations: [DragOperation] { get }
+    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
+    var action: ([T], DragOperation) -> Void { get }
+}
+
+extension DragEndHandler {
+    func matches(_ draggingItem: NSDraggingItem, operation: DragOperation) -> Bool {
+        draggingItem.item is T && operations.contains(operation)
+    }
+
+    func run(draggingItems: [NSDraggingItem], operation: DragOperation) {
+        action(draggingItems.map { $0.item as! T }, operation)
+    }
+}
 
 struct DragPreview {
     let frame: NSRect
@@ -250,25 +309,6 @@ extension DropHandler {
 
     func run(draggingItem: NSDraggingItem, destination: Destination, operation: DragOperation) {
         action(draggingItem.item as! T, destination, operation)
-    }
-}
-
-protocol DragEndHandler {
-    associatedtype T: NSPasteboardReading
-
-    var type: T.Type { get }
-    var operations: [DragOperation] { get }
-    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
-    var action: ([T], DragOperation) -> Void { get }
-}
-
-extension DragEndHandler {
-    func matches(_ draggingItem: NSDraggingItem, operation: DragOperation) -> Bool {
-        draggingItem.item is T && operations.contains(operation)
-    }
-
-    func run(draggingItems: [NSDraggingItem], operation: DragOperation) {
-        action(draggingItems.map { $0.item as! T }, operation)
     }
 }
 
@@ -461,7 +501,39 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    // MARK: Completion handlers
+    // MARK: Drag start handlers
+
+    struct OutlineViewDragStartHandler<T>: DragStartHandler where T: NSPasteboardReading {
+        let type: T.Type
+        let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
+        let action: ([T]) -> Void
+    }
+
+    func onDragStart<T>(
+        for type: T.Type,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T]) -> Void
+    ) where T: NSPasteboardReading {
+        let handler = OutlineViewDragStartHandler(type: T.self, searchOptions: searchOptions, action: action)
+        addDragStartHandler(handler)
+    }
+
+    func onDragStart<T>(
+        for type: T.Type,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T]) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragStart(for: T.ReferenceType.self, searchOptions: searchOptions) { references in
+            action(references.map { $0 as! T })
+        }
+    }
+
+    private func addDragStartHandler(_ handler: any DragStartHandler) {
+        dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
+    }
+
+    
+    // MARK: Drag end handlers
 
     struct OutlineViewDragEndHandler<T>: DragEndHandler where T: NSPasteboardReading {
         let type: T.Type
