@@ -110,26 +110,32 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
         let destination = DropDestination(parent: self[item], index: index)
 
-        var operation: NSDragOperation = []
+        var matches: [ObjectIdentifier: (handler: any DropHandler<DropDestination>, items: [NSDraggingItem])] = [:]
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }
             guard let handler else {
                 return
             }
 
-            if handler.isValid(draggingItem, destination: destination) {
+            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
+        }
+
+        let invocations = matches.values.sorted { a, b in
+            let i = handlers.firstIndex { $0.type == a.handler.type }!
+            let j = handlers.firstIndex { $0.type == b.handler.type }!
+            return i < j
+        }
+
+        // The first matching handler determines the operation.
+        var operation: NSDragOperation = []
+        for (handler, items) in invocations {
+            if handler.isValid(items, destination: destination) {
                 if info.draggingSourceOperationMask.rawValue % 2 == 0 {
                     operation = info.draggingSourceOperationMask
                 } else {
                     operation = NSDragOperation(handler.operations.first!)
                 }
-
-                // We just find the first draggingItem with a valid matching handler, and use that operation.
-                // This isn't principled because we don't match in order of registration (onDrop calls), but
-                // in the order of the draggingItems.
-                //
-                // It might be nice to change this, but it's not important enough for my usecase.
-                stop.pointee = true
+                break
             }
         }
         return operation
@@ -166,68 +172,104 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
         let destination = DropDestination(parent: self[item], index: index)
 
-        var success = false // can only transition from false to true
+        var matches: [ObjectIdentifier: (handler: any DropHandler<DropDestination>, items: [NSDraggingItem])] = [:]
+
+        // var success = false // can only transition from false to true
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }!
-
-            let operation: DragOperation
-            if info.draggingSourceOperationMask.rawValue % 2 == 0 {
-                // Force unwrap justification: At this point, draggingSourceOperationMask should be a power of two,
-                // so we're guaranteed to have a known DragOperation. While it's possible Apple could add a new
-                // NSDragOperation flag in the future, all handlers are specified with DragOperations, which means
-                // we should never see the new NSDragOperation here until we add it to DragOperation.
-
-                operation = DragOperation(info.draggingSourceOperationMask)!
-            } else {
-                operation = handler.operations.first!
+            let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }
+            guard let handler else {
+                return
             }
 
-            handler.run(draggingItem: draggingItem, destination: destination, operation: operation)
-            success = true
+            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
         }
-        return success
+
+        var invocations = matches.values.sorted { a, b in
+            let i = handlers.firstIndex { $0.type == a.handler.type }!
+            let j = handlers.firstIndex { $0.type == b.handler.type }!
+            return i < j
+        }
+
+        var operation: NSDragOperation = []
+        for (handler, items) in invocations {
+            if handler.isValid(items, destination: destination) {
+                if info.draggingSourceOperationMask.rawValue % 2 == 0 {
+                    operation = info.draggingSourceOperationMask
+                } else {
+                    operation = NSDragOperation(handler.operations.first!)
+                }
+                break
+            }
+        }
+
+        assert(operation != [])
+        let dragOperation = DragOperation(operation)!
+
+        invocations.removeAll { handler, items in
+            !handler.operations.contains(dragOperation)
+        }
+
+        for (handler, items) in invocations {
+            handler.run(draggingItems: items, destination: destination, operation: dragOperation)
+        }
+
+        // TODO: make handlers return a bool indicating whether they succeeded
+        return invocations.count > 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
+        // TODO: perhaps add session and draggedItems (Element.IDs) to the handler's action.
+
         let handlers = dragStartHandlers.values.joined()
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
-        var invocations: OrderedDictionary<ObjectIdentifier, (any DragStartHandler, [NSDraggingItem])> = [:]
+        var matches: [ObjectIdentifier: (handler: any DragStartHandler, items: [NSDraggingItem])] = [:]
         session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.matches(draggingItem) }
             guard let handler else {
                 return
             }
 
-            invocations[ObjectIdentifier(handler.type), default: (handler, [])].1.append(draggingItem)
+            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
         }
 
-        for (handler, draggingItems) in invocations.values {
+        let invocations = matches.values.sorted { a, b in
+            let i = handlers.firstIndex { $0.type == a.handler.type }!
+            let j = handlers.firstIndex { $0.type == b.handler.type }!
+            return i < j
+        }
+
+        for (handler, draggingItems) in invocations {
             handler.run(draggingItems: draggingItems)
         }
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
+        // TODO: perhaps add session and endedAt to the handler's action.
+
         let handlers = dragEndHandlers.values.joined()
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
-        // NSDragOperation should always be a single flag (power of two)
-        let dragOperation = DragOperation(operation)!
-
-        var invocations: OrderedDictionary<ObjectIdentifier, (any DragEndHandler, [NSDraggingItem])> = [:]
+        var matches: [ObjectIdentifier: (handler: any DragEndHandler, items: [NSDraggingItem])] = [:]
         session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: dragOperation) }
+            let handler = handlers.first { $0.matches(draggingItem, operation: operation) }
             guard let handler else {
                 return
             }
 
-            invocations[ObjectIdentifier(handler.type), default: (handler, [])].1.append(draggingItem)
+            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
         }
 
-        for (handler, draggingItems) in invocations.values {
-            handler.run(draggingItems: draggingItems, operation: dragOperation)
+        let invocations = matches.values.sorted { a, b in
+            let i = handlers.firstIndex { $0.type == a.handler.type }!
+            let j = handlers.firstIndex { $0.type == b.handler.type }!
+            return i < j
+        }
+
+        for (handler, draggingItems) in invocations {
+            handler.run(draggingItems: draggingItems, operation: DragOperation(operation)!)
         }
     }
 }
@@ -263,8 +305,9 @@ protocol DragEndHandler {
 }
 
 extension DragEndHandler {
-    func matches(_ draggingItem: NSDraggingItem, operation: DragOperation) -> Bool {
-        draggingItem.item is T && operations.contains(operation)
+    func matches(_ draggingItem: NSDraggingItem, operation: NSDragOperation) -> Bool {
+        // NSDragOperation should always be a single flag (power of two)
+        draggingItem.item is T && operations.contains(DragOperation(operation)!)
     }
 
     func run(draggingItems: [NSDraggingItem], operation: DragOperation) {
@@ -284,8 +327,8 @@ protocol DropHandler<Destination> {
     var type: T.Type { get }
     var operations: [DragOperation] { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
-    var action: (T, Destination, DragOperation) -> Void { get }
-    var validator: (T, Destination) -> Bool { get }
+    var action: ([T], Destination, DragOperation) -> Void { get }
+    var validator: ([T], Destination) -> Bool { get }
     var preview: ((T) -> DragPreview?)? { get }
 }
 
@@ -294,12 +337,9 @@ extension DropHandler {
         draggingItem.item is T && !nsOperation.intersection(NSDragOperation(operations)).isEmpty
     }
 
-    func isValid(_ draggingItem: NSDraggingItem, destination: Destination) -> Bool {
-        guard let value = draggingItem.item as? T else {
-            return false
-        }
-
-        return validator(value, destination)
+    func isValid(_ draggingItems: [NSDraggingItem], destination: Destination) -> Bool {
+        let values = draggingItems.map { $0.item as! T }
+        return validator(values, destination)
     }
     
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
@@ -313,8 +353,8 @@ extension DropHandler {
         return nil
     }
 
-    func run(draggingItem: NSDraggingItem, destination: Destination, operation: DragOperation) {
-        action(draggingItem.item as! T, destination, operation)
+    func run(draggingItems: [NSDraggingItem], destination: Destination, operation: DragOperation) {
+        action(draggingItems.map { $0.item as! T }, destination, operation)
     }
 }
 
@@ -375,8 +415,8 @@ extension OutlineViewDiffableDataSource {
         let type: T.Type
         let operations: [DragOperation]
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-        let action: (T, DropDestination, DragOperation) -> Void
-        let validator: (T, DropDestination) -> Bool
+        let action: ([T], DropDestination, DragOperation) -> Void
+        let validator: ([T], DropDestination) -> Bool
         let preview: ((T) -> DragPreview?)?
     }
 
@@ -411,8 +451,8 @@ extension OutlineViewDiffableDataSource {
         operations: [DragOperation],
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping (T, DropDestination, DragOperation) -> Void,
-        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
+        action: @escaping ([T], DropDestination, DragOperation) -> Void,
+        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         precondition(!operations.isEmpty, "Must specify at least one operation")
@@ -433,8 +473,8 @@ extension OutlineViewDiffableDataSource {
         operation: DragOperation,
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping (T, DropDestination, DragOperation) -> Void,
-        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
+        action: @escaping ([T], DropDestination, DragOperation) -> Void,
+        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
@@ -445,8 +485,8 @@ extension OutlineViewDiffableDataSource {
         operations: [DragOperation],
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
-        action: @escaping (T, DropDestination, DragOperation) -> Void,
-        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
+        action: @escaping ([T], DropDestination, DragOperation) -> Void,
+        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         var wrappedPreview: ((T.ReferenceType) -> DragPreview?)?
@@ -456,10 +496,10 @@ extension OutlineViewDiffableDataSource {
             }
         }
 
-        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { reference, destination, operation in
-            action(reference as! T, destination, operation)
-        }, validator: { reference, destination in
-            validator(reference as! T, destination)
+        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, destination, operation in
+            action(references.map { $0  as! T }, destination, operation)
+        }, validator: { references, destination in
+            validator(references.map { $0  as! T }, destination)
         }, preview: wrappedPreview)
     }
 
@@ -468,8 +508,8 @@ extension OutlineViewDiffableDataSource {
         operation: DragOperation,
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
-        action: @escaping (T, DropDestination, DragOperation) -> Void,
-        validator: @escaping (T, DropDestination) -> Bool = { _, _ in true },
+        action: @escaping ([T], DropDestination, DragOperation) -> Void,
+        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)

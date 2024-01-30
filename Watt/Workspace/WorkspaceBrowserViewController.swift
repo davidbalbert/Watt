@@ -144,11 +144,11 @@ class WorkspaceBrowserViewController: NSViewController {
              }
         }
 
-        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceiver, destination, _ in
+        dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceivers, destination, _ in
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    try await workspace.receive(filesFrom: filePromiseReceiver, atDestination: targetDirectoryURL)
+                    try await workspace.receive(filesFrom: filePromiseReceivers, atDestination: targetDirectoryURL)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -157,17 +157,19 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        dataSource.onDrop(of: URL.self, operations: [.copy, .generic], source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] srcURL, destination, operation in
+        dataSource.onDrop(of: URL.self, operations: [.copy, .generic], source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] srcURLs, destination, operation in
             Task {
                 do {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
-                    let dstURL = targetDirectoryURL.appendingPathComponent(srcURL.lastPathComponent)
+                    let dstURLs = srcURLs.map {
+                        targetDirectoryURL.appendingPathComponent($0.lastPathComponent)
+                    }
 
                     if operation == .generic {
-                        try await workspace.move(fileAt: srcURL, to: dstURL)
+                        try await workspace.move(filesAt: srcURLs, to: dstURLs)
                     } else {
                         assert(operation == .copy)
-                        try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
+                        try await workspace.copy(filesAt: srcURLs, intoWorkspaceAt: dstURLs)
                     }
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
@@ -180,12 +182,15 @@ class WorkspaceBrowserViewController: NSViewController {
             return self?.dragPreview(for: column, dirent: dirent)
         }
 
-        dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] ref, destination, _ in
+        dataSource.onDrop(of: ReferenceDirent.self, operations: [.move, .generic], source: .self) { [weak self] refs, destination, _ in
             Task {
                 do {
-                    let oldURL = ref.url
-                    let newURL = (destination.parent ?? workspace.root).url.appending(path: oldURL.lastPathComponent)
-                    try await workspace.move(fileAt: oldURL, to: newURL)
+                    let oldURLs = refs.map(\.url)
+                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
+                    let newURLs = oldURLs.map {
+                        targetDirectoryURL.appending(path: $0.lastPathComponent)
+                    }
+                    try await workspace.move(filesAt: oldURLs, to: newURLs)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -194,12 +199,16 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] ref, destination, _ in
+        dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] refs, destination, _ in
             Task {
                 do {
-                    let srcURL = ref.url
-                    let dstURL = (destination.parent ?? workspace.root).url.appending(path: srcURL.lastPathComponent)
-                    try await workspace.copy(fileAt: srcURL, intoWorkspaceAt: dstURL)
+
+                    let srcURLs = refs.map(\.url)
+                    let targetDirectoryURL = (destination.parent ?? workspace.root).url
+                    let dstURLs = srcURLs.map {
+                        targetDirectoryURL.appending(path: $0.lastPathComponent)
+                    }
+                    try await workspace.copy(filesAt: srcURLs, intoWorkspaceAt: dstURLs)
                 } catch {
                     self?.presentErrorAsSheetWithFallback(error)
                 }
@@ -257,7 +266,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 // most of the time.
                 var actualURL: URL?
                 try await withoutWorkspaceDidChange {
-                    actualURL = try await workspace.move(fileAt: oldURL, to: newURL)
+                    actualURL = try await workspace.move(filesAt: [oldURL], to: [newURL]).first
                 }
 
                 let dirent = try Dirent(for: actualURL!)

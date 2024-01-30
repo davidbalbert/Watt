@@ -72,52 +72,73 @@ class Workspace {
 
     // Doesn't care whether oldURL and newURL are in the workspace. Returns the actual new URL.
     @discardableResult
-    func move(fileAt oldURL: URL, to newURL: URL) async throws -> URL {
-        if oldURL == root.url || newURL == root.url {
+    func move(filesAt oldURLs: [URL], to newURLs: [URL]) async throws -> [URL] {
+        precondition(oldURLs.count == newURLs.count)
+
+        if oldURLs.contains(root.url) || newURLs.contains(root.url) {
             throw Errors.cantMoveRoot
         }
 
-        let src: NSFileAccessIntent = .writingIntent(with: oldURL, options: .forMoving)
-        let dst: NSFileAccessIntent = .writingIntent(with: newURL, options: .forReplacing)
-        try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
-            try FileManager.default.moveItem(at: src.url, to: dst.url)
+        let srcIntents = oldURLs.map { NSFileAccessIntent.writingIntent(with: $0, options: .forMoving) }
+        let dstIntents = newURLs.map { NSFileAccessIntent.writingIntent(with: $0, options: .forReplacing) }
+
+        try await NSFileCoordinator().coordinate(with: srcIntents + dstIntents, queue: fileQueue) {
+            for (src, dst) in zip(srcIntents, dstIntents) {
+                try FileManager.default.moveItem(at: src.url, to: dst.url)
+            }
         }
 
-        // None of these URLs are guaranteed to be in the workspace, so just ignore errors.
-        let d1 = try? remove(direntFor: oldURL)
-        let d2 = try? remove(direntFor: src.url)
-        let oldDirent = d2 ?? d1
+        for i in 0..<oldURLs.count {
+            let oldURL = oldURLs[i]
+            let srcURL = srcIntents[i].url
+            let dstURL = dstIntents[i].url
 
-        if let oldDirent, isInWorkspace(dst.url) {
-            let newDirent = Dirent(moving: oldDirent, to: dst.url)
-            try add(dirent: newDirent)
-        } else if isInWorkspace(dst.url) {
-            try add(direntFor: dst.url)
+            // None of these URLs are guaranteed to be in the workspace, so just ignore errors.
+            let d1 = try? remove(direntFor: oldURL)
+            let d2 = try? remove(direntFor: srcURL)
+            let oldDirent = d2 ?? d1
+
+            if let oldDirent, isInWorkspace(dstURL) {
+                let newDirent = Dirent(moving: oldDirent, to: dstURL)
+                try add(dirent: newDirent)
+            } else if isInWorkspace(dstURL) {
+                try add(direntFor: dstURL)
+            }
         }
 
         delegateWorkspaceDidChange()
 
-        return dst.url
+        return dstIntents.map(\.url)
     }
 
     // Used for drag and drop from other apps. Throws if dstURL isn't in the workspace or
     // isn't loaded.
     @discardableResult
-    func copy(fileAt srcURL: URL, intoWorkspaceAt dstURL: URL) async throws -> URL {
-        if !isInWorkspace(dstURL) {
-            throw Errors.isNotInWorkspace(dstURL)
+    func copy(filesAt srcURLs: [URL], intoWorkspaceAt dstURLs: [URL]) async throws -> [URL] {
+        precondition(srcURLs.count == dstURLs.count)
+
+        for dstURL in dstURLs {
+            if !isInWorkspace(dstURL) {
+                throw Errors.isNotInWorkspace(dstURL)
+            }
         }
 
-        let src: NSFileAccessIntent = .readingIntent(with: srcURL)
-        let dst: NSFileAccessIntent = .writingIntent(with: dstURL, options: .forReplacing)
-        try await NSFileCoordinator().coordinate(with: [src, dst], queue: fileQueue) {
-            try FileManager.default.copyItem(at: src.url, to: dst.url)
+        let srcIntents = srcURLs.map { NSFileAccessIntent.readingIntent(with: $0) }
+        let dstIntents = dstURLs.map { NSFileAccessIntent.writingIntent(with: $0, options: .forReplacing) }
+
+        try await NSFileCoordinator().coordinate(with: srcIntents + dstIntents, queue: fileQueue) {
+            for (src, dst) in zip(srcIntents, dstIntents) {
+                try FileManager.default.copyItem(at: src.url, to: dst.url)
+            }
         }
-        try add(direntFor: dst.url)
+
+        for dst in dstIntents {
+            try add(direntFor: dst.url)
+        }
 
         delegateWorkspaceDidChange()
 
-        return dst.url
+        return dstIntents.map(\.url)
     }
 
     func trash(filesAt urls: [URL]) async throws {
@@ -138,14 +159,27 @@ class Workspace {
     // Used for drag and drop from other apps. Throws if targetDirectoryURL isn't in the workspace
     // or isn't loaded.
     @discardableResult
-    func receive(filesFrom filePromiseReceiver: NSFilePromiseReceiver, atDestination targetDirectoryURL: URL) async throws -> [URL] {
+    func receive(filesFrom filePromiseReceivers: [NSFilePromiseReceiver], atDestination targetDirectoryURL: URL) async throws -> [URL] {
         if !isInWorkspace(targetDirectoryURL) {
             throw Errors.isNotInWorkspace(targetDirectoryURL)
         }
 
-        let urls = try await filePromiseReceiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: fileQueue)
-        for url in urls {
-            try add(direntFor: url)
+        let urls = try await withThrowingTaskGroup(of: [URL].self) { group in
+            for receiver in filePromiseReceivers {
+                group.addTask { @MainActor in
+                    let urls = try await receiver.receivePromisedFiles(atDestination: targetDirectoryURL, operationQueue: self.fileQueue)
+                    for url in urls {
+                        try self.add(direntFor: url)
+                    }
+                    return urls
+                }
+            }
+
+            var result: [URL] = []
+            for try await urls in group {
+                result.append(contentsOf: urls)
+            }
+            return result
         }
 
         delegateWorkspaceDidChange()
