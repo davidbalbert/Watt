@@ -41,10 +41,13 @@ class WorkspaceViewController: NSSplitViewController {
         super.viewDidLoad()
 
         updateSidebar()
-        sidebarViewController.view.frame.size.width = 200
 
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
         sidebarItem.isSpringLoaded = false
+
+        let textItem = NSSplitViewItem(viewController: textViewController)
+
+        sidebarViewController.view.frame.size.width = 200
 
         sidebarObserver = sidebarItem.observe(\.isCollapsed) { [weak self] item, _ in
             if item.isCollapsed {
@@ -54,10 +57,12 @@ class WorkspaceViewController: NSSplitViewController {
             }
         }
 
-        let textItem = NSSplitViewItem(viewController: textViewController)
-
         addSplitViewItem(sidebarItem)
         addSplitViewItem(textItem)
+    }
+
+    override func viewWillAppear() {
+        view.window?.initialFirstResponder = textViewController.view
     }
 
     func updateSidebar() {
