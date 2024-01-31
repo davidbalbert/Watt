@@ -16,6 +16,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.Keys.workspaceBrowserAnimationsEnabled: false,
             UserDefaults.Keys.showHiddenFiles: false,
         ])
+
+        NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {

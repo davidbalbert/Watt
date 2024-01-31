@@ -9,8 +9,15 @@ import Cocoa
 import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
+    @ViewLoading var sidebarViewController: ContainerViewController
+    @ViewLoading var textViewController: TextViewController
+
     var buffer: Buffer
-    var workspace: Workspace = try! Workspace(url: URL(filePath: "/Users/david/Developer/Watt"))
+    var workspace: Workspace? {
+        didSet {
+            updateSidebar()
+        }
+    }
 
     init(buffer: Buffer) {
         self.buffer = buffer
@@ -21,19 +28,33 @@ class WorkspaceViewController: NSSplitViewController {
         buffer = Buffer()
         super.init(coder: coder)
     }
-    
+
+    override func loadView() {
+        super.loadView()
+        sidebarViewController = ContainerViewController()
+        textViewController = TextViewController(buffer)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let browserVC = WorkspaceBrowserViewController(workspace: workspace)
-        let textVC = TextViewController(buffer)
+        updateSidebar()
+        sidebarViewController.view.frame.size.width = 200
 
-        let browserItem = NSSplitViewItem(contentListWithViewController: browserVC)
-        let textItem = NSSplitViewItem(viewController: textVC)
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
+        sidebarItem.isSpringLoaded = false
 
-        addSplitViewItem(browserItem)
+        let textItem = NSSplitViewItem(viewController: textViewController)
+
+        addSplitViewItem(sidebarItem)
         addSplitViewItem(textItem)
+    }
 
-        splitView.setPosition(275, ofDividerAt: 0)
+    func updateSidebar() {
+        if let workspace {
+            sidebarViewController.containedViewController = WorkspaceBrowserViewController(workspace: workspace)
+        } else {
+            sidebarViewController.containedViewController = EmptyWorkspaceViewController()
+        }
     }
 }

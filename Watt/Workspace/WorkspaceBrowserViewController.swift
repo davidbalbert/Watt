@@ -77,7 +77,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func dragPreview(for column: NSTableColumn, dirent: Dirent) -> DragPreview {
-        // drag previews don't show text unless they're not editable
+        // Drag previews don't show text unless they're not editable. Not sure why.
         let view = makeTableCellView(for: column, isEditable: false)
         view.imageView!.image = dirent.icon
         view.textField!.stringValue = dirent.name
@@ -228,6 +228,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     override func viewDidLoad() {
+        super.viewDidLoad()
         updateView()
     }
 
