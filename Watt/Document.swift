@@ -43,9 +43,6 @@ class Document: NSDocument {
         // so hopefully this is good enough.
         self.init()
         fileType = typeName
-
-        let url = Bundle.main.url(forResource: "Moby Dick", withExtension: "txt")!
-        buffer.replaceContents(with: try String(contentsOf: url), language: UTType(typeName)?.language ?? .plainText)
     }
 
     override func makeWindowControllers() {
