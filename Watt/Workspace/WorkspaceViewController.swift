@@ -72,4 +72,23 @@ class WorkspaceViewController: NSSplitViewController {
             sidebarViewController.containedViewController = EmptyWorkspaceViewController()
         }
     }
+
+    @objc func openWorkspace(_ sender: Any?) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.beginSheetModal(for: view.window!) { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else {
+                return
+            }
+
+            do {
+                self.workspace = try Workspace(url: url)
+            } catch {
+                presentErrorAsSheetWithFallback(error)
+            }
+        }
+    }
 }

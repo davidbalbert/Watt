@@ -91,6 +91,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     override func loadView() {
+        super.loadView()
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
 
@@ -219,16 +220,24 @@ class WorkspaceBrowserViewController: NSViewController {
 
         self.outlineView = outlineView
         self.dataSource = dataSource
-
-        let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.documentView = outlineView
-
-        view = scrollView
     }
 
     override func viewDidLoad() {
-        super.viewDidLoad()
+        let scrollView = NSScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        scrollView.documentView = outlineView
+        scrollView.frame.size = .zero
+
+        view.addSubview(scrollView)
+
+        view.addConstraints([
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+
         updateView()
     }
 

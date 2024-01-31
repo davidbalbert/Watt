@@ -11,7 +11,7 @@ class EmptyWorkspaceViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let button = NSButton(title: "Choose Folder", target: nil, action: nil)
+        let button = NSButton(title: "Choose Folder", target: nil, action: #selector(WorkspaceViewController.openWorkspace))
         button.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(button)
 

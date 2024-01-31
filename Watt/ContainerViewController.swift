@@ -15,8 +15,8 @@ class ContainerViewController: NSViewController {
         }
     }
 
-    override func viewWillAppear() {
-        super.viewWillAppear()
+    override func viewDidLoad() {
+        super.viewDidLoad()
         updateChildViewControllers()
     }
 
@@ -26,7 +26,18 @@ class ContainerViewController: NSViewController {
 
         if let containedViewController {
             addChild(containedViewController)
-            view.addSubview(containedViewController.view)
+
+            let subview = containedViewController.view
+            subview.translatesAutoresizingMaskIntoConstraints = false
+
+            view.addSubview(subview)
+
+            view.addConstraints([
+                subview.topAnchor.constraint(equalTo: view.topAnchor),
+                subview.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                subview.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                subview.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            ])
         }
     }
 }
