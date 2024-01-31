@@ -12,6 +12,8 @@ class WorkspaceViewController: NSSplitViewController {
     @ViewLoading var sidebarViewController: ContainerViewController
     @ViewLoading var textViewController: TextViewController
 
+    var sidebarObserver: NSKeyValueObservation?
+
     var buffer: Buffer
     var workspace: Workspace? {
         didSet {
@@ -43,6 +45,14 @@ class WorkspaceViewController: NSSplitViewController {
 
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
         sidebarItem.isSpringLoaded = false
+
+        sidebarObserver = sidebarItem.observe(\.isCollapsed) { [weak self] item, _ in
+            if item.isCollapsed {
+                self?.view.window?.titlebarSeparatorStyle = .automatic
+            } else {
+                self?.view.window?.titlebarSeparatorStyle = .line
+            }
+        }
 
         let textItem = NSSplitViewItem(viewController: textViewController)
 
