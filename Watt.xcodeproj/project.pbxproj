@@ -63,7 +63,7 @@
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
 		63B8B1762A9F890100F32C2C /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B8B1752A9F890100F32C2C /* Utilities.swift */; };
 		63B8B1782A9F8A3A00F32C2C /* UtilitiesTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */; };
-		63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */; };
+		63C2C03D2B4D95CE00BFB976 /* WorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03C2B4D95CE00BFB976 /* WorkspaceViewController.swift */; };
 		63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */; };
 		63C2C0422B4D97E700BFB976 /* Tree in Frameworks */ = {isa = PBXBuildFile; productRef = 63C2C0412B4D97E700BFB976 /* Tree */; };
 		63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */; };
@@ -81,7 +81,7 @@
 		63D280AB2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */; };
 		63D546402AFC304B00C72CDE /* LayoutManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */; };
 		63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */; };
-		63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */; };
+		63DC933D2B473BB5001018FE /* SplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DC933C2B473BB5001018FE /* SplitViewController.swift */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
@@ -176,7 +176,7 @@
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
 		63B8B1752A9F890100F32C2C /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UtilitiesTest.swift; path = WattTests/UtilitiesTest.swift; sourceTree = SOURCE_ROOT; };
-		63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceBrowserViewController.swift; sourceTree = "<group>"; };
+		63C2C03C2B4D95CE00BFB976 /* WorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewController.swift; sourceTree = "<group>"; };
 		63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutlineViewDiffableDataSource.swift; sourceTree = "<group>"; };
 		63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SimpleProxy.h; sourceTree = "<group>"; };
 		63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SimpleProxy.m; sourceTree = "<group>"; };
@@ -195,7 +195,7 @@
 		63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspacePasteboardWriter.swift; sourceTree = "<group>"; };
 		63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagerTests.swift; sourceTree = "<group>"; };
 		63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+FirstResponder.swift"; sourceTree = "<group>"; };
-		63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewController.swift; sourceTree = "<group>"; };
+		63DC933C2B473BB5001018FE /* SplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitViewController.swift; sourceTree = "<group>"; };
 		63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = StandardKeyBindingResponder; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
@@ -401,12 +401,12 @@
 			isa = PBXGroup;
 			children = (
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
+				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
+				63DC933C2B473BB5001018FE /* SplitViewController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
-				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
-				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
-				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
+				63C2C03C2B4D95CE00BFB976 /* WorkspaceViewController.swift */,
 			);
 			path = Workspace;
 			sourceTree = "<group>";
@@ -611,7 +611,7 @@
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */,
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
-				63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */,
+				63C2C03D2B4D95CE00BFB976 /* WorkspaceViewController.swift in Sources */,
 				63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
@@ -621,7 +621,7 @@
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
 				63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */,
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
-				63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */,
+				63DC933D2B473BB5001018FE /* SplitViewController.swift in Sources */,
 				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
 				63C2C03F2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift in Sources */,
 			);

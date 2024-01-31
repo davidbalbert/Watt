@@ -49,7 +49,7 @@ class Document: NSDocument {
     }
 
     override func makeWindowControllers() {
-        let w = NSWindow(contentViewController: WorkspaceViewController(buffer: buffer))
+        let w = NSWindow(contentViewController: SplitViewController(buffer: buffer))
 
         w.setContentSize(CGSize(width: 800, height: 600))
         let c = WindowController(window: w)
