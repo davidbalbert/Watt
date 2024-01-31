@@ -273,6 +273,54 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		636E850F2B6AAD7C00772ECE /* TextView */ = {
+			isa = PBXGroup;
+			children = (
+				635B36AE2AAE5424002FAE70 /* Highlighter.swift */,
+				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
+				635B36AC2AAE4D7F002FAE70 /* Language.swift */,
+				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
+				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
+				63B61A1529FDA2B800787BB9 /* TextView.swift */,
+				63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */,
+				637867822A1EC5B50039960E /* TextView+Input.swift */,
+				637867842A1EC6BB0039960E /* TextView+KeyBinding.swift */,
+				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
+				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
+				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
+				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
+				637867702A17F7460039960E /* TextView+Selection.swift */,
+				635B36B02AAFCD95002FAE70 /* Theme.swift */,
+				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
+			);
+			path = TextView;
+			sourceTree = "<group>";
+		};
+		636E85102B6AADC900772ECE /* Rope */ = {
+			isa = PBXGroup;
+			children = (
+				6315D2FF2A9B769100B8A077 /* AttributedRope.swift */,
+				63F046892A65D3EA001B8DA8 /* BTree.swift */,
+				63F0468B2A65D3F8001B8DA8 /* Rope.swift */,
+				63C907892A795F1B00E4D7C9 /* Spans.swift */,
+			);
+			path = Rope;
+			sourceTree = "<group>";
+		};
+		636E85112B6AAE2800772ECE /* LayoutManager */ = {
+			isa = PBXGroup;
+			children = (
+				63F25BD82A683CC500DEACCF /* Buffer.swift */,
+				631FD2642A696D27005FA854 /* Heights.swift */,
+				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
+				63F25BE02A689D2400DEACCF /* Line.swift */,
+				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
+				637BC1312A151F5F0089A34D /* Selection.swift */,
+				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
+			);
+			path = LayoutManager;
+			sourceTree = "<group>";
+		};
 		6372887F29FD8E19005B95E5 = {
 			isa = PBXGroup;
 			children = (
@@ -314,51 +362,26 @@
 				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				6315D2FF2A9B769100B8A077 /* AttributedRope.swift */,
-				63F046892A65D3EA001B8DA8 /* BTree.swift */,
-				63F25BD82A683CC500DEACCF /* Buffer.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
-				631FD2642A696D27005FA854 /* Heights.swift */,
-				635B36AE2AAE5424002FAE70 /* Highlighter.swift */,
-				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
-				635B36AC2AAE4D7F002FAE70 /* Language.swift */,
-				63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */,
-				63F25BE02A689D2400DEACCF /* Line.swift */,
-				63F25BE42A68A27600DEACCF /* LineFragment.swift */,
-				63F25BE22A689EA700DEACCF /* LineLayer.swift */,
 				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
-				63F0468B2A65D3F8001B8DA8 /* Rope.swift */,
-				637BC1312A151F5F0089A34D /* Selection.swift */,
-				6378677A2A1BDF870039960E /* SelectionLayer.swift */,
-				63C907892A795F1B00E4D7C9 /* Spans.swift */,
-				6346D1942A06EC2900CFB7EE /* TextContainer.swift */,
-				63B61A1529FDA2B800787BB9 /* TextView.swift */,
-				63D546412AFD927300C72CDE /* TextView+FirstResponder.swift */,
-				637867822A1EC5B50039960E /* TextView+Input.swift */,
-				637867842A1EC6BB0039960E /* TextView+KeyBinding.swift */,
-				63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */,
-				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
-				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
-				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
-				637867702A17F7460039960E /* TextView+Selection.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
-				635B36B02AAFCD95002FAE70 /* Theme.swift */,
-				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				636E84682B68406200772ECE /* WattErrorDomain.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
-				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				636E84662B683F3A00772ECE /* Localizable.xcstrings */,
 				636E84652B68215200772ECE /* Extensions */,
+				636E85112B6AAE2800772ECE /* LayoutManager */,
 				63B863C92A1314E50082B4A6 /* LineNumberView */,
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
+				636E85102B6AADC900772ECE /* Rope */,
+				636E850F2B6AAD7C00772ECE /* TextView */,
 				63C2C04E2B4F3B8E00BFB976 /* Workspace */,
 			);
 			path = Watt;
@@ -403,6 +426,7 @@
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				63DC933C2B473BB5001018FE /* SplitViewController.swift */,
+				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
