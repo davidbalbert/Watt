@@ -89,7 +89,8 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
         let currentHeight = frame.height
         let clipviewHeight = scrollView.contentSize.height
-        let newHeight = round(max(clipviewHeight, layoutManager.contentHeight))
+        let inset = computedTextContainerInset
+        let newHeight = round(max(clipviewHeight, layoutManager.contentHeight + inset.top + inset.bottom))
 
         if abs(currentHeight - newHeight) > 1e-10 {
             setFrameSize(CGSize(width: frame.width, height: newHeight))
@@ -335,7 +336,12 @@ extension TextView {
 
             if updateLineNumbers {
                 let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: line.range.lowerBound)
-                lineNumberView.addLineNumber(n+1, withAlignmentFrame: line.alignmentFrame)
+                let inset = computedTextContainerInset
+                let origin = CGPoint(
+                    x: line.alignmentFrame.minX + inset.left - lineNumberView.frame.width,
+                    y: line.alignmentFrame.minY + inset.top
+                )
+                lineNumberView.addLineNumber(n+1, withAlignmentFrame: CGRect(origin: origin, size: line.alignmentFrame.size))
                 lineno = n+1
             }
         }
