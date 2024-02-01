@@ -28,6 +28,8 @@
 		6364DD992B6C1D2000886DE3 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD982B6C1D2000886DE3 /* DocumentController.swift */; };
 		6364DD9B2B6C38DF00886DE3 /* TextDocumentWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */; };
 		6364DD9F2B6C3BB000886DE3 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD9E2B6C3BB000886DE3 /* WindowController.swift */; };
+		6364DDA12B6C403400886DE3 /* ContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DDA02B6C403400886DE3 /* ContainerViewController.swift */; };
+		6364DDA32B6C408700886DE3 /* DocumentPaneViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DDA22B6C408700886DE3 /* DocumentPaneViewController.swift */; };
 		636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */; };
 		636E84642B681BB900772ECE /* URL+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636E84632B681BB900772ECE /* URL+Extensions.swift */; };
 		636E84672B683F3A00772ECE /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 636E84662B683F3A00772ECE /* Localizable.xcstrings */; };
@@ -133,6 +135,8 @@
 		6364DD982B6C1D2000886DE3 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentWindowController.swift; sourceTree = "<group>"; };
 		6364DD9E2B6C3BB000886DE3 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
+		6364DDA02B6C403400886DE3 /* ContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerViewController.swift; sourceTree = "<group>"; };
+		6364DDA22B6C408700886DE3 /* DocumentPaneViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPaneViewController.swift; sourceTree = "<group>"; };
 		636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Workspace+LoadRequest.swift"; sourceTree = "<group>"; };
 		636E84632B681BB900772ECE /* URL+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+Extensions.swift"; sourceTree = "<group>"; };
 		636E84662B683F3A00772ECE /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -371,6 +375,7 @@
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
+				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
 				6372888D29FD8E19005B95E5 /* FileDocument.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
@@ -433,6 +438,7 @@
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				6364DD982B6C1D2000886DE3 /* DocumentController.swift */,
+				6364DDA22B6C408700886DE3 /* DocumentPaneViewController.swift */,
 				63B61A1329FD9E1D00787BB9 /* TextDocumentViewController.swift */,
 				6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */,
 				6364DD9E2B6C3BB000886DE3 /* WindowController.swift */,
@@ -628,6 +634,7 @@
 				637867732A1BD1E10039960E /* TextView+Mouse.swift in Sources */,
 				636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
+				6364DDA32B6C408700886DE3 /* DocumentPaneViewController.swift in Sources */,
 				6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* Weak.swift in Sources */,
 				63D280922B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift in Sources */,
@@ -657,6 +664,7 @@
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
 				63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,
+				6364DDA12B6C403400886DE3 /* ContainerViewController.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
 				63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */,

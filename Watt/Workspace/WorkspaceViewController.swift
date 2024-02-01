@@ -9,8 +9,8 @@ import Cocoa
 import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
-    @ViewLoading var workspaceBrowserViewController: WorkspaceBrowserViewController
-    @ViewLoading var textViewController: TextDocumentViewController
+    @ViewLoading var browserViewController: WorkspaceBrowserViewController
+    @ViewLoading var documentPaneViewController: DocumentPaneViewController
 
     let workspace: Workspace
 
@@ -25,22 +25,22 @@ class WorkspaceViewController: NSSplitViewController {
     
     override func loadView() {
         super.loadView()
-        workspaceBrowserViewController = WorkspaceBrowserViewController(workspace: workspace)
-        textViewController = TextDocumentViewController(buffer: Buffer())
+        browserViewController = WorkspaceBrowserViewController(workspace: workspace)
+        documentPaneViewController = DocumentPaneViewController(workspace: workspace)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let sidebarItem = NSSplitViewItem(sidebarWithViewController: workspaceBrowserViewController)
+        view.frame.size = CGSize(width: 800, height: 600)
+        browserViewController.view.frame.size.width = 250
+
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: browserViewController)
         sidebarItem.isSpringLoaded = false
 
-        let textItem = NSSplitViewItem(viewController: textViewController)
-
-        view.frame.size = CGSize(width: 800, height: 600)
-        workspaceBrowserViewController.view.frame.size.width = 250
+        let documentItem = NSSplitViewItem(viewController: documentPaneViewController)
 
         addSplitViewItem(sidebarItem)
-        addSplitViewItem(textItem)
+        addSplitViewItem(documentItem)
     }
 }
