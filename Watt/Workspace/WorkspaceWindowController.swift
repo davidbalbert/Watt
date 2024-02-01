@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class WorkspaceWindowController: NSWindowController {
+class WorkspaceWindowController: WindowController {
     let workspace: Workspace
     // TODO: I think each FileDocument should be a weak reference? What is Jesse doing here?
     var documents: [FileDocument]
@@ -30,8 +30,10 @@ class WorkspaceWindowController: NSWindowController {
     override func loadWindow() {
         let workspaceViewController = WorkspaceViewController(workspace: workspace)
         let window = NSWindow(contentViewController: workspaceViewController)
+        window.tabbingIdentifier = "WorkspaceWindow"
         window.titlebarSeparatorStyle = .line
-        
         self.window = window
+
+        cascade()
     }
 }

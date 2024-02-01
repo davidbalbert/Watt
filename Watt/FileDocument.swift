@@ -46,17 +46,7 @@ class FileDocument: NSDocument {
     }
 
     override func makeWindowControllers() {
-//        let w = NSWindow(contentViewController: WorkspaceViewController(buffer: buffer))
-//
-//        w.setContentSize(CGSize(width: 800, height: 600))
-//        let c = WindowController(window: w)
-//        addWindowController(c)
-//
-//        if let p = NSApp.mainWindow?.cascadeTopLeft(from: .zero) {
-//            w.cascadeTopLeft(from: p)
-//        } else {
-//            w.center()
-//        }
+        addWindowController(TextDocumentWindowController(buffer: buffer))
     }
 
     override func data(ofType typeName: String) throws -> Data {

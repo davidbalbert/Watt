@@ -26,6 +26,8 @@
 		6364DD932B6BFCC500886DE3 /* WorkspaceDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD922B6BFCC500886DE3 /* WorkspaceDocument.swift */; };
 		6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */; };
 		6364DD992B6C1D2000886DE3 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD982B6C1D2000886DE3 /* DocumentController.swift */; };
+		6364DD9B2B6C38DF00886DE3 /* TextDocumentWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */; };
+		6364DD9F2B6C3BB000886DE3 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD9E2B6C3BB000886DE3 /* WindowController.swift */; };
 		636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */; };
 		636E84642B681BB900772ECE /* URL+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636E84632B681BB900772ECE /* URL+Extensions.swift */; };
 		636E84672B683F3A00772ECE /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 636E84662B683F3A00772ECE /* Localizable.xcstrings */; };
@@ -59,8 +61,7 @@
 		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
 		63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D832B5462D60032E8B9 /* FSEvents.swift */; };
 		63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */; };
-		63B61A1229FD965800787BB9 /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1129FD965800787BB9 /* WindowController.swift */; };
-		63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextViewController.swift */; };
+		63B61A1429FD9E1D00787BB9 /* TextDocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextDocumentViewController.swift */; };
 		63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1529FDA2B800787BB9 /* TextView.swift */; };
 		63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */; };
 		63B61A2029FDAE0400787BB9 /* TextView+Layout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */; };
@@ -130,6 +131,8 @@
 		6364DD922B6BFCC500886DE3 /* WorkspaceDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceDocument.swift; sourceTree = "<group>"; };
 		6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWindowController.swift; sourceTree = "<group>"; };
 		6364DD982B6C1D2000886DE3 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
+		6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentWindowController.swift; sourceTree = "<group>"; };
+		6364DD9E2B6C3BB000886DE3 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Workspace+LoadRequest.swift"; sourceTree = "<group>"; };
 		636E84632B681BB900772ECE /* URL+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+Extensions.swift"; sourceTree = "<group>"; };
 		636E84662B683F3A00772ECE /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -175,8 +178,7 @@
 		63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+LineNumbers.swift"; sourceTree = "<group>"; };
 		63A95D832B5462D60032E8B9 /* FSEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSEvents.swift; sourceTree = "<group>"; };
 		63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+Keys.swift"; sourceTree = "<group>"; };
-		63B61A1129FD965800787BB9 /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
-		63B61A1329FD9E1D00787BB9 /* TextViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewController.swift; sourceTree = "<group>"; };
+		63B61A1329FD9E1D00787BB9 /* TextDocumentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentViewController.swift; sourceTree = "<group>"; };
 		63B61A1529FDA2B800787BB9 /* TextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextView.swift; sourceTree = "<group>"; };
 		63B61A1B29FDA9FB00787BB9 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		63B61A1F29FDAE0400787BB9 /* TextView+Layout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Layout.swift"; sourceTree = "<group>"; };
@@ -373,7 +375,6 @@
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
 				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
-				63B61A1329FD9E1D00787BB9 /* TextViewController.swift */,
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
@@ -432,7 +433,9 @@
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				6364DD982B6C1D2000886DE3 /* DocumentController.swift */,
-				63B61A1129FD965800787BB9 /* WindowController.swift */,
+				63B61A1329FD9E1D00787BB9 /* TextDocumentViewController.swift */,
+				6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */,
+				6364DD9E2B6C3BB000886DE3 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
 				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
@@ -614,10 +617,10 @@
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
 				63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
-				63B61A1429FD9E1D00787BB9 /* TextViewController.swift in Sources */,
+				63B61A1429FD9E1D00787BB9 /* TextDocumentViewController.swift in Sources */,
 				63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */,
 				635F815D2AA9E51900553E23 /* TreeSitter.swift in Sources */,
-				63B61A1229FD965800787BB9 /* WindowController.swift in Sources */,
+				6364DD9F2B6C3BB000886DE3 /* WindowController.swift in Sources */,
 				6364DD992B6C1D2000886DE3 /* DocumentController.swift in Sources */,
 				6364DD932B6BFCC500886DE3 /* WorkspaceDocument.swift in Sources */,
 				63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */,
@@ -650,6 +653,7 @@
 				63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */,
 				63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */,
 				637867852A1EC6BB0039960E /* TextView+KeyBinding.swift in Sources */,
+				6364DD9B2B6C38DF00886DE3 /* TextDocumentWindowController.swift in Sources */,
 				635B36AF2AAE5424002FAE70 /* Highlighter.swift in Sources */,
 				63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */,
 				635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */,

@@ -10,7 +10,7 @@ import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
     @ViewLoading var workspaceBrowserViewController: WorkspaceBrowserViewController
-    @ViewLoading var textViewController: TextViewController
+    @ViewLoading var textViewController: TextDocumentViewController
 
     let workspace: Workspace
 
@@ -26,7 +26,7 @@ class WorkspaceViewController: NSSplitViewController {
     override func loadView() {
         super.loadView()
         workspaceBrowserViewController = WorkspaceBrowserViewController(workspace: workspace)
-        textViewController = TextViewController()
+        textViewController = TextDocumentViewController(buffer: Buffer())
     }
 
     override func viewDidLoad() {
