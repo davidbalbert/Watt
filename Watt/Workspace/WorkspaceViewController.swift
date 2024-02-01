@@ -9,7 +9,7 @@ import Cocoa
 import SwiftUI
 
 class WorkspaceViewController: NSSplitViewController {
-    @ViewLoading var sidebarViewController: ContainerViewController
+    @ViewLoading var workspaceBrowserViewController: WorkspaceBrowserViewController
     @ViewLoading var textViewController: TextViewController
 
     var sidebarObserver: NSKeyValueObservation?
@@ -17,7 +17,7 @@ class WorkspaceViewController: NSSplitViewController {
     var buffer: Buffer
     var workspace: Workspace? {
         didSet {
-            updateSidebar()
+            workspaceBrowserViewController.workspace = workspace
         }
     }
 
@@ -33,21 +33,21 @@ class WorkspaceViewController: NSSplitViewController {
 
     override func loadView() {
         super.loadView()
-        sidebarViewController = ContainerViewController()
+        workspaceBrowserViewController = WorkspaceBrowserViewController(workspace: workspace)
         textViewController = TextViewController(buffer)
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        updateSidebar()
+        workspaceBrowserViewController.workspace = workspace
 
-        let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebarViewController)
+        let sidebarItem = NSSplitViewItem(sidebarWithViewController: workspaceBrowserViewController)
         sidebarItem.isSpringLoaded = false
 
         let textItem = NSSplitViewItem(viewController: textViewController)
 
-        sidebarViewController.view.frame.size.width = 200
+        workspaceBrowserViewController.view.frame.size.width = 250
 
         sidebarObserver = sidebarItem.observe(\.isCollapsed) { [weak self] item, _ in
             if item.isCollapsed {
@@ -63,14 +63,6 @@ class WorkspaceViewController: NSSplitViewController {
 
     override func viewWillAppear() {
         view.window?.initialFirstResponder = textViewController.view
-    }
-
-    func updateSidebar() {
-        if let workspace {
-            sidebarViewController.containedViewController = WorkspaceBrowserViewController(workspace: workspace)
-        } else {
-            sidebarViewController.containedViewController = EmptyWorkspaceViewController()
-        }
     }
 
     @objc func openWorkspace(_ sender: Any?) {

@@ -13,7 +13,6 @@
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
-		633ABD6A2B6ACFF90083F64C /* ContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 633ABD692B6ACF0D0083F64C /* ContainerViewController.swift */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
 		634A70A22B1F79CB00BDD0D3 /* CwlPreconditionTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 634A70A12B1F79CB00BDD0D3 /* CwlPreconditionTesting */; };
 		634A70A52B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */; };
@@ -92,7 +91,6 @@
 		63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE22A689EA700DEACCF /* LineLayer.swift */; };
 		63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE42A68A27600DEACCF /* LineFragment.swift */; };
 		63F30E672AA90012009929F7 /* TreeSitter in Frameworks */ = {isa = PBXBuildFile; productRef = 63F30E662AA90012009929F7 /* TreeSitter */; };
-		63F525052B6AB85E00790B64 /* EmptyWorkspaceViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F525032B6AB85E00790B64 /* EmptyWorkspaceViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,7 +116,6 @@
 		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
-		633ABD692B6ACF0D0083F64C /* ContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContainerViewController.swift; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
 		634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssertPreconditionViolation.swift; sourceTree = "<group>"; };
 		6356588F2ACD9D5400F1DC63 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Themes; sourceTree = "<group>"; };
@@ -208,7 +205,6 @@
 		63F25BE02A689D2400DEACCF /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
 		63F25BE22A689EA700DEACCF /* LineLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineLayer.swift; sourceTree = "<group>"; };
 		63F25BE42A68A27600DEACCF /* LineFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineFragment.swift; sourceTree = "<group>"; };
-		63F525032B6AB85E00790B64 /* EmptyWorkspaceViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyWorkspaceViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -367,7 +363,6 @@
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
 				63286AE12A13DF5D00839B25 /* ClipView.swift */,
-				633ABD692B6ACF0D0083F64C /* ContainerViewController.swift */,
 				6372888D29FD8E19005B95E5 /* Document.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
@@ -430,7 +425,6 @@
 			children = (
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
-				63F525032B6AB85E00790B64 /* EmptyWorkspaceViewController.swift */,
 				63B61A1129FD965800787BB9 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
@@ -619,7 +613,6 @@
 				63D2808B2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Mouse.swift in Sources */,
 				636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */,
-				633ABD6A2B6ACFF90083F64C /* ContainerViewController.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
 				6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* Weak.swift in Sources */,
@@ -640,7 +633,6 @@
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
-				63F525052B6AB85E00790B64 /* EmptyWorkspaceViewController.swift in Sources */,
 				63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */,
 				635B36AB2AAE1D94002FAE70 /* String+Extensions.swift in Sources */,
 				63C2C03D2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift in Sources */,

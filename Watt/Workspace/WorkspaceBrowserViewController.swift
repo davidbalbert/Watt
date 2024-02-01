@@ -8,10 +8,23 @@
 import Cocoa
 
 class WorkspaceBrowserViewController: NSViewController {
-    let workspace: Workspace
+    var workspace: Workspace? {
+        didSet {
+            if let workspace {
+                workspace.delegate = self
+                listen()
+            } else {
+                task?.cancel()
+            }
+            setupDatasource()
+            updateViews()
+        }
+    }
 
     @ViewLoading var outlineView: NSOutlineView
-    @ViewLoading var dataSource: OutlineViewDiffableDataSource<[Dirent]>
+    @ViewLoading var chooseFolderButton: NSButton
+
+    var dataSource: OutlineViewDiffableDataSource<[Dirent]>?
 
     private var task: Task<(), Never>?
     private var skipWorkspaceDidChange = false
@@ -23,75 +36,30 @@ class WorkspaceBrowserViewController: NSViewController {
         return queue
     }()
 
-    init(workspace: Workspace) {
+    init(workspace: Workspace?) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
-        workspace.delegate = self
+        workspace?.delegate = self
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func makeTableCellView(for column: NSTableColumn, isEditable: Bool) -> NSTableCellView {
-        let view: NSTableCellView
-        if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
-            view = v
-        } else {
-            view = NSTableCellView()
-            view.identifier = column.identifier
-
-            let imageView = NSImageView()
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-
-            let textField = DirentTextField(labelWithString: "")
-            textField.translatesAutoresizingMaskIntoConstraints = false
-            textField.isEditable = isEditable
-            textField.focusRingType = .none
-            textField.lineBreakMode = .byTruncatingMiddle
-            textField.cell?.sendsActionOnEndEditing = true
-
-            textField.delegate = self
-
-            textField.target = self
-            textField.action = #selector(WorkspaceBrowserViewController.submit(_:))
-
-            view.addSubview(imageView)
-            view.addSubview(textField)
-            view.imageView = imageView
-            view.textField = textField
-
-            NSLayoutConstraint.activate([
-                imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
-                imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                imageView.widthAnchor.constraint(equalToConstant: 16),
-                imageView.heightAnchor.constraint(equalToConstant: 16),
-
-                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
-                textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
-                textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            ])
-        }
-        
-        return view
-    }
-
-    func dragPreview(for column: NSTableColumn, dirent: Dirent) -> DragPreview {
-        // Drag previews don't show text unless they're not editable. Not sure why.
-        let view = makeTableCellView(for: column, isEditable: false)
-        view.imageView!.image = dirent.icon
-        view.textField!.stringValue = dirent.name
-
-        view.frame.size = NSSize(width: view.fittingSize.width, height: outlineView.rowHeight)
-        view.layoutSubtreeIfNeeded()
-
-        return DragPreview(frame: view.frame) {
-            return view.draggingImageComponents
-        }
-    }
-
     override func loadView() {
         super.loadView()
+
+        let button = NSButton(title: "Choose Folder", target: nil, action: #selector(WorkspaceViewController.openWorkspace))
+        button.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(button)
+
+        view.addConstraints([
+            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            button.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+
+        chooseFolderButton = button
+
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
 
@@ -101,6 +69,40 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
         outlineView.allowsMultipleSelection = true
+
+        let scrollView = NSScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        scrollView.documentView = outlineView
+
+        view.addSubview(scrollView)
+
+        view.addConstraints([
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+
+        self.outlineView = outlineView
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        updateViews()
+    }
+
+    deinit {
+        task?.cancel()
+    }
+
+    func setupDatasource() {
+        guard let workspace else {
+            dataSource = nil
+            outlineView.delegate = nil
+            outlineView.dataSource = nil
+            return
+        }
 
         let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { [weak self] outlineView, column, dirent in
             guard let self else {
@@ -114,7 +116,6 @@ class WorkspaceBrowserViewController: NSViewController {
             return view
         }
 
-        let workspace = workspace
         dataSource.loadChildren = { dirent in
             if dirent.isLoaded {
                 return nil
@@ -179,7 +180,10 @@ class WorkspaceBrowserViewController: NSViewController {
         } validator: { _, destination in
             destination.index != NSOutlineViewDropOnItemIndex
         } preview: { [weak self] url in
-            guard let dirent = try? Dirent(for: url) else { return nil }
+            guard let dirent = try? Dirent(for: url), let column = self?.outlineView.outlineTableColumn else {
+                return nil
+            }
+
             return self?.dragPreview(for: column, dirent: dirent)
         }
 
@@ -218,46 +222,92 @@ class WorkspaceBrowserViewController: NSViewController {
             destination.index != NSOutlineViewDropOnItemIndex
         }
 
-        self.outlineView = outlineView
         self.dataSource = dataSource
     }
 
-    override func viewDidLoad() {
-        let scrollView = NSScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.hasVerticalScroller = true
-        scrollView.documentView = outlineView
-        scrollView.frame.size = .zero
+    func makeTableCellView(for column: NSTableColumn, isEditable: Bool) -> NSTableCellView {
+        let view: NSTableCellView
+        if let v = outlineView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
+            view = v
+        } else {
+            view = NSTableCellView()
+            view.identifier = column.identifier
 
-        view.addSubview(scrollView)
+            let imageView = NSImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
 
-        view.addConstraints([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
+            let textField = DirentTextField(labelWithString: "")
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            textField.isEditable = isEditable
+            textField.focusRingType = .none
+            textField.lineBreakMode = .byTruncatingMiddle
+            textField.cell?.sendsActionOnEndEditing = true
 
-        updateView()
+            textField.delegate = self
+
+            textField.target = self
+            textField.action = #selector(WorkspaceBrowserViewController.submit(_:))
+
+            view.addSubview(imageView)
+            view.addSubview(textField)
+            view.imageView = imageView
+            view.textField = textField
+
+            NSLayoutConstraint.activate([
+                imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
+                imageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 16),
+                imageView.heightAnchor.constraint(equalToConstant: 16),
+
+                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 5),
+                textField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
+                textField.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            ])
+        }
+
+        return view
     }
 
-    override func viewWillAppear() {
-        task = Task.detached(priority: .medium) { [weak self] in
-            await self?.workspace.listen()
+    func dragPreview(for column: NSTableColumn, dirent: Dirent) -> DragPreview {
+        // Drag previews don't show text unless they're not editable. Not sure why.
+        let view = makeTableCellView(for: column, isEditable: false)
+        view.imageView!.image = dirent.icon
+        view.textField!.stringValue = dirent.name
+
+        view.frame.size = NSSize(width: view.fittingSize.width, height: outlineView.rowHeight)
+        view.layoutSubtreeIfNeeded()
+
+        return DragPreview(frame: view.frame) {
+            return view.draggingImageComponents
         }
     }
 
-    override func viewWillDisappear() {
-        task?.cancel()
+    func listen() {
+        guard let workspace else {
+            return
+        }
+
+        task = Task.detached(priority: .medium) {
+            await workspace.listen()
+        }
     }
 
-    func updateView() {
+    func updateViews() {
+        guard let workspace, let dataSource else {
+            chooseFolderButton.isHidden = false
+            outlineView.isHidden = true
+            return
+        }
+
+        chooseFolderButton.isHidden = true
+        outlineView.isHidden = false
+
         let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
     }
 
     @objc func submit(_ sender: DirentTextField) {
-        guard let dirent = dirent(for: sender) else {
+        guard let workspace, let dirent = dirent(for: sender) else {
             return
         }
 
@@ -283,7 +333,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 sender.stringValue = dirent.name
                 (sender.superview as! NSTableCellView).imageView!.image = dirent.icon
 
-                updateView()
+                updateViews()
             } catch {
                 sender.stringValue = dirent.name
                 presentErrorAsSheetWithFallback(error)
@@ -291,7 +341,19 @@ class WorkspaceBrowserViewController: NSViewController {
         }
     }
 
+    @objc func onCancel(_ sender: DirentTextField) {
+        guard let dirent = dirent(for: sender) else {
+            return
+        }
+
+        sender.stringValue = dirent.name
+    }
+
     @objc func delete(_ sender: Any) {
+        guard let workspace, let dataSource else {
+            return
+        }
+
         let indexes = outlineView.selectedRowIndexes
         if indexes.isEmpty {
             // should never happen because of menu validation
@@ -380,16 +442,12 @@ class WorkspaceBrowserViewController: NSViewController {
         try await block()
     }
 
-    @objc func onCancel(_ sender: DirentTextField) {
-        guard let dirent = dirent(for: sender) else {
-            return
+    func dirent(for textField: DirentTextField) -> Dirent? {
+        guard let dataSource else {
+            return nil
         }
 
-        sender.stringValue = dirent.name
-    }
-
-    func dirent(for textField: DirentTextField) -> Dirent? {
-        dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
+        return dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
     }
 }
 
@@ -409,7 +467,7 @@ extension WorkspaceBrowserViewController: WorkspaceDelegate {
         if skipWorkspaceDidChange {
             return
         }
-        updateView()
+        updateViews()
     }
 }
 
