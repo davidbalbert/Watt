@@ -12,33 +12,25 @@ class WorkspaceViewController: NSSplitViewController {
     @ViewLoading var workspaceBrowserViewController: WorkspaceBrowserViewController
     @ViewLoading var textViewController: TextViewController
 
-    var buffer: Buffer
-    var workspace: Workspace? {
-        didSet {
-            workspaceBrowserViewController.workspace = workspace
-        }
-    }
+    let workspace: Workspace
 
-    init(buffer: Buffer) {
-        self.buffer = buffer
+    init(workspace: Workspace) {
+        self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
     }
     
     required init?(coder: NSCoder) {
-        buffer = Buffer()
-        super.init(coder: coder)
+        fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func loadView() {
         super.loadView()
         workspaceBrowserViewController = WorkspaceBrowserViewController(workspace: workspace)
-        textViewController = TextViewController(buffer)
+        textViewController = TextViewController()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        workspaceBrowserViewController.workspace = workspace
 
         let sidebarItem = NSSplitViewItem(sidebarWithViewController: workspaceBrowserViewController)
         sidebarItem.isSpringLoaded = false
@@ -50,28 +42,5 @@ class WorkspaceViewController: NSSplitViewController {
 
         addSplitViewItem(sidebarItem)
         addSplitViewItem(textItem)
-    }
-
-    override func viewWillAppear() {
-        view.window?.initialFirstResponder = textViewController.view
-    }
-
-    @objc func openWorkspace(_ sender: Any?) {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        panel.beginSheetModal(for: view.window!) { [weak self] response in
-            guard let self, response == .OK, let url = panel.url else {
-                return
-            }
-
-            do {
-                self.workspace = try Workspace(url: url)
-            } catch {
-                presentErrorAsSheetWithFallback(error)
-            }
-        }
     }
 }

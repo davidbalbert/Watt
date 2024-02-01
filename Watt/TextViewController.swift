@@ -8,16 +8,7 @@
 import Cocoa
 
 class TextViewController: NSViewController {
-    var buffer: Buffer
-
-    init(_ buffer: Buffer) {
-        self.buffer = buffer
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    var buffer: Buffer = Buffer()
 
     override func loadView() {
         let scrollView = TextView.scrollableTextView()

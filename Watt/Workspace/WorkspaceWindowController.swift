@@ -28,7 +28,7 @@ class WorkspaceWindowController: NSWindowController {
     }
 
     override func loadWindow() {
-        let workspaceViewController = WorkspaceViewController(buffer: Buffer())
+        let workspaceViewController = WorkspaceViewController(workspace: workspace)
         let window = NSWindow(contentViewController: workspaceViewController)
         window.titlebarSeparatorStyle = .line
         

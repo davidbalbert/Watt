@@ -8,23 +8,10 @@
 import Cocoa
 
 class WorkspaceBrowserViewController: NSViewController {
-    var workspace: Workspace? {
-        didSet {
-            if let workspace {
-                workspace.delegate = self
-                listen()
-            } else {
-                task?.cancel()
-            }
-            setupDatasource()
-            updateViews()
-        }
-    }
+    let workspace: Workspace
 
     @ViewLoading var outlineView: NSOutlineView
-    @ViewLoading var chooseFolderButton: NSButton
-
-    var dataSource: OutlineViewDiffableDataSource<[Dirent]>?
+    @ViewLoading var dataSource: OutlineViewDiffableDataSource<[Dirent]>
 
     private var task: Task<(), Never>?
     private var skipWorkspaceDidChange = false
@@ -36,10 +23,10 @@ class WorkspaceBrowserViewController: NSViewController {
         return queue
     }()
 
-    init(workspace: Workspace?) {
+    init(workspace: Workspace) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
-        workspace?.delegate = self
+        workspace.delegate = self
     }
     
     required init?(coder: NSCoder) {
@@ -48,17 +35,6 @@ class WorkspaceBrowserViewController: NSViewController {
 
     override func loadView() {
         super.loadView()
-
-        let button = NSButton(title: "Choose Folder", target: nil, action: #selector(WorkspaceViewController.openWorkspace))
-        button.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(button)
-
-        view.addConstraints([
-            button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            button.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-
-        chooseFolderButton = button
 
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
@@ -84,25 +60,7 @@ class WorkspaceBrowserViewController: NSViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
 
-        self.outlineView = outlineView
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        updateViews()
-    }
-
-    deinit {
-        task?.cancel()
-    }
-
-    func setupDatasource() {
-        guard let workspace else {
-            dataSource = nil
-            outlineView.delegate = nil
-            outlineView.dataSource = nil
-            return
-        }
+        let workspace = self.workspace
 
         let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { [weak self] outlineView, column, dirent in
             guard let self else {
@@ -223,6 +181,16 @@ class WorkspaceBrowserViewController: NSViewController {
         }
 
         self.dataSource = dataSource
+        self.outlineView = outlineView
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        updateView()
+    }
+
+    deinit {
+        task?.cancel()
     }
 
     func makeTableCellView(for column: NSTableColumn, isEditable: Bool) -> NSTableCellView {
@@ -283,31 +251,18 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func listen() {
-        guard let workspace else {
-            return
-        }
-
-        task = Task.detached(priority: .medium) {
-            await workspace.listen()
+        task = Task.detached(priority: .medium) { [weak self] in
+            await self?.workspace.listen()
         }
     }
 
-    func updateViews() {
-        guard let workspace, let dataSource else {
-            chooseFolderButton.isHidden = false
-            outlineView.isHidden = true
-            return
-        }
-
-        chooseFolderButton.isHidden = true
-        outlineView.isHidden = false
-
+    func updateView() {
         let snapshot = OutlineViewSnapshot(workspace.children, children: \.children)
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
     }
 
     @objc func submit(_ sender: DirentTextField) {
-        guard let workspace, let dirent = dirent(for: sender) else {
+        guard let dirent = dirent(for: sender) else {
             return
         }
 
@@ -333,7 +288,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 sender.stringValue = dirent.name
                 (sender.superview as! NSTableCellView).imageView!.image = dirent.icon
 
-                updateViews()
+                updateView()
             } catch {
                 sender.stringValue = dirent.name
                 presentErrorAsSheetWithFallback(error)
@@ -350,10 +305,6 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     @objc func delete(_ sender: Any) {
-        guard let workspace, let dataSource else {
-            return
-        }
-
         let indexes = outlineView.selectedRowIndexes
         if indexes.isEmpty {
             // should never happen because of menu validation
@@ -443,11 +394,7 @@ class WorkspaceBrowserViewController: NSViewController {
     }
 
     func dirent(for textField: DirentTextField) -> Dirent? {
-        guard let dataSource else {
-            return nil
-        }
-
-        return dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
+        dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
     }
 }
 
@@ -467,7 +414,7 @@ extension WorkspaceBrowserViewController: WorkspaceDelegate {
         if skipWorkspaceDidChange {
             return
         }
-        updateViews()
+        updateView()
     }
 }
 
