@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ])
 
         NSWindow.allowsAutomaticWindowTabbing = false
+        _ = DocumentController()
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {

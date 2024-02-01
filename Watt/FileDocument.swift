@@ -1,5 +1,5 @@
 //
-//  Document.swift
+//  FileDocument.swift
 //  Watt
 //
 //  Created by David Albert on 4/29/23.
@@ -8,7 +8,7 @@
 import Cocoa
 import UniformTypeIdentifiers
 
-class Document: NSDocument {
+class FileDocument: NSDocument {
     // TODO: from "Developing a Document Based App:
     //
     //     The Cocoa document architecture uses the Objective-C runtime, and document-based

@@ -16,7 +16,7 @@
 				<string>public.plain-text</string>
 			</array>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).Document</string>
+			<string>$(PRODUCT_MODULE_NAME).FileDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
@@ -41,6 +41,20 @@
 			<array>
 				<string>public.c-header</string>
 			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Project</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.folder</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).WorkspaceDocument</string>
 		</dict>
 	</array>
 </dict>
