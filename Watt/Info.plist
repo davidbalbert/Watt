@@ -34,7 +34,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Content</string>
+			<string>All Files</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
@@ -42,9 +42,10 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>public.content</string>
+				<string>public.data</string>
 			</array>
 			<key>NSDocumentClass</key>
-			<string>Document</string>
+			<string>$(PRODUCT_MODULE_NAME).Document</string>
 		</dict>
 	</array>
 </dict>

@@ -6,10 +6,10 @@
 //
 
 import Cocoa
+import QuickLookUI
 
 class GenericDocumentViewController: DocumentViewController {
-    @ViewLoading var imageView: NSImageView
-    @ViewLoading var label: NSTextField
+    @ViewLoading var quickLookView: QLPreviewView
 
     let url: URL
 
@@ -25,8 +25,17 @@ class GenericDocumentViewController: DocumentViewController {
     override func loadView() {
         super.loadView()
 
-        imageView = NSImageView()
-        label = NSTextField(labelWithString: url.lastPathComponent)
+        quickLookView = QLPreviewView()
+        quickLookView.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(quickLookView)
+
+        view.addConstraints([
+            quickLookView.topAnchor.constraint(equalTo: view.topAnchor),
+            quickLookView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            quickLookView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            quickLookView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
     }
 
     override func viewDidLoad() {
@@ -35,7 +44,7 @@ class GenericDocumentViewController: DocumentViewController {
     }
 
     func updateViews() {
-        imageView.image = NSWorkspace.shared.icon(forFile: url.path)
-        label.stringValue = url.lastPathComponent
+        quickLookView.previewItem = url as QLPreviewItem
+        quickLookView.refreshPreviewItem()
     }
 }
