@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class TextDocumentViewController: NSViewController {
+class TextDocumentViewController: DocumentViewController {
     var buffer: Buffer
     
     init(buffer: Buffer) {
@@ -16,8 +16,7 @@ class TextDocumentViewController: NSViewController {
     }
     
     required init?(coder: NSCoder) {
-        self.buffer = Buffer()
-        super.init(coder: coder)
+        fatalError("init(coder:) has not been implemented")
     }
     
     override func loadView() {

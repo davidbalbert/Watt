@@ -13,10 +13,12 @@ class WindowController: NSWindowController {
             return
         }
 
-        // TODO: If the window is the full size of the screen, don't cascade, just make it the same size
-        // in the same place.
-        if let mainWindow = NSApp.mainWindow, mainWindow.tabbingIdentifier == window.tabbingIdentifier {
-            window.cascadeTopLeft(from: mainWindow.frame.origin)
+        // TODO:
+        // - If the window is the full size of the screen, don't cascade, just make it the same size
+        //   in the same place.
+        // - Possibly different behavior based on whether we're a workspace window or a text window.
+        if let point = NSApp.mainWindow?.cascadeTopLeft(from: .zero) {
+            window.cascadeTopLeft(from: point)
         } else {
             window.center()
         }

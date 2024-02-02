@@ -17,7 +17,7 @@ class TextDocumentWindowController: WindowController {
     }
 
     required init?(coder: NSCoder) {
-        buffer = Buffer()
+        self.buffer = Buffer()
         super.init(coder: coder)
     }
 

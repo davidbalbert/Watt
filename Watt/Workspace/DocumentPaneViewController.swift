@@ -9,9 +9,22 @@ import Cocoa
 
 class DocumentPaneViewController: ContainerViewController {
     let workspace: Workspace
-    weak var document: FileDocument?
+    weak var document: Document? {
+        didSet {
+            if let document {
+                let documentViewController = document.makeDocumentViewController()
+                document.addDocumentViewController(documentViewController)
+                self.documentViewController = documentViewController
+            }
+        }
+    }
 
-    init(workspace: Workspace, document: FileDocument? = nil) {
+    var documentViewController: DocumentViewController? {
+        get { containedViewController as? DocumentViewController  }
+        set { containedViewController = newValue }
+    }
+
+    init(workspace: Workspace, document: Document? = nil) {
         self.workspace = workspace
         self.document = document
         super.init(nibName: nil, bundle: nil)

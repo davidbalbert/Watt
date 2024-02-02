@@ -23,6 +23,10 @@ class WorkspaceBrowserViewController: NSViewController {
         return queue
     }()
 
+    var workspaceWindowController: WorkspaceWindowController? {
+        view.window?.windowController as? WorkspaceWindowController
+    }
+
     init(workspace: Workspace) {
         self.workspace = workspace
         super.init(nibName: nil, bundle: nil)
@@ -62,7 +66,7 @@ class WorkspaceBrowserViewController: NSViewController {
 
         let workspace = self.workspace
 
-        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView) { [weak self] outlineView, column, dirent in
+        let dataSource = OutlineViewDiffableDataSource<[Dirent]>(outlineView, delegate: self) { [weak self] outlineView, column, dirent in
             guard let self else {
                 return NSView()
             }
@@ -74,7 +78,7 @@ class WorkspaceBrowserViewController: NSViewController {
             return view
         }
 
-        dataSource.loadChildren = { dirent in
+        dataSource.loadChildren = { [weak self] dirent in
             if dirent.isLoaded {
                 return nil
             }
@@ -82,7 +86,7 @@ class WorkspaceBrowserViewController: NSViewController {
             do {
                 try workspace.loadDirectory(url: dirent.url)
             } catch {
-                print("dataSource.loadChildren: error while loading \(dirent.url): \(error)")
+                self?.presentErrorAsSheetWithFallback(error)
             }
             return OutlineViewSnapshot(workspace.children, children: \.children)
         }
@@ -395,6 +399,23 @@ class WorkspaceBrowserViewController: NSViewController {
 
     func dirent(for textField: DirentTextField) -> Dirent? {
         dataSource[(textField.superview as? NSTableCellView)?.objectValue as! Dirent.ID]
+    }
+}
+
+extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
+    func outlineViewSelectionDidChange(_ notification: Notification) {
+        guard let workspaceWindowController else {
+            return
+        }
+
+        let selectedDirents = outlineView.selectedRowIndexes.compactMap { i -> Dirent? in
+            guard let id = outlineView.item(atRow: i) as? Dirent.ID else {
+                return nil
+            }
+            return dataSource[id]
+        }
+
+        workspaceWindowController.selectedDirents = selectedDirents
     }
 }
 

@@ -18,10 +18,6 @@ class WorkspaceDocument: NSDocument {
         false
     }
 
-    override class var autosavesDrafts: Bool {
-        false
-    }
-
     override func makeWindowControllers() {
         addWindowController(WorkspaceWindowController(workspace: workspace))
     }
