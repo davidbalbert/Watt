@@ -15,7 +15,7 @@ class GenericDocumentViewController: DocumentViewController {
 
     init(url: URL) {
         self.url = url
-        super.init(nibName: nil, bundle: nil    )
+        super.init(nibName: nil, bundle: nil)
     }
     
     required init?(coder: NSCoder) {
