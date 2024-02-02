@@ -30,7 +30,7 @@
 				<string>public.folder</string>
 			</array>
 			<key>NSDocumentClass</key>
-			<string>$(PRODUCT_MODULE_NAME).WorkspaceDocument</string>
+			<string>$(PRODUCT_MODULE_NAME).WorkspaceFolderDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>

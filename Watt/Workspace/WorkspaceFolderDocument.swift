@@ -1,5 +1,5 @@
 //
-//  WorkspaceDocument.swift
+//  WorkspaceFolderDocument.swift
 //  Watt
 //
 //  Created by David Albert on 2/1/24.
@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class WorkspaceDocument: NSDocument {
+class WorkspaceFolderDocument: NSDocument {
     var workspace: Workspace!
 
     override class func canConcurrentlyReadDocuments(ofType typeName: String) -> Bool {

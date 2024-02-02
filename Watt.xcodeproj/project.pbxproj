@@ -23,7 +23,7 @@
 		635B36B12AAFCD95002FAE70 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635B36B02AAFCD95002FAE70 /* Theme.swift */; };
 		635F815B2AA9198200553E23 /* TreeSitterObjC in Frameworks */ = {isa = PBXBuildFile; productRef = 635F815A2AA9198200553E23 /* TreeSitterObjC */; };
 		635F815D2AA9E51900553E23 /* TreeSitter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635F815C2AA9E51900553E23 /* TreeSitter.swift */; };
-		6364DD932B6BFCC500886DE3 /* WorkspaceDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD922B6BFCC500886DE3 /* WorkspaceDocument.swift */; };
+		6364DD932B6BFCC500886DE3 /* WorkspaceFolderDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD922B6BFCC500886DE3 /* WorkspaceFolderDocument.swift */; };
 		6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */; };
 		6364DD992B6C1D2000886DE3 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD982B6C1D2000886DE3 /* DocumentController.swift */; };
 		6364DD9B2B6C38DF00886DE3 /* TextDocumentWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */; };
@@ -132,7 +132,7 @@
 		635B36AE2AAE5424002FAE70 /* Highlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Highlighter.swift; sourceTree = "<group>"; };
 		635B36B02AAFCD95002FAE70 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		635F815C2AA9E51900553E23 /* TreeSitter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeSitter.swift; sourceTree = "<group>"; };
-		6364DD922B6BFCC500886DE3 /* WorkspaceDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceDocument.swift; sourceTree = "<group>"; };
+		6364DD922B6BFCC500886DE3 /* WorkspaceFolderDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceFolderDocument.swift; sourceTree = "<group>"; };
 		6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceWindowController.swift; sourceTree = "<group>"; };
 		6364DD982B6C1D2000886DE3 /* DocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		6364DD9A2B6C38DF00886DE3 /* TextDocumentWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextDocumentWindowController.swift; sourceTree = "<group>"; };
@@ -459,7 +459,7 @@
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
 				63C2C03C2B4D95CE00BFB976 /* WorkspaceBrowserViewController.swift */,
-				6364DD922B6BFCC500886DE3 /* WorkspaceDocument.swift */,
+				6364DD922B6BFCC500886DE3 /* WorkspaceFolderDocument.swift */,
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */,
@@ -644,7 +644,7 @@
 				635F815D2AA9E51900553E23 /* TreeSitter.swift in Sources */,
 				6364DD9F2B6C3BB000886DE3 /* WindowController.swift in Sources */,
 				6364DD992B6C1D2000886DE3 /* DocumentController.swift in Sources */,
-				6364DD932B6BFCC500886DE3 /* WorkspaceDocument.swift in Sources */,
+				6364DD932B6BFCC500886DE3 /* WorkspaceFolderDocument.swift in Sources */,
 				63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */,
 				63D2808B2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Mouse.swift in Sources */,
