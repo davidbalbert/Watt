@@ -22,7 +22,7 @@ class Document: NSDocument {
     }
 
     override class var autosavesInPlace: Bool {
-        false
+        true
     }
 
     convenience init(type typeName: String) throws {
