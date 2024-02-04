@@ -10,10 +10,8 @@ import UniformTypeIdentifiers
 
 class DocumentController: NSDocumentController {
     override func beginOpenPanel(_ openPanel: NSOpenPanel, forTypes inTypes: [String]?, completionHandler: @escaping (Int) -> Void) {
-        let allowedTypes = [UTType.plainText, UTType.folder].map(\.identifier)
-        let types = Set(allowedTypes).intersection(Set(inTypes ?? allowedTypes))
-
-        super.beginOpenPanel(openPanel, forTypes: Array(types), completionHandler: completionHandler)
+        openPanel.canChooseDirectories = true
+        super.beginOpenPanel(openPanel, forTypes: inTypes, completionHandler: completionHandler)
     }
 
     override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
