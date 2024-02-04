@@ -40,11 +40,29 @@ class Document: NSDocument {
     override func read(from url: URL, ofType typeName: String) throws {
         let type = UTType(typeName) ?? .data
 
-        if type.conforms(to: .plainText) {
+        let knownBinary: [UTType] = [
+            .compositeContent,
+            .image,
+            .threeDContent,
+            .audiovisualContent,
+            .archive,
+            .executable,
+            .directory,
+            .font,
+            .aliasFile,
+            .bookmark,
+            .webArchive,
+            .binaryPropertyList,
+            .realityFile,
+            .arReferenceObject
+        ]
+
+        // Adapted from CotEditor
+        if knownBinary.contains(where: { type.conforms(to: $0) }) && !type.conforms(to: .svg) && url.pathExtension != ".ts" { // conflict between MPEG-2 streamclip file and TypeScript
+            storage = .generic(url)
+        } else {
             let string = try String(contentsOf: url)
             storage = .text(Buffer(string, language: type.language ?? .plainText))
-        } else {
-            storage = .generic(url)
         }
     }
 
