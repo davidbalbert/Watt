@@ -8,6 +8,7 @@
 import Cocoa
 
 class WorkspaceWindowController: WindowController {
+    weak var workspaceDocument: WorkspaceFolderDocument?
     let workspace: Workspace
 
     // This was @WindowLoading, but for some unknown reason, likely to do with the hacky
@@ -19,21 +20,23 @@ class WorkspaceWindowController: WindowController {
         workspaceViewController.documentPaneViewController
     }
 
-    weak var activeDocument: Document? {
+    override var document: AnyObject? {
         didSet {
-            documentPaneViewController.document = activeDocument
+            if let doc = document as? Document {
+                documentPaneViewController.document = doc
+            }
         }
     }
 
     var selectedDirents: [Dirent] {
         didSet {
-            updateActiveDocument()
+            updateDocument()
         }
     }
 
-    init(workspace: Workspace) {
-        self.workspace = workspace
-        self.activeDocument = nil
+    init(workspaceDocument: WorkspaceFolderDocument) {
+        self.workspaceDocument = workspaceDocument
+        self.workspace = workspaceDocument.workspace
         self.selectedDirents = []
         super.init(window: nil)
     }
@@ -59,7 +62,7 @@ class WorkspaceWindowController: WindowController {
         cascade()
     }
 
-    func updateActiveDocument() {
+    func updateDocument() {
         if selectedDirents.count != 1 {
             return
         }
@@ -70,7 +73,7 @@ class WorkspaceWindowController: WindowController {
         }
 
         if let doc = DocumentController.shared.document(for: dirent.url) as? Document {
-            activeDocument = doc
+            doc.addWindowController(self)
             return
         }
 
@@ -78,7 +81,7 @@ class WorkspaceWindowController: WindowController {
             do {
                 let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: dirent.url, display: false)
                 if let doc = doc as? Document {
-                    activeDocument = doc
+                    doc.addWindowController(self)
                 }
             } catch {
                 presentError(error, modalFor: window!, delegate: nil, didPresent: nil, contextInfo: nil)

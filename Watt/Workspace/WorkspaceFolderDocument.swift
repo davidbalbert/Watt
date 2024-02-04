@@ -19,7 +19,7 @@ class WorkspaceFolderDocument: NSDocument {
     }
 
     override func makeWindowControllers() {
-        addWindowController(WorkspaceWindowController(workspace: workspace))
+        addWindowController(WorkspaceWindowController(workspaceDocument: self))
     }
 
     override func read(from url: URL, ofType typeName: String) throws {
