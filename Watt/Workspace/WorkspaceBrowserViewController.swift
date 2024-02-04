@@ -8,6 +8,24 @@
 import Cocoa
 
 class WorkspaceBrowserViewController: NSViewController {
+    enum Errors: Error, LocalizedError {
+        case invalidDirentID
+        case noDirentInWorkspace(Dirent.ID)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidDirentID:
+                String(localized: "Invalid Dirent ID")
+            case let .noDirentInWorkspace(id):
+                String(localized: "Unable to find Dirent with ID \(String(describing: id)) in workspace.")
+            }
+        }
+
+        var failureReason: String? {
+            String(localized: "This is a bug in Watt. Please report it.")
+        }
+    }
+
     let workspace: Workspace
 
     @ViewLoading var outlineView: NSOutlineView
@@ -319,21 +337,12 @@ class WorkspaceBrowserViewController: NSViewController {
         let informativeText: String
         if indexes.count == 1 {
             guard let i = indexes.first, let id = outlineView.item(atRow: i) as? Dirent.ID else {
-                let error = NSError(wattErrorWithCode: .invalidDirentID, userInfo: [
-                    NSLocalizedDescriptionKey: String(localized: "Invalid Dirent ID"),
-                    NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
-                ])
-
-                presentErrorAsSheetWithFallback(error)
+                presentErrorAsSheetWithFallback(Errors.invalidDirentID)
                 return
             }
 
             guard let dirent = dataSource[id] else {
-                let error = NSError(wattErrorWithCode: .noDirentInWorkspace, userInfo: [
-                    NSLocalizedDescriptionKey: String(localized: "Unable to find Dirent with ID \(String(describing: id)) in workspace."),
-                    NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
-                ])
-                presentErrorAsSheetWithFallback(error)
+                presentErrorAsSheetWithFallback(Errors.noDirentInWorkspace(id))
                 return
             }
 
@@ -372,11 +381,7 @@ class WorkspaceBrowserViewController: NSViewController {
             var urls: [URL] = []
             for id in ids {
                 guard let dirent = dataSource[id] else {
-                    let error = NSError(wattErrorWithCode: .noDirentInWorkspace, userInfo: [
-                        NSLocalizedDescriptionKey: String(localized: "Unable to find Dirent with ID \(String(describing: id)) in workspace."),
-                        NSLocalizedFailureReasonErrorKey: String(localized: "This is a bug in Watt. Please report it.")
-                    ])
-                    presentErrorAsSheetWithFallback(error)
+                    presentErrorAsSheetWithFallback(Errors.noDirentInWorkspace(id))
                     return
                 }
 
