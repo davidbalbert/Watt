@@ -160,6 +160,24 @@ extension Dirent: Comparable {
     }
 }
 
+extension Dirent: Codable {
+    enum CodingKeys: String, CodingKey {
+        case url
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let url = try container.decode(URL.self, forKey: .url)
+        try self.init(for: url)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(url, forKey: .url)
+    }
+}
+
+
 extension NSPasteboard.PasteboardType {
     static let dirent = NSPasteboard.PasteboardType("is.dave.Watt.ReferenceDirent")
 }

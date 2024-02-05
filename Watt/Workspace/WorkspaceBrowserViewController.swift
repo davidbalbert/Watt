@@ -67,6 +67,7 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.outlineTableColumn = column
         outlineView.autoresizesOutlineColumn = false
         outlineView.allowsMultipleSelection = true
+        outlineView.autosaveExpandedItems = true
 
         let scrollView = NSScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -209,6 +210,10 @@ class WorkspaceBrowserViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         updateView()
+
+        // This triggers the autosave state restoration. Must be set after setting the data source
+        // and applying the first snapshot (with updateView).
+        outlineView.autosaveName = "WorkspaceBrowserOutlineView"
     }
 
     deinit {

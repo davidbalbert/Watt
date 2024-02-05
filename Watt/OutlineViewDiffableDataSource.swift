@@ -98,6 +98,37 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         id(from: item)
     }
 
+    func outlineView(_ outlineView: NSOutlineView, persistentObjectForItem item: Any?) -> Any? {
+        guard let element = self[item] else {
+            return nil
+        }
+
+        guard let codable = element as? Codable else {
+            return nil
+        }
+
+        return try? PropertyListEncoder().encode(codable)
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, itemForPersistentObject object: Any) -> Any? {
+        guard let data = object as? Foundation.Data else {
+            return nil
+        }
+
+        func helper<T>(_ type: T.Type) -> T? where T: Codable {
+            try? PropertyListDecoder().decode(T.self, from: data)
+        }
+
+        guard let type = Data.Element.self as? Codable.Type else {
+            return nil
+        }
+
+        guard let element = helper(type) as? Data.Element else {
+            return nil
+        }
+        return element.id
+    }
+
     // MARK: Drag and Drop
 
     func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
