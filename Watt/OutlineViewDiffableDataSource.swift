@@ -115,18 +115,15 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             return nil
         }
 
-        func helper<T>(_ type: T.Type) -> T? where T: Codable {
-            try? PropertyListDecoder().decode(T.self, from: data)
-        }
-
         guard let type = Data.Element.self as? Codable.Type else {
             return nil
         }
 
-        guard let element = helper(type) as? Data.Element else {
+        guard let element = try? PropertyListDecoder().decode(type, from: data) else {
             return nil
         }
-        return element.id
+
+        return (element as! Data.Element).id
     }
 
     // MARK: Drag and Drop
