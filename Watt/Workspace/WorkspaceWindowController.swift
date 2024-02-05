@@ -8,6 +8,11 @@
 import Cocoa
 
 class WorkspaceWindowController: WindowController {
+    enum RestorationKeys {
+        static let selectedURLs = "selectedURLs"
+        static let openDocumentURL = "openDocumentURL"
+    }
+
     weak var workspaceDocument: WorkspaceFolderDocument?
     let workspace: Workspace
 
@@ -28,16 +33,40 @@ class WorkspaceWindowController: WindowController {
         }
     }
 
-    var selectedDirents: [Dirent] {
-        didSet {
+    var _selectedURLs: [URL]
+    var selectedURLs: [URL] {
+        get { _selectedURLs }
+        set {
+            _selectedURLs = newValue
             updateDocument()
+        }
+    }
+
+    override func encodeRestorableState(with coder: NSCoder) {
+        super.encodeRestorableState(with: coder)
+
+        coder.encode(workspaceDocument?.fileURL, forKey: DocumentController.RestorationKeys.substituteDocumentURL)
+        coder.encode(selectedURLs, forKey: RestorationKeys.selectedURLs)
+
+        if let document, let documentURL = document.fileURL, documentURL != workspaceDocument?.fileURL {
+            coder.encode(documentURL, forKey: RestorationKeys.openDocumentURL)
+        }
+    }
+
+    override func restoreState(with coder: NSCoder) {
+        super.restoreState(with: coder)
+
+        _selectedURLs = coder.decodeArrayOfObjects(ofClass: NSURL.self, forKey: RestorationKeys.selectedURLs) as? [URL] ?? []
+
+        if let openDocumentURL = coder.decodeObject(of: NSURL.self, forKey: RestorationKeys.openDocumentURL) as? URL {
+            openDocument(openDocumentURL)
         }
     }
 
     init(workspaceDocument: WorkspaceFolderDocument) {
         self.workspaceDocument = workspaceDocument
         self.workspace = workspaceDocument.workspace
-        self.selectedDirents = []
+        self._selectedURLs = []
         super.init(window: nil)
     }
     
@@ -63,23 +92,27 @@ class WorkspaceWindowController: WindowController {
     }
 
     func updateDocument() {
-        if selectedDirents.count != 1 {
+        if selectedURLs.count != 1 {
+            return
+        }
+        openDocument(selectedURLs[0])
+    }
+
+    func openDocument(_ url: URL) {
+        let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+        let isFolder = (resourceValues?.isDirectory ?? false) && !(resourceValues?.isPackage ?? false)
+        if isFolder {
             return
         }
 
-        let dirent = selectedDirents[0]
-        if dirent.isFolder {
-            return
-        }
-
-        if let doc = DocumentController.shared.document(for: dirent.url) as? Document {
+        if let doc = DocumentController.shared.document(for: url) as? Document {
             doc.addWindowController(self)
             return
         }
 
         Task {
             do {
-                let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: dirent.url, display: false)
+                let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: url, display: false)
                 if let doc = doc as? Document {
                     doc.addWindowController(self)
                 }

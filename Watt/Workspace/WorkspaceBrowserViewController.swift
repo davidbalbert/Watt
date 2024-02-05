@@ -420,7 +420,7 @@ extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
             return dataSource[id]
         }
 
-        workspaceWindowController.selectedDirents = selectedDirents
+        workspaceWindowController.selectedURLs = selectedDirents.map(\.url)
     }
 }
 
