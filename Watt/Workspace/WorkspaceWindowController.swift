@@ -211,8 +211,8 @@ class WorkspaceWindowController: WindowController {
         }
 
         document.removeDocumentViewController(focusedDocumentViewController)
-        focusedDocumentViewController.removeFromParent()
-        focusedDocumentViewController.view.removeFromSuperview()
+        // TODO: this is a hack. Make it better when we add tabs
+        documentPaneViewController.document = nil
         workspaceDocument.addWindowController(self)
 
         if document.documentViewControllers.count == 0 {

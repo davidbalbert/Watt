@@ -15,6 +15,8 @@ class DocumentPaneViewController: ContainerViewController {
                 let documentViewController = document.makeDocumentViewController()
                 document.addDocumentViewController(documentViewController)
                 self.documentViewController = documentViewController
+            } else {
+                documentViewController = nil
             }
         }
     }

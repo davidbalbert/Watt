@@ -107,6 +107,7 @@ class Document: BaseDocument {
     }
 
     func removeDocumentViewController(_ viewController: DocumentViewController) {
+        Swift.print("Document.removeDocumentViewController")
         if let index = documentViewControllers.firstIndex(of: viewController) {
             documentViewControllers.remove(at: index)
             viewController.document = nil
