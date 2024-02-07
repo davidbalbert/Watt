@@ -40,20 +40,15 @@ class WorkspaceWindowController: WindowController {
         documentViewControllers.first
     }
 
-    override var document: AnyObject? {
-        didSet {
-            if let doc = document as? Document {
-                documentPaneViewController.document = doc
-            }
-        }
-    }
 
     var _selectedURLs: [URL]
     var selectedURLs: [URL] {
         get { _selectedURLs }
         set {
             _selectedURLs = newValue
-            updateDocument()
+            if _selectedURLs.count == 1 {
+                openDocument(_selectedURLs[0])
+            }
         }
     }
 
@@ -140,6 +135,7 @@ class WorkspaceWindowController: WindowController {
         assert(document != nil && workspaceDocument != nil)
 
         if (document as? WorkspaceFolderDocument) == workspaceDocument {
+            assert(documentViewControllers.count == 0)
             closeWindow(sender)
             return
         }
@@ -149,39 +145,9 @@ class WorkspaceWindowController: WindowController {
             return
         }
 
-        guard let focusedDocumentViewController else {
-            assertionFailure("We should always have a focused view controller")
-            return
-        }
-
-        guard let workspaceDocument = workspaceDocument else {
-            assertionFailure("We should always have a workspace document")
-            return
-        }
-
-        assert(document == focusedDocumentViewController.document)
-
         Task {
-            if await !document.shouldCloseDocumentViewController(focusedDocumentViewController) {
-                return
-            }
-
-            document.removeDocumentViewController(focusedDocumentViewController)
-            focusedDocumentViewController.removeFromParent()
-            focusedDocumentViewController.view.removeFromSuperview()
-            workspaceDocument.addWindowController(self)
-
-            if document.documentViewControllers.count == 0 {
-                document.close()
-            }
+            await closeDocument(document)
         }
-    }
-
-    func updateDocument() {
-        if selectedURLs.count != 1 {
-            return
-        }
-        openDocument(selectedURLs[0])
     }
 
     func openDocument(_ url: URL) {
@@ -191,9 +157,8 @@ class WorkspaceWindowController: WindowController {
             return
         }
 
-        // TODO: should also add to view controller, right?
         if let doc = DocumentController.shared.document(for: url) as? Document {
-            doc.addWindowController(self)
+            openDocument(doc)
             return
         }
 
@@ -201,12 +166,60 @@ class WorkspaceWindowController: WindowController {
             do {
                 let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: url, display: false)
                 if let doc = doc as? Document {
-                    doc.addWindowController(self)
+                    openDocument(doc)
                 }
             } catch {
                 presentError(error, modalFor: window!, delegate: nil, didPresent: nil, contextInfo: nil)
             }
         }
+    }
+
+    func openDocument(_ document: Document) {
+        if documentViewControllers.contains(where: { $0.document == document }) {
+            return
+        }
+
+        Task {
+            if let focusedDocument = focusedDocumentViewController?.document {
+                let didClose = await closeDocument(focusedDocument)
+                if !didClose {
+                    return
+                }
+            }
+
+            documentPaneViewController.document = document
+            document.addWindowController(self)
+        }
+    }
+
+    @discardableResult
+    func closeDocument(_ document: Document) async -> Bool {
+        guard let workspaceDocument else {
+            assertionFailure("We should always have a workspace document")
+            return false
+        }
+
+        guard let focusedDocumentViewController else {
+            assertionFailure("We should always have a focused view controller")
+            return false
+        }
+
+        assert(document == focusedDocumentViewController.document)
+
+        if await !document.shouldCloseDocumentViewController(focusedDocumentViewController) {
+            return false
+        }
+
+        document.removeDocumentViewController(focusedDocumentViewController)
+        focusedDocumentViewController.removeFromParent()
+        focusedDocumentViewController.view.removeFromSuperview()
+        workspaceDocument.addWindowController(self)
+
+        if document.documentViewControllers.count == 0 {
+            document.close()
+        }
+
+        return true
     }
 }
 

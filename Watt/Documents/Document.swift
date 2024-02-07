@@ -96,6 +96,7 @@ class Document: BaseDocument {
     }
 
     func addDocumentViewController(_ viewController: DocumentViewController) {
+        Swift.print("Document.addDocumentViewController", fileURL)
         if documentViewControllers.contains(viewController) {
             return
         }
@@ -132,6 +133,7 @@ class Document: BaseDocument {
     }
 
     func shouldCloseDocumentViewController(_ viewController: DocumentViewController) async -> Bool {
+        Swift.print("Document.shouldCloseDocumentViewController")
         assert(documentViewControllers.contains(viewController))
 
         if documentViewControllers.count > 1 {
