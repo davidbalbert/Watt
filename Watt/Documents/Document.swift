@@ -13,7 +13,7 @@ enum DocumentStorage {
     case generic(URL)
 }
 
-class Document: NSDocument {
+class Document: BaseDocument {
     var storage: DocumentStorage?
     var documentViewControllers: [DocumentViewController] = []
 
@@ -110,5 +110,29 @@ class Document: NSDocument {
             documentViewControllers.remove(at: index)
             viewController.document = nil
         }
+    }
+
+    override func shouldCloseWindowController(_ windowController: NSWindowController, delegate: Any?, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+        Swift.print("Document.shouldCloseWindowController")
+        super.shouldCloseWindowController(windowController, delegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
+    }
+
+    override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+        Swift.print("Document.canClose")
+        super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
+    }
+
+    func canClose() async -> Bool {
+        await withCheckedContinuation { continuation in
+            canClose(
+                withDelegate: self,
+                shouldClose: #selector(document(_:shouldClose:contextInfo:)),
+                contextInfo: Unmanaged.passRetained(CheckedContinuationReference(continuation)).toOpaque())
+        }
+    }
+
+    @objc func document(_ document: Document, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer) {
+        let continuation = Unmanaged<CheckedContinuationReference<Bool, Error>>.fromOpaque(contextInfo).takeRetainedValue()
+        continuation.resume(returning: shouldClose)
     }
 }

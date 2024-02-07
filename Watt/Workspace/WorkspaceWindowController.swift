@@ -21,8 +21,19 @@ class WorkspaceWindowController: WindowController {
     // loadWindow() to be called a second time when clicking on a Dirent in the sidebar.
     var workspaceViewController: WorkspaceViewController!
 
+    var closeTarget: AnyObject?
+    var closeAction: Selector?
+
     var documentPaneViewController: DocumentPaneViewController {
         workspaceViewController.documentPaneViewController
+    }
+
+    var documentViewControllers: [DocumentViewController] {
+        if let controller = documentPaneViewController.documentViewController {
+            [controller]
+        } else {
+            []
+        }
     }
 
     override var document: AnyObject? {
@@ -81,14 +92,48 @@ class WorkspaceWindowController: WindowController {
 
     override func loadWindow() {
         let workspaceViewController = WorkspaceViewController(workspace: workspace)
-        let window = NSWindow(contentViewController: workspaceViewController)
-        window.tabbingIdentifier = "WorkspaceWindow"
-        window.titlebarSeparatorStyle = .line
+        let window = Window(contentViewController: workspaceViewController)
 
         self.workspaceViewController = workspaceViewController
         self.window = window
 
         cascade()
+    }
+
+    override func windowDidLoad() {
+        super.windowDidLoad()
+
+        guard let window else {
+            return
+        }
+
+        window.identifier = NSUserInterfaceItemIdentifier("WorkspaceWindow")
+        window.titlebarSeparatorStyle = .line
+        window.delegate = self
+
+        let closeButton = window.standardWindowButton(.closeButton)
+        closeTarget = closeButton?.target
+        closeAction = closeButton?.action
+        closeButton?.target = self
+        closeButton?.action = #selector(closeWindow(_:))
+    }
+
+    @IBAction func closeWindow(_ sender: Any?) {
+        print("WorkspaceWindowController.closeWindow")
+        guard let closeAction = closeAction else {
+            return
+        }
+
+        // Make sure document == workspaceDocument before the window closes
+        // so that WorkspaceFolderDocument's shouldCloseWindowController is
+        // called to clean up all our tabs, not just the active one.
+        workspaceDocument?.addWindowController(self)
+        NSApp.sendAction(closeAction, to: closeTarget, from: sender)
+    }
+
+    @IBAction func closeTab(_ sender: Any?) {
+        print("WorkspaceWindowController.closeTab")
+        closeWindow(sender)
     }
 
     func updateDocument() {
@@ -105,6 +150,7 @@ class WorkspaceWindowController: WindowController {
             return
         }
 
+        // TODO: should also add to view controller, right?
         if let doc = DocumentController.shared.document(for: url) as? Document {
             doc.addWindowController(self)
             return
@@ -118,6 +164,24 @@ class WorkspaceWindowController: WindowController {
                 }
             } catch {
                 presentError(error, modalFor: window!, delegate: nil, didPresent: nil, contextInfo: nil)
+            }
+        }
+    }
+}
+
+extension WorkspaceWindowController: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        print("WorkspaceWindowController.windowWillClose")
+        for controller in documentViewControllers {
+            guard let document = controller.document else {
+                continue
+            }
+
+            // The window is closing, so I don't think we need to remove
+            // the view controller and it's view from the hierarchy.
+            document.removeDocumentViewController(controller)
+            if document.documentViewControllers.count == 0 {
+                document.close()
             }
         }
     }

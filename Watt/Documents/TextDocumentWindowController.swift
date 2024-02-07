@@ -30,10 +30,29 @@ class TextDocumentWindowController: WindowController {
         let viewController = TextDocumentViewController(buffer: buffer)
         viewController.view.frame.size = CGSize(width: 800, height: 600)
         
-        let window = NSWindow(contentViewController: viewController)
-        window.tabbingIdentifier = "TextDocumentWindow"
+        let window = Window(contentViewController: viewController)
         self.window = window
 
         cascade()
+    }
+
+    override func windowDidLoad() {
+        super.windowDidLoad()
+
+        guard let window else {
+            return
+        }
+
+        window.identifier = NSUserInterfaceItemIdentifier("TextDocumentWindow")
+    }
+
+    @IBAction func closeWindow(_ sender: Any?) {
+        print("TextDocumentWindowController.closeWindow")
+        NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
+    }
+
+    @IBAction func closeTab(_ sender: Any?) {
+        print("TextDocumentWindowController.closeTab")
+        NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
     }
 }

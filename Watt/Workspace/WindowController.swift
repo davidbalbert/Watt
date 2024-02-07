@@ -23,4 +23,9 @@ class WindowController: NSWindowController {
             window.center()
         }
     }
+
+    override func close() {
+        print("\(className).close")
+        super.close()
+    }
 }

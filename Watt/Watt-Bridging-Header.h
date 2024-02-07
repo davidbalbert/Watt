@@ -3,3 +3,4 @@
 //
 
 #import "SimpleProxy.h"
+#import "Extensions/NSObject+Extensions.h"
