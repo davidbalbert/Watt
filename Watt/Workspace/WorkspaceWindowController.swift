@@ -36,6 +36,10 @@ class WorkspaceWindowController: WindowController {
         }
     }
 
+    var focusedDocumentViewController: DocumentViewController? {
+        documentViewControllers.first
+    }
+
     override var document: AnyObject? {
         didSet {
             if let doc = document as? Document {
@@ -133,7 +137,44 @@ class WorkspaceWindowController: WindowController {
 
     @IBAction func closeTab(_ sender: Any?) {
         print("WorkspaceWindowController.closeTab")
-        closeWindow(sender)
+        assert(document != nil && workspaceDocument != nil)
+
+        if (document as? WorkspaceFolderDocument) == workspaceDocument {
+            closeWindow(sender)
+            return
+        }
+
+        guard let document = document as? Document else {
+            assertionFailure("We should always have a document")
+            return
+        }
+
+        guard let focusedDocumentViewController else {
+            assertionFailure("We should always have a focused view controller")
+            return
+        }
+
+        guard let workspaceDocument = workspaceDocument else {
+            assertionFailure("We should always have a workspace document")
+            return
+        }
+
+        assert(document == focusedDocumentViewController.document)
+
+        Task {
+            if await !document.shouldCloseDocumentViewController(focusedDocumentViewController) {
+                return
+            }
+
+            document.removeDocumentViewController(focusedDocumentViewController)
+            focusedDocumentViewController.removeFromParent()
+            focusedDocumentViewController.view.removeFromSuperview()
+            workspaceDocument.addWindowController(self)
+
+            if document.documentViewControllers.count == 0 {
+                document.close()
+            }
+        }
     }
 
     func updateDocument() {

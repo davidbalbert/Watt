@@ -131,6 +131,16 @@ class Document: BaseDocument {
         }
     }
 
+    func shouldCloseDocumentViewController(_ viewController: DocumentViewController) async -> Bool {
+        assert(documentViewControllers.contains(viewController))
+
+        if documentViewControllers.count > 1 {
+            return true
+        }
+
+        return await canClose()
+    }
+
     @objc func document(_ document: Document, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer) {
         let continuation = Unmanaged<CheckedContinuationReference<Bool, Error>>.fromOpaque(contextInfo).takeRetainedValue()
         continuation.resume(returning: shouldClose)
