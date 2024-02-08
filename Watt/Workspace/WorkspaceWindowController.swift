@@ -13,6 +13,8 @@ class WorkspaceWindowController: WindowController {
         static let openDocumentURL = "openDocumentURL"
     }
 
+    static let didRestoreOpenDocument = Notification.Name("WorkspaceWindowController.didRestoreOpenDocument")
+
     weak var workspaceDocument: WorkspaceFolderDocument?
     let workspace: Workspace
 
@@ -47,7 +49,10 @@ class WorkspaceWindowController: WindowController {
         set {
             _selectedURLs = newValue
             if _selectedURLs.count == 1 {
-                openDocument(_selectedURLs[0])
+                let url = _selectedURLs[0]
+                Task {
+                    await openDocument(url)
+                }
             }
         }
     }
@@ -69,7 +74,13 @@ class WorkspaceWindowController: WindowController {
         _selectedURLs = coder.decodeArrayOfObjects(ofClass: NSURL.self, forKey: RestorationKeys.selectedURLs) as? [URL] ?? []
 
         if let openDocumentURL = coder.decodeObject(of: NSURL.self, forKey: RestorationKeys.openDocumentURL) as? URL {
-            openDocument(openDocumentURL)
+            Task {
+                let success = await openDocument(openDocumentURL)
+                if success {
+                    NotificationCenter.default.post(name: WorkspaceWindowController.didRestoreOpenDocument, object: self)
+                    _selectedURLs = [openDocumentURL]
+                }
+            }
         }
     }
 
@@ -155,46 +166,44 @@ class WorkspaceWindowController: WindowController {
         }
     }
 
-    func openDocument(_ url: URL) {
+    @discardableResult
+    func openDocument(_ url: URL) async -> Bool {
         let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
         let isFolder = (resourceValues?.isDirectory ?? false) && !(resourceValues?.isPackage ?? false)
         if isFolder {
-            return
+            return false
         }
 
         if let doc = DocumentController.shared.document(for: url) as? Document {
-            openDocument(doc)
-            return
+            return await openDocument(doc)
         }
 
-        Task {
-            do {
-                let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: url, display: false)
-                if let doc = doc as? Document {
-                    openDocument(doc)
-                }
-            } catch {
-                presentError(error, modalFor: window!, delegate: nil, didPresent: nil, contextInfo: nil)
+        do {
+            let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: url, display: false)
+            if let doc = doc as? Document {
+                return await openDocument(doc)
             }
+        } catch {
+            presentError(error, modalFor: window!, delegate: nil, didPresent: nil, contextInfo: nil)
         }
+        return false
     }
 
-    func openDocument(_ document: Document) {
+    func openDocument(_ document: Document) async -> Bool {
         if documentViewControllers.contains(where: { $0.document == document }) {
-            return
+            return true
         }
 
-        Task {
-            if let focusedDocument = focusedDocumentViewController?.document {
-                let didClose = await closeDocument(focusedDocument)
-                if !didClose {
-                    return
-                }
+        if let focusedDocument = focusedDocumentViewController?.document {
+            let didClose = await closeDocument(focusedDocument)
+            if !didClose {
+                return false
             }
-
-            documentPaneViewController.document = document
-            document.addWindowController(self)
         }
+
+        documentPaneViewController.document = document
+        document.addWindowController(self)
+        return true
     }
 
     @discardableResult

@@ -96,7 +96,7 @@ class Document: BaseDocument {
     }
 
     func addDocumentViewController(_ viewController: DocumentViewController) {
-        Swift.print("Document.addDocumentViewController", fileURL)
+        Swift.print("Document.addDocumentViewController")
         if documentViewControllers.contains(viewController) {
             return
         }

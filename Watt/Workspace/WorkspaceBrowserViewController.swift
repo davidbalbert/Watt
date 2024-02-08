@@ -218,10 +218,27 @@ class WorkspaceBrowserViewController: NSViewController {
         // This triggers the autosave state restoration. Must be set after setting the data source
         // and applying the first snapshot (with updateView).
         outlineView.autosaveName = "WorkspaceBrowserOutlineView \(view.window!.identifier!.rawValue)"
+
+        if let workspaceWindowController {
+            NotificationCenter.default.addObserver(self, selector: #selector(workspaceDidRestoreOpenDocument(_:)), name: WorkspaceWindowController.didRestoreOpenDocument, object: workspaceWindowController)
+        }
     }
 
     deinit {
         task?.cancel()
+    }
+
+    @objc func workspaceDidRestoreOpenDocument(_ notification: Notification) {
+        if let focusedURL = workspaceWindowController?.focusedDocumentViewController?.document?.fileURL {
+            let dirent = try? Dirent(for: focusedURL)
+            if let id = dirent?.id {
+                let row = outlineView.row(forItem: id)
+                if row != -1 {
+                    outlineView.selectRowIndexes(IndexSet([row]), byExtendingSelection: false)
+                    outlineView.scrollRowToVisible(row)
+                }
+            }
+        }
     }
 
     func makeTableCellView(for column: NSTableColumn, isEditable: Bool) -> NSTableCellView {
