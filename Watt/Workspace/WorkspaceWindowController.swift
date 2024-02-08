@@ -106,7 +106,7 @@ class WorkspaceWindowController: WindowController {
             return
         }
 
-        window.identifier = NSUserInterfaceItemIdentifier("WorkspaceWindow")
+        window.identifier = NSUserInterfaceItemIdentifier("WorkspaceWindow \(UUID())")
         window.titlebarSeparatorStyle = .line
         window.delegate = self
 
@@ -127,6 +127,11 @@ class WorkspaceWindowController: WindowController {
         // so that WorkspaceFolderDocument's shouldCloseWindowController is
         // called to clean up all our tabs, not just the active one.
         workspaceDocument?.addWindowController(self)
+
+        // Don't leak NSOutlineView expanded state. We don't want UserDefaults to contain the
+        // expanded state of every Workspace window that's ever been opened.
+        UserDefaults.standard.removeObject(forKey: "NSOutlineView Items WorkspaceBrowserOutlineView \(window!.identifier!.rawValue)")
+
         NSApp.sendAction(closeAction, to: closeTarget, from: sender)
     }
 

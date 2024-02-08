@@ -210,10 +210,14 @@ class WorkspaceBrowserViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         updateView()
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
 
         // This triggers the autosave state restoration. Must be set after setting the data source
         // and applying the first snapshot (with updateView).
-        outlineView.autosaveName = "WorkspaceBrowserOutlineView"
+        outlineView.autosaveName = "WorkspaceBrowserOutlineView \(view.window!.identifier!.rawValue)"
     }
 
     deinit {

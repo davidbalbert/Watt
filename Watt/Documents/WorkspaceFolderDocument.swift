@@ -73,4 +73,13 @@ class WorkspaceFolderDocument: BaseDocument {
         Swift.print("WorkspaceFolderDocument.canClose")
         super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
+
+    override func restoreWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier, state: NSCoder, completionHandler: @escaping (NSWindow?, Error?) -> Void) {
+        super.restoreWindow(withIdentifier: identifier, state: state) { window, error in
+            // Workspace window identifier is unique per window to allow for persisting NSOutlineView expanded states
+            // for each window. We need to make sure each restored window is using the same identifier from the
+            // previous time it was launched.
+            window?.identifier = identifier
+            completionHandler(window, error)}
+    }
 }
