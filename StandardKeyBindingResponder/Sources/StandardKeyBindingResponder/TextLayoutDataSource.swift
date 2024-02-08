@@ -45,8 +45,8 @@ public protocol TextLayoutDataSource {
 // MARK: - Internal helpers
 extension TextLayoutDataSource {
     func range(for granularity: Granularity, enclosing i: Index) -> Range<Index> {
-        if content.isEmpty {
-            return content.startIndex..<content.startIndex
+        if content.isEmpty || (i == content.endIndex && content.last == "\n") {
+            return content.endIndex..<content.endIndex
         }
 
         switch granularity {
