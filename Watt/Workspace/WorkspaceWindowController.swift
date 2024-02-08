@@ -73,13 +73,19 @@ class WorkspaceWindowController: WindowController {
 
         _selectedURLs = coder.decodeArrayOfObjects(ofClass: NSURL.self, forKey: RestorationKeys.selectedURLs) as? [URL] ?? []
 
-        if let openDocumentURL = coder.decodeObject(of: NSURL.self, forKey: RestorationKeys.openDocumentURL) as? URL {
-            Task {
-                let success = await openDocument(openDocumentURL)
-                if success {
-                    NotificationCenter.default.post(name: WorkspaceWindowController.didRestoreOpenDocument, object: self)
-                    _selectedURLs = [openDocumentURL]
-                }
+        guard let openDocumentURL = coder.decodeObject(of: NSURL.self, forKey: RestorationKeys.openDocumentURL) as? URL else {
+            return
+        }
+
+        guard FileManager.default.fileExists(atPath: openDocumentURL.path(percentEncoded: false)) else {
+            return
+        }
+
+        Task {
+            let success = await openDocument(openDocumentURL)
+            if success {
+                NotificationCenter.default.post(name: WorkspaceWindowController.didRestoreOpenDocument, object: self)
+                _selectedURLs = [openDocumentURL]
             }
         }
     }
@@ -179,6 +185,7 @@ class WorkspaceWindowController: WindowController {
         }
 
         do {
+            (DocumentController.shared as! DocumentController).skipNoteNextRecentDocument = true
             let (doc, _) = try await DocumentController.shared.openDocument(withContentsOf: url, display: false)
             if let doc = doc as? Document {
                 return await openDocument(doc)
@@ -230,6 +237,7 @@ class WorkspaceWindowController: WindowController {
         workspaceDocument.addWindowController(self)
 
         if document.documentViewControllers.count == 0 {
+            (DocumentController.shared as! DocumentController).skipNoteNextRecentDocument = true
             document.close()
         }
 
