@@ -216,6 +216,11 @@ class WorkspaceBrowserViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         updateView()
+
+        let workspace = workspace
+        task = Task.detached(priority: .medium) {
+            await workspace.listen()
+        }
     }
 
     override func viewDidAppear() {
@@ -301,12 +306,6 @@ class WorkspaceBrowserViewController: NSViewController {
 
         return DragPreview(frame: view.frame) {
             return view.draggingImageComponents
-        }
-    }
-
-    func listen() {
-        task = Task.detached(priority: .medium) { [weak self] in
-            await self?.workspace.listen()
         }
     }
 
