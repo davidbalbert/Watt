@@ -1786,6 +1786,23 @@ final class SelectionNavigatorTests: XCTestCase {
         s = dragAndAssert(s, point: CGPoint(x: 76, y: 13.999), caret: "w", affinity: .upstream, dataSource: d)
     }
 
+    // A regression test for a crash
+    func testDraggingWordEmptyLastLine() {
+        let string = """
+        0123456789wrap
+        hello
+
+        """
+
+        let d = TestTextLayoutDataSource(string: string, charsPerLine: 10)
+
+        // empty last line
+        var s = TestSelection(caretAt: string.index(at: 21), affinity: .upstream, granularity: .word)
+
+        // drag to the right
+        s = dragAndAssert(s, point: CGPoint(x: 100, y: 42), caretAt: string.index(at: 21), affinity: .upstream, granularity: .word, dataSource: d)
+    }
+
     // MARK: Granularity
 
     func testExtendSelectionToEnclosingEmpty() {
