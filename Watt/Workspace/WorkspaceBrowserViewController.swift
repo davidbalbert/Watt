@@ -34,6 +34,10 @@ class WorkspaceBrowserViewController: NSViewController {
     private var task: Task<(), Never>?
     private var skipWorkspaceDidChange = false
 
+    // We need to update selectedURLs on both selectionDidChange and rowClicked, but not both.
+    // In situations where they're both fired, selectionDidChange fires first.
+    private var didUpdateURLs = false
+
     let filePromiseQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.name = "NSFilePromiseProvider queue"
@@ -68,6 +72,8 @@ class WorkspaceBrowserViewController: NSViewController {
         outlineView.autoresizesOutlineColumn = false
         outlineView.allowsMultipleSelection = true
         outlineView.autosaveExpandedItems = true
+        outlineView.target = self
+        outlineView.action = #selector(rowClicked(_:))
 
         let scrollView = NSScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -309,6 +315,27 @@ class WorkspaceBrowserViewController: NSViewController {
         dataSource.apply(snapshot, animatingDifferences: UserDefaults.standard.workspaceBrowserAnimationsEnabled && !dataSource.isEmpty)
     }
 
+    @objc func rowClicked(_ sender: NSOutlineView) {
+        if !didUpdateURLs {
+            updateSelectedURLs()
+        }
+    }
+
+    func updateSelectedURLs() {
+        guard let workspaceWindowController else {
+            return
+        }
+
+        let selectedDirents = outlineView.selectedRowIndexes.compactMap { i -> Dirent? in
+            guard let id = outlineView.item(atRow: i) as? Dirent.ID else {
+                return nil
+            }
+            return dataSource[id]
+        }
+
+        workspaceWindowController.selectedURLs = selectedDirents.map(\.url)
+    }
+
     @objc func submit(_ sender: DirentTextField) {
         guard let dirent = dirent(for: sender) else {
             return
@@ -435,18 +462,13 @@ class WorkspaceBrowserViewController: NSViewController {
 
 extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
     func outlineViewSelectionDidChange(_ notification: Notification) {
-        guard let workspaceWindowController else {
-            return
+        didUpdateURLs = true
+        print("selectionDidChange")
+        updateSelectedURLs()
+        Task {
+            await Task.yield()
+            didUpdateURLs = false
         }
-
-        let selectedDirents = outlineView.selectedRowIndexes.compactMap { i -> Dirent? in
-            guard let id = outlineView.item(atRow: i) as? Dirent.ID else {
-                return nil
-            }
-            return dataSource[id]
-        }
-
-        workspaceWindowController.selectedURLs = selectedDirents.map(\.url)
     }
 }
 
