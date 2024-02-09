@@ -463,7 +463,6 @@ class WorkspaceBrowserViewController: NSViewController {
 extension WorkspaceBrowserViewController: NSOutlineViewDelegate {
     func outlineViewSelectionDidChange(_ notification: Notification) {
         didUpdateURLs = true
-        print("selectionDidChange")
         updateSelectedURLs()
         Task {
             await Task.yield()
