@@ -61,7 +61,6 @@
 		63A618722A0EAF2000E70B0E /* Weak.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618712A0EAF2000E70B0E /* Weak.swift */; };
 		63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618732A0EC37700E70B0E /* LineNumberView.swift */; };
 		63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */; };
-		63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */; };
 		63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D832B5462D60032E8B9 /* FSEvents.swift */; };
 		63A95D882B55B9D70032E8B9 /* UserDefaults+Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */; };
 		63B61A1429FD9E1D00787BB9 /* TextDocumentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B61A1329FD9E1D00787BB9 /* TextDocumentViewController.swift */; };
@@ -95,6 +94,7 @@
 		63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20DE2B73CFF200E55747 /* NSObject+Extensions.m */; };
 		63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20E12B76B59300E55747 /* Logger+Extensions.swift */; };
 		63DD20E42B76B9A100E55747 /* GenericDocumentWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20E32B76B9A100E55747 /* GenericDocumentWindowController.swift */; };
+		63DD20E72B76BBE500E55747 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 63DD20E62B76BBE500E55747 /* OrderedCollections */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
@@ -241,10 +241,10 @@
 			files = (
 				63C2C0422B4D97E700BFB976 /* Tree in Frameworks */,
 				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
+				63DD20E72B76BBE500E55747 /* OrderedCollections in Frameworks */,
 				63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */,
 				63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */,
 				635F815B2AA9198200553E23 /* TreeSitterObjC in Frameworks */,
-				63A95D6B2B508A8F0032E8B9 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -506,7 +506,7 @@
 				635F815A2AA9198200553E23 /* TreeSitterObjC */,
 				63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */,
 				63C2C0412B4D97E700BFB976 /* Tree */,
-				63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */,
+				63DD20E62B76BBE500E55747 /* OrderedCollections */,
 			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
@@ -589,7 +589,7 @@
 				63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */,
 				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
 				63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */,
-				63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				63DD20E52B76BBE500E55747 /* XCRemoteSwiftPackageReference "swift-collections" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -1082,20 +1082,20 @@
 				minimumVersion = 2.2.0;
 			};
 		};
-		63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/dnadoba/Tree";
 			requirement = {
 				branch = main;
 				kind = branch;
+			};
+		};
+		63DD20E52B76BBE500E55747 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
 			};
 		};
 		63F30E652AA90012009929F7 /* XCRemoteSwiftPackageReference "tree-sitter" */ = {
@@ -1123,15 +1123,15 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = TreeSitterObjC;
 		};
-		63A95D6A2B508A8F0032E8B9 /* AsyncAlgorithms */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 63A95D692B508A8F0032E8B9 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
-			productName = AsyncAlgorithms;
-		};
 		63C2C0412B4D97E700BFB976 /* Tree */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */;
 			productName = Tree;
+		};
+		63DD20E62B76BBE500E55747 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63DD20E52B76BBE500E55747 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
 		};
 		63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */ = {
 			isa = XCSwiftPackageProductDependency;
