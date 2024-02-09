@@ -24,7 +24,6 @@ extension NSFileCoordinator {
         // NSFileCoordinator.cancel() is thread-safe, so we wrap it in an unchecked Sendable struct.
         let cancel = Cancel(coordinator: self)
 
-
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 coordinate(with: intents, queue: queue) { error in
