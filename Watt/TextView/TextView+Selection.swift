@@ -23,7 +23,7 @@ extension TextView {
     }
 
     private var insertionPointOffInterval: TimeInterval {
-        UserDefaults.standard.textInsertionPointBlinkPeriodOff / 100
+        UserDefaults.standard.textInsertionPointBlinkPeriodOff / 1000
     }
 
     private var insertionPointBlinkInterval: TimeInterval {
