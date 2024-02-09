@@ -75,7 +75,6 @@
 		63C2C04D2B4DFA2200BFB976 /* SimpleProxy.m in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */; };
 		63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C04F2B4F3BB700BFB976 /* Dirent.swift */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
-		63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */; };
 		63C907822A7319E300E4D7C9 /* HeightsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907812A7319E300E4D7C9 /* HeightsTests.swift */; };
 		63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907832A7847BC00E4D7C9 /* IntervalCache.swift */; };
 		63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */; };
@@ -203,7 +202,6 @@
 		63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Watt-Bridging-Header.h"; sourceTree = "<group>"; };
 		63C2C04F2B4F3BB700BFB976 /* Dirent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dirent.swift; sourceTree = "<group>"; };
 		63C541EA2B486210001C370B /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
-		63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AsyncStream+Extensions.swift"; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTests.swift; sourceTree = "<group>"; };
 		63C907832A7847BC00E4D7C9 /* IntervalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCache.swift; sourceTree = "<group>"; };
 		63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCacheTests.swift; sourceTree = "<group>"; };
@@ -302,7 +300,6 @@
 			children = (
 				63DD20E02B73D00A00E55747 /* NSObject+Extensions.h */,
 				63DD20DE2B73CFF200E55747 /* NSObject+Extensions.m */,
-				63C541EC2B486240001C370B /* AsyncStream+Extensions.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
@@ -705,7 +702,6 @@
 				6364DDA12B6C403400886DE3 /* ContainerViewController.swift in Sources */,
 				63B61A1629FDA2B800787BB9 /* TextView.swift in Sources */,
 				63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */,
-				63C541ED2B486240001C370B /* AsyncStream+Extensions.swift in Sources */,
 				637BC1322A151F5F0089A34D /* Selection.swift in Sources */,
 				63DC933D2B473BB5001018FE /* WorkspaceViewController.swift in Sources */,
 				6378677B2A1BDF870039960E /* SelectionLayer.swift in Sources */,
