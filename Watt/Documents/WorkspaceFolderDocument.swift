@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import os
 
 class WorkspaceFolderDocument: BaseDocument {
     var workspace: Workspace!
@@ -33,7 +34,7 @@ class WorkspaceFolderDocument: BaseDocument {
     }
 
     override func shouldCloseWindowController(_ windowController: NSWindowController, delegate: Any?, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
-        Swift.print("WorkspaceFolderDocument.shouldCloseWindowController")
+        Logger.documentLog.debug("WorkspaceFolderDocument.shouldCloseWindowController")
 
         // In a workspace window, the window should close if
         //   - All of the Documents in windows tabs are being shown in other windows, or
@@ -70,7 +71,7 @@ class WorkspaceFolderDocument: BaseDocument {
     }
 
     override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
-        Swift.print("WorkspaceFolderDocument.canClose")
+        Logger.documentLog.debug("WorkspaceFolderDocument.canClose")
         super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 

@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import os
 
 class WindowController: NSWindowController {
     func cascade() {
@@ -25,7 +26,7 @@ class WindowController: NSWindowController {
     }
 
     override func close() {
-        print("\(className).close")
+        Logger.documentLog.debug("\(self.className).close")
         super.close()
     }
 }

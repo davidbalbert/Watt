@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import os
 
 class WorkspaceWindowController: WindowController {
     enum RestorationKeys {
@@ -135,7 +136,7 @@ class WorkspaceWindowController: WindowController {
     }
 
     @IBAction func closeWindow(_ sender: Any?) {
-        print("WorkspaceWindowController.closeWindow")
+        Logger.documentLog.debug("WorkspaceWindowController.closeWindow")
         guard let closeAction = closeAction else {
             return
         }
@@ -153,7 +154,7 @@ class WorkspaceWindowController: WindowController {
     }
 
     @IBAction func closeTab(_ sender: Any?) {
-        print("WorkspaceWindowController.closeTab")
+        Logger.documentLog.debug("WorkspaceWindowController.closeTab")
         assert(document != nil && workspaceDocument != nil)
 
         if (document as? WorkspaceFolderDocument) == workspaceDocument {
@@ -247,7 +248,7 @@ class WorkspaceWindowController: WindowController {
 
 extension WorkspaceWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        print("WorkspaceWindowController.windowWillClose")
+        Logger.documentLog.debug("WorkspaceWindowController.windowWillClose")
         for controller in documentViewControllers {
             guard let document = controller.document else {
                 continue

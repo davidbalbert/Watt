@@ -93,6 +93,7 @@
 		63DD20DB2B7278E400E55747 /* CheckedContinuationReference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20DA2B7278E400E55747 /* CheckedContinuationReference.swift */; };
 		63DD20DD2B73B9FA00E55747 /* BaseDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20DC2B73B9F900E55747 /* BaseDocument.swift */; };
 		63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20DE2B73CFF200E55747 /* NSObject+Extensions.m */; };
+		63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DD20E12B76B59300E55747 /* Logger+Extensions.swift */; };
 		63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */ = {isa = PBXBuildFile; productRef = 63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */; };
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
@@ -219,6 +220,7 @@
 		63DD20DC2B73B9F900E55747 /* BaseDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseDocument.swift; sourceTree = "<group>"; };
 		63DD20DE2B73CFF200E55747 /* NSObject+Extensions.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSObject+Extensions.m"; sourceTree = "<group>"; };
 		63DD20E02B73D00A00E55747 /* NSObject+Extensions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSObject+Extensions.h"; sourceTree = "<group>"; };
+		63DD20E12B76B59300E55747 /* Logger+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+Extensions.swift"; sourceTree = "<group>"; };
 		63E32EAF2AF3ECA700EDB062 /* StandardKeyBindingResponder */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = StandardKeyBindingResponder; sourceTree = "<group>"; };
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
@@ -303,6 +305,7 @@
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
 				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
+				63DD20E12B76B59300E55747 /* Logger+Extensions.swift */,
 				63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */,
 				63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */,
 				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
@@ -682,6 +685,7 @@
 				63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */,
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */,
+				63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */,
 				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */,

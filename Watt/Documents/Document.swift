@@ -7,6 +7,7 @@
 
 import Cocoa
 import UniformTypeIdentifiers
+import os
 
 enum DocumentStorage {
     case text(Buffer)
@@ -96,7 +97,7 @@ class Document: BaseDocument {
     }
 
     func addDocumentViewController(_ viewController: DocumentViewController) {
-        Swift.print("Document.addDocumentViewController")
+        Logger.documentLog.debug("Document.addDocumentViewController")
         if documentViewControllers.contains(viewController) {
             return
         }
@@ -107,7 +108,7 @@ class Document: BaseDocument {
     }
 
     func removeDocumentViewController(_ viewController: DocumentViewController) {
-        Swift.print("Document.removeDocumentViewController")
+        Logger.documentLog.debug("Document.removeDocumentViewController")
         if let index = documentViewControllers.firstIndex(of: viewController) {
             documentViewControllers.remove(at: index)
             viewController.document = nil
@@ -115,12 +116,12 @@ class Document: BaseDocument {
     }
 
     override func shouldCloseWindowController(_ windowController: NSWindowController, delegate: Any?, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
-        Swift.print("Document.shouldCloseWindowController")
+        Logger.documentLog.debug("Document.shouldCloseWindowController")
         super.shouldCloseWindowController(windowController, delegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 
     override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
-        Swift.print("Document.canClose")
+        Logger.documentLog.debug("Document.canClose")
         super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 
@@ -134,7 +135,7 @@ class Document: BaseDocument {
     }
 
     func shouldCloseDocumentViewController(_ viewController: DocumentViewController) async -> Bool {
-        Swift.print("Document.shouldCloseDocumentViewController")
+        Logger.documentLog.debug("Document.shouldCloseDocumentViewController")
         assert(documentViewControllers.contains(viewController))
 
         if documentViewControllers.count > 1 {

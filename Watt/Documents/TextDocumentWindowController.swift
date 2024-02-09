@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import os
 
 // A window controller for a standalone (i.e. not in a workspace) TextDocument
 class TextDocumentWindowController: WindowController {
@@ -47,12 +48,12 @@ class TextDocumentWindowController: WindowController {
     }
 
     @IBAction func closeWindow(_ sender: Any?) {
-        print("TextDocumentWindowController.closeWindow")
+        Logger.documentLog.debug("TextDocumentWindowController.closeWindow")
         NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
     }
 
     @IBAction func closeTab(_ sender: Any?) {
-        print("TextDocumentWindowController.closeTab")
+        Logger.documentLog.debug("TextDocumentWindowController.closeTab")
         NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
     }
 }

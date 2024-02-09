@@ -6,15 +6,16 @@
 //
 
 import Cocoa
+import os
 
 class Window: NSWindow {
     override func performClose(_ sender: Any?) {
-        print("Window.performClose")
+        Logger.documentLog.debug("Window.performClose")
         super.performClose(sender)
     }
 
     override func close() {
-        print("Window.close")
+        Logger.documentLog.debug("Window.close")
         super.close()
     }
 }

@@ -6,20 +6,25 @@
 //
 
 import Cocoa
+import os
+
+extension Logger {
+    static let documentLog = Logger(subsystem: "com.davidaurelio.Watt", category: "Document").enabled(false)
+}
 
 class BaseDocument: NSDocument {
     override func close() {
-        Swift.print("\(className).close")
+        Logger.documentLog.debug("\(self.className).close")
         super.close()
     }
 
     override func addWindowController(_ windowController: NSWindowController) {
-        Swift.print("\(className).addWindowController")
+        Logger.documentLog.debug("\(self.className).addWindowController")
         super.addWindowController(windowController)
     }
 
     override func removeWindowController(_ windowController: NSWindowController) {
-        Swift.print("\(className).removeWindowController")
+        Logger.documentLog.debug("\(self.className).removeWindowController")
         super.removeWindowController(windowController)
     }
 }
