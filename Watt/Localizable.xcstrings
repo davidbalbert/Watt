@@ -7,6 +7,9 @@
     "Are you sure you want to delete the selected %lld items?" : {
 
     },
+    "Can't move the workspace root." : {
+
+    },
     "Cancel" : {
 
     },
@@ -20,6 +23,12 @@
 
     },
     "The selected items will be moved to the Trash." : {
+
+    },
+    "The URL %@ is not in the workspace." : {
+
+    },
+    "The workspace root must be a folder." : {
 
     },
     "This is a bug in Watt. Please report it." : {

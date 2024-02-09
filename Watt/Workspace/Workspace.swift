@@ -14,10 +14,25 @@ protocol WorkspaceDelegate: AnyObject {
 
 @MainActor
 class Workspace {
-    enum Errors: Error {
+    enum Errors: Error, LocalizedError {
         case rootIsNotFolder
         case cantMoveRoot
         case isNotInWorkspace(URL)
+
+        var errorDescription: String? {
+            switch self {
+            case .rootIsNotFolder:
+                return String(localized: "The workspace root must be a folder.")
+            case .cantMoveRoot:
+                return String(localized: "Can't move the workspace root.")
+            case .isNotInWorkspace(let url):
+                return String(localized: "The URL \(url.absoluteString) is not in the workspace.")
+            }
+        }
+
+        var failureReason: String? {
+            String(localized: "This is a bug in Watt. Please report it.")
+        }
     }
 
     private(set) var root: Dirent
@@ -160,7 +175,7 @@ class Workspace {
     // or isn't loaded.
     @discardableResult
     func receive(filesFrom filePromiseReceivers: [NSFilePromiseReceiver], atDestination targetDirectoryURL: URL) async throws -> [URL] {
-        if !isInWorkspace(targetDirectoryURL) {
+        guard targetDirectoryURL == root.url || isInWorkspace(targetDirectoryURL) else {
             throw Errors.isNotInWorkspace(targetDirectoryURL)
         }
 
