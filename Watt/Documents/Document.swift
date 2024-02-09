@@ -81,9 +81,9 @@ class Document: BaseDocument {
         case let .text(buffer):
             let windowController = TextDocumentWindowController(buffer: buffer)
             addWindowController(windowController)
-        case .generic:
-            // no-op, only text can be opened outside of a workspace
-            break
+        case let .generic(url):
+            let windowController = GenericDocumentWindowController(url: url)
+            addWindowController(windowController)
         }
     }
 

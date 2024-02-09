@@ -1,25 +1,23 @@
 //
-//  TextDocumentWindowController.swift
+//  GenericDocumentWindowController.swift
 //  Watt
 //
-//  Created by David Albert on 2/1/24.
+//  Created by David Albert on 2/9/24.
 //
 
 import Cocoa
 import os
 
-// A window controller for a standalone (i.e. not in a workspace) TextDocument
-class TextDocumentWindowController: WindowController {
-    let buffer: Buffer
+class GenericDocumentWindowController: WindowController {
+    let url: URL
 
-    init(buffer: Buffer) {
-        self.buffer = buffer
+    init(url: URL) {
+        self.url = url
         super.init(window: nil)
     }
 
     required init?(coder: NSCoder) {
-        self.buffer = Buffer()
-        super.init(coder: coder)
+        fatalError("init(coder:) has not been implemented")
     }
 
     // returning non-nil nib name triggers loadWindow()
@@ -28,7 +26,7 @@ class TextDocumentWindowController: WindowController {
     }
 
     override func loadWindow() {
-        let viewController = TextDocumentViewController(buffer: buffer)
+        let viewController = GenericDocumentViewController(url: url)
         viewController.view.frame.size = NSSize(width: 800, height: 600)
 
         let window = Window(contentViewController: viewController)
@@ -44,16 +42,16 @@ class TextDocumentWindowController: WindowController {
         }
 
         window.contentMinSize = NSSize(width: 300, height: 300)
-        window.identifier = NSUserInterfaceItemIdentifier("TextDocumentWindow")
+        window.identifier = NSUserInterfaceItemIdentifier("GenericDocumentWindow")
     }
 
     @IBAction func closeWindow(_ sender: Any?) {
-        Logger.documentLog.debug("TextDocumentWindowController.closeWindow")
+        Logger.documentLog.debug("GenericDocumentWindowController.closeWindow")
         NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
     }
 
     @IBAction func closeTab(_ sender: Any?) {
-        Logger.documentLog.debug("TextDocumentWindowController.closeTab")
+        Logger.documentLog.debug("GenericDocumentWindowController.closeTab")
         NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: sender)
     }
 }
