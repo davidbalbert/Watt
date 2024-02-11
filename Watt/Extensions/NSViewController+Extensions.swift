@@ -8,7 +8,7 @@
 import Cocoa
 
 extension NSViewController {
-    func presentErrorAsSheetWithFallback(_ error: Error) {
+    func presentErrorAsSheet(_ error: Error) {
         if let window = view.window {
             presentError(error, modalFor: window, delegate: nil, didPresent: nil, contextInfo: nil)
         } else {

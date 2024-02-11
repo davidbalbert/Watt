@@ -111,7 +111,7 @@ class WorkspaceBrowserViewController: NSViewController {
             do {
                 try workspace.loadDirectory(url: dirent.url)
             } catch {
-                self?.presentErrorAsSheetWithFallback(error)
+                self?.presentErrorAsSheet(error)
             }
             return OutlineViewSnapshot(workspace.children, children: \.children)
         }
@@ -128,7 +128,7 @@ class WorkspaceBrowserViewController: NSViewController {
                  do {
                      try await workspace.trash(filesAt: urls)
                  } catch {
-                     self?.presentErrorAsSheetWithFallback(error)
+                     self?.presentErrorAsSheet(error)
                  }
              }
         }
@@ -139,7 +139,7 @@ class WorkspaceBrowserViewController: NSViewController {
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
                     try await workspace.receive(filesFrom: filePromiseReceivers, atDestination: targetDirectoryURL)
                 } catch {
-                    self?.presentErrorAsSheetWithFallback(error)
+                    self?.presentErrorAsSheet(error)
                 }
             }
         } validator: { _, destination in
@@ -161,7 +161,7 @@ class WorkspaceBrowserViewController: NSViewController {
                         try await workspace.copy(filesAt: srcURLs, intoWorkspaceAt: dstURLs)
                     }
                 } catch {
-                    self?.presentErrorAsSheetWithFallback(error)
+                    self?.presentErrorAsSheet(error)
                 }
             }
         } validator: { _, destination in
@@ -184,7 +184,7 @@ class WorkspaceBrowserViewController: NSViewController {
                     }
                     try await workspace.move(filesAt: oldURLs, to: newURLs)
                 } catch {
-                    self?.presentErrorAsSheetWithFallback(error)
+                    self?.presentErrorAsSheet(error)
                 }
             }
         } validator: { _, destination in
@@ -202,7 +202,7 @@ class WorkspaceBrowserViewController: NSViewController {
                     }
                     try await workspace.copy(filesAt: srcURLs, intoWorkspaceAt: dstURLs)
                 } catch {
-                    self?.presentErrorAsSheetWithFallback(error)
+                    self?.presentErrorAsSheet(error)
                 }
             }
         } validator: { _, destination in
@@ -365,7 +365,7 @@ class WorkspaceBrowserViewController: NSViewController {
                 updateView()
             } catch {
                 sender.stringValue = dirent.name
-                presentErrorAsSheetWithFallback(error)
+                presentErrorAsSheet(error)
             }
         }
     }
@@ -389,12 +389,12 @@ class WorkspaceBrowserViewController: NSViewController {
         let informativeText: String
         if indexes.count == 1 {
             guard let i = indexes.first, let id = outlineView.item(atRow: i) as? Dirent.ID else {
-                presentErrorAsSheetWithFallback(Errors.invalidDirentID)
+                presentErrorAsSheet(Errors.invalidDirentID)
                 return
             }
 
             guard let dirent = dataSource[id] else {
-                presentErrorAsSheetWithFallback(Errors.noDirentInWorkspace(id))
+                presentErrorAsSheet(Errors.noDirentInWorkspace(id))
                 return
             }
 
@@ -426,14 +426,14 @@ class WorkspaceBrowserViewController: NSViewController {
             let ids = indexes.compactMap { outlineView.item(atRow: $0) as? Dirent.ID }
             if ids.count < indexes.count {
                 let error = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-                presentErrorAsSheetWithFallback(error)
+                presentErrorAsSheet(error)
                 return
             }
 
             var urls: [URL] = []
             for id in ids {
                 guard let dirent = dataSource[id] else {
-                    presentErrorAsSheetWithFallback(Errors.noDirentInWorkspace(id))
+                    presentErrorAsSheet(Errors.noDirentInWorkspace(id))
                     return
                 }
 
@@ -443,7 +443,7 @@ class WorkspaceBrowserViewController: NSViewController {
             do {
                 try await workspace.trash(filesAt: urls)
             } catch {
-                presentErrorAsSheetWithFallback(error)
+                presentErrorAsSheet(error)
             }
         }   
     }
@@ -576,7 +576,7 @@ extension WorkspaceBrowserViewController: NSFilePromiseProviderDelegate {
             completionHandler(nil)
         } catch {
             Task { @MainActor in
-                self.presentErrorAsSheetWithFallback(error)
+                self.presentErrorAsSheet(error)
             }
             completionHandler(error)
         }
