@@ -212,6 +212,12 @@ class Document: BaseDocument {
 
     override nonisolated func presentedItemDidChange() {
         Task { @MainActor in
+            // Very much not sure that my logic here is right. performActivity(withSyncronousWaiting:using:) is only
+            // relavant and when we start supporting asyncronous writing, and given that we're making sure that all file
+            // accesses happen on the main thread (by hopping back at the top of presentedItemDidChange()), I'm pretty
+            // sure performAsyncronousFileAccess(_:) isn't needed either.
+            //
+            // That said, this is hopefully a decent blueprint for getting started with asyncronous file writing.
             performActivity(withSynchronousWaiting: false) { [self] activityDone in
                 performAsynchronousFileAccess { [self] fileDone in
                     defer { fileDone() }
@@ -222,7 +228,12 @@ class Document: BaseDocument {
                     }
 
                     do {
-                        try NSFileCoordinator(filePresenter: self).coordinate(readingItemAt: fileURL) { actualURL in
+                        // TODO: it would be nice if coordinate(readingItemAt:options:) didn't block the main thread. There's
+                        // an example of how you might do that in this video at 35:07:
+                        //    https://download.developer.apple.com/videos/wwdc_2011__hd/session_107__autosave_and_versions_in_mac_os_x_10.7_lion.m4v
+                        //
+                        // I attempted to do it, but there were too many concurrency warnings and it wans't worth it.
+                        try NSFileCoordinator(filePresenter: self).coordinate(readingItemAt: fileURL, options: .withoutChanges) { actualURL in
                             let date = try actualURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate!
 
                             if fileModificationDate == nil || date == fileModificationDate {
