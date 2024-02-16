@@ -9,7 +9,7 @@ import Cocoa
 import os
 
 extension Logger {
-    static let documentLog = Logger(subsystem: "com.davidaurelio.Watt", category: "Document").enabled(false)
+    static let documentLog = Logger(type: BaseDocument.self).enabled(false)
 }
 
 class BaseDocument: NSDocument {

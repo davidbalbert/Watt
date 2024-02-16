@@ -26,10 +26,18 @@ class Document: BaseDocument {
         true
     }
 
+    // TODO: support asyncronous saving
+    // When we do this, make sure to look at performActivity(withSynchronousWaiting:using:).
+    // See https://download.developer.apple.com/videos/wwdc_2011__hd/session_107__autosave_and_versions_in_mac_os_x_10.7_lion.m4v
+    override func canAsynchronouslyWrite(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType) -> Bool {
+        false
+    }
+
     convenience init(type typeName: String) throws {
         // The docs say to call super.init(typeName:), but that's a convenience initializer,
-        // so we can't do it. The docs also say this just calls super.init() and sets fileType
-        // so hopefully this is good enough.
+        // so we can't do it. The docs also say that super.init(typeName:) just calls the designated
+        // initializer – self.init() – and then sets fileType, so we'll do that here. Hopefully this
+        // is good enough.
         self.init()
         fileType = typeName
 
@@ -38,7 +46,56 @@ class Document: BaseDocument {
         storage = .text(Buffer())
     }
 
-    override func read(from url: URL, ofType typeName: String) throws {
+    // When canConcurrentlyReadDocuments(ofType:) returns true, the document is initialized and read
+    // on a background thread, and then transfered to the main thread to present UI.
+    //
+    // Specifically, these are called on a background thread:
+    //     NSDocumentController.makeDocument(withContentsOf:ofType:)
+    //     NSDocument.init(contentsOf:ofType:)
+    //     NSDocument.read(from:ofType:)
+    //
+    // After which these are called on the main thread:
+    //     NSDocument.makeWindowControllers()
+    //     NSDocument.showWindows()
+    //
+    // Source: https://download.developer.apple.com/wwdc_2008/adc_on_itunes__wwdc08_sessions__mac_track__videos_2/425.m4v
+    //
+    // There's an impedance mismatch – NSDocument is @MainActor, but it's not always run on the main thread.
+    // Because read(from:ofType:) is non-isolated, Swift wants us to asyncronously read and write storage.
+    // But that's not necessary – NSDocument is always isolated to a single thread, even if it's not the
+    // main thread.
+    //
+    // To get around this, we tell Swift to ignore actor isolation (see MainActor+Extensions.swift).
+    //
+    // For more, see: https://forums.swift.org/t/unsafe-synchronous-access-to-mainactor-isolated-data-in-nsdocument/70049
+    //
+    // N.b. read(from:ofType:) can also be called directly on the main thread by revert(toContentsOf:ofType:),
+    // which is @MainActor.
+    override nonisolated func read(from url: URL, ofType typeName: String) throws {
+        try MainActor.unsafeIgnoreActorIsolation {
+            let type = UTType(typeName) ?? .data
+
+            switch (storage, isTextFile(url, typeName)) {
+            case let (.text(buffer), true):
+                let string = try String(contentsOf: url)
+                buffer.replaceContents(with: string, language: type.language ?? .plainText)
+            case (.text, false):
+                assertionFailure("Switching from text to generic isn't supported yet")
+            case (.generic, true):
+                assertionFailure("Switching from generic to text isn't supported yet")
+            case (.generic, false):
+                // TODO: update document view controlllers so the new file is shown
+                storage = .generic(url)
+            case (nil, true):
+                let string = try String(contentsOf: url)
+                storage = .text(Buffer(string, language: type.language ?? .plainText))
+            case (nil, false):
+                storage = .generic(url)
+            }
+        }
+    }
+
+    nonisolated func isTextFile(_ url: URL, _ typeName: String) -> Bool {
         let type = UTType(typeName) ?? .data
 
         let knownBinary: [UTType] = [
@@ -60,19 +117,22 @@ class Document: BaseDocument {
 
         // Adapted from CotEditor
         if knownBinary.contains(where: { type.conforms(to: $0) }) && !type.conforms(to: .svg) && url.pathExtension != ".ts" { // conflict between MPEG-2 streamclip file and TypeScript
-            storage = .generic(url)
+            return false
         } else {
-            let string = try String(contentsOf: url)
-            storage = .text(Buffer(string, language: type.language ?? .plainText))
+            return true
         }
     }
 
-    override func write(to url: URL, ofType typeName: String) throws {
-        switch storage! {
-        case let .text(buffer):
-            try buffer.data.write(to: url, options: .atomic)
-        case .generic:
-            break
+    // Once we enable asyncronous writing, this will probably have to change from assumeIsolated
+    // to unsafeIgnoreActorIsolation.
+    override nonisolated func write(to url: URL, ofType typeName: String) throws {
+        try MainActor.assumeIsolated {
+            switch storage! {
+            case let .text(buffer):
+                try buffer.data.write(to: url, options: .atomic)
+            case .generic:
+                break
+            }
         }
     }
 
@@ -148,5 +208,42 @@ class Document: BaseDocument {
     @objc func document(_ document: Document, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer) {
         let continuation = Unmanaged<CheckedContinuationReference<Bool, Error>>.fromOpaque(contextInfo).takeRetainedValue()
         continuation.resume(returning: shouldClose)
+    }
+
+    override nonisolated func presentedItemDidChange() {
+        Task { @MainActor in
+            performActivity(withSynchronousWaiting: false) { [self] activityDone in
+                performAsynchronousFileAccess { [self] fileDone in
+                    defer { fileDone() }
+                    defer { activityDone() }
+
+                    guard let fileURL, let fileType else {
+                        return
+                    }
+
+                    do {
+                        try NSFileCoordinator(filePresenter: self).coordinate(readingItemAt: fileURL) { actualURL in
+                            let date = try actualURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate!
+
+                            if fileModificationDate == nil || date == fileModificationDate {
+                                return
+                            }
+
+                            try revert(toContentsOf: actualURL, ofType: fileType)
+                        }
+                    } catch {
+                        presentErrorAsSheet(error)
+                    }
+                }
+            }
+        }
+    }
+
+    func presentErrorAsSheet(_ error: Error) {
+        if let windowForSheet {
+            presentError(error, modalFor: windowForSheet, delegate: nil, didPresent: nil, contextInfo: nil)
+        } else {
+            presentError(error)
+        }
     }
 }

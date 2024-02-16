@@ -80,6 +80,9 @@ class WorkspaceFolderDocument: BaseDocument {
             // Workspace window identifier is unique per window to allow for persisting NSOutlineView expanded states
             // for each window. We need to make sure each restored window is using the same identifier from the
             // previous time it was launched.
+            //
+            // TODO: This is kind of gross. It might be cleaner to roll our own NSOutlineView expanded state tracking
+            // that uses NSWindow's restorable state system instead of UserDefaults.
             window?.identifier = identifier
             completionHandler(window, error)}
     }

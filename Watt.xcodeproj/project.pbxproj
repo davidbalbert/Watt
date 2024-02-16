@@ -54,6 +54,7 @@
 		637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1412A156B620089A34D /* CGRect+Extensions.swift */; };
 		637BC1442A156B820089A34D /* CGPoint+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1432A156B820089A34D /* CGPoint+Extensions.swift */; };
 		637BC1462A156B9B0089A34D /* CGSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */; };
+		637E583D2B7E7F3700C498EE /* MainActor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637E583C2B7E7F3700C498EE /* MainActor+Extensions.swift */; };
 		63820B8D2A7164A500CC7458 /* Collection+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */; };
 		6396DD262B433781000F85D1 /* Comparable+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6396DD252B433775000F85D1 /* Comparable+Extensions.swift */; };
 		6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */; };
@@ -175,6 +176,7 @@
 		637BC1412A156B620089A34D /* CGRect+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1432A156B820089A34D /* CGPoint+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGPoint+Extensions.swift"; sourceTree = "<group>"; };
 		637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGSize+Extensions.swift"; sourceTree = "<group>"; };
+		637E583C2B7E7F3700C498EE /* MainActor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainActor+Extensions.swift"; sourceTree = "<group>"; };
 		63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Collection+Extensions.swift"; sourceTree = "<group>"; };
 		6384CA642B1959610087FC14 /* lldb_utils.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = lldb_utils.py; sourceTree = "<group>"; };
 		6396DD252B433775000F85D1 /* Comparable+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+Extensions.swift"; sourceTree = "<group>"; };
@@ -306,6 +308,7 @@
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
 				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
 				63DD20E12B76B59300E55747 /* Logger+Extensions.swift */,
+				637E583C2B7E7F3700C498EE /* MainActor+Extensions.swift */,
 				63D280912B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift */,
 				63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */,
 				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
@@ -662,6 +665,7 @@
 				63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */,
 				63D2808B2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift in Sources */,
 				637867732A1BD1E10039960E /* TextView+Mouse.swift in Sources */,
+				637E583D2B7E7F3700C498EE /* MainActor+Extensions.swift in Sources */,
 				636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
 				6364DDA32B6C408700886DE3 /* DocumentPaneViewController.swift in Sources */,
