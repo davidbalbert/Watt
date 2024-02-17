@@ -180,9 +180,15 @@ class Document: BaseDocument {
         super.shouldCloseWindowController(windowController, delegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 
-    override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
-        Logger.documentLog.debug("Document.canClose")
-        super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
+    func shouldCloseDocumentViewController(_ viewController: DocumentViewController) async -> Bool {
+        Logger.documentLog.debug("Document.shouldCloseDocumentViewController")
+        assert(documentViewControllers.contains(viewController))
+
+        if documentViewControllers.count > 1 {
+            return true
+        }
+
+        return await canClose()
     }
 
     func canClose() async -> Bool {
@@ -194,15 +200,9 @@ class Document: BaseDocument {
         }
     }
 
-    func shouldCloseDocumentViewController(_ viewController: DocumentViewController) async -> Bool {
-        Logger.documentLog.debug("Document.shouldCloseDocumentViewController")
-        assert(documentViewControllers.contains(viewController))
-
-        if documentViewControllers.count > 1 {
-            return true
-        }
-
-        return await canClose()
+    override func canClose(withDelegate delegate: Any, shouldClose shouldCloseSelector: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+        Logger.documentLog.debug("Document.canClose")
+        super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
     }
 
     @objc func document(_ document: Document, shouldClose: Bool, contextInfo: UnsafeMutableRawPointer) {
@@ -248,6 +248,47 @@ class Document: BaseDocument {
                 }
             }
         }
+    }
+
+    override nonisolated func accommodatePresentedItemDeletion() async throws {
+        try await super.accommodatePresentedItemDeletion()
+        await close()
+    }
+
+    override nonisolated func presentedItemDidMove(to newURL: URL) {
+        super.presentedItemDidMove(to: newURL)
+
+        Task { @MainActor in
+            var relationship: FileManager.URLRelationship = .other
+            do {
+                try FileManager.default.getRelationship(&relationship, of: .trashDirectory, in: .allDomainsMask, toItemAt: newURL)
+            } catch {
+                presentErrorAsSheet(error)
+                return
+            }
+            
+            if relationship == .contains {
+                close()
+            }
+        }
+    }
+
+    override func close() {
+        var didCloseTab = false
+        for vc in documentViewControllers {
+            removeDocumentViewController(vc)
+            if let wc = vc.view.window?.windowController as? WorkspaceWindowController {
+                wc.closeDocumentViewController(vc)
+                didCloseTab = true
+            }
+        }
+
+        if didCloseTab {
+            (DocumentController.shared as! DocumentController).skipNoteNextRecentDocument = true
+        }
+
+        // Closes all of the document's windows and removes the document from its document controller.
+        super.close()
     }
 
     func presentErrorAsSheet(_ error: Error) {

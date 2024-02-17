@@ -144,6 +144,9 @@ class WorkspaceWindowController: WindowController {
         // Make sure document == workspaceDocument before the window closes
         // so that WorkspaceFolderDocument's shouldCloseWindowController is
         // called to clean up all our tabs, not just the active one.
+        //
+        // TODO: figure out how to make the document proxy icon not flash
+        // to a a folder before the window closes.
         workspaceDocument?.addWindowController(self)
 
         // Don't leak NSOutlineView expanded state. We don't want UserDefaults to contain the
@@ -163,13 +166,8 @@ class WorkspaceWindowController: WindowController {
             return
         }
 
-        guard let document = document as? Document else {
-            assertionFailure("We should always have a document")
-            return
-        }
-
         Task {
-            await closeDocument(document)
+            await doCloseTab()
         }
     }
 
@@ -202,8 +200,8 @@ class WorkspaceWindowController: WindowController {
             return true
         }
 
-        if let focusedDocument = focusedDocumentViewController?.document {
-            let didClose = await closeDocument(focusedDocument)
+        if focusedDocumentViewController != nil {
+            let didClose = await doCloseTab()
             if !didClose {
                 return false
             }
@@ -215,34 +213,39 @@ class WorkspaceWindowController: WindowController {
     }
 
     @discardableResult
-    func closeDocument(_ document: Document) async -> Bool {
-        guard let workspaceDocument else {
-            assertionFailure("We should always have a workspace document")
-            return false
-        }
-
+    func doCloseTab() async -> Bool {
         guard let focusedDocumentViewController else {
             assertionFailure("We should always have a focused view controller")
             return false
         }
 
-        assert(document == focusedDocumentViewController.document)
+        guard let document = focusedDocumentViewController.document else {
+            assertionFailure("focusedDocumentViewController should always have a document")
+            return false
+        }
 
         if await !document.shouldCloseDocumentViewController(focusedDocumentViewController) {
             return false
         }
 
         document.removeDocumentViewController(focusedDocumentViewController)
-        // TODO: this is a hack. Make it better when we add tabs
-        documentPaneViewController.document = nil
-        workspaceDocument.addWindowController(self)
+        closeDocumentViewController(focusedDocumentViewController)
+        closeDocumentIfNecessary(document)
 
+        return true
+    }
+
+    func closeDocumentViewController(_ documentViewController: DocumentViewController) {
+        assert(documentViewControllers.contains(documentViewController))
+        documentPaneViewController.document = nil
+        workspaceDocument?.addWindowController(self)
+    }
+
+    func closeDocumentIfNecessary(_ document: Document) {
         if document.documentViewControllers.count == 0 {
             (DocumentController.shared as! DocumentController).skipNoteNextRecentDocument = true
             document.close()
         }
-
-        return true
     }
 }
 
@@ -257,9 +260,7 @@ extension WorkspaceWindowController: NSWindowDelegate {
             // The window is closing, so I don't think we need to remove
             // the view controller and it's view from the hierarchy.
             document.removeDocumentViewController(controller)
-            if document.documentViewControllers.count == 0 {
-                document.close()
-            }
+            closeDocumentIfNecessary(document)
         }
     }
 }
