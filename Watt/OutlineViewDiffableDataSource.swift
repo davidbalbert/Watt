@@ -10,6 +10,12 @@ import Cocoa
 import Tree
 import OrderedCollections
 
+enum OutlineViewDropTarget {
+    case onRows
+    case betweenRows
+    case any
+}
+
 @MainActor
 final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
     let outlineView: NSOutlineView
@@ -17,6 +23,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
     var loadChildren: ((Data.Element) -> OutlineViewSnapshot<Data>?)?
+    var dropTarget: OutlineViewDropTarget = .any
     var onDrag: ((Data.Element) -> NSPasteboardWriting?)?
 
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
@@ -80,18 +87,18 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         let id = id(from: item)
         loadChildren(ofElementWithID: id)
-        return snapshot.childIds(ofElementWithID: id)?.count ?? 0
+        return snapshot.childIDs(ofElementWithID: id)?.count ?? 0
     }
 
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         let id = id(from: item)
         loadChildren(ofElementWithID: id)
         // we should only be asked for children of an item if it has children
-        return snapshot.childIds(ofElementWithID: id)![index]
+        return snapshot.childIDs(ofElementWithID: id)![index]
     }
 
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        snapshot.childIds(ofElementWithID: id(from: item)) != nil
+        snapshot.childIDs(ofElementWithID: id(from: item)) != nil
     }
 
     func outlineView(_ outlineView: NSOutlineView, objectValueFor tableColumn: NSTableColumn?, byItem item: Any?) -> Any? {
@@ -136,7 +143,10 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         let handlers = dropHandlers(for: info)
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-        let destination = DropDestination(parent: self[item], index: index)
+
+        let id = id(from: item)
+        let locationInView = outlineView.convert(info.draggingLocation, from: nil)
+        var destination = DropDestination(parent: self[id], index: index, location: locationInView)
 
         var matches: [ObjectIdentifier: (handler: any DropHandler<DropDestination>, items: [NSDraggingItem])] = [:]
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
@@ -157,7 +167,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         // The first matching handler determines the operation.
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
-            if handler.isValid(items, destination: destination) {
+            if handler.isValid(items, destination: &destination) {
                 if info.draggingSourceOperationMask.rawValue % 2 == 0 {
                     operation = info.draggingSourceOperationMask
                 } else {
@@ -166,6 +176,63 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
                 break
             }
         }
+
+        // TODO: extract to retargetIfNecessary()
+        if destination.parent?.id != id || destination.index != index {
+            // the validator retargeted the drop, so update the outline view.
+            outlineView.setDropItem(destination.parent?.id, dropChildIndex: destination.index)
+        } else if dropTarget == .betweenRows && index == NSOutlineViewDropOnItemIndex {
+            let childIDs = snapshot.childIDs(ofElementWithID: id)
+            if let childIDs, id == nil {
+                // Dropping on the root. Retarget to the first or last child depending on
+                // the location in the view.
+
+                let firstRow = outlineView.rowView(atRow: 0, makeIfNecessary: false)
+                if firstRow == nil || locationInView.y <= firstRow!.frame.minY {
+                    outlineView.setDropItem(nil, dropChildIndex: 0)
+                } else {
+                    outlineView.setDropItem(nil, dropChildIndex: childIDs.count)
+                }
+            } else if childIDs != nil {
+                // Dropping on an expandable node. Retarget to the first child.
+                outlineView.setDropItem(id, dropChildIndex: 0)
+            } else {
+                assert(id != nil)
+                // Dropping on a leaf node. Retarget to the next sibling.
+                let parentID = snapshot.parentID(ofElementWithID: id!)
+                let siblingIDs = snapshot.childIDs(ofElementWithID: parentID)!
+                let idx = (siblingIDs.firstIndex(of: id!) ?? 0) + 1
+                outlineView.setDropItem(parentID, dropChildIndex: idx)
+            }
+        } else if dropTarget == .onRows && index == NSOutlineViewDropOnItemIndex {
+            // if we're dropping on a leaf, retarget to it's parent – we can only drop on
+            // expandable nodes.
+            //
+            // ID must be non-nil because the root (a nil id) is always expandable.
+            if let id, snapshot.childIDs(ofElementWithID: id) == nil {
+                let parentID = snapshot.parentID(ofElementWithID: id)
+                outlineView.setDropItem(parentID, dropChildIndex: NSOutlineViewDropOnItemIndex)
+            }
+        } else if dropTarget == .onRows {
+            // we're dropping between nodes, so we need to retarget
+            let childIDs = snapshot.childIDs(ofElementWithID: id)!
+            if index == childIDs.count {
+                // we're pointing after the last child, so retarget to self
+                outlineView.setDropItem(id, dropChildIndex: NSOutlineViewDropOnItemIndex)
+            } else {
+                let childID = childIDs[index]
+                let isExpandable = snapshot.childIDs(ofElementWithID: childID) != nil
+
+                if isExpandable {
+                    // pointing before an expandable node, so drop on that node
+                    outlineView.setDropItem(childID, dropChildIndex: NSOutlineViewDropOnItemIndex)
+                } else {
+                    // pointing before a leaf node, so drop on self
+                    outlineView.setDropItem(id, dropChildIndex: NSOutlineViewDropOnItemIndex)
+                }
+            }
+        }
+
         return operation
     }
 
@@ -198,7 +265,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-        let destination = DropDestination(parent: self[item], index: index)
+        var destination = DropDestination(parent: self[item], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
 
         var matches: [ObjectIdentifier: (handler: any DropHandler<DropDestination>, items: [NSDraggingItem])] = [:]
 
@@ -220,7 +287,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
-            if handler.isValid(items, destination: destination) {
+            if handler.isValid(items, destination: &destination) {
                 if info.draggingSourceOperationMask.rawValue % 2 == 0 {
                     operation = info.draggingSourceOperationMask
                 } else {
@@ -356,7 +423,7 @@ protocol DropHandler<Destination> {
     var operations: [DragOperation] { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
     var action: ([T], Destination, DragOperation) -> Void { get }
-    var validator: ([T], Destination) -> Bool { get }
+    var validator: ([T], inout Destination) -> Bool { get }
     var preview: ((T) -> DragPreview?)? { get }
 }
 
@@ -365,9 +432,9 @@ extension DropHandler {
         draggingItem.item is T && !nsOperation.intersection(NSDragOperation(operations)).isEmpty
     }
 
-    func isValid(_ draggingItems: [NSDraggingItem], destination: Destination) -> Bool {
+    func isValid(_ draggingItems: [NSDraggingItem], destination: inout Destination) -> Bool {
         let values = draggingItems.map { $0.item as! T }
-        return validator(values, destination)
+        return validator(values, &destination)
     }
     
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
@@ -435,8 +502,9 @@ extension NSDragOperation {
 
 extension OutlineViewDiffableDataSource {
     struct DropDestination {
-        let parent: Data.Element?
-        let index: Int
+        var parent: Data.Element?
+        var index: Int
+        let location: NSPoint
     }
 
     struct OutlineViewDropHandler<T>: DropHandler where T: NSPasteboardReading {
@@ -444,7 +512,7 @@ extension OutlineViewDiffableDataSource {
         let operations: [DragOperation]
         let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
         let action: ([T], DropDestination, DragOperation) -> Void
-        let validator: ([T], DropDestination) -> Bool
+        let validator: ([T], inout DropDestination) -> Bool
         let preview: ((T) -> DragPreview?)?
     }
 
@@ -480,7 +548,7 @@ extension OutlineViewDiffableDataSource {
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
+        validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         precondition(!operations.isEmpty, "Must specify at least one operation")
@@ -502,7 +570,7 @@ extension OutlineViewDiffableDataSource {
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
+        validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
@@ -514,7 +582,7 @@ extension OutlineViewDiffableDataSource {
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
+        validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         var wrappedPreview: ((T.ReferenceType) -> DragPreview?)?
@@ -527,7 +595,7 @@ extension OutlineViewDiffableDataSource {
         onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, destination, operation in
             action(references.map { $0  as! T }, destination, operation)
         }, validator: { references, destination in
-            validator(references.map { $0  as! T }, destination)
+            validator(references.map { $0  as! T }, &destination)
         }, preview: wrappedPreview)
     }
 
@@ -537,7 +605,7 @@ extension OutlineViewDiffableDataSource {
         source: DragSource,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], DropDestination) -> Bool = { _, _ in true },
+        validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
@@ -706,11 +774,13 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
     let ids: TreeList<Data.Element.ID>
     let children: KeyPath<Data.Element, Data?>?
     let index: [Data.Element.ID: Data.Element]
+    let parents: [Data.Element.ID: Data.Element.ID]
 
     init() {
         self.ids = TreeList()
         self.children = nil
         self.index = [:]
+        self.parents = [:]
     }
 
     init(_ data: Data, children: KeyPath<Data.Element, Data?>) {
@@ -718,16 +788,21 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
         self.children = children
 
         var index: [Data.Element.ID: Data.Element] = [:]
+        var parents: [Data.Element.ID: Data.Element.ID] = [:]
         var pending: [Data.Element] = Array(data)
         while !pending.isEmpty {
             let element = pending.removeFirst()
             index[element.id] = element
             if let children = element[keyPath: children] {
                 pending.append(contentsOf: children)
+                for child in children {
+                    parents[child.id] = element.id
+                }
             }
         }
 
         self.index = index
+        self.parents = parents
     }
 
     var isEmpty: Bool {
@@ -742,7 +817,11 @@ struct OutlineViewSnapshot<Data> where Data: RandomAccessCollection, Data.Elemen
         return index[id]
     }
 
-    func childIds(ofElementWithID id: Data.Element.ID?) -> [Data.Element.ID]? {
+    func parentID(ofElementWithID id: Data.Element.ID) -> Data.Element.ID? {
+        parents[id]
+    }
+
+    func childIDs(ofElementWithID id: Data.Element.ID?) -> [Data.Element.ID]? {
         guard let id else {
             return ids.nodes.map(\.value)
         }

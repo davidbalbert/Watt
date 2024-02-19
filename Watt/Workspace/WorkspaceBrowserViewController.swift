@@ -133,6 +133,8 @@ class WorkspaceBrowserViewController: NSViewController {
              }
         }
 
+        dataSource.dropTarget = .betweenRows
+
         dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceivers, destination, _ in
             Task {
                 do {
@@ -142,8 +144,6 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheet(error)
                 }
             }
-        } validator: { _, destination in
-            destination.index != NSOutlineViewDropOnItemIndex
         }
 
         dataSource.onDrop(of: URL.self, operations: [.copy, .generic], source: .remote, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] srcURLs, destination, operation in
@@ -164,8 +164,6 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheet(error)
                 }
             }
-        } validator: { _, destination in
-            destination.index != NSOutlineViewDropOnItemIndex
         } preview: { [weak self] url in
             guard let dirent = try? Dirent(for: url), let column = self?.outlineView.outlineTableColumn else {
                 return nil
@@ -187,14 +185,11 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheet(error)
                 }
             }
-        } validator: { _, destination in
-            destination.index != NSOutlineViewDropOnItemIndex
         }
 
         dataSource.onDrop(of: ReferenceDirent.self, operation: .copy, source: .self) { [weak self] refs, destination, _ in
             Task {
                 do {
-
                     let srcURLs = refs.map(\.url)
                     let targetDirectoryURL = (destination.parent ?? workspace.root).url
                     let dstURLs = srcURLs.map {
@@ -205,8 +200,6 @@ class WorkspaceBrowserViewController: NSViewController {
                     self?.presentErrorAsSheet(error)
                 }
             }
-        } validator: { _, destination in
-            destination.index != NSOutlineViewDropOnItemIndex
         }
 
         self.dataSource = dataSource
