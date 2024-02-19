@@ -10,7 +10,7 @@ import Cocoa
 import Tree
 import OrderedCollections
 
-enum OutlineViewDropTarget {
+enum OutlineViewDropTargets {
     case onRows
     case betweenRows
     case any
@@ -23,7 +23,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
     var loadChildren: ((Data.Element) -> OutlineViewSnapshot<Data>?)?
-    var dropTarget: OutlineViewDropTarget = .any
+    var validDropTargets: OutlineViewDropTargets = .any
     var onDrag: ((Data.Element) -> NSPasteboardWriting?)?
 
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
@@ -145,8 +145,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
         let id = id(from: item)
-        let locationInView = outlineView.convert(info.draggingLocation, from: nil)
-        var destination = DropDestination(parent: self[id], index: index, location: locationInView)
+        var destination = DropDestination(parent: self[id], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
 
         var matches: [ObjectIdentifier: (handler: any DropHandler<DropDestination>, items: [NSDraggingItem])] = [:]
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
@@ -177,11 +176,23 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             }
         }
 
-        // TODO: extract to retargetIfNecessary()
         if destination.parent?.id != id || destination.index != index {
-            // the validator retargeted the drop, so update the outline view.
+            // Any retargeting done by the validator takes precedence over our normal retargeting rules.
             outlineView.setDropItem(destination.parent?.id, dropChildIndex: destination.index)
-        } else if dropTarget == .betweenRows && index == NSOutlineViewDropOnItemIndex {
+        } else {
+            // If the validator didn't retarget, retarget based on validDropTargets
+            retargetIfNecessary(destination: destination)
+        }
+
+        return operation
+    }
+
+    func retargetIfNecessary(destination: DropDestination) {
+        let id = destination.parent?.id
+        let index = destination.index
+        let locationInView = destination.location
+
+        if validDropTargets == .betweenRows && destination.index == NSOutlineViewDropOnItemIndex {
             let childIDs = snapshot.childIDs(ofElementWithID: id)
             if let childIDs, id == nil {
                 // Dropping on the root. Retarget to the first or last child depending on
@@ -204,7 +215,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
                 let idx = (siblingIDs.firstIndex(of: id!) ?? 0) + 1
                 outlineView.setDropItem(parentID, dropChildIndex: idx)
             }
-        } else if dropTarget == .onRows && index == NSOutlineViewDropOnItemIndex {
+        } else if validDropTargets == .onRows && index == NSOutlineViewDropOnItemIndex {
             // if we're dropping on a leaf, retarget to it's parent – we can only drop on
             // expandable nodes.
             //
@@ -213,7 +224,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
                 let parentID = snapshot.parentID(ofElementWithID: id)
                 outlineView.setDropItem(parentID, dropChildIndex: NSOutlineViewDropOnItemIndex)
             }
-        } else if dropTarget == .onRows {
+        } else if validDropTargets == .onRows {
             // we're dropping between nodes, so we need to retarget
             let childIDs = snapshot.childIDs(ofElementWithID: id)!
             if index == childIDs.count {
@@ -233,7 +244,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             }
         }
 
-        return operation
     }
 
     func outlineView(_ outlineView: NSOutlineView, updateDraggingItemsForDrag draggingInfo: NSDraggingInfo) {
@@ -436,7 +446,7 @@ extension DropHandler {
         let values = draggingItems.map { $0.item as! T }
         return validator(values, &destination)
     }
-    
+
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
         guard let value = draggingItem.item as? T else {
             return nil
@@ -580,7 +590,7 @@ extension OutlineViewDiffableDataSource {
         of type: T.Type,
         operations: [DragOperation],
         source: DragSource,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
@@ -603,7 +613,7 @@ extension OutlineViewDiffableDataSource {
         of type: T.Type,
         operation: DragOperation,
         source: DragSource,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:], 
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout DropDestination) -> Bool = { _, _ in true },
         preview: ((T) -> DragPreview?)? = nil
@@ -674,7 +684,7 @@ extension OutlineViewDiffableDataSource {
         dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
     }
 
-    
+
     // MARK: Drag end handlers
 
     struct OutlineViewDragEndHandler<T>: DragEndHandler where T: NSPasteboardReading {
