@@ -82,17 +82,19 @@ struct DraggingInfoItemProvider: DraggingItemProvider {
     }
 }
 
+fileprivate typealias Invocation<Handler> = (handler: Handler, items: [NSDraggingItem]) where Handler: DragHandler
+
 extension DragHandler {
-    static func invocations(
-        options enumOpts: NSDraggingItemEnumerationOptions = [], 
+    fileprivate static func invocations(
+        options enumOpts: NSDraggingItemEnumerationOptions = [],
         for view: NSView, draggingItemProvider: DraggingItemProvider, 
         matching handlers: some Collection<Self>, 
         _ doesMatch: @escaping (Self, NSDraggingItem) -> Bool = { _, _ in true }
-    ) -> [(handler: Self, items: [NSDraggingItem])] {
+    ) -> [Invocation<Self>] {
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
-        var matches: [ObjectIdentifier: (handler: Self, items: [NSDraggingItem])] = [:]
+        var matches: [ObjectIdentifier: Invocation<Self>] = [:]
         draggingItemProvider.enumerateDraggingItems(options: enumOpts, for: view, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.matchesType(of: draggingItem) && doesMatch($0, draggingItem) }
             guard let handler else {
@@ -275,7 +277,7 @@ struct DropHandler<DropInfo>: DragHandler {
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
     private let action: ([NSDraggingItem], DropInfo, DragOperation) -> Void
-    private let validator: ([NSDraggingItem], inout DropInfo) -> Bool
+    private let validator: (([NSDraggingItem], inout DropInfo) -> Bool)?
     private let previewer: ((NSDraggingItem) -> DragPreview?)?
 
     init<T>(
@@ -283,7 +285,7 @@ struct DropHandler<DropInfo>: DragHandler {
         operations: [DragOperation], 
         searchOptions: [NSPasteboard.ReadingOptionKey: Any], 
         action: @escaping ([T], DropInfo, DragOperation) -> Void,
-        validator: @escaping ([T], inout DropInfo) -> Bool,
+        validator: (([T], inout DropInfo) -> Bool)?,
         preview: ((T) -> DragPreview?)?
     ) where T: NSPasteboardReading {
         self.type = type
@@ -292,8 +294,13 @@ struct DropHandler<DropInfo>: DragHandler {
         self.action = { draggingItems, dropInfo, operation in
             action(draggingItems.map { $0.item as! T }, dropInfo, operation)
         }
-        self.validator = { draggingItems, dropInfo in
-            validator(draggingItems.map { $0.item as! T }, &dropInfo)
+
+        if let validator {
+            self.validator = { draggingItems, dropInfo in
+                validator(draggingItems.map { $0.item as! T }, &dropInfo)
+            }
+        } else {
+            self.validator = nil
         }
 
         if let preview {
@@ -321,7 +328,7 @@ struct DropHandler<DropInfo>: DragHandler {
 
     // Ditto
     func isValid(_ draggingItems: [NSDraggingItem], destination: inout DropInfo) -> Bool {
-        validator(draggingItems, &destination)
+        validator?(draggingItems, &destination) ?? true
     }
 
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
@@ -369,7 +376,7 @@ extension DragDestination {
         source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropInfo, DragOperation) -> Void,
-        validator: @escaping ([T], inout DropInfo) -> Bool = { _, _ in true },
+        validator: (([T], inout DropInfo) -> Bool)? = nil,
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         precondition(!operations.isEmpty, "Must specify at least one operation")
@@ -391,7 +398,7 @@ extension DragDestination {
         source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropInfo, DragOperation) -> Void,
-        validator: @escaping ([T], inout DropInfo) -> Bool = { _, _ in true },
+        validator: (([T], inout DropInfo) -> Bool)? = nil,
         preview: ((T) -> DragPreview?)? = nil
     ) where T: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
@@ -403,7 +410,7 @@ extension DragDestination {
         source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropInfo, DragOperation) -> Void,
-        validator: @escaping ([T], inout DropInfo) -> Bool = { _, _ in true },
+        validator: (([T], inout DropInfo) -> Bool)? = nil,
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         var wrappedPreview: ((T.ReferenceType) -> DragPreview?)?
@@ -414,9 +421,9 @@ extension DragDestination {
         }
 
         onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, destination, operation in
-            action(references.map { $0  as! T }, destination, operation)
+            action(references.map { $0 as! T }, destination, operation)
         }, validator: { references, destination in
-            validator(references.map { $0  as! T }, &destination)
+            validator?(references.map { $0 as! T }, &destination) ?? true
         }, preview: wrappedPreview)
     }
 
@@ -426,7 +433,7 @@ extension DragDestination {
         source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DropInfo, DragOperation) -> Void,
-        validator: @escaping ([T], inout DropInfo) -> Bool = { _, _ in true },
+        validator: (([T], inout DropInfo) -> Bool)? = nil,
         preview: ((T) -> DragPreview?)? = nil
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
@@ -469,7 +476,7 @@ struct DropManager<DropInfo> {
             handler.matches(operationMask: draggingInfo.draggingSourceOperationMask)
         }
 
-        // The first matching handler determines the operation.
+        // The first valid invocation determines the operation.
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
             if handler.isValid(items, destination: &dropInfo) {
@@ -496,7 +503,7 @@ struct DropManager<DropInfo> {
             handler.matches(operationMask: draggingInfo.draggingSourceOperationMask)
         }
 
-        // The first matching handler determines the operation.
+        // The first valid invocation determines the operation.
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
             if handler.isValid(items, destination: &dropInfo) {
@@ -529,7 +536,7 @@ struct DropManager<DropInfo> {
             return
         }
 
-        // No need to update dragging
+        // No need to update previews if we're also the drag source.
         if source(for: draggingInfo, view: view) == .self {
             return
         }
