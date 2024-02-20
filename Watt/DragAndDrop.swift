@@ -228,22 +228,22 @@ struct DropHandler<Destination> {
     }
 }
 
-struct DragSource {
-    private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [DragStartHandler]> = [:]
-    private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [DragEndHandler]> = [:]
+@MainActor
+protocol DragSource: AnyObject {
+    var dragManager: DragManager { get set }
+}
 
-    // MARK: Drag start handlers
-
-    mutating func onDragStart<T>(
+extension DragSource {
+    func onDragStart<T>(
         for type: T.Type,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T]) -> Void
     ) where T: NSPasteboardReading {
         let handler = DragStartHandler(type: T.self, searchOptions: searchOptions, action: action)
-        addDragStartHandler(handler)
+        dragManager.addDragStartHandler(handler)
     }
 
-    mutating func onDragStart<T>(
+    func onDragStart<T>(
         for type: T.Type,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T]) -> Void
@@ -253,23 +253,17 @@ struct DragSource {
         }
     }
 
-    private mutating func addDragStartHandler(_ handler: DragStartHandler) {
-        dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
-    }
-
-    // MARK: Drag end handlers
-
-    mutating func onDragEnd<T>(
+    func onDragEnd<T>(
         for type: T.Type,
         operations: [DragOperation],
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DragOperation) -> Void
     ) where T: NSPasteboardReading {
         let handler = DragEndHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action)
-        addDragEndHandler(handler)
+        dragManager.addDragEndHandler(handler)
     }
 
-    mutating func onDragEnd<T>(
+    func onDragEnd<T>(
         for type: T.Type,
         operation: DragOperation,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
@@ -278,7 +272,7 @@ struct DragSource {
         onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
     }
 
-    mutating func onDragEnd<T>(
+    func onDragEnd<T>(
         for type: T.Type,
         operations: [DragOperation],
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
@@ -289,7 +283,7 @@ struct DragSource {
         }
     }
 
-    mutating func onDragEnd<T>(
+    func onDragEnd<T>(
         for type: T.Type,
         operation: DragOperation,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
@@ -297,8 +291,19 @@ struct DragSource {
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
     }
+}
 
-    private mutating func addDragEndHandler(_ handler: DragEndHandler) {
+struct DragManager {
+    private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [DragStartHandler]> = [:]
+    private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [DragEndHandler]> = [:]
+
+    fileprivate mutating func addDragStartHandler(_ handler: DragStartHandler) {
+        dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
+    }
+
+    // MARK: Drag end handlers
+
+    fileprivate mutating func addDragEndHandler(_ handler: DragEndHandler) {
         dragEndHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
     }
 

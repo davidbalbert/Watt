@@ -17,14 +17,13 @@ enum OutlineViewDropTargets {
 }
 
 @MainActor
-final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate where Data: RandomAccessCollection, Data.Element: Identifiable {
+final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, DragSource where Data: RandomAccessCollection, Data.Element: Identifiable {
     let outlineView: NSOutlineView
     let delegate: Delegate
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
     var rowViewProvider: ((NSOutlineView, Data.Element) -> NSTableRowView)?
     var loadChildren: ((Data.Element) -> OutlineViewSnapshot<Data>?)?
     var validDropTargets: OutlineViewDropTargets = .any
-    var onDrag: ((Data.Element) -> NSPasteboardWriting?)?
 
     var insertRowAnimation: NSTableView.AnimationOptions = .slideDown
     var removeRowAnimation: NSTableView.AnimationOptions = .slideUp
@@ -36,7 +35,11 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
     private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
 
-    private var dragSource: DragSource = DragSource()
+    internal var dragManager: DragManager = DragManager()
+
+    // TODO: is there a way to extract this into DragSource/DragManager? It depends on Data.Element, which means dragManager's
+    // onDrag would have to have a different signature.
+    var onDrag: ((Data.Element) -> NSPasteboardWriting?)?
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -320,12 +323,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
-        dragSource.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
+        dragManager.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
         // TODO: perhaps add session and endedAt to the handler's action.
-        dragSource.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
+        dragManager.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
     }
 }
 
@@ -461,62 +464,6 @@ extension OutlineViewDiffableDataSource {
         } else {
             return .remote
         }
-    }
-
-    // MARK: Drag start handlers
-
-    func onDragStart<T>(
-        for type: T.Type,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T]) -> Void
-    ) where T: NSPasteboardReading {
-        dragSource.onDragStart(for: type, searchOptions: searchOptions, action: action)
-    }
-
-    func onDragStart<T>(
-        for type: T.Type,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T]) -> Void
-    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        dragSource.onDragStart(for: type, searchOptions: searchOptions, action: action)
-    }
-
-    // MARK: Drag end handlers
-
-    func onDragEnd<T>(
-        for type: T.Type,
-        operations: [DragOperation],
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], DragOperation) -> Void
-    ) where T: NSPasteboardReading {
-        dragSource.onDragEnd(for: type, operations: operations, searchOptions: searchOptions, action: action)
-    }
-
-    func onDragEnd<T>(
-        for type: T.Type,
-        operation: DragOperation,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], DragOperation) -> Void
-    ) where T: NSPasteboardReading {
-        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
-    }
-
-    func onDragEnd<T>(
-        for type: T.Type,
-        operations: [DragOperation],
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], DragOperation) -> Void
-    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        dragSource.onDragEnd(for: type, operations: operations, searchOptions: searchOptions, action: action)
-    }
-
-    func onDragEnd<T>(
-        for type: T.Type,
-        operation: DragOperation,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], DragOperation) -> Void
-    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
     }
 }
 
