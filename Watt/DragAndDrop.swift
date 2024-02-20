@@ -7,7 +7,7 @@
 
 import Cocoa
 
-enum DragSource {
+enum DragSourceType {
     case `self`
     case local // includes self
     case remote
@@ -56,7 +56,12 @@ extension NSDragOperation {
     }
 }
 
-struct DragStartHandler {
+protocol DragHandler {
+    var type: NSPasteboardReading.Type { get }
+    var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
+}
+
+struct DragStartHandler: DragHandler {
     let type: NSPasteboardReading.Type
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
     private let matcher: (NSDraggingItem) -> Bool
@@ -80,7 +85,7 @@ struct DragStartHandler {
     }
 }
 
-struct DragEndHandler {
+struct DragEndHandler: DragHandler {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
@@ -115,6 +120,7 @@ struct DragPreview {
     let imageComponentsProvider: () -> [NSDraggingImageComponent]
 }
 
+// TODO: Maybe rename Destination -> DropTarget
 struct DropHandler<Destination> {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
@@ -177,3 +183,54 @@ struct DropHandler<Destination> {
         previewer?(draggingItem)
     }
 }
+
+struct DragSource {
+    let view: NSView
+
+    func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint, handlers: some Collection<DragStartHandler>) {
+        let invocations = invocations(for: session, matching: handlers) { handler, draggingItem in
+            handler.matches(draggingItem)
+        }
+
+        for (handler, draggingItems) in invocations {
+            handler.run(draggingItems: draggingItems)
+        }
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation, handlers: some Collection<DragEndHandler>) {
+        precondition(operation.rawValue % 2 == 0, "\(operation) should be a single value")
+
+        // At this point, NSDragOperation should always be a single flag (power of two), so force unwrap is safe
+        let dragOperation = DragOperation(operation)!
+
+        let invocations = invocations(for: session, matching: handlers) { handler, draggingItem in
+            handler.matches(draggingItem, operation: dragOperation)
+        }
+
+        for (handler, draggingItems) in invocations {
+            handler.run(draggingItems: draggingItems, operation: dragOperation)
+        }
+    }
+
+    private func invocations<Handler>(for session: NSDraggingSession, matching handlers: some Collection<Handler>, _ doesMatch: (Handler, NSDraggingItem) -> Bool) -> [(handler: Handler, items: [NSDraggingItem])] where Handler: DragHandler {
+        let classes = handlers.map { $0.type }
+        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
+
+        var matches: [ObjectIdentifier: (handler: Handler, items: [NSDraggingItem])] = [:]
+        session.enumerateDraggingItems(for: view, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
+            let handler = handlers.first { doesMatch($0, draggingItem) }
+            guard let handler else {
+                return
+            }
+
+            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
+        }
+
+        return matches.values.sorted { a, b in
+            let i = handlers.firstIndex { $0.type == a.handler.type }!
+            let j = handlers.firstIndex { $0.type == b.handler.type }!
+            return i < j
+        }
+    }
+}
+

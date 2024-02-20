@@ -278,8 +278,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         var destination = OutlineViewDropDestination(parent: self[item], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
 
         var matches: [ObjectIdentifier: (handler: DropHandler<OutlineViewDropDestination>, items: [NSDraggingItem])] = [:]
-
-        // var success = false // can only transition from false to true
         info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
             let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }
             guard let handler else {
@@ -324,61 +322,14 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
         // TODO: perhaps add session and draggedItems (Element.IDs) to the handler's action.
-
         let handlers = dragStartHandlers.values.joined()
-        let classes = handlers.map { $0.type }
-        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-
-        var matches: [ObjectIdentifier: (handler: DragStartHandler, items: [NSDraggingItem])] = [:]
-        session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem) }
-            guard let handler else {
-                return
-            }
-
-            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
-        }
-
-        let invocations = matches.values.sorted { a, b in
-            let i = handlers.firstIndex { $0.type == a.handler.type }!
-            let j = handlers.firstIndex { $0.type == b.handler.type }!
-            return i < j
-        }
-
-        for (handler, draggingItems) in invocations {
-            handler.run(draggingItems: draggingItems)
-        }
+        DragSource(view: outlineView).draggingSession(session, willBeginAt: screenPoint, handlers: handlers)
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
         // TODO: perhaps add session and endedAt to the handler's action.
-
         let handlers = dragEndHandlers.values.joined()
-        let classes = handlers.map { $0.type }
-        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-
-        // At this point, NSDragOperation should always be a single flag (power of two), so force unwrap is safe
-        let dragOperation = DragOperation(operation)!
-
-        var matches: [ObjectIdentifier: (handler: DragEndHandler, items: [NSDraggingItem])] = [:]
-        session.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: dragOperation) }
-            guard let handler else {
-                return
-            }
-
-            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
-        }
-
-        let invocations = matches.values.sorted { a, b in
-            let i = handlers.firstIndex { $0.type == a.handler.type }!
-            let j = handlers.firstIndex { $0.type == b.handler.type }!
-            return i < j
-        }
-
-        for (handler, draggingItems) in invocations {
-            handler.run(draggingItems: draggingItems, operation: dragOperation)
-        }
+        DragSource(view: outlineView).draggingSession(session, endedAt: endedAt, operation: operation, handlers: handlers)
     }
 }
 
@@ -418,7 +369,7 @@ extension OutlineViewDiffableDataSource {
     func onDrop<T>(
         of type: T.Type,
         operations: [DragOperation],
-        source: DragSource,
+        source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
@@ -440,7 +391,7 @@ extension OutlineViewDiffableDataSource {
     func onDrop<T>(
         of type: T.Type,
         operation: DragOperation,
-        source: DragSource,
+        source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
@@ -452,7 +403,7 @@ extension OutlineViewDiffableDataSource {
     func onDrop<T>(
         of type: T.Type,
         operations: [DragOperation],
-        source: DragSource,
+        source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
@@ -475,7 +426,7 @@ extension OutlineViewDiffableDataSource {
     func onDrop<T>(
         of type: T.Type,
         operation: DragOperation,
-        source: DragSource,
+        source: DragSourceType,
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
         validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
@@ -484,7 +435,7 @@ extension OutlineViewDiffableDataSource {
         onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
     }
 
-    private func addDropHandler(_ handler: DropHandler<OutlineViewDropDestination>, source: DragSource) {
+    private func addDropHandler(_ handler: DropHandler<OutlineViewDropDestination>, source: DragSourceType) {
         switch source {
         case .self:
             selfDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
@@ -506,7 +457,7 @@ extension OutlineViewDiffableDataSource {
         }
     }
 
-    private func source(for info: NSDraggingInfo) -> DragSource {
+    private func source(for info: NSDraggingInfo) -> DragSourceType {
         if info.draggingSource as? NSOutlineView == outlineView {
             return .self
         } else if info.draggingSource != nil {
