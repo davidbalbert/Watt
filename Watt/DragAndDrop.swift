@@ -57,12 +57,12 @@ extension NSDragOperation {
     }
 }
 
-protocol DragHandler {
+fileprivate protocol Handler {
     var type: NSPasteboardReading.Type { get }
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
 }
 
-extension DragHandler {
+extension Handler {
     func matchesType(of draggingItem: NSDraggingItem) -> Bool {
         Swift.type(of: draggingItem.item) == type
     }
@@ -82,9 +82,9 @@ struct DraggingInfoItemProvider: DraggingItemProvider {
     }
 }
 
-fileprivate typealias Invocation<Handler> = (handler: Handler, items: [NSDraggingItem]) where Handler: DragHandler
+fileprivate typealias Invocation<H> = (handler: H, items: [NSDraggingItem]) where H: Handler
 
-extension DragHandler {
+extension Handler {
     fileprivate static func invocations(
         options enumOpts: NSDraggingItemEnumerationOptions = [],
         for view: NSView, draggingItemProvider: DraggingItemProvider, 
@@ -112,7 +112,7 @@ extension DragHandler {
     }
 }
 
-struct DragStartHandler: DragHandler {
+fileprivate struct DragStartHandler: Handler {
     let type: NSPasteboardReading.Type
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
     private let action: ([NSDraggingItem]) -> Void
@@ -128,7 +128,7 @@ struct DragStartHandler: DragHandler {
     }
 }
 
-struct DragEndHandler: DragHandler {
+fileprivate struct DragEndHandler: Handler {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
@@ -272,7 +272,7 @@ struct DragPreview {
     let imageComponentsProvider: () -> [NSDraggingImageComponent]
 }
 
-struct DropHandler<DropInfo>: DragHandler {
+fileprivate struct DropHandler<DropInfo>: Handler {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
