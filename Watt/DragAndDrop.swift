@@ -357,12 +357,12 @@ extension DragDestination {
     // You can register a single handler for multiple operations – i.e. to make a normal drag and
     // Command + drag (.generic) use the same handler.
     //
-    // If you specify multiple operations and you drag over the outline view without holding any
-    // keys down, the first DragOperation you specify for the handler is the one reported to the
-    // outline view. I.e. if operations is [.move, .generic], and you're not holding down any
-    // keys, .move will be reported to the outline view so that it can show the correct cursor.
+    // If you specify multiple operations and you drag over the view without holding any keys
+    // down, the first DragOperation you specify for the handler is the one reported to the
+    // view. I.e. if operations is [.move, .generic], and you're not holding down any keys,
+    // .move will be reported to the view so that it can show the correct cursor.
     //
-    // If we're receiving a drop from .self (source and destination are our NSOutlineView), both
+    // If we're receiving a drop from .self (source and destination are our NSView), both
     // .self and .local handlers will be considered with all .self handlers considered before any
     // .local handlers. If we're receiving the drop from some other view in our app (.local), only
     // .local handlers will be considered.
