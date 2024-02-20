@@ -17,7 +17,7 @@ enum OutlineViewDropTargets {
 }
 
 @MainActor
-final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, DragSource where Data: RandomAccessCollection, Data.Element: Identifiable {
+final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, DragSource, DragDestination where Data: RandomAccessCollection, Data.Element: Identifiable {
     let outlineView: NSOutlineView
     let delegate: Delegate
     let cellProvider: (NSOutlineView, NSTableColumn, Data.Element) -> NSView
@@ -30,12 +30,8 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     private(set) var snapshot: OutlineViewSnapshot<Data>
 
-    // keys are ObjectIdentifier of the types of the NSPasteboardReading classes
-    private var selfDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
-    private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
-    private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
-
-    internal var dragManager: DragManager = DragManager()
+    internal var dragManager: DragManager
+    internal var dropManager: DropManager<OutlineViewDropInfo>
 
     // TODO: is there a way to extract this into DragSource/DragManager? It depends on Data.Element, which means dragManager's
     // onDrag would have to have a different signature.
@@ -46,11 +42,17 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         self.delegate = Delegate(target: delegate ?? NullOutlineViewDelegate())
         self.cellProvider = cellProvider
         self.snapshot = OutlineViewSnapshot()
+
+        self.dragManager = DragManager()
+        self.dropManager = DropManager()
+
         super.init()
 
         self.delegate.dataSource = self
         self.outlineView.dataSource = self
         self.outlineView.delegate = self.delegate
+
+        self.dropManager.view = outlineView
     }
 
     var isEmpty: Bool {
@@ -142,41 +144,9 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
-        let handlers = dropHandlers(for: info)
-        let classes = handlers.map { $0.type }
-        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-
         let id = id(from: item)
-        var destination = OutlineViewDropDestination(parent: self[id], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
-
-        var matches: [ObjectIdentifier: (handler: DropHandler<OutlineViewDropDestination>, items: [NSDraggingItem])] = [:]
-        info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }
-            guard let handler else {
-                return
-            }
-
-            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
-        }
-
-        let invocations = matches.values.sorted { a, b in
-            let i = handlers.firstIndex { $0.type == a.handler.type }!
-            let j = handlers.firstIndex { $0.type == b.handler.type }!
-            return i < j
-        }
-
-        // The first matching handler determines the operation.
-        var operation: NSDragOperation = []
-        for (handler, items) in invocations {
-            if handler.isValid(items, destination: &destination) {
-                if info.draggingSourceOperationMask.rawValue % 2 == 0 {
-                    operation = info.draggingSourceOperationMask
-                } else {
-                    operation = NSDragOperation(handler.operations.first!)
-                }
-                break
-            }
-        }
+        var destination = OutlineViewDropInfo(parent: self[id], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
+        let operation = dropManager.validateDrop(info, dropInfo: &destination)
 
         if destination.parent?.id != id || destination.index != index {
             // Any retargeting done by the validator takes precedence over our normal retargeting rules.
@@ -189,7 +159,26 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         return operation
     }
 
-    func retargetIfNecessary(destination: OutlineViewDropDestination) {
+    func outlineView(_ outlineView: NSOutlineView, updateDraggingItemsForDrag draggingInfo: NSDraggingInfo) {
+        dropManager.updateDragPreviews(draggingInfo)
+        draggingInfo.draggingFormation = .list
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+        var destination = OutlineViewDropInfo(parent: self[item], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
+        return dropManager.acceptDrop(info, dropInfo: &destination)
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
+        dragManager.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
+        // TODO: perhaps add session and endedAt to the handler's action.
+        dragManager.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
+    }
+
+    func retargetIfNecessary(destination: OutlineViewDropInfo) {
         let id = destination.parent?.id
         let index = destination.index
         let locationInView = destination.location
@@ -247,223 +236,13 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         }
 
     }
-
-    func outlineView(_ outlineView: NSOutlineView, updateDraggingItemsForDrag draggingInfo: NSDraggingInfo) {
-        if source(for: draggingInfo) == .self {
-            return
-        }
-
-        let handlers = dropHandlers(for: draggingInfo)
-        let classes = handlers.map { $0.type }
-        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-
-        var count = 0
-        draggingInfo.enumerateDraggingItems(options: .clearNonenumeratedImages, for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: draggingInfo.draggingSourceOperationMask) }!
-
-            if let preview = handler.preview(draggingItem) {
-                draggingItem.draggingFrame = preview.frame
-                draggingItem.imageComponentsProvider = preview.imageComponentsProvider
-            }
-            count += 1
-        }
-        draggingInfo.numberOfValidItemsForDrop = count
-        draggingInfo.draggingFormation = .list
-    }
-
-    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
-        let handlers = dropHandlers(for: info)
-        // I had this as handlers.map(\.type) but I got this error at runtime:
-        //     Thread 1: Fatal error: could not demangle keypath type from 'Xe6ReaderQam'
-        let classes = handlers.map { $0.type }
-        let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
-        var destination = OutlineViewDropDestination(parent: self[item], index: index, location: outlineView.convert(info.draggingLocation, from: nil))
-
-        var matches: [ObjectIdentifier: (handler: DropHandler<OutlineViewDropDestination>, items: [NSDraggingItem])] = [:]
-        info.enumerateDraggingItems(for: outlineView, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: info.draggingSourceOperationMask) }
-            guard let handler else {
-                return
-            }
-
-            matches[ObjectIdentifier(handler.type), default: (handler, [])].items.append(draggingItem)
-        }
-
-        var invocations = matches.values.sorted { a, b in
-            let i = handlers.firstIndex { $0.type == a.handler.type }!
-            let j = handlers.firstIndex { $0.type == b.handler.type }!
-            return i < j
-        }
-
-        var operation: NSDragOperation = []
-        for (handler, items) in invocations {
-            if handler.isValid(items, destination: &destination) {
-                if info.draggingSourceOperationMask.rawValue % 2 == 0 {
-                    operation = info.draggingSourceOperationMask
-                } else {
-                    operation = NSDragOperation(handler.operations.first!)
-                }
-                break
-            }
-        }
-
-        assert(operation != [])
-        let dragOperation = DragOperation(operation)!
-
-        invocations.removeAll { handler, items in
-            !handler.operations.contains(dragOperation)
-        }
-
-        for (handler, items) in invocations {
-            handler.run(draggingItems: items, destination: destination, operation: dragOperation)
-        }
-
-        // TODO: make handlers return a bool indicating whether they succeeded
-        return invocations.count > 0
-    }
-
-    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
-        dragManager.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
-    }
-
-    func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
-        // TODO: perhaps add session and endedAt to the handler's action.
-        dragManager.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
-    }
 }
 
 extension OutlineViewDiffableDataSource {
-    struct OutlineViewDropDestination {
+    struct OutlineViewDropInfo {
         var parent: Data.Element?
         var index: Int
         let location: NSPoint
-    }
-
-    // Register a handler for dropping an object of a given type onto the outline view.
-    // Registration order is significant. An NSDraggingItem is matched first by type,
-    // and then by DragOperation in the order you registered them.
-    //
-    // Specifically, if an NSDraggingItem can be deserialized into multiple registered types
-    // for a given DragOperation, the type you register first will be picked.
-    //
-    // Once a type is registered, all subsequent DragOperations registered for that type will
-    // inherit that types priority order. I.e. if you register [(A, .move), (B, .copy),
-    // (A, .copy), (B, .move)], all operations on A will match before operations on B – the
-    // final match order will be [(A, .move), (A, .copy), (B, .copy), (B, .move)].
-    //
-    // For simplicity, register all your types together so it's easy to see what's going on.
-    //
-    // You can register a single handler for multiple operations – i.e. to make a normal drag and
-    // Command + drag (.generic) use the same handler.
-    //
-    // If you specify multiple operations and you drag over the outline view without holding any
-    // keys down, the first DragOperation you specify for the handler is the one reported to the
-    // outline view. I.e. if operations is [.move, .generic], and you're not holding down any
-    // keys, .move will be reported to the outline view so that it can show the correct cursor.
-    //
-    // If we're receiving a drop from .self (source and destination are our NSOutlineView), both
-    // .self and .local handlers will be considered with all .self handlers considered before any
-    // .local handlers. If we're receiving the drop from some other view in our app (.local), only
-    // .local handlers will be considered.
-    func onDrop<T>(
-        of type: T.Type,
-        operations: [DragOperation],
-        source: DragSourceType,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview?)? = nil
-    ) where T: NSPasteboardReading {
-        precondition(!operations.isEmpty, "Must specify at least one operation")
-
-        if type == NSURL.self, let fileURLsOnly = searchOptions[.urlReadingFileURLsOnly] as? Bool, fileURLsOnly == true {
-            outlineView.registerForDraggedTypes([.fileURL])
-        } else {
-            outlineView.registerForDraggedTypes(type.readableTypes(for: NSPasteboard(name: .drag)))
-        }
-
-        let handler = DropHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
-        addDropHandler(handler, source: source)
-    }
-
-    // Conveience method for registering a handler with a single DragOperation.
-    func onDrop<T>(
-        of type: T.Type,
-        operation: DragOperation,
-        source: DragSourceType,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview?)? = nil
-    ) where T: NSPasteboardReading {
-        onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
-    }
-
-    func onDrop<T>(
-        of type: T.Type,
-        operations: [DragOperation],
-        source: DragSourceType,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview?)? = nil
-    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        var wrappedPreview: ((T.ReferenceType) -> DragPreview?)?
-        if let preview {
-            wrappedPreview = { reference in
-                preview(reference as! T)
-            }
-        }
-
-        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, destination, operation in
-            action(references.map { $0  as! T }, destination, operation)
-        }, validator: { references, destination in
-            validator(references.map { $0  as! T }, &destination)
-        }, preview: wrappedPreview)
-    }
-
-    func onDrop<T>(
-        of type: T.Type,
-        operation: DragOperation,
-        source: DragSourceType,
-        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
-        action: @escaping ([T], OutlineViewDropDestination, DragOperation) -> Void,
-        validator: @escaping ([T], inout OutlineViewDropDestination) -> Bool = { _, _ in true },
-        preview: ((T) -> DragPreview?)? = nil
-    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDrop(of: type, operations: [operation], source: source, searchOptions: searchOptions, action: action, validator: validator, preview: preview)
-    }
-
-    private func addDropHandler(_ handler: DropHandler<OutlineViewDropDestination>, source: DragSourceType) {
-        switch source {
-        case .self:
-            selfDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
-        case .local:
-            localDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
-        case .remote:
-            remoteDropHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
-        }
-    }
-
-    private func dropHandlers(for info: NSDraggingInfo) -> [DropHandler<OutlineViewDropDestination>] {
-        switch source(for: info) {
-        case .self:
-            Array(selfDropHandlers.values.joined()) + Array(localDropHandlers.values.joined())
-        case .local:
-            Array(localDropHandlers.values.joined())
-        case .remote:
-            Array(remoteDropHandlers.values.joined())
-        }
-    }
-
-    private func source(for info: NSDraggingInfo) -> DragSourceType {
-        if info.draggingSource as? NSOutlineView == outlineView {
-            return .self
-        } else if info.draggingSource != nil {
-            return .local
-        } else {
-            return .remote
-        }
     }
 }
 
