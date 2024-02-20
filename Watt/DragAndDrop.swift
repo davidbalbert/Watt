@@ -277,7 +277,7 @@ struct DropHandler<DropInfo>: DragHandler {
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
     private let action: ([NSDraggingItem], DropInfo, DragOperation) -> Void
-    private let validator: (([NSDraggingItem], inout DropInfo) -> Bool)?
+    private let validator: (([NSDraggingItem], inout DropInfo) -> Bool)
     private let previewer: ((NSDraggingItem) -> DragPreview?)?
 
     init<T>(
@@ -295,12 +295,8 @@ struct DropHandler<DropInfo>: DragHandler {
             action(draggingItems.map { $0.item as! T }, dropInfo, operation)
         }
 
-        if let validator {
-            self.validator = { draggingItems, dropInfo in
-                validator(draggingItems.map { $0.item as! T }, &dropInfo)
-            }
-        } else {
-            self.validator = nil
+        self.validator = { draggingItems, dropInfo in
+            validator?(draggingItems.map { $0.item as! T }, &dropInfo) ?? true
         }
 
         if let preview {
@@ -328,7 +324,7 @@ struct DropHandler<DropInfo>: DragHandler {
 
     // Ditto
     func isValid(_ draggingItems: [NSDraggingItem], destination: inout DropInfo) -> Bool {
-        validator?(draggingItems, &destination) ?? true
+        validator(draggingItems, &destination)
     }
 
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
