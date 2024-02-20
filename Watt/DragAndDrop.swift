@@ -62,6 +62,12 @@ protocol DragHandler {
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
 }
 
+extension DragHandler {
+    func matchesType(of draggingItem: NSDraggingItem) -> Bool {
+        Swift.type(of: draggingItem.item) == type
+    }
+}
+
 protocol DraggingItemProvider {
     func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void)
 }
@@ -77,13 +83,18 @@ struct DraggingInfoItemProvider: DraggingItemProvider {
 }
 
 extension DragHandler {
-    static func invocations(options enumOpts: NSDraggingItemEnumerationOptions = [], for view: NSView, draggingItemProvider: DraggingItemProvider, matching handlers: some Collection<Self>, _ doesMatch: @escaping (Self, NSDraggingItem) -> Bool) -> [(handler: Self, items: [NSDraggingItem])] {
+    static func invocations(
+        options enumOpts: NSDraggingItemEnumerationOptions = [], 
+        for view: NSView, draggingItemProvider: DraggingItemProvider, 
+        matching handlers: some Collection<Self>, 
+        _ doesMatch: @escaping (Self, NSDraggingItem) -> Bool = { _, _ in true }
+    ) -> [(handler: Self, items: [NSDraggingItem])] {
         let classes = handlers.map { $0.type }
         let searchOptions = handlers.map(\.searchOptions).reduce(into: [:]) { $0.merge($1, uniquingKeysWith: { left, right in left }) }
 
         var matches: [ObjectIdentifier: (handler: Self, items: [NSDraggingItem])] = [:]
         draggingItemProvider.enumerateDraggingItems(options: enumOpts, for: view, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { doesMatch($0, draggingItem) }
+            let handler = handlers.first { $0.matchesType(of: draggingItem) && doesMatch($0, draggingItem) }
             guard let handler else {
                 return
             }
@@ -102,22 +113,14 @@ extension DragHandler {
 struct DragStartHandler: DragHandler {
     let type: NSPasteboardReading.Type
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-    private let matcher: (NSDraggingItem) -> Bool
     private let action: ([NSDraggingItem]) -> Void
 
     init<T>(type: T.Type, searchOptions: [NSPasteboard.ReadingOptionKey: Any], action: @escaping ([T]) -> Void) where T: NSPasteboardReading {
         self.type = type
         self.searchOptions = searchOptions
-        self.matcher = { $0.item is T }
         self.action = { action($0.map { $0.item as! T }) }
     }
 
-    func matches(_ draggingItem: NSDraggingItem) -> Bool {
-        matcher(draggingItem)
-    }
-
-    // Calling run(draggingItems:) on a DragStartHandler where matches(_:) returns false for any
-    // items will result in a runtime panic.
     func run(draggingItems: [NSDraggingItem]) {
         action(draggingItems)
     }
@@ -127,27 +130,17 @@ struct DragEndHandler: DragHandler {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-    private let matcher: (NSDraggingItem, DragOperation) -> Bool
     private let action: ([NSDraggingItem], DragOperation) -> Void
 
     init<T>(type: T.Type, operations: [DragOperation], searchOptions: [NSPasteboard.ReadingOptionKey: Any], action: @escaping ([T], DragOperation) -> Void) where T: NSPasteboardReading {
         self.type = type
         self.operations = operations
         self.searchOptions = searchOptions
-        self.matcher = { draggingItem, operation in
-            draggingItem.item is T && operations.contains(operation)
-        }
         self.action = { draggingItems, operation in
             action(draggingItems.map { $0.item as! T }, operation)
         }
     }
 
-    func matches(_ draggingItem: NSDraggingItem, operation: DragOperation) -> Bool {
-        matcher(draggingItem, operation)
-    }
-
-    // Calling run(draggingItems:) on a DragEndHandler where matches(_:) returns false for any
-    // items will result in a runtime panic.
     func run(draggingItems: [NSDraggingItem], operation: DragOperation) {
         action(draggingItems, operation)
     }
@@ -243,9 +236,7 @@ struct DragManager {
         }
 
         let handlers = dragStartHandlers.values.joined()
-        let invocations = DragStartHandler.invocations(for: view, draggingItemProvider: session, matching: handlers) { handler, draggingItem in
-            handler.matches(draggingItem)
-        }
+        let invocations = DragStartHandler.invocations(for: view, draggingItemProvider: session, matching: handlers)
 
         for (handler, draggingItems) in invocations {
             handler.run(draggingItems: draggingItems)
@@ -264,7 +255,7 @@ struct DragManager {
 
         let handlers = dragEndHandlers.values.joined()
         let invocations = DragEndHandler.invocations(for: view, draggingItemProvider: session, matching: handlers) { handler, draggingItem in
-            handler.matches(draggingItem, operation: dragOperation)
+            handler.operations.contains(dragOperation)
         }
 
         for (handler, draggingItems) in invocations {
@@ -283,7 +274,6 @@ struct DropHandler<DropInfo>: DragHandler {
     let type: NSPasteboardReading.Type
     let operations: [DragOperation]
     let searchOptions: [NSPasteboard.ReadingOptionKey: Any]
-    private let matcher: (NSDraggingItem) -> Bool
     private let action: ([NSDraggingItem], DropInfo, DragOperation) -> Void
     private let validator: ([NSDraggingItem], inout DropInfo) -> Bool
     private let previewer: ((NSDraggingItem) -> DragPreview?)?
@@ -299,9 +289,6 @@ struct DropHandler<DropInfo>: DragHandler {
         self.type = type
         self.operations = operations
         self.searchOptions = searchOptions
-        self.matcher = { draggingItem in
-            draggingItem.item is T
-        }
         self.action = { draggingItems, dropInfo, operation in
             action(draggingItems.map { $0.item as! T }, dropInfo, operation)
         }
@@ -322,8 +309,8 @@ struct DropHandler<DropInfo>: DragHandler {
         }
     }
 
-    func matches(_ draggingItem: NSDraggingItem, operation nsOperation: NSDragOperation) -> Bool {
-        matcher(draggingItem) && !nsOperation.intersection(NSDragOperation(operations)).isEmpty
+    func matches(operationMask: NSDragOperation) -> Bool {
+        !operationMask.intersection(NSDragOperation(operations)).isEmpty
     }
 
     // Calling run(draggingItems:) on a DragEndHandler where matches(_:) returns false for any
@@ -479,7 +466,7 @@ struct DropManager<DropInfo> {
         let handlers = dropHandlers(for: draggingInfo)
         let itemProvider = DraggingInfoItemProvider(draggingInfo: draggingInfo)
         let invocations = DropHandler<DropInfo>.invocations(for: view, draggingItemProvider: itemProvider, matching: handlers) { handler, draggingItem in
-            handler.matches(draggingItem, operation: draggingInfo.draggingSourceOperationMask)
+            handler.matches(operationMask: draggingInfo.draggingSourceOperationMask)
         }
 
         // The first matching handler determines the operation.
@@ -506,7 +493,7 @@ struct DropManager<DropInfo> {
         let handlers = dropHandlers(for: draggingInfo)
         let itemProvider = DraggingInfoItemProvider(draggingInfo: draggingInfo)
         var invocations = DropHandler<DropInfo>.invocations(for: view, draggingItemProvider: itemProvider, matching: handlers) { handler, draggingItem in
-            handler.matches(draggingItem, operation: draggingInfo.draggingSourceOperationMask)
+            handler.matches(operationMask: draggingInfo.draggingSourceOperationMask)
         }
 
         // The first matching handler determines the operation.
@@ -553,7 +540,7 @@ struct DropManager<DropInfo> {
 
         var count = 0
         draggingInfo.enumerateDraggingItems(options: .clearNonenumeratedImages, for: view, classes: classes, searchOptions: searchOptions) { draggingItem, index, stop in
-            let handler = handlers.first { $0.matches(draggingItem, operation: draggingInfo.draggingSourceOperationMask) }!
+            let handler = handlers.first { $0.matches(operationMask: draggingInfo.draggingSourceOperationMask) }!
 
             if let preview = handler.preview(draggingItem) {
                 draggingItem.draggingFrame = preview.frame
