@@ -36,8 +36,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     private var localDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
     private var remoteDropHandlers: OrderedDictionary<ObjectIdentifier, [DropHandler<OutlineViewDropDestination>]> = [:]
 
-    private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [DragStartHandler]> = [:]
-    private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [DragEndHandler]> = [:]
+    private var dragSource: DragSource = DragSource()
 
     init(_ outlineView: NSOutlineView, delegate: NSOutlineViewDelegate? = nil, cellProvider: @escaping (NSOutlineView, NSTableColumn, Data.Element) -> NSView) {
         self.outlineView = outlineView
@@ -321,15 +320,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
-        // TODO: perhaps add session and draggedItems (Element.IDs) to the handler's action.
-        let handlers = dragStartHandlers.values.joined()
-        DragSource(view: outlineView).draggingSession(session, willBeginAt: screenPoint, handlers: handlers)
+        dragSource.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
         // TODO: perhaps add session and endedAt to the handler's action.
-        let handlers = dragEndHandlers.values.joined()
-        DragSource(view: outlineView).draggingSession(session, endedAt: endedAt, operation: operation, handlers: handlers)
+        dragSource.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
     }
 }
 
@@ -474,8 +470,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T]) -> Void
     ) where T: NSPasteboardReading {
-        let handler = DragStartHandler(type: T.self, searchOptions: searchOptions, action: action)
-        addDragStartHandler(handler)
+        dragSource.onDragStart(for: type, searchOptions: searchOptions, action: action)
     }
 
     func onDragStart<T>(
@@ -483,13 +478,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T]) -> Void
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDragStart(for: T.ReferenceType.self, searchOptions: searchOptions) { references in
-            action(references.map { $0 as! T })
-        }
-    }
-
-    private func addDragStartHandler(_ handler: DragStartHandler) {
-        dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
+        dragSource.onDragStart(for: type, searchOptions: searchOptions, action: action)
     }
 
     // MARK: Drag end handlers
@@ -500,8 +489,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DragOperation) -> Void
     ) where T: NSPasteboardReading {
-        let handler = DragEndHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action)
-        addDragEndHandler(handler)
+        dragSource.onDragEnd(for: type, operations: operations, searchOptions: searchOptions, action: action)
     }
 
     func onDragEnd<T>(
@@ -519,9 +507,7 @@ extension OutlineViewDiffableDataSource {
         searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
         action: @escaping ([T], DragOperation) -> Void
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
-        onDragEnd(for: T.ReferenceType.self, operations: operations, searchOptions: searchOptions) { references, operation in
-            action(references.map { $0 as! T }, operation)
-        }
+        dragSource.onDragEnd(for: type, operations: operations, searchOptions: searchOptions, action: action)
     }
 
     func onDragEnd<T>(
@@ -531,10 +517,6 @@ extension OutlineViewDiffableDataSource {
         action: @escaping ([T], DragOperation) -> Void
     ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
         onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
-    }
-
-    private func addDragEndHandler(_ handler: DragEndHandler) {
-        dragEndHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
     }
 }
 

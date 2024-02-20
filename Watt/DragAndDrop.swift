@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import OrderedCollections
 
 enum DragSourceType {
     case `self`
@@ -228,9 +229,83 @@ struct DropHandler<Destination> {
 }
 
 struct DragSource {
-    let view: NSView
+    private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [DragStartHandler]> = [:]
+    private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [DragEndHandler]> = [:]
 
-    func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint, handlers: some Collection<DragStartHandler>) {
+    // MARK: Drag start handlers
+
+    mutating func onDragStart<T>(
+        for type: T.Type,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T]) -> Void
+    ) where T: NSPasteboardReading {
+        let handler = DragStartHandler(type: T.self, searchOptions: searchOptions, action: action)
+        addDragStartHandler(handler)
+    }
+
+    mutating func onDragStart<T>(
+        for type: T.Type,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T]) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragStart(for: T.ReferenceType.self, searchOptions: searchOptions) { references in
+            action(references.map { $0 as! T })
+        }
+    }
+
+    private mutating func addDragStartHandler(_ handler: DragStartHandler) {
+        dragStartHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
+    }
+
+    // MARK: Drag end handlers
+
+    mutating func onDragEnd<T>(
+        for type: T.Type,
+        operations: [DragOperation],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: NSPasteboardReading {
+        let handler = DragEndHandler(type: T.self, operations: operations, searchOptions: searchOptions, action: action)
+        addDragEndHandler(handler)
+    }
+
+    mutating func onDragEnd<T>(
+        for type: T.Type,
+        operation: DragOperation,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: NSPasteboardReading {
+        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
+    }
+
+    mutating func onDragEnd<T>(
+        for type: T.Type,
+        operations: [DragOperation],
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragEnd(for: T.ReferenceType.self, operations: operations, searchOptions: searchOptions) { references, operation in
+            action(references.map { $0 as! T }, operation)
+        }
+    }
+
+    mutating func onDragEnd<T>(
+        for type: T.Type,
+        operation: DragOperation,
+        searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+        action: @escaping ([T], DragOperation) -> Void
+    ) where T: ReferenceConvertible, T.ReferenceType: NSPasteboardReading {
+        onDragEnd(for: type, operations: [operation], searchOptions: searchOptions, action: action)
+    }
+
+    private mutating func addDragEndHandler(_ handler: DragEndHandler) {
+        dragEndHandlers[ObjectIdentifier(handler.type), default: []].append(handler)
+    }
+
+    // MARK: NSDraggingSource
+
+    func draggingSession(_ session: NSDraggingSession, for view: NSView, willBeginAt screenPoint: NSPoint) {
+        let handlers = dragStartHandlers.values.joined()
         let invocations = DragStartHandler.invocations(for: view, draggingItemProvider: session, matching: handlers) { handler, draggingItem in
             handler.matches(draggingItem)
         }
@@ -240,12 +315,13 @@ struct DragSource {
         }
     }
 
-    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation, handlers: some Collection<DragEndHandler>) {
+    func draggingSession(_ session: NSDraggingSession, for view: NSView, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         precondition(operation.rawValue % 2 == 0, "\(operation) should be a single value")
 
         // At this point, NSDragOperation should always be a single flag (power of two), so force unwrap is safe
         let dragOperation = DragOperation(operation)!
 
+        let handlers = dragEndHandlers.values.joined()
         let invocations = DragEndHandler.invocations(for: view, draggingItemProvider: session, matching: handlers) { handler, draggingItem in
             handler.matches(draggingItem, operation: dragOperation)
         }
