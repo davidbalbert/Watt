@@ -218,9 +218,9 @@ extension DragSource {
     }
 }
 
-// TODO: maybe this should have a weak reference to the view and conform to NSDraggingSource. We should know
-// more once we've implemented drag and drop in TextView.
 struct DragManager {
+    weak var view: NSView?
+
     // keys are ObjectIdentifier of the types of the NSPasteboardReading classes
     private var dragStartHandlers: OrderedDictionary<ObjectIdentifier, [DragStartHandler]> = [:]
     private var dragEndHandlers: OrderedDictionary<ObjectIdentifier, [DragEndHandler]> = [:]
@@ -237,7 +237,11 @@ struct DragManager {
 
     // MARK: NSDraggingSource
 
-    func draggingSession(_ session: NSDraggingSession, for view: NSView, willBeginAt screenPoint: NSPoint) {
+    func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
+        guard let view else {
+            return
+        }
+
         let handlers = dragStartHandlers.values.joined()
         let invocations = DragStartHandler.invocations(for: view, draggingItemProvider: session, matching: handlers) { handler, draggingItem in
             handler.matches(draggingItem)
@@ -248,8 +252,12 @@ struct DragManager {
         }
     }
 
-    func draggingSession(_ session: NSDraggingSession, for view: NSView, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         precondition(operation.rawValue % 2 == 0, "\(operation) should be a single value")
+
+        guard let view else {
+            return
+        }
 
         // At this point, NSDragOperation should always be a single flag (power of two), so force unwrap is safe
         let dragOperation = DragOperation(operation)!

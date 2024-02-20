@@ -52,6 +52,7 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
         self.outlineView.dataSource = self
         self.outlineView.delegate = self.delegate
 
+        self.dragManager.view = outlineView
         self.dropManager.view = outlineView
     }
 
@@ -139,6 +140,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
 
     // MARK: Drag and Drop
 
+    struct OutlineViewDropInfo {
+        var parent: Data.Element?
+        var index: Int
+        let location: NSPoint
+    }
+
     func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
         onDrag?(self[item]!)
     }
@@ -170,12 +177,12 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
-        dragManager.draggingSession(session, for: outlineView, willBeginAt: screenPoint)
+        dragManager.draggingSession(session, willBeginAt: screenPoint)
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt: NSPoint, operation: NSDragOperation) {
         // TODO: perhaps add session and endedAt to the handler's action.
-        dragManager.draggingSession(session, for: outlineView, endedAt: endedAt, operation: operation)
+        dragManager.draggingSession(session, endedAt: endedAt, operation: operation)
     }
 
     func retargetIfNecessary(destination: OutlineViewDropInfo) {
@@ -235,14 +242,6 @@ final class OutlineViewDiffableDataSource<Data>: NSObject, NSOutlineViewDataSour
             }
         }
 
-    }
-}
-
-extension OutlineViewDiffableDataSource {
-    struct OutlineViewDropInfo {
-        var parent: Data.Element?
-        var index: Int
-        let location: NSPoint
     }
 }
 

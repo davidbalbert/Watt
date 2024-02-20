@@ -124,13 +124,13 @@ class WorkspaceBrowserViewController: NSViewController {
         }
 
         dataSource.onDragEnd(for: URL.self, operation: .delete, searchOptions: [.urlReadingFileURLsOnly: true]) { [weak self] urls, operation in
-             Task {
-                 do {
-                     try await workspace.trash(filesAt: urls)
-                 } catch {
-                     self?.presentErrorAsSheet(error)
-                 }
-             }
+            Task {
+                do {
+                    try await workspace.trash(filesAt: urls)
+                } catch {
+                    self?.presentErrorAsSheet(error)
+                }
+            }
         }
 
         dataSource.validDropTargets = .betweenRows
