@@ -316,13 +316,13 @@ fileprivate struct DropHandler<DropInfo>: Handler {
 
     // Calling run(draggingItems:) on a DragEndHandler where matches(_:) returns false for any
     // items will result in a runtime panic.
-    func run(draggingItems: [NSDraggingItem], destination: DropInfo, operation: DragOperation) {
-        action(draggingItems, destination, operation)
+    func run(draggingItems: [NSDraggingItem], dropInfo: DropInfo, operation: DragOperation) {
+        action(draggingItems, dropInfo, operation)
     }
 
     // Ditto
-    func isValid(_ draggingItems: [NSDraggingItem], destination: inout DropInfo) -> Bool {
-        validator(draggingItems, &destination)
+    func isValid(_ draggingItems: [NSDraggingItem], dropInfo: inout DropInfo) -> Bool {
+        validator(draggingItems, &dropInfo)
     }
 
     func preview(_ draggingItem: NSDraggingItem) -> DragPreview? {
@@ -414,10 +414,10 @@ extension DragDestination {
             }
         }
 
-        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, destination, operation in
-            action(references.map { $0 as! T }, destination, operation)
-        }, validator: { references, destination in
-            validator?(references.map { $0 as! T }, &destination) ?? true
+        onDrop(of: T.ReferenceType.self, operations: operations, source: source, searchOptions: searchOptions, action: { references, dropInfo, operation in
+            action(references.map { $0 as! T }, dropInfo, operation)
+        }, validator: { references, dropInfo in
+            validator?(references.map { $0 as! T }, &dropInfo) ?? true
         }, preview: wrappedPreview)
     }
 
@@ -473,7 +473,7 @@ struct DropManager<DropInfo> {
         // The first valid invocation determines the operation.
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
-            if handler.isValid(items, destination: &dropInfo) {
+            if handler.isValid(items, dropInfo: &dropInfo) {
                 if draggingInfo.draggingSourceOperationMask.rawValue % 2 == 0 {
                     operation = draggingInfo.draggingSourceOperationMask
                 } else {
@@ -500,7 +500,7 @@ struct DropManager<DropInfo> {
         // The first valid invocation determines the operation.
         var operation: NSDragOperation = []
         for (handler, items) in invocations {
-            if handler.isValid(items, destination: &dropInfo) {
+            if handler.isValid(items, dropInfo: &dropInfo) {
                 if draggingInfo.draggingSourceOperationMask.rawValue % 2 == 0 {
                     operation = draggingInfo.draggingSourceOperationMask
                 } else {
@@ -518,7 +518,7 @@ struct DropManager<DropInfo> {
         }
 
         for (handler, draggingItems) in invocations {
-            handler.run(draggingItems: draggingItems, destination: dropInfo, operation: dragOperation)
+            handler.run(draggingItems: draggingItems, dropInfo: dropInfo, operation: dragOperation)
         }
 
         // TODO: make handlers return a bool indicating whether they succeeded
