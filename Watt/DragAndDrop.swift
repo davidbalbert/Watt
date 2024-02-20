@@ -96,13 +96,13 @@ extension Handler {
     }
 }
 
-protocol DraggingItemProvider {
+fileprivate protocol DraggingItemProvider {
     func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void)
 }
 
 extension NSDraggingSession: DraggingItemProvider {}
 
-struct DraggingInfoItemProvider: DraggingItemProvider {
+fileprivate struct DraggingInfoItemProvider: DraggingItemProvider {
     let draggingInfo: NSDraggingInfo
 
     func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
