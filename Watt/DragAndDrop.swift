@@ -62,33 +62,17 @@ fileprivate protocol Handler {
     var searchOptions: [NSPasteboard.ReadingOptionKey: Any] { get }
 }
 
+fileprivate typealias Invocation<H> = (handler: H, items: [NSDraggingItem]) where H: Handler
+
 extension Handler {
     func matchesType(of draggingItem: NSDraggingItem) -> Bool {
         Swift.type(of: draggingItem.item) == type
     }
-}
 
-protocol DraggingItemProvider {
-    func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void)
-}
-
-extension NSDraggingSession: DraggingItemProvider {}
-
-struct DraggingInfoItemProvider: DraggingItemProvider {
-    let draggingInfo: NSDraggingInfo
-
-    func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
-        draggingInfo.enumerateDraggingItems(options: enumOpts, for: view, classes: classArray, searchOptions: searchOptions, using: block)
-    }
-}
-
-fileprivate typealias Invocation<H> = (handler: H, items: [NSDraggingItem]) where H: Handler
-
-extension Handler {
-    fileprivate static func invocations(
+    static func invocations(
         options enumOpts: NSDraggingItemEnumerationOptions = [],
-        for view: NSView, draggingItemProvider: DraggingItemProvider, 
-        matching handlers: some Collection<Self>, 
+        for view: NSView, draggingItemProvider: DraggingItemProvider,
+        matching handlers: some Collection<Self>,
         _ doesMatch: @escaping (Self, NSDraggingItem) -> Bool = { _, _ in true }
     ) -> [Invocation<Self>] {
         let classes = handlers.map { $0.type }
@@ -109,6 +93,20 @@ extension Handler {
             let j = handlers.firstIndex { $0.type == b.handler.type }!
             return i < j
         }
+    }
+}
+
+protocol DraggingItemProvider {
+    func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void)
+}
+
+extension NSDraggingSession: DraggingItemProvider {}
+
+struct DraggingInfoItemProvider: DraggingItemProvider {
+    let draggingInfo: NSDraggingInfo
+
+    func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions, for view: NSView?, classes classArray: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey : Any], using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {
+        draggingInfo.enumerateDraggingItems(options: enumOpts, for: view, classes: classArray, searchOptions: searchOptions, using: block)
     }
 }
 
