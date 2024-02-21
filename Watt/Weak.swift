@@ -10,12 +10,20 @@ import Foundation
 // NSMapTable, but the keys can be any Hashable (if keys
 // are objects, they are held strongly).
 
-struct WeakDictionary<Key: Hashable, Value: AnyObject> {
-    struct WeakRef {
-        weak var value: Value?
+struct Weak<Value> where Value: AnyObject {
+    weak var value: Value?
+
+    init(_ value: Value) {
+        self.value = value
     }
 
-    private var storage: [Key: WeakRef]
+    init() {
+        self.value = nil
+    }
+}
+
+struct WeakDictionary<Key: Hashable, Value: AnyObject> {
+    private var storage: [Key: Weak<Value>]
 
     init() {
         storage = [:]
@@ -51,7 +59,7 @@ struct WeakDictionary<Key: Hashable, Value: AnyObject> {
 
         set {
             if let newValue = newValue {
-                storage[key] = WeakRef(value: newValue)
+                storage[key] = Weak(newValue)
             } else {
                 storage.removeValue(forKey: key)
             }

@@ -19,11 +19,11 @@ extension TextView {
     }
 
     private var insertionPointOnInterval: TimeInterval {
-        UserDefaults.standard.double(forKey: "NSTextInsertionPointBlinkPeriodOn") / 1000
+        UserDefaults.standard.textInsertionPointBlinkPeriodOn / 1000
     }
 
     private var insertionPointOffInterval: TimeInterval {
-        UserDefaults.standard.double(forKey: "NSTextInsertionPointBlinkPeriodOff") / 1000
+        UserDefaults.standard.textInsertionPointBlinkPeriodOff / 1000
     }
 
     private var insertionPointBlinkInterval: TimeInterval {

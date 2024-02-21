@@ -7,6 +7,13 @@
 
 import Foundation
 
+extension Sequence where Element: Hashable {
+    func removingDuplicates() -> [Element] {
+        var seen: Set<Element> = []
+        return filter { seen.insert($0).inserted }
+    }
+}
+
 extension RandomAccessCollection where Element: Comparable {
     // If found, returns the index of the element. Upon failure,
     // returns the index where the element would be inserted.

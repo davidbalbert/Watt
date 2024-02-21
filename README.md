@@ -10,5 +10,6 @@ Watt is copyright David Albert and released under the terms of the MIT License. 
 
 Portions of Watt are adapted from the following projects. See ACKNOWLEDGEMENTS.md for license information.
 
+- [FSEventsWrapper](https://github.com/Frizlab/FSEventsWrapper)
 - [Swift Collections](https://github.com/apple/swift-collections)
 - [xi-editor](https://github.com/xi-editor/xi-editor)

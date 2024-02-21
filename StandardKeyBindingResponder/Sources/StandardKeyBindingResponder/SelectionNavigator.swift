@@ -658,14 +658,15 @@ extension SelectionNavigator {
             }
         }
 
-        // If we're moving by a granularity larger than a character, and we're
-        // not on the empty last line, we should never have a caret.
-        assert(selection.isRange)
-
         let anchor: Selection.Index
         let head: Selection.Index
 
         let range = dataSource.range(for: Granularity(selection.granularity), enclosing: i)
+        if range.isEmpty {
+            // empty last line
+            assert(i == dataSource.content.endIndex)
+            return Selection(caretAt: range.lowerBound, affinity: .upstream, granularity: selection.granularity, xOffset: nil)
+        }
 
         if selection.affinity == .downstream && i < selection.lowerBound {
             // switching from downstream to upstream

@@ -11,9 +11,14 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: [
-            "NSTextInsertionPointBlinkPeriodOn": 500,
-            "NSTextInsertionPointBlinkPeriodOff": 500,
+            UserDefaults.Keys.textInsertionPointBlinkPeriodOn: 500,
+            UserDefaults.Keys.textInsertionPointBlinkPeriodOff: 500,
+            UserDefaults.Keys.workspaceBrowserAnimationsEnabled: false,
+            UserDefaults.Keys.showHiddenFiles: false,
         ])
+
+        NSWindow.allowsAutomaticWindowTabbing = false
+        _ = DocumentController()
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {

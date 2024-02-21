@@ -20,27 +20,32 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>C Source</string>
+			<string>Project</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>public.c-source</string>
+				<string>public.folder</string>
 			</array>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).WorkspaceFolderDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>C Header</string>
+			<string>All Files</string>
 			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
+			<string>Viewer</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>public.c-header</string>
+				<string>public.content</string>
+				<string>public.data</string>
 			</array>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).Document</string>
 		</dict>
 	</array>
 </dict>
