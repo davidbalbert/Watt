@@ -906,6 +906,14 @@ extension Rope: BidirectionalCollection {
 }
 
 extension Rope: RangeReplaceableCollection {
+    init(_ rope: Rope) {
+        self.root = rope.root
+    }
+
+    init(_ subrope: Subrope) {
+        self = Rope(subrope.root, slicedBy: Range(unvalidatedRange: subrope.bounds))
+    }
+
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Element {
         subrange.lowerBound.validate(for: self)
         subrange.upperBound.validate(for: self)

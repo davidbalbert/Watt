@@ -1860,12 +1860,6 @@ extension BTree {
 
 // MARK: - Helpers
 
-extension Range where Bound == Int {
-    init<Summary>(uncheckedRange range: Range<BTreeNode<Summary>.Index>) where Summary: BTreeSummary {
-        self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
-    }
-}
-
 extension Range where Bound: Strideable, Bound.Stride: SignedInteger {
     func offset(by offset: Bound.Stride) -> Self {
         lowerBound.advanced(by: offset)..<upperBound.advanced(by: offset)
