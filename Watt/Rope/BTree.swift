@@ -394,7 +394,7 @@ extension BTreeNode {
 
         var path: [PathElement]
 
-        weak var leafStorage: BTreeNode<Summary>.Storage? // Present unless the index is invalid.
+        unowned var leafStorage: BTreeNode<Summary>.Storage? // Present unless the index is invalid.
         var leaf: Leaf? { leafStorage?.leaf }
 
         var offsetOfLeaf: Int // Position of the first element of the leaf in base units. -1 if we're invalid.
