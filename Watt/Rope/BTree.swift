@@ -394,7 +394,9 @@ extension BTreeNode {
 
         var path: [PathElement]
 
-        var leaf: Leaf? // Present unless the index is invalid.
+        unowned var leafStorage: BTreeNode<Summary>.Storage? // Present unless the index is invalid.
+        var leaf: Leaf? { leafStorage?.leaf }
+
         var offsetOfLeaf: Int // Position of the first element of the leaf in base units. -1 if we're invalid.
 
         // Must be less than leaf.count unless we're at the end of the rope, in which case
@@ -414,7 +416,7 @@ extension BTreeNode {
             self.mutationCount = root.mutationCount
             self.position = offset
             self.path = []
-            self.leaf = nil
+            self.leafStorage = nil
             self.offsetOfLeaf = -1
 
             descend()
@@ -445,7 +447,7 @@ extension BTreeNode {
                 node = node.children[slot]
             }
 
-            self.leaf = node.leaf
+            self.leafStorage = node.storage
             self.offsetOfLeaf = offset
         }
 
@@ -681,9 +683,8 @@ extension BTreeNode {
                 node = node.children[node.children.count - 1]
             }
 
-            let leaf = node.leaf
-            self.leaf = leaf
-            self.offsetOfLeaf -= leaf.count
+            self.leafStorage = node.storage
+            self.offsetOfLeaf -= node.count
             self.position = offsetOfLeaf
 
             return read()
@@ -720,7 +721,7 @@ extension BTreeNode {
                 node = node.children[0]
             }
 
-            self.leaf = node.leaf
+            self.leafStorage = node.storage
             self.offsetOfLeaf = position
             return read()
         }
@@ -791,7 +792,7 @@ extension BTreeNode {
                 node = node.children[slot]
             }
 
-            self.leaf = node.leaf
+            self.leafStorage = node.storage
             self.position = offset
             self.offsetOfLeaf = offset
         }
@@ -836,7 +837,7 @@ extension BTreeNode {
         }
 
         mutating func invalidate() {
-            self.leaf = nil
+            self.leafStorage = nil
             self.offsetOfLeaf = -1
         }
     }
@@ -1858,12 +1859,6 @@ extension BTree {
 }
 
 // MARK: - Helpers
-
-extension Range where Bound == Int {
-    init<Summary>(uncheckedRange range: Range<BTreeNode<Summary>.Index>) where Summary: BTreeSummary {
-        self.init(uncheckedBounds: (range.lowerBound.position, range.upperBound.position))
-    }
-}
 
 extension Range where Bound: Strideable, Bound.Stride: SignedInteger {
     func offset(by offset: Bound.Stride) -> Self {
