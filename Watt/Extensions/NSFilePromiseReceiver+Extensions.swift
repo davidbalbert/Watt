@@ -30,7 +30,6 @@ extension NSFilePromiseReceiver {
             // actor we're running on, and then within the callback run `urls.count == fileNames.count` back on the
             // actor we were called on, which should maintain thread safety.
             let nfiles = fileTypes.count
-            print(nfiles, fileTypes)
 
             // Unclear from the docs whether an error will cause the completion handler to be called only once or more
             // than once. As a precaution, just throw the first exception and ignore the rest.
