@@ -2152,9 +2152,11 @@ final class RopeTests: XCTestCase {
         var breaker = Rope.GraphemeBreaker()
 
         let firstString = String(repeating: "a", count: 511) + "\n" + String(repeating: "b", count: 510) + "\n"
-        b.push(leaf: Chunk(firstString[...], breaker: &breaker))
+        let c1 = Chunk(firstString[...], findPrefixCountUsing: &breaker)
+        b.push(leaf: c1)
 
-        b.push(leaf: Chunk(String(repeating: "c", count: 1023)[...], breaker: &breaker))
+        breaker.consume(firstString[firstString.utf8Index(at: c1.prefixCount)...])
+        b.push(leaf: Chunk(String(repeating: "c", count: 1023)[...], findPrefixCountUsing: &breaker))
         let r = b.build()
 
         XCTAssertEqual(1, r.root.height)

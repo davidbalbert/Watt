@@ -124,17 +124,24 @@ struct Chunk: BTreeLeaf {
         self.breaker = Rope.GraphemeBreaker()
     }
 
-    init(_ substring: Substring, breaker b: inout Rope.GraphemeBreaker) {
+    init(_ substring: Substring, findPrefixCountUsing breaker: inout Rope.GraphemeBreaker) {
         let s = String(substring)
         assert(s.isContiguousUTF8)
         assert(s.utf8.count <= Chunk.maxSize)
 
         // save the breaker at the start of the chunk
-        self.breaker = b
+        self.breaker = breaker
 
         self.string = s
-        self.prefixCount = consumeAndFindPrefixCount(in: s, using: &b)
+        self.prefixCount = findPrefixCount(in: substring, using: &breaker)
         self.lastCharSplits = false
+    }
+
+    init(string: String, prefixCount: Int, lastCharSplits: Bool, breaker: Rope.GraphemeBreaker) {
+        self.string = string
+        self.prefixCount = prefixCount
+        self.lastCharSplits = lastCharSplits
+        self.breaker = breaker
     }
 
     mutating func pushMaybeSplitting(other: Chunk) -> Chunk? {
@@ -142,7 +149,7 @@ struct Chunk: BTreeLeaf {
         var b = breaker
 
         if string.utf8.count <= Chunk.maxSize {
-            prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
+            prefixCount = findPrefixCount(in: string[...], using: &b)
             lastCharSplits = other.lastCharSplits
             return nil
         } else {
@@ -150,9 +157,10 @@ struct Chunk: BTreeLeaf {
 
             let rest = String(string.unicodeScalars[i...])
             string = String(string.unicodeScalars[..<i])
+            prefixCount = min(prefixCount, string.utf8.count)
 
-            prefixCount = consumeAndFindPrefixCount(in: string, using: &b)
-            let next = Chunk(rest[...], breaker: &b)
+            b.consume(string[...])
+            let next = Chunk(rest[...], findPrefixCountUsing: &b)
             if next.prefixCount > 0 {
                 lastCharSplits = true
             }
@@ -241,9 +249,16 @@ struct Chunk: BTreeLeaf {
             fatalError("invalid unicode scalar offsets")
         }
 
+        if bounds.lowerBound == 0 {
+            // Optimization: if we're slicing from the beginning, we can just calculate prefixCount
+            // ourselves. There's no need to run the grapheme breaker at all.
+            let c = min(prefixCount, bounds.upperBound)
+            return Chunk(string: String(string[start..<end]), prefixCount: c, lastCharSplits: false, breaker: breaker)
+        }
+
         var b = breaker
         b.consume(string[string.startIndex..<start])
-        return Chunk(string[start..<end], breaker: &b)
+        return Chunk(string[start..<end], findPrefixCountUsing: &b)
     }
 
     func isValidUnicodeScalarIndex(_ i: String.Index) -> Bool {
@@ -255,15 +270,12 @@ struct Chunk: BTreeLeaf {
     }
 }
 
-fileprivate func consumeAndFindPrefixCount(in string: String, using breaker: inout Rope.GraphemeBreaker) -> Int {
-    guard let r = breaker.firstBreak(in: string[...]) else {
+fileprivate func findPrefixCount(in substring: Substring, using breaker: inout Rope.GraphemeBreaker) -> Int {
+    guard let r = breaker.firstBreak(in: substring) else {
         // uncommon, no character boundaries
-        return string.utf8.count
+        return substring.utf8.count
     }
-
-    breaker.consume(string[r.upperBound...])
-
-    return string.utf8.distance(from: string.startIndex, to: r.lowerBound)
+    return substring.utf8.distance(from: substring.startIndex, to: r.lowerBound)
 }
 
 // MARK: - Metrics
@@ -633,7 +645,8 @@ struct RopeBuilder {
                 end = boundaryForBulkInsert(s)
             }
 
-            let chunk = Chunk(s[..<end], breaker: &br)
+            let chunk = Chunk(s[..<end], findPrefixCountUsing: &br)
+            br.consume(s[s.utf8Index(at: chunk.prefixCount)..<end])
             s = s[end...]
             return chunk
         }
