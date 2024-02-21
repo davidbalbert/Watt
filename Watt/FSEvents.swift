@@ -322,6 +322,7 @@ final class FSEventStream: Sendable {
         self.callback = callback
         self.isRunning = OSAllocatedUnfairLock(initialState: false)
 
+        // TODO: this is almost certainly unsafe because I doubt Weak<FSEventStream> is bitwise copyable. Switch to an Unmanaged reference.
         weakRefPtr = UnsafeMutablePointer<Weak<FSEventStream>>.allocate(capacity: 1)
         weakRefPtr.initialize(to: Weak())
 
