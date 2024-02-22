@@ -68,6 +68,11 @@ struct Line: Identifiable {
     // - All edges are point-aligned.
     // - Equal in size or larger than both typographicBounds
     //   and alignmentFrame.
+    //
+    // We round the typographicBounds to the nearest integer to avoid an issue
+    // where the glyphs seemed to shift back and forth by a fraction of a point
+    // as the line was edited. I'm not sure why that was given that masksToBounds
+    // was set to false, but rounding fixes the issue.
     var renderingSurfaceBounds: CGRect {
         typographicBounds.integral
     }

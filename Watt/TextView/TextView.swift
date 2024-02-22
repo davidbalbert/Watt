@@ -146,9 +146,7 @@ class TextView: NSView, ClipViewDelegate {
     let insertionPointLayer: CALayer = CALayer()
 
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
-    var textLayerCache: WeakDictionary<Line.ID, CALayer> = WeakDictionary()
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
-
     var insertionPointTimer: Timer?
 
     // HACK: See layoutTextLayer() for context.

@@ -1857,11 +1857,3 @@ extension BTree {
         return b.build()
     }
 }
-
-// MARK: - Helpers
-
-extension Range where Bound: Strideable, Bound.Stride: SignedInteger {
-    func offset(by offset: Bound.Stride) -> Self {
-        lowerBound.advanced(by: offset)..<upperBound.advanced(by: offset)
-    }
-}

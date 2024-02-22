@@ -24,6 +24,9 @@ protocol LayoutManagerDelegate: AnyObject {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
+
+    func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer
+    func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer)
 }
 
 extension LayoutManagerDelegate {
@@ -48,6 +51,9 @@ class LayoutManager {
 
     var heights: Heights
 
+    // invariant: sorted by line.range.lowerBound
+    var lineLayers: [LineLayer]
+
     var textContainer: TextContainer {
         didSet {
             if textContainer != oldValue {
@@ -56,12 +62,11 @@ class LayoutManager {
         }
     }
 
-    var lineCache: IntervalCache<Line>
 
     init() {
         heights = Heights()
+        lineLayers = []
         textContainer = TextContainer()
-        lineCache = IntervalCache(upperBound: 0)
         buffer = Buffer()
 
         buffer.addDelegate(self)
@@ -71,7 +76,7 @@ class LayoutManager {
         heights.contentHeight
     }
 
-    func layoutText(using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Void) {
+    func layoutText(using block: (_ layer: LineLayer, _ prevAlignmentFrame: CGRect) -> Void) {
         guard let delegate else {
             return
         }
@@ -79,12 +84,15 @@ class LayoutManager {
         let viewportBounds = delegate.viewportBounds(for: self)
         let viewportRange = lineRange(intersecting: viewportBounds)
 
-        lineCache = lineCache[viewportRange.lowerBound.position..<viewportRange.upperBound.position]
-
-        enumerateLines(in: viewportRange) { line, prevAlignmentFrame in
-            block(line, prevAlignmentFrame)
+        var layers: [LineLayer] = []
+        enumerateLines(in: viewportRange) { line, existingLayer, prevAlignmentFrame in
+            let layer = existingLayer ?? delegate.layoutManager(self, createLayerForLine: line)
+            delegate.layoutManager(self, positionLineLayer: layer)
+            layers.append(layer)
+            block(layer, prevAlignmentFrame)
             return true
         }
+        lineLayers = layers
     }
 
     func layoutSelections(using block: (CGRect) -> Void) {
@@ -179,7 +187,7 @@ class LayoutManager {
     }
 
     func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
-        enumerateLines(in: range) { line, _ in
+        enumerateLines(in: range) { line, _, _ in
             for frag in line.lineFragments {
                 let rangesOverlap = range.overlaps(frag.range) || range.isEmpty && frag.range.contains(range.lowerBound)
                 let atEndOfDocument = frag.range.upperBound == buffer.endIndex && frag.range.upperBound == range.lowerBound
@@ -234,7 +242,7 @@ class LayoutManager {
     //   range - the range of the line in buffer
     //   line - the line
     //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
-    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ prevAlignmentFrame: CGRect) -> Bool) {
+    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ layer: LineLayer?, _ prevAlignmentFrame: CGRect) -> Bool) {
         var i = buffer.lines.index(roundingDown: range.lowerBound)
 
         assert(range.upperBound < buffer.lines.endIndex)
@@ -256,9 +264,9 @@ class LayoutManager {
         while i < end {
             // Gross gross gross
             let next = min(buffer.endIndex, buffer.lines.index(after: i))
-            let (line, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
-            let stop = !block(line, prevAlignmentFrame)
+            let stop = !block(line, layer, prevAlignmentFrame)
 
             if stop {
                 return
@@ -269,9 +277,9 @@ class LayoutManager {
         }
 
         if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.characters.last == "\n") {
-            let (line, oldBounds) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
 
-            _ = block(line, oldBounds)
+            _ = block(line, layer, prevAlignmentFrame)
         }
     }
 
@@ -446,47 +454,28 @@ class LayoutManager {
         return line(containing: lineStart)
     }
 
-    func ensureLayout(forLineContaining i: Buffer.Index) {
-        _ = line(containing: i)
-    }
-
-    func ensureLayout(for range: Range<Buffer.Index>) {
-        enumerateLines(in: range) { _, _ in
-            return true
-        }
-    }
-
     func line(containing index: Buffer.Index) -> Line {
         let content = buffer.lines[index]
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let (line, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
+        let (line, _, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
 
         return line
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, prevAlignmentFrame: CGRect) {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, layer: LineLayer?, prevAlignmentFrame: CGRect) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
-        if var line = lineCache[range.lowerBound.position] {
-            line.origin.y = point.y
-            line.range = range
-
-            var start = range.lowerBound
-            for i in 0..<line.lineFragments.count {
-                let end = buffer.utf16.index(start, offsetBy: line.lineFragments[i].utf16Count)
-                line.lineFragments[i].lineStart = line.range.lowerBound
-                line.lineFragments[i].range = start..<end
-                start = end
-            }
-
-            assert(start == range.upperBound)
-
-            return (line, line.alignmentFrame)
+        let intRange = Range(unvalidatedRange: range)
+        // TODO: binary search        
+        if let layer = lineLayers.first(where: { Range(unvalidatedRange: $0.line.range) == intRange }) {
+            layer.line.origin.y = point.y
+            return (layer.line, layer, layer.line.alignmentFrame)
         } else {
+            assert(lineLayers.allSatisfy { !$0.line.range.overlaps(range) })
+
             let line = makeLine(from: range, in: buffer, at: point)
-            lineCache.set(line, forRange: range.lowerBound.position..<range.upperBound.position)
 
             let hi = heights.index(at: range.lowerBound.position)
             let oldHeight = heights[hi]
@@ -499,7 +488,7 @@ class LayoutManager {
             var old = line.alignmentFrame
             old.size.height = oldHeight
 
-            return (line, old)
+            return (line, nil, old)
         }
     }
 
@@ -672,13 +661,13 @@ class LayoutManager {
     }
 
     func invalidateLayout() {
-        lineCache.removeAll()
+        lineLayers = []
         delegate?.didInvalidateLayout(for: self)
     }
 
     func reloadFromBuffer() {
         heights = Heights(rope: buffer.text)
-        lineCache = IntervalCache(upperBound: buffer.utf8.count)
+        lineLayers = []
         delegate?.layoutManager(self, bufferDidReload: buffer)
         delegate?.didInvalidateLayout(for: self)
     }
@@ -739,35 +728,44 @@ extension LayoutManager: BufferDelegate {
 
     func buffer(_ buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
         // We should never be called with an empty delta (this would imply that contents didn't actually change).
-        //
-        // Invariant: if heights changes, the corresponding line(s) in lineCache must be invalidated.
-        //
-        // An example: consider a delta with multiple copies: e.g. [copy(0, 10), copy(10, 20)]
-        // where delta.baseCount == 20.
-        //
-        // In this situation, lineCache.invalidate(delta:) won't invalidate anything, but heights.replaceSubrange(_:with:)
-        // will reset the height of the line containing 10.
-        //
-        // This violates the invariant above. We prevent this violation by making sure
-        // buffer(_:contentsDidChangeFrom:to:withDelta:) is only called when the buffer actually changes.
         assert(!delta.isEmpty)
 
         // TODO: this returns the entire invalidated range. Once we support multiple cursors, this could be much larger than necessary – imagine two cursors, one at the beginning of the document, and the other at the end. In that case we'd unnecessarily invalidate the entire document.
-        let (oldRange, count) = delta.summary()
+        let (r, count) = delta.summary()
 
-        let newRange = Range(oldRange.lowerBound..<(oldRange.lowerBound + count), in: new)
+        let oldRange = Range(r, in: old)
+        let newRange = Range(r.lowerBound..<(r.lowerBound + count), in: new)
 
-        heights.replaceSubrange(oldRange, with: new[newRange])
+        heights.replaceSubrange(r, with: new[newRange])
 
-        lineCache.invalidate(delta: delta)
+        removeLineLayers(touching: oldRange)
 
-        // Layout the line containing the index immediately preceding the edit (which could include
-        // the first line of the edit itself). This insures that if we added or removed lines as part
-        // of the edit, the y-offset of the new lines is correct.
-        //
-        // This matters for drawing the caret in the correct location immediately after inserting a
-        // newline, and probably for other things too.
-        ensureLayout(forLineContaining: buffer.index(newRange.lowerBound, offsetBy: -1, limitedBy: buffer.startIndex) ?? buffer.startIndex)
+        // Offset line ranges that fall after the edit
+        let byteDelta = count - (r.upperBound - r.lowerBound)
+
+        for i in 0..<lineLayers.count {
+            let layer = lineLayers[i]
+            let oldLineRange = layer.line.range
+
+            // there are no ranges that touch the edit
+            assert(oldLineRange.upperBound < oldRange.lowerBound || oldLineRange.lowerBound > oldRange.upperBound)
+
+            let needsOffset = oldLineRange.lowerBound.position > r.lowerBound
+
+            let oldByteRange = oldLineRange.lowerBound.position..<oldLineRange.upperBound.position
+            let newByteRange = oldByteRange.offset(by: needsOffset ? byteDelta : 0)
+            let newLineRange = Range(newByteRange, in: new)
+
+            layer.line.range = newLineRange
+            var start = newLineRange.lowerBound
+            for i in 0..<layer.line.lineFragments.count {
+                let end = buffer.utf16.index(start, offsetBy: layer.line.lineFragments[i].utf16Count)
+                layer.line.lineFragments[i].lineStart = layer.line.range.lowerBound
+                layer.line.lineFragments[i].range = start..<end
+                start = end
+            }
+            assert(start == newLineRange.upperBound)
+        }
 
         delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
         delegate?.didInvalidateLayout(for: self)
@@ -775,9 +773,24 @@ extension LayoutManager: BufferDelegate {
 
     func buffer(_ buffer: Buffer, attributesDidChangeIn ranges: [Range<Buffer.Index>]) {
         for r in ranges {
-            lineCache.invalidate(range: Range(r, in: buffer))
+            // This probably could just remove lines that contain r (including an empty last line)
+            // rather than also removing an adjacent layer that ends at r.lowerBound.
+            removeLineLayers(touching: r)
         }
         delegate?.didInvalidateLayout(for: self)
+    }
+
+    func removeLineLayers(touching range: Range<Buffer.Index>) {
+        let empty = range.isEmpty
+
+        lineLayers.removeAll { layer in
+            let line = layer.line
+            if empty {
+                return line.range.contains(range.lowerBound) || line.range.upperBound == range.lowerBound
+            } else {
+                return line.range.overlaps(range) || line.range.upperBound == range.lowerBound || range.upperBound == line.range.lowerBound
+            }
+        }
     }
 }
 
