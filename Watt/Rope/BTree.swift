@@ -805,27 +805,27 @@ extension BTreeNode {
         func validate(for root: BTreeNode) {
             precondition(self.rootStorage === root.storage)
             precondition(self.mutationCount == root.mutationCount)
-            precondition(self.leaf != nil)
+            precondition(self.leafStorage != nil)
         }
 
         func validate(_ other: Index) {
             precondition(rootStorage === other.rootStorage && rootStorage != nil)
             precondition(mutationCount == rootStorage!.mutationCount)
             precondition(mutationCount == other.mutationCount)
-            precondition(leaf != nil && other.leaf != nil)
+            precondition(leafStorage != nil && other.leafStorage != nil)
         }
 
         func assertValid(for root: BTreeNode) {
             assert(self.rootStorage === root.storage)
             assert(self.mutationCount == root.mutationCount)
-            assert(self.leaf != nil)
+            assert(self.leafStorage != nil)
         }
 
         func assertValid(_ other: Index) {
             assert(rootStorage === other.rootStorage && rootStorage != nil)
             assert(mutationCount == rootStorage!.mutationCount)
             assert(mutationCount == other.mutationCount)
-            assert(leaf != nil && other.leaf != nil)
+            assert(leafStorage != nil && other.leafStorage != nil)
         }
 
         func read() -> (Leaf, Int)? {
