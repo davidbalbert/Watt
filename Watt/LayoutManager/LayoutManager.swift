@@ -458,7 +458,20 @@ class LayoutManager {
         let content = buffer.lines[index]
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let (line, _, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
+        let (line, existingLayer, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
+
+        if existingLayer == nil, let delegate {
+            let viewportBounds = delegate.viewportBounds(for: self)
+            let viewportRange = lineRange(intersecting: viewportBounds)
+            
+            if viewportRange.overlaps(line.range) || (line.range.isEmpty && viewportRange.contains(line.range.lowerBound)) {
+                let layer = delegate.layoutManager(self, createLayerForLine: line)
+                delegate.layoutManager(self, positionLineLayer: layer)
+
+                let i = lineLayers.firstIndex(where: { $0.line.range.lowerBound > line.range.lowerBound }) ?? lineLayers.count
+                lineLayers.insert(layer, at: i)
+            }
+        }
 
         return line
     }
