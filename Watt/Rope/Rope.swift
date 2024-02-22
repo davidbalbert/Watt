@@ -1131,14 +1131,14 @@ extension RopeView {
     }
 
     subscript(position: Index) -> Element {
-        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
+        precondition(position.position >= startIndex.position && position.position < endIndex.position, "Index out of bounds")
         let i = Index(root.index(roundingDown: position.i, using: metric))
         precondition(i >= startIndex, "Index out of bounds")
         return readElement(at: i)
     }
 
     subscript(r: Range<Index>) -> Self {
-        precondition(r.lowerBound >= startIndex && r.upperBound <= endIndex, "Index out of bounds")
+        precondition(r.lowerBound.position >= startIndex.position && r.upperBound.position <= endIndex.position, "Index out of bounds")
         let start = Index(root.index(roundingDown: r.lowerBound.i, using: metric))
         let end = Index(root.index(roundingDown: r.upperBound.i, using: metric))
         precondition(start >= startIndex && end <= endIndex, "Index out of bounds")
@@ -1146,34 +1146,35 @@ extension RopeView {
     }
 
     func index(before i: Index) -> Index {
-        precondition(i > startIndex, "Index out of bounds")
+        precondition(i.position > startIndex.position, "Index out of bounds")
         let j = index(roundingDown: i)
         return Index(root.index(before: j.i, using: metric))
     }
 
     func index(after i: Index) -> Index {
-        precondition(i < endIndex, "Index out of bounds")
+        precondition(i.position < endIndex.position, "Index out of bounds")
         return Index(root.index(after: i.i, using: metric))
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
         let j = Index(root.index(i.i, offsetBy: distance, using: metric))
-        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
         return j
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
         guard let j = Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: metric)) else {
             return nil
         }
-        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
         return j
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        precondition(start.position >= startIndex.position && start.position <= endIndex.position, "Index out of bounds")
+        precondition(end.position >= startIndex.position && end.position <= endIndex.position, "Index out of bounds")
         return root.distance(from: start.i, to: end.i, using: metric)
     }
 }
@@ -1185,9 +1186,9 @@ extension RopeView {
     }
 
     func index(roundingDown i: Index) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
         let j = Index(root.index(roundingDown: i.i, using: metric))
-        precondition(j >= startIndex, "Index out of bounds")
+        precondition(j.position >= startIndex.position, "Index out of bounds")
         return j
     }
 
@@ -1196,7 +1197,8 @@ extension RopeView {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        i.i.validate(for: root)
+        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
         assert(metric.type == .atomic)
         return i.i.isBoundary(in: metric)
     }
@@ -1269,14 +1271,15 @@ extension Rope.UTF16View {
    }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
+        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
         let j = Index(root.index(i.i, offsetBy: distance, using: .utf16))
-        precondition(j >= startIndex && j <= endIndex, "Index out of bounds")
+        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
         return j
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
+        precondition(start.position >= startIndex.position && start.position <= endIndex.position, "Index out of bounds")
+        precondition(end.position >= startIndex.position && end.position <= endIndex.position, "Index out of bounds")
         return root.distance(from: start.i, to: end.i, using: .utf16)
     }
 }
