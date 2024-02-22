@@ -133,7 +133,7 @@ class WorkspaceBrowserViewController: NSViewController {
             }
         }
 
-        dataSource.validDropTargets = .betweenRows
+        dataSource.validDropTargets = .onRows
 
         dataSource.onDrop(of: NSFilePromiseReceiver.self, operation: .copy, source: .remote) { [weak self] filePromiseReceivers, destination, _ in
             Task {
