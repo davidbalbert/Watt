@@ -858,8 +858,11 @@ extension BTreeNode.Index: Comparable {
 extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
+        return _index(before: i, using: metric)
+    }
 
-        var i = index(roundingDown: i, using: metric)
+    private func _index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        var i = _index(roundingDown: i, using: metric)
         precondition(i.position > 0, "Index out of bounds")
         let offset = i.prev(using: metric)
         if offset == nil {
@@ -870,7 +873,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
     func index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
+        return _index(after: i, using: metric)
+    }
 
+    private func _index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         precondition(i.position < count, "Index out of bounds")
         var i = i
         let offset = i.next(using: metric)
@@ -882,7 +888,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
     func index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
+        return _index(i, offsetBy: distance, using: metric)
+    }
 
+    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
         var i = i
         let m = count(metric, upThrough: i.position)
         precondition(m+distance >= 0 && m+distance <= measure(using: metric), "Index out of bounds")
@@ -895,27 +904,33 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
+        return _index(i, offsetBy: distance, limitedBy: limit, using: metric)
+    }
 
+    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         if distance < 0 && limit <= i {
-            let l = self.distance(from: i, to: index(roundingUp: limit, using: metric), using: metric)
+            let l = self._distance(from: i, to: _index(roundingUp: limit, using: metric), using: metric)
             if distance < l {
                 return nil
             }
         } else if distance > 0 && limit >= i {
-            let l = self.distance(from: i, to: index(roundingDown: limit, using: metric), using: metric)
+            let l = self._distance(from: i, to: _index(roundingDown: limit, using: metric), using: metric)
             if distance > l {
                 return nil
             }
         }
 
-        return index(i, offsetBy: distance, using: metric)
+        return _index(i, offsetBy: distance, using: metric)
     }
 
     func distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
         start.validate(for: self)
         end.validate(for: self)
+        return _distance(from: start, to: end, using: metric)
+    }
 
-        if start == startIndex && end == endIndex {
+    private func _distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+        if start.position == 0 && end.position == count {
             return measure(using: metric)
         }
 
@@ -924,7 +939,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
     func index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
+        return _index(roundingDown: i, using: metric)
+    }
 
+    private func _index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         if i.isBoundary(in: metric) {
             return i
         }
@@ -941,7 +959,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
     func index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
+        return _index(roundingUp: i, using: metric)
+    }
 
+    private func _index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
         if i.isBoundary(in: metric) {
             return i
         }
