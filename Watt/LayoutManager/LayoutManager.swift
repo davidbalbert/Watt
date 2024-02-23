@@ -62,7 +62,6 @@ class LayoutManager {
         }
     }
 
-
     init() {
         heights = Heights()
         lineLayers = []
@@ -476,6 +475,35 @@ class LayoutManager {
         return line
     }
 
+    // If range.lowerBound or range.upperBound coincides with the beginning or end of a line
+    // we also invalidate that line, even though it doesn't overlap with range. This is why
+    // range is named "touching" rather than "in".
+    //
+    // To understand why, consider "foo\nbar" where we delete the "\n". The newline is part of
+    // the line containing "foo\n", so we have to invalidate that, but we also have to invalidate
+    // the line containing "bar" because it will cease to exist. We've gone from a document
+    // containing two lines to a document containing 1.
+    //
+    // Another way to say this is that if an edit contains the last character of a line, we also
+    // also have to invalidate the next line.
+    //
+    // I don't remember why we have to invalidate the previous line if an edit contains the first
+    // character of a line. Maybe we don't?
+    func removeLineLayers(touching range: Range<Buffer.Index>) {
+        let empty = range.isEmpty
+
+        print("a", lineLayers.count)
+        lineLayers.removeAll { layer in
+            let line = layer.line
+            if empty {
+                return line.range.contains(range.lowerBound) || line.range.upperBound == range.lowerBound
+            } else {
+                return line.range.overlaps(range) || line.range.upperBound == range.lowerBound || range.upperBound == line.range.lowerBound
+            }
+        }
+        print("b", lineLayers.count)
+    }
+
     func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, layer: LineLayer?, prevAlignmentFrame: CGRect) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
@@ -791,19 +819,6 @@ extension LayoutManager: BufferDelegate {
             removeLineLayers(touching: r)
         }
         delegate?.didInvalidateLayout(for: self)
-    }
-
-    func removeLineLayers(touching range: Range<Buffer.Index>) {
-        let empty = range.isEmpty
-
-        lineLayers.removeAll { layer in
-            let line = layer.line
-            if empty {
-                return line.range.contains(range.lowerBound) || line.range.upperBound == range.lowerBound
-            } else {
-                return line.range.overlaps(range) || line.range.upperBound == range.lowerBound || range.upperBound == line.range.lowerBound
-            }
-        }
     }
 }
 
