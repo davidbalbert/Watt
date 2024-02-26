@@ -1474,7 +1474,6 @@ extension Rope: Equatable {
             return false
         }
 
-        // TODO: this should be O(1). It currently iterates.
         if lhs.root.leaves.count != rhs.root.leaves.count {
             return false
         }

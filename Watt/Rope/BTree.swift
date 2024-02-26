@@ -132,6 +132,10 @@ extension BTreeNodeProtocol {
         storage.count
     }
 
+    var leafCount: Int {
+        storage.leafCount
+    }
+
     var isEmpty: Bool {
         count == 0
     }
@@ -216,6 +220,7 @@ extension BTreeNode {
     final class Storage {
         var height: Int
         var count: Int // in base units
+        var leafCount: Int
 
         // TODO: maybe make these optional?
         // children and leaf are mutually exclusive
@@ -236,6 +241,7 @@ extension BTreeNode {
         init(leaf: Leaf) {
             self.height = 0
             self.count = leaf.count
+            self.leafCount = 1
             self.children = []
             self.leaf = leaf
             self.summary = Summary(summarizing: leaf)
@@ -247,17 +253,20 @@ extension BTreeNode {
             assert(1 <= children.count && children.count <= BTreeNode<Summary>.maxChild)
             let height = children[0].height + 1
             var count = 0
+            var leafCount = 0
             var summary = Summary.zero
 
             for child in children {
                 assert(child.height + 1 == height)
                 assert(!child.isUndersized)
                 count += child.count
+                leafCount += child.leafCount
                 summary += child.summary
             }
 
             self.height = height
             self.count = count
+            self.leafCount = leafCount
             self.children = children
             self.leaf = .zero
             self.summary = summary
@@ -267,6 +276,7 @@ extension BTreeNode {
             self.height = storage.height
             self.mutationCount = storage.mutationCount
             self.count = storage.count
+            self.leafCount = storage.leafCount
             self.children = storage.children
             self.leaf = storage.leaf
             self.summary = storage.summary
@@ -1284,23 +1294,27 @@ extension BTreeNodeProtocol {
     mutating func updateLeafMetadata() {
         assert(isLeaf)
         storage.count = storage.leaf.count
+        storage.leafCount = 1
         storage.summary = Summary(summarizing: storage.leaf)
     }
 
     mutating func updateNonLeafMetadata() {
         let height = storage.children[0].height + 1
         var count = 0
+        var leafCount = 0
         var summary = Summary.zero
 
         for child in storage.children {
             assert(child.height + 1 == height)
             assert(!child.isUndersized)
             count += child.count
+            leafCount += child.leafCount
             summary += child.summary
         }
 
         storage.height = height
         storage.count = count
+        storage.leafCount = leafCount
         storage.summary = summary
 
         // in case we're changing from a leaf to an internal node in replaceChildren(with:merging:)
@@ -1750,8 +1764,7 @@ extension BTreeNode {
     }
 }
 
-// TODO: Bubble up leaf counts in Node. Count should be
-// O(1) and distance(from:to:) should be O(log(n))
+// TODO: maybe make a metric and add distance(from:to), index(_:offsetBy:), index(_:offsetBy:limitedBy:)
 extension BTreeNode.LeavesView: BidirectionalCollection {
     struct Index: Comparable {
         var ni: BTreeNode.Index
@@ -1778,6 +1791,10 @@ extension BTreeNode.LeavesView: BidirectionalCollection {
 
     var endIndex: Index {
         Index(ni: root.endIndex)
+    }
+
+    var count: Int {
+        root.leafCount
     }
 
     subscript(position: Index) -> Summary.Leaf {
