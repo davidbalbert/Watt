@@ -1106,7 +1106,7 @@ extension RopeView {
 // BidirectionalCollection
 extension RopeView {
     var count: Int {
-        root.distance(from: startIndex.i, to: endIndex.i, using: metric)
+        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: metric)
     }
 
     var startIndex: Index {
@@ -1293,7 +1293,7 @@ extension Rope {
 extension Rope.LineView: BidirectionalCollection {
     typealias Index = Rope.Index
     var count: Int {
-        let d = root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines)
+        let d = root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: .newlines)
         if Range(unvalidatedRange: bounds).isEmpty || base[bounds].last == "\n" {
             return d+1
         }
@@ -1382,12 +1382,12 @@ extension Rope.LineView {
         Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
-    subscript(offset: Int) -> Subrope {
-        self[index(at: offset)]
-    }
-
     func index(roundingDown i: Index) -> Index {
         Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
+    }
+
+    subscript(offset: Int) -> Subrope {
+        self[index(at: offset)]
     }
 
     func isBoundary(_ i: Index) -> Bool {
