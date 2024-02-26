@@ -1293,7 +1293,7 @@ extension Rope {
 extension Rope.LineView: BidirectionalCollection {
     typealias Index = Rope.Index
     var count: Int {
-        let d = root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines)// + 1
+        let d = root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines)
         if Range(unvalidatedRange: bounds).isEmpty || base[bounds].last == "\n" {
             return d+1
         }
@@ -1345,16 +1345,14 @@ extension Rope.LineView: BidirectionalCollection {
             return Subrope(base: base, bounds: endIndex..<endIndex)
         }
 
-        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
-        let start = index(roundingDown: position)
+        let start = Index(root.index(roundingDown: position.i, in: startIndex.i..<endIndex.i, using: .newlines))
         let end = index(after: start)
         return Subrope(base: base, bounds: start..<end)
     }
 
     subscript(r: Range<Index>) -> Self {
-        precondition(r.lowerBound >= startIndex && r.upperBound <= endIndex, "Index out of bounds")
-        let start = index(roundingDown: r.lowerBound)
-        let end = index(roundingDown: r.upperBound)
+        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines))
         return Self(base: base, bounds: start..<end)
     }
 
