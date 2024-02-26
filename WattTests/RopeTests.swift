@@ -1411,8 +1411,6 @@ final class RopeTests: XCTestCase {
 
         var i = r.lines.index(before: r.index(at: 3))
         XCTAssertEqual(r.index(at: 0), i)
-        // TODO: get rid of this
-        assertDoesntCrash(r.lines.index(before: r.index(at: 3)))
         assertCrashes(r.lines.index(before: r.index(at: 2)))
 
         r = Rope("foo\n")
