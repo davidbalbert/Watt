@@ -855,133 +855,228 @@ extension BTreeNode.Index: Comparable {
     }
 }
 
+// These indexing functions translate between the internal semmantics of the BTree (leading
+// metrics have no boundary at the beginning of the tree, trailing metrics have no boundary
+// at the end of the tree) and Swift collection semantics (every collection has a startIndex
+// and endIndex regardless of what metric backs it).
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(before i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        return _index(before: i, using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+        return _index(before: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(before i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        var i = _index(roundingDown: i, using: metric)
-        precondition(i.position > 0, "Index out of bounds")
-        let offset = i.prev(using: metric)
-        if offset == nil {
-            return startIndex
+    private func _index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        var i = _index(roundingDown: i, in: range, using: metric)
+        precondition(i.position > range.lowerBound.position, "Index out of bounds")
+        let position = i.prev(using: metric)
+        if position == nil || position! < range.lowerBound.position {
+            return range.lowerBound
         }
         return i
     }
 
-    func index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(after i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        return _index(after: i, using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+
+        return _index(after: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(after i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        precondition(i.position < count, "Index out of bounds")
-        var i = i
-        let offset = i.next(using: metric)
-        if offset == nil {
-            return endIndex
+    private func _index<M>(after i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        precondition(i.position < range.upperBound.position, "Index out of bounds")
+        let position = i.next(using: metric)
+        if position == nil || position! > range.upperBound.position {
+            return range.upperBound
         }
         return i
     }
 
-    func index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        return _index(i, offsetBy: distance, using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+        return _index(i, offsetBy: distance, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        var i = i
-        let m = count(metric, upThrough: i.position)
-        precondition(m+distance >= 0 && m+distance <= measure(using: metric), "Index out of bounds")
+    private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+
+        let min = count(metric, upThrough: range.lowerBound.position)
+        var max = count(metric, upThrough: range.upperBound.position)
+        if !range.isEmpty && metric.type == .trailing && !range.upperBound.isBoundary(in: metric) {
+            max += 1
+        }
+
+        let m: M.Unit
+        if i.position == range.upperBound.position && metric.type == .trailing {
+            m = max
+        } else {
+            m = count(metric, upThrough: i.position)
+        }
+
+        precondition(m+distance >= min && m+distance <= max, "Index out of bounds")
+
+        if m + distance == min {
+            i.set(range.lowerBound.position)
+            return i
+        } else if m + distance == max {
+            i.set(range.upperBound.position)
+            return i
+        }
+
         let pos = countBaseUnits(upThrough: m + distance, measuredIn: metric)
         i.set(pos)
-
         return i
     }
 
-    func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>? = nil, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
-        return _index(i, offsetBy: distance, limitedBy: limit, using: metric)
+        return _index(i, offsetBy: distance, limitedBy: limit, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, using metric: M) -> Index? where M: BTreeMetric<Summary> {
-        if distance < 0 && limit <= i {
-            let l = self._distance(from: i, to: _index(roundingUp: limit, using: metric), using: metric)
+    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+        if distance < 0 && limit.position <= i.position {
+            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric), in: range, using: metric)
             if distance < l {
                 return nil
             }
-        } else if distance > 0 && limit >= i {
-            let l = self._distance(from: i, to: _index(roundingDown: limit, using: metric), using: metric)
+        } else if distance > 0 && limit.position >= i.position {
+            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric), in: range, using: metric)
             if distance > l {
                 return nil
             }
         }
 
-        return _index(i, offsetBy: distance, using: metric)
+        return _index(i, offsetBy: distance, in: range, using: metric)
     }
 
-    func distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    func distance<M>(from start: Index, to end: Index, in range: Range<Index>? = nil, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
         start.validate(for: self)
         end.validate(for: self)
-        return _distance(from: start, to: end, using: metric)
-    }
-
-    private func _distance<M>(from start: Index, to end: Index, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
-        if start.position == 0 && end.position == count {
-            return measure(using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
         }
 
-        return count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
+        return _distance(from: start, to: end, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    func index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+        precondition(start.position >= range.lowerBound.position && start.position <= range.upperBound.position, "Index out of bounds")
+        precondition(end.position >= range.lowerBound.position && end.position <= range.upperBound.position, "Index out of bounds")
+
+        if start.position == end.position {
+            return 0
+        }
+
+        let m: M.Unit
+        if start.position == 0 && end.position == count {
+            m = measure(using: metric)
+        } else {
+            m = count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
+        }
+
+        let fudge: M.Unit
+        if metric.type == .trailing && start.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric) {
+            fudge = -1
+        } else if metric.type == .trailing && end.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric) {
+            fudge = 1
+        } else {
+            fudge = 0
+        }
+
+        return m + fudge
+    }
+
+    func index<M>(roundingDown i: Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        return _index(roundingDown: i, using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+        return _index(roundingDown: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(roundingDown i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        if i.isBoundary(in: metric) {
+    private func _index<M>(roundingDown i: Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
 
         var i = i
-        let offset = i.prev(using: metric)
-        if offset == nil {
-            // Leading metrics don't have a boundary at pos == 0, but
-            // in Swift, startIndex is always a boundary no matter what.
-            return startIndex
+        let position = i.prev(using: metric)
+        if position == nil || position! < range.lowerBound.position {
+            // Leading metrics don't have a boundary at pos == 0, but in Swift, startIndex is
+            // always a valid index when rounding no matter what.
+            return range.lowerBound
         }
         return i
     }
 
-    func index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingUp i: Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        return _index(roundingUp: i, using: metric)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+        return _index(roundingUp: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(roundingUp i: Index, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        if i.isBoundary(in: metric) {
+    private func _index<M>(roundingUp i: Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
 
         var i = i
-        let offset = i.next(using: metric)
-        if offset == nil {
+        let position = i.next(using: metric)
+        if position == nil || position! > range.upperBound.position {
             // Trailing metrics don't have a boundary at pos == count, but
             // in Swift, endIndex is always a boundary no matter what.
-            return endIndex
+            return range.upperBound
         }
         return i
     }
 
-    func index<M>(at offset: M.Unit, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        precondition(offset >= 0 && offset <= measure(using: metric), "index out of bounds")
-        let count = countBaseUnits(upThrough: offset, measuredIn: metric)
-        return Index(offsetBy: count, in: self)
+    func index<M>(at offset: M.Unit, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+        let range = range ?? startIndex..<endIndex
+        return _index(range.lowerBound, offsetBy: offset, in: range, using: metric)
     }
+
+//    func isBoundary<M>(_ i: Index, in range: Range<Index>? = nil, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+//        i.validate(for: self)
+//        if let range {
+//            range.lowerBound.validate(for: self)
+//            range.upperBound.validate(for: self)
+//        }
+//
+//        return _isBoundary(i, in: range ?? startIndex..<endIndex, using: metric)
+//    }
+//
+//    private func _isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+//        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+//        if i.position == range.lowerBound.position && metric.type == .leading {
+//            return true
+//        } else if i.position == range.upperBound.position && metric.type == .trailing {
+//            return true
+//        }
+//
+//        return i.isBoundary(in: metric)
+//    }
 }
 
 

@@ -713,27 +713,14 @@ fileprivate func boundary(for s: Substring, startingAt minSplit: Int) -> String.
 extension Rope {
     struct Index {
         var i: BTreeNode<RopeSummary>.Index
-        var lineViewEnd: Bool
 
         init(_ i: BTreeNode<RopeSummary>.Index) {
             self.i = i
-            self.lineViewEnd = false
         }
 
         init?(_ i: BTreeNode<RopeSummary>.Index?) {
             guard let i else { return nil }
             self.i = i
-            self.lineViewEnd = false
-        }
-
-        init(_ i: BTreeNode<RopeSummary>.Index, lineViewEnd: Bool) {
-            self.i = i
-            self.lineViewEnd = lineViewEnd
-        }
-
-        init(_ i: Index, lineViewEnd: Bool) {
-            self.i = i.i
-            self.lineViewEnd = lineViewEnd
         }
 
         var position: Int {
@@ -752,7 +739,7 @@ extension Rope {
 
 extension Rope.Index: Comparable {
     static func < (lhs: Rope.Index, rhs: Rope.Index) -> Bool {
-        lhs.i < rhs.i || (!lhs.lineViewEnd && rhs.lineViewEnd)
+        lhs.i < rhs.i
     }
 }
 
@@ -841,7 +828,7 @@ extension Rope.Index {
 
 extension Rope.Index: CustomDebugStringConvertible {
     var debugDescription: String {
-        "\(position)[utf8]\(lineViewEnd ? "+lend" : "")"
+        "\(position)[utf8]"
     }
 }
 
@@ -1131,65 +1118,44 @@ extension RopeView {
     }
 
     subscript(position: Index) -> Element {
-        precondition(position.position >= startIndex.position && position.position < endIndex.position, "Index out of bounds")
-        let i = Index(root.index(roundingDown: position.i, using: metric))
-        precondition(i >= startIndex, "Index out of bounds")
+        let i = Index(root.index(roundingDown: position.i, in: startIndex.i..<endIndex.i, using: metric))
         return readElement(at: i)
     }
 
     subscript(r: Range<Index>) -> Self {
-        precondition(r.lowerBound.position >= startIndex.position && r.upperBound.position <= endIndex.position, "Index out of bounds")
-        let start = Index(root.index(roundingDown: r.lowerBound.i, using: metric))
-        let end = Index(root.index(roundingDown: r.upperBound.i, using: metric))
-        precondition(start >= startIndex && end <= endIndex, "Index out of bounds")
+        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: metric))
+        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: metric))
         return Self(base: base, bounds: start..<end)
     }
 
     func index(before i: Index) -> Index {
-        precondition(i.position > startIndex.position, "Index out of bounds")
-        let j = index(roundingDown: i)
-        return Index(root.index(before: j.i, using: metric))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func index(after i: Index) -> Index {
-        precondition(i.position < endIndex.position, "Index out of bounds")
-        return Index(root.index(after: i.i, using: metric))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
-        let j = Index(root.index(i.i, offsetBy: distance, using: metric))
-        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
-        return j
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
-        guard let j = Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: metric)) else {
-            return nil
-        }
-        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
-        return j
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        precondition(start.position >= startIndex.position && start.position <= endIndex.position, "Index out of bounds")
-        precondition(end.position >= startIndex.position && end.position <= endIndex.position, "Index out of bounds")
-        return root.distance(from: start.i, to: end.i, using: metric)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: metric)
     }
 }
 
 extension RopeView {
     func index(at offset: Int) -> Index {
-        precondition(offset >= 0 && offset <= count)
-        return index(startIndex, offsetBy: offset)
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func index(roundingDown i: Index) -> Index {
-        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
-        let j = Index(root.index(roundingDown: i.i, using: metric))
-        precondition(j.position >= startIndex.position, "Index out of bounds")
-        return j
+        Index(root.index(roundingDown: i.i, using: metric))
     }
 
     subscript(offset: Int) -> Element {
@@ -1330,7 +1296,11 @@ extension Rope {
 extension Rope.LineView: BidirectionalCollection {
     typealias Index = Rope.Index
     var count: Int {
-        root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, using: .newlines) + 1
+        let d = root.distance(from: bounds.lowerBound.i, to: bounds.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines)// + 1
+        if Range(unvalidatedRange: bounds).isEmpty || base[bounds].last == "\n" {
+            return d+1
+        }
+        return d
     }
 
     var startIndex: Index {
@@ -1338,125 +1308,83 @@ extension Rope.LineView: BidirectionalCollection {
     }
 
     var endIndex: Index {
-        Index(bounds.upperBound, lineViewEnd: true)
+        bounds.upperBound
+    }
+
+    struct Iterator: IteratorProtocol {
+        let base: Rope.LineView
+        var i: Index
+        var done: Bool
+        let hasEmptyLastLine: Bool 
+
+        init(base: Rope.LineView) {
+            self.base = base
+            self.i = base.startIndex
+            self.done = false
+            self.hasEmptyLastLine = base.base[base.bounds].last == "\n"
+        }
+
+        mutating func next() -> Subrope? {
+            if done {
+                return nil
+            }
+
+            let line = base[i]
+            i = line.endIndex
+
+            if line.isEmpty || (i == base.endIndex && !hasEmptyLastLine) {
+                done = true
+            }
+            return line
+        }
+    }
+
+    func makeIterator() -> Iterator {
+        Iterator(base: self)
     }
 
     subscript(position: Index) -> Subrope {
-        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
-        let start = index(roundingDown: position)
-
-        var end = index(after: start)
-        if end == endIndex {
-            end = bounds.upperBound
+        if position == endIndex && isBoundary(endIndex) {
+            return Subrope(base: base, bounds: endIndex..<endIndex)
         }
 
+        precondition(position >= startIndex && position < endIndex, "Index out of bounds")
+        let start = index(roundingDown: position)
+        let end = index(after: start)
         return Subrope(base: base, bounds: start..<end)
     }
 
     subscript(r: Range<Index>) -> Self {
         precondition(r.lowerBound >= startIndex && r.upperBound <= endIndex, "Index out of bounds")
-        let start = base.index(roundingDown: r.lowerBound)
-        let end = base.index(roundingDown: r.upperBound)
+        let start = index(roundingDown: r.lowerBound)
+        let end = index(roundingDown: r.upperBound)
         return Self(base: base, bounds: start..<end)
     }
 
     func index(before i: Index) -> Index {
-        precondition(i > startIndex, "Index out of bounds")
-        if i == endIndex {
-            return index(roundingDown: bounds.upperBound)
-        }
-
-        let j = index(roundingDown: i)
-        precondition(j > startIndex, "Index out of bounds")
-
-        let k = Index(root.index(before: i.i, using: .newlines))
-        if k < startIndex {
-            return startIndex
-        }
-        return k
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func index(after i: Index) -> Index {
-        // No need to validate because comparison in the precondition will do it for us
-        precondition(i < endIndex, "Index out of bounds")
-
-        if i == bounds.upperBound {
-            return endIndex
-        }
-        let j = Index(root.index(after: i.i, using: .newlines))
-        if j >= bounds.upperBound && (bounds.isEmpty || base[bounds].last == "\n") {
-            return bounds.upperBound
-        } else if j >= bounds.upperBound {
-            return endIndex
-        }
-        return j
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        // No need to validate because comparison in the precondition will do it for us
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-
-        if distance > 0 && i == endIndex {
-            preconditionFailure("Index out of bounds")
-        }
-
-        if distance == 0 && i == endIndex {
-            return i
-        }
-
-        // when we start counting newlines below, there will be no difference
-        // between base.endIndex and endIndex. If we're at endIndex and going
-        // negative, just treat it as if we're at base.endIndex and adjust
-        // distance accordingly.
-        var distance = distance
-        if distance < 0 && i == endIndex {
-            distance += 1
-        }
-
-        var j = i.i
-        let moff = root.count(.newlines, upThrough: startIndex.position)
-        let m = root.count(.newlines, upThrough: j.position)
-        precondition(m+distance >= 0 && m+distance <= count, "Index out of bounds")
-        if (m - moff) + distance == count {
-            return endIndex
-        }
-        let pos = Swift.max(startIndex.i.position, root.countBaseUnits(upThrough: m + distance, measuredIn: .newlines))
-        j.set(pos)
-
-        return Index(j)
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        // ditto
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        precondition(limit >= startIndex && limit <= endIndex, "Limit out of bounds")
-
-        let l = self.distance(from: i, to: limit)
-        if distance > 0 ? l >= 0 && l < distance : l <= 0 && l > distance {
-            return nil
-        }
-        return index(i, offsetBy: distance)
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        precondition(start >= startIndex && start <= endIndex, "Index out of bounds")
-        precondition(end >= startIndex && end <= endIndex, "Index out of bounds")
-
-        var d = root.distance(from: start.i, to: end.i, using: .newlines)
-        if start < end && end == endIndex {
-            d += 1
-        } else if start > end && start == endIndex {
-            d -= 1
-        }
-
-        return d
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .newlines)
     }
 }
 
 extension Rope.LineView {
     func index(at offset: Int) -> Index {
-        precondition(offset >= 0 && offset <= count)
-        return index(startIndex, offsetBy: offset)
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     subscript(offset: Int) -> Subrope {
@@ -1464,33 +1392,13 @@ extension Rope.LineView {
     }
 
     func index(roundingDown i: Index) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        if i == endIndex {
-            return i
-        }
-        let j = Index(root.index(roundingDown: i.i, using: .newlines))
-        if j < startIndex {
-            return startIndex
-        }
-        return j
-    }
-
-    func index(roundingUp i: Index) -> Index {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        if i == endIndex {
-            return i
-        }
-        let j = Swift.min(bounds.upperBound, Index(root.index(roundingUp: i.i, using: .newlines)))
-        if j == bounds.upperBound && !isBoundary(j) {
-            return endIndex
-        }
-        return j
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func isBoundary(_ i: Index) -> Bool {
         precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        if i == endIndex {
-            // lines.endIndex (i.e. index(startIndex, offsetBy: lines.count)) is always a boundary.
+        // TODO: make this happen in root.isBoundary(in:), which doesn't yet exist.
+        if bounds.isEmpty {
             return true
         }
         return i.i.isBoundary(in: .newlines)

@@ -19,3 +19,12 @@ func assertCrashes<T>(_ body: @escaping @autoclosure () -> T, file: StaticString
         XCTFail("expected crash, got \(res!)", file: file, line: line)
     }
 }
+
+func assertDoesntCrash<T>(_ body: @escaping @autoclosure () -> T, file: StaticString = #file, line: UInt = #line) {
+    let e = catchBadInstruction {
+        _ = body()
+    }
+    if e != nil {
+        XCTFail("expected no crash, but crashed", file: file, line: line)
+    }
+}
