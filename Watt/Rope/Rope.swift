@@ -1283,42 +1283,20 @@ extension Rope {
     }
 }
 
-// TODO: I have very little confidence in LineView. My guess is that it's full of bugs,
-// and the endIndex which is greater than Rope.endIndex is pretty confusing to work with.
-//
-// Some options:
-// - See if we can remove LineView and just have some indexing functions directly on Rope.
-// - Have a separate LineView.Index type that isn't interchangable with Rope.Index, but
-//   is still nice to use.
-extension Rope.LineView: BidirectionalCollection {
+extension Rope.LineView: Sequence {
     typealias Index = Rope.Index
-    var count: Int {
-        let d = root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: .newlines)
-        if Range(unvalidatedRange: bounds).isEmpty || base[bounds].last == "\n" {
-            return d+1
-        }
-        return d
-    }
-
-    var startIndex: Index {
-        bounds.lowerBound
-    }
-
-    var endIndex: Index {
-        bounds.upperBound
-    }
 
     struct Iterator: IteratorProtocol {
         let base: Rope.LineView
         var i: Index
         var done: Bool
-        let hasEmptyLastLine: Bool 
+        let hasEmptyLastLine: Bool
 
         init(base: Rope.LineView) {
             self.base = base
             self.i = base.startIndex
             self.done = false
-            self.hasEmptyLastLine = base.base[base.bounds].last == "\n"
+            self.hasEmptyLastLine = base.isBoundary(base.endIndex)
         }
 
         mutating func next() -> Subrope? {
@@ -1339,20 +1317,46 @@ extension Rope.LineView: BidirectionalCollection {
     func makeIterator() -> Iterator {
         Iterator(base: self)
     }
+}
+
+// LineView looks a lot like a Collection, but it violates Collection semantics, so we don't make
+// it conform. Specifically, if the underlying Rope ends in a blank line, endIndex is valid for
+// subscripting, and returns an empty Subrope.
+//
+// Because of this semantic mismatch, we should assume that none of Collection's
+// default implementations will return correct results for LineView. It's perfectly fine to
+// implement any Collection methods we need below. We just can't pass LineView to a function
+// expecting a Collection.
+extension Rope.LineView {
+    var startIndex: Index {
+        bounds.lowerBound
+    }
+
+    var endIndex: Index {
+        bounds.upperBound
+    }
+
+    var count: Int {
+        let d = distance(from: startIndex, to: endIndex)
+        if isBoundary(endIndex) {
+            return d+1
+        }
+        return d
+    }
 
     subscript(position: Index) -> Subrope {
         if position == endIndex && isBoundary(endIndex) {
             return Subrope(base: base, bounds: endIndex..<endIndex)
         }
 
-        let start = Index(root.index(roundingDown: position.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        let start = index(roundingDown: position)
         let end = index(after: start)
         return Subrope(base: base, bounds: start..<end)
     }
 
     subscript(r: Range<Index>) -> Self {
-        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: .newlines))
-        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        let start = index(roundingDown: r.lowerBound)
+        let end = index(roundingDown: r.upperBound)
         return Self(base: base, bounds: start..<end)
     }
 
