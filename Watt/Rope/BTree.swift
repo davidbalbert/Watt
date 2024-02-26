@@ -1057,26 +1057,26 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return _index(range.lowerBound, offsetBy: offset, in: range, using: metric)
     }
 
-//    func isBoundary<M>(_ i: Index, in range: Range<Index>? = nil, using metric: M) -> Bool where M: BTreeMetric<Summary> {
-//        i.validate(for: self)
-//        if let range {
-//            range.lowerBound.validate(for: self)
-//            range.upperBound.validate(for: self)
-//        }
-//
-//        return _isBoundary(i, in: range ?? startIndex..<endIndex, using: metric)
-//    }
-//
-//    private func _isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
-//        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-//        if i.position == range.lowerBound.position && metric.type == .leading {
-//            return true
-//        } else if i.position == range.upperBound.position && metric.type == .trailing {
-//            return true
-//        }
-//
-//        return i.isBoundary(in: metric)
-//    }
+    func isBoundary<M>(_ i: Index, in range: Range<Index>? = nil, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+        i.validate(for: self)
+        if let range {
+            range.lowerBound.validate(for: self)
+            range.upperBound.validate(for: self)
+        }
+
+        return _isBoundary(i, in: range ?? startIndex..<endIndex, using: metric)
+    }
+
+    private func _isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+        if i.position == range.lowerBound.position && metric.type == .trailing {
+            return true
+        } else if i.position == range.upperBound.position && metric.type == .leading {
+            return true
+        }
+
+        return i.isBoundary(in: metric)
+    }
 }
 
 

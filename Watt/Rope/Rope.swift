@@ -1396,12 +1396,7 @@ extension Rope.LineView {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        precondition(i >= startIndex && i <= endIndex, "Index out of bounds")
-        // TODO: make this happen in root.isBoundary(in:), which doesn't yet exist.
-        if bounds.isEmpty {
-            return true
-        }
-        return i.i.isBoundary(in: .newlines)
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .newlines)
     }
 }
 

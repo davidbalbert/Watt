@@ -81,7 +81,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = characterRange(intersecting: viewportBounds)
 
         var layers: [LineLayer] = []
         enumerateLines(in: viewportRange) { line, existingLayer, prevAlignmentFrame in
@@ -100,7 +100,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = characterRange(intersecting: viewportBounds)
 
         for selection in delegate.selections(for: self) {
             let rangeInViewport = selection.range.clamped(to: viewportRange)
@@ -128,7 +128,7 @@ class LayoutManager {
         }
 
         let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = lineRange(intersecting: viewportBounds)
+        let viewportRange = characterRange(intersecting: viewportBounds)
 
         for selection in delegate.selections(for: self) {
             guard selection.isCaret else {
@@ -244,25 +244,19 @@ class LayoutManager {
     func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ layer: LineLayer?, _ prevAlignmentFrame: CGRect) -> Bool) {
         var i = buffer.lines.index(roundingDown: range.lowerBound)
 
-        assert(range.upperBound < buffer.lines.endIndex)
-
         let end: Buffer.Index
         if range.upperBound == buffer.endIndex {
             end = buffer.endIndex
-        } else if range.isEmpty {
-            end = buffer.lines.index(after: range.upperBound)
+        } else if buffer.lines.isBoundary(range.upperBound) && range.upperBound > i {
+            end = range.upperBound
         } else {
-            end = buffer.lines.index(roundingUp: range.upperBound)
+            end = buffer.lines.index(after: range.upperBound)
         }
-
-        // Sanity check. We shouldn't get this. Gross gross gross.
-        assert(end < buffer.lines.endIndex)
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < end {
-            // Gross gross gross
-            let next = min(buffer.endIndex, buffer.lines.index(after: i))
+            let next = buffer.lines.index(after: i)
             let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
 
             let stop = !block(line, layer, prevAlignmentFrame)
@@ -275,7 +269,7 @@ class LayoutManager {
             i = next
         }
 
-        if i == buffer.endIndex && (buffer.contents.isEmpty || buffer.characters.last == "\n") {
+        if i == buffer.endIndex && buffer.lines.isBoundary(i) {
             let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
 
             _ = block(line, layer, prevAlignmentFrame)
@@ -454,14 +448,20 @@ class LayoutManager {
     }
 
     func line(containing index: Buffer.Index) -> Line {
-        let content = buffer.lines[index]
+        let content: Subrope
+        if index == buffer.endIndex && !buffer.isEmpty && buffer.last != "\n" {
+            content = buffer.lines[buffer.index(before: index)]
+        } else {
+            content = buffer.lines[index]
+        }
+
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
         let (line, existingLayer, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
 
         if existingLayer == nil, let delegate {
             let viewportBounds = delegate.viewportBounds(for: self)
-            let viewportRange = lineRange(intersecting: viewportBounds)
+            let viewportRange = characterRange(intersecting: viewportBounds)
             
             if viewportRange.overlaps(line.range) || (line.range.isEmpty && viewportRange.contains(line.range.lowerBound)) {
                 let layer = delegate.layoutManager(self, createLayerForLine: line)
@@ -492,7 +492,6 @@ class LayoutManager {
     func removeLineLayers(touching range: Range<Buffer.Index>) {
         let empty = range.isEmpty
 
-        print("a", lineLayers.count)
         lineLayers.removeAll { layer in
             let line = layer.line
             if empty {
@@ -501,7 +500,6 @@ class LayoutManager {
                 return line.range.overlaps(range) || line.range.upperBound == range.lowerBound || range.upperBound == line.range.lowerBound
             }
         }
-        print("b", lineLayers.count)
     }
 
     func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, layer: LineLayer?, prevAlignmentFrame: CGRect) {
@@ -682,21 +680,23 @@ class LayoutManager {
     // and end of the range are rounded down and up to the nearest line
     // boundary respectively, so that if you were to lay out those lines,
     // you'd fill the entire rect.
-    func lineRange(intersecting rect: CGRect) -> Range<Buffer.Index> {
+    func characterRange(intersecting rect: CGRect) -> Range<Buffer.Index> {
         let byteStart = heights.position(upThroughYOffset: rect.minY)
         let byteEnd = heights.position(upThroughYOffset: rect.maxY)
 
         let start = buffer.utf8.index(at: byteStart)
         var end = buffer.utf8.index(at: byteEnd)
 
-        if byteEnd < buffer.utf8.count {
-            // Hack to make sure we don't get buffer.lines.endIndex. This
-            // is gross.
-            end = min(buffer.endIndex, buffer.lines.index(after: end))
+        // At this point, end is the beginning of the last line contained within
+        // rect. We want to return a range that contains that line. It's possible
+        // for end == buffer.endIndex even though end is the beginning of a line
+        // if end is the start of the empty last line.
+        if end < buffer.endIndex {
+            end = buffer.lines.index(after: end)
         }
 
-        assert(start == buffer.lines.index(roundingDown: start))
-        assert(end == buffer.endIndex || end == buffer.lines.index(roundingDown: end))
+        assert(buffer.lines.isBoundary(start))
+        assert(end == buffer.endIndex || buffer.lines.isBoundary(end))
 
         return start..<end
     }
