@@ -1155,7 +1155,7 @@ extension RopeView {
     }
 
     func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, using: metric))
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     subscript(offset: Int) -> Element {
@@ -1163,10 +1163,7 @@ extension RopeView {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        i.i.validate(for: root)
-        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
-        assert(metric.type == .atomic)
-        return i.i.isBoundary(in: metric)
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: metric)
     }
 }
 
