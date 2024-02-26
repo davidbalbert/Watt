@@ -859,14 +859,15 @@ extension BTreeNode.Index: Comparable {
 // metrics have no boundary at the beginning of the tree, trailing metrics have no boundary
 // at the end of the tree) and Swift collection semantics (every collection has a startIndex
 // and endIndex regardless of what metric backs it).
+//
+// We use assertValid rather than validate for the passed in range because these should never
+// be user supplied.
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func index<M>(before i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-        return _index(before: i, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _index(before: i, in: range, using: metric)
     }
 
     private func _index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -879,14 +880,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(after i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(after i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-
-        return _index(after: i, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _index(after: i, in: range, using: metric)
     }
 
     private func _index<M>(after i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -898,13 +896,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-        return _index(i, offsetBy: distance, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _index(i, offsetBy: distance, in: range, using: metric)
     }
 
     private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -960,15 +956,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return _index(i, offsetBy: distance, in: range, using: metric)
     }
 
-    func distance<M>(from start: Index, to end: Index, in range: Range<Index>? = nil, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    func distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
         start.validate(for: self)
         end.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-
-        return _distance(from: start, to: end, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _distance(from: start, to: end, in: range, using: metric)
     }
 
     private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
@@ -998,13 +991,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return m + fudge
     }
 
-    func index<M>(roundingDown i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-        return _index(roundingDown: i, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _index(roundingDown: i, in: range, using: metric)
     }
 
     private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
@@ -1023,16 +1014,15 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(roundingUp i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-        return _index(roundingUp: i, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _index(roundingUp: i, in: range, using: metric)
     }
 
     private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
         if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
@@ -1046,23 +1036,17 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(at offset: M.Unit, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-        let range = range ?? startIndex..<endIndex
+    func index<M>(at offset: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
         return _index(range.lowerBound, offsetBy: offset, in: range, using: metric)
     }
 
-    func isBoundary<M>(_ i: Index, in range: Range<Index>? = nil, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+    func isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
         i.validate(for: self)
-        if let range {
-            range.lowerBound.validate(for: self)
-            range.upperBound.validate(for: self)
-        }
-
-        return _isBoundary(i, in: range ?? startIndex..<endIndex, using: metric)
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
+        return _isBoundary(i, in: range, using: metric)
     }
 
     private func _isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {

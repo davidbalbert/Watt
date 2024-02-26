@@ -419,7 +419,7 @@ extension Heights {
 
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
-        root.index(at: offset, using: .heightsBaseMetric)
+        root.index(at: offset, in: startIndex..<endIndex, using: .heightsBaseMetric)
     }
 
     var startIndex: Index {

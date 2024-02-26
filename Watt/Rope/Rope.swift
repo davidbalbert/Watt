@@ -885,23 +885,23 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(before i: consuming Index) -> Index {
-        Index(root.index(before: i.i, using: .characters))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .characters))
     }
 
     func index(after i: consuming Index) -> Index {
-        Index(root.index(after: i.i, using: .characters))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .characters))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, using: .characters))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .characters))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .characters))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, using: .characters)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters)
     }
 }
 
@@ -987,7 +987,7 @@ extension Rope {
     }
 
     func index(roundingDown i: consuming Index) -> Index {
-        Index(root.index(roundingDown: i.i, using: .characters))
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .characters))
     }
 
     func index(fromOldIndex oldIndex: consuming Index) -> Index {
@@ -1219,7 +1219,7 @@ extension Rope.UTF16View {
     typealias Index = Rope.Index
 
     var count: Int {
-        root.distance(from: startIndex.i, to: endIndex.i, using: .utf16)
+        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: .utf16)
     }
 
    var startIndex: Index {
@@ -1231,11 +1231,11 @@ extension Rope.UTF16View {
    }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, using: .utf16))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .utf16))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, using: .utf16)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .utf16)
     }
 }
 

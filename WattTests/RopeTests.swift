@@ -2122,8 +2122,8 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual("\n", r.root.children[0].leaf.string.last)
 
-        let i = r.root.index(at: 1500, using: .characters)
-        let j = r.root.index(roundingDown: i, using: .newlines)
+        let i = r.root.index(at: 1500, in: r.startIndex.i..<r.endIndex.i, using: .characters)
+        let j = r.root.index(roundingDown: i, in: r.startIndex.i..<r.endIndex.i, using: .newlines)
 
         XCTAssertEqual(1000, j.position)
     }
