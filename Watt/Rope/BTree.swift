@@ -867,10 +867,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
-        return _index(before: i, in: range, using: metric)
-    }
 
-    private func _index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i = _index(roundingDown: i, in: range, using: metric)
         precondition(i.position > range.lowerBound.position, "Index out of bounds")
         let position = i.prev(using: metric)
@@ -884,11 +881,8 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
-        return _index(after: i, in: range, using: metric)
-    }
-
-    private func _index<M>(after i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         precondition(i.position < range.upperBound.position, "Index out of bounds")
+
         let position = i.next(using: metric)
         if position == nil || position! > range.upperBound.position {
             return range.upperBound
@@ -900,12 +894,13 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
+
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+
         return _index(i, offsetBy: distance, in: range, using: metric)
     }
 
     private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-
         let min = count(metric, upThrough: range.lowerBound.position)
         var max = count(metric, upThrough: range.upperBound.position)
         if !range.isEmpty && metric.type == .trailing && !range.upperBound.isBoundary(in: metric) {
@@ -934,13 +929,15 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>? = nil, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
-        return _index(i, offsetBy: distance, limitedBy: limit, in: range ?? startIndex..<endIndex, using: metric)
-    }
+        range.lowerBound.assertValid(for: self)
+        range.upperBound.assertValid(for: self)
 
-    private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
+        precondition(limit.position >= range.lowerBound.position && limit.position <= range.upperBound.position, "Index out of bounds")
+
         if distance < 0 && limit.position <= i.position {
             let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric), in: range, using: metric)
             if distance < l {
@@ -961,13 +958,13 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         end.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
+
+        precondition(start.position >= range.lowerBound.position && start.position <= range.upperBound.position, "Index out of bounds")
+        precondition(end.position >= range.lowerBound.position && end.position <= range.upperBound.position, "Index out of bounds")
         return _distance(from: start, to: end, in: range, using: metric)
     }
 
     private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
-        precondition(start.position >= range.lowerBound.position && start.position <= range.upperBound.position, "Index out of bounds")
-        precondition(end.position >= range.lowerBound.position && end.position <= range.upperBound.position, "Index out of bounds")
-
         if start.position == end.position {
             return 0
         }
@@ -995,12 +992,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
+
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
         return _index(roundingDown: i, in: range, using: metric)
     }
 
     private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-
         if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
@@ -1018,11 +1015,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
+
+        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
         return _index(roundingUp: i, in: range, using: metric)
     }
 
     private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
         if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
@@ -1046,10 +1044,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
-        return _isBoundary(i, in: range, using: metric)
-    }
 
-    private func _isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
         if i.position == range.lowerBound.position && metric.type == .trailing {
             return true
