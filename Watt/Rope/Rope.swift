@@ -884,19 +884,19 @@ extension Rope: BidirectionalCollection {
         return Subrope(base: self, bounds: start..<end)
     }
 
-    func index(before i: Index) -> Index {
+    func index(before i: consuming Index) -> Index {
         Index(root.index(before: i.i, using: .characters))
     }
 
-    func index(after i: Index) -> Index {
+    func index(after i: consuming Index) -> Index {
         Index(root.index(after: i.i, using: .characters))
     }
 
-    func index(_ i: Index, offsetBy distance: Int) -> Index {
+    func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
         Index(root.index(i.i, offsetBy: distance, using: .characters))
     }
 
-    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+    func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, using: .characters))
     }
 
@@ -973,10 +973,6 @@ extension Rope {
     mutating func append(_ rope: Rope) {
         append(contentsOf: rope)
     }
-
-    func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, using: .characters))
-    }
 }
 
 // Some convenience methods that make string indexing not
@@ -986,18 +982,20 @@ extension Rope {
         index(startIndex, offsetBy: offset)
     }
 
-    func index(fromOldIndex oldIndex: Index) -> Index {
-        Index(root.index(at: oldIndex.position, using: .utf8))
-    }
-
     subscript(offset: Int) -> Character {
         self[index(at: offset)]
     }
 
-    subscript(bounds: Range<Int>) -> Subrope {
-        let start = utf8.index(at: bounds.lowerBound)
-        let end = utf8.index(at: bounds.upperBound)
-        return self[start..<end]
+    func index(roundingDown i: consuming Index) -> Index {
+        Index(root.index(roundingDown: i.i, using: .characters))
+    }
+
+    func index(fromOldIndex oldIndex: consuming Index) -> Index {
+        utf8.index(at: oldIndex.position)
+    }
+
+    func isBoundary(_ i: Index) -> Bool {
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .characters)
     }
 }
 
@@ -1118,29 +1116,28 @@ extension RopeView {
     }
 
     subscript(position: Index) -> Element {
-        let i = Index(root.index(roundingDown: position.i, in: startIndex.i..<endIndex.i, using: metric))
-        return readElement(at: i)
+        readElement(at: index(roundingDown: position))
     }
 
     subscript(r: Range<Index>) -> Self {
-        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: metric))
-        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: metric))
+        let start = index(roundingDown: r.lowerBound)
+        let end = index(roundingDown: r.upperBound)
         return Self(base: base, bounds: start..<end)
     }
 
-    func index(before i: Index) -> Index {
+    func index(before i: consuming Index) -> Index {
         Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
-    func index(after i: Index) -> Index {
+    func index(after i: consuming Index) -> Index {
         Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
-    func index(_ i: Index, offsetBy distance: Int) -> Index {
+    func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
         Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric))
     }
 
-    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+    func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
@@ -1154,12 +1151,12 @@ extension RopeView {
         Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric))
     }
 
-    func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric))
-    }
-
     subscript(offset: Int) -> Element {
         self[index(at: offset)]
+    }
+
+    func index(roundingDown i: Index) -> Index {
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric))
     }
 
     func isBoundary(_ i: Index) -> Bool {
@@ -1233,17 +1230,12 @@ extension Rope.UTF16View {
        bounds.upperBound
    }
 
-    func index(_ i: Index, offsetBy distance: Int) -> Index {
-        precondition(i.position >= startIndex.position && i.position <= endIndex.position, "Index out of bounds")
-        let j = Index(root.index(i.i, offsetBy: distance, using: .utf16))
-        precondition(j.position >= startIndex.position && j.position <= endIndex.position, "Index out of bounds")
-        return j
+    func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
+        Index(root.index(i.i, offsetBy: distance, using: .utf16))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        precondition(start.position >= startIndex.position && start.position <= endIndex.position, "Index out of bounds")
-        precondition(end.position >= startIndex.position && end.position <= endIndex.position, "Index out of bounds")
-        return root.distance(from: start.i, to: end.i, using: .utf16)
+        root.distance(from: start.i, to: end.i, using: .utf16)
     }
 }
 
@@ -1386,12 +1378,12 @@ extension Rope.LineView {
         Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
-    func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
-    }
-
     subscript(offset: Int) -> Subrope {
         self[index(at: offset)]
+    }
+
+    func index(roundingDown i: consuming Index) -> Index {
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
     }
 
     func isBoundary(_ i: Index) -> Bool {
@@ -1409,16 +1401,8 @@ struct Subrope: RopeView {
         self.bounds = bounds
     }
 
-    init(root: BTreeNode<RopeSummary>, bounds: Range<Rope.Index>) {
-        self.init(base: Rope(root), bounds: bounds)
-    }
-    
     var base: Rope
     var bounds: Range<Rope.Index>
-
-    var root: BTreeNode<RopeSummary> {
-        base.root
-    }
 
     var metric: Rope.CharacterMetric {
         .characters
@@ -1466,7 +1450,7 @@ extension Subrope: RangeReplaceableCollection {
         bounds = base.index(fromOldIndex: startIndex)..<base.index(fromOldIndex: endIndex)
     }
 
-    // The deafult implementation calls append(_:) in a loop. This should be faster.
+    // The default implementation calls append(_:) in a loop. This should be faster.
     mutating func append<S>(contentsOf newElements: S) where S: Sequence, S.Element == Element {
         let new = Rope(newElements)
         base.replaceSubrange(endIndex..<endIndex, with: new)

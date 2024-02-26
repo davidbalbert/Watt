@@ -870,7 +870,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     private func _index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        var i = _index(roundingDown: i, in: range, using: metric)
+        i = _index(roundingDown: i, in: range, using: metric)
         precondition(i.position > range.lowerBound.position, "Index out of bounds")
         let position = i.prev(using: metric)
         if position == nil || position! < range.lowerBound.position {
@@ -938,13 +938,13 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>? = nil, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>? = nil, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
         return _index(i, offsetBy: distance, limitedBy: limit, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(_ i: Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
         if distance < 0 && limit.position <= i.position {
             let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric), in: range, using: metric)
             if distance < l {
@@ -998,7 +998,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return m + fudge
     }
 
-    func index<M>(roundingDown i: Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingDown i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         if let range {
             range.lowerBound.validate(for: self)
@@ -1007,14 +1007,13 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return _index(roundingDown: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(roundingDown i: Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
 
         if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
 
-        var i = i
         let position = i.prev(using: metric)
         if position == nil || position! < range.lowerBound.position {
             // Leading metrics don't have a boundary at pos == 0, but in Swift, startIndex is
@@ -1024,7 +1023,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(roundingUp i: Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingUp i: consuming Index, in range: Range<Index>? = nil, using metric: M) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         if let range {
             range.lowerBound.validate(for: self)
@@ -1033,12 +1032,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return _index(roundingUp: i, in: range ?? startIndex..<endIndex, using: metric)
     }
 
-    private func _index<M>(roundingUp i: Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
         if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
             return i
         }
 
-        var i = i
         let position = i.next(using: metric)
         if position == nil || position! > range.upperBound.position {
             // Trailing metrics don't have a boundary at pos == count, but

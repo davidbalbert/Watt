@@ -8,6 +8,14 @@
 import XCTest
 @testable import Watt
 
+extension Rope {
+    subscript(bounds: Range<Int>) -> Subrope {
+        let start = index(at: bounds.lowerBound)
+        let end = index(at: bounds.upperBound)
+        return self[start..<end]
+    }
+}
+
 final class BufferTests: XCTestCase {
     func testApplyingMultipleTokens() {
         let code = """
