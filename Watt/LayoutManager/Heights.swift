@@ -274,6 +274,10 @@ extension Heights {
         self = b.build()
     }
 
+    var count: Int {
+        root.measure(using: .heightsBaseMetric)
+    }
+
     var contentHeight: CGFloat {
         root.measure(using: .yOffset)
     }
@@ -327,16 +331,27 @@ extension Heights {
         }
     }
 
-    mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
-        let start = index(roundingDown: index(at: oldRange.lowerBound)).position
-        let lastBoundary = index(roundingDown: endIndex).position
-
-        let end: Int
-        if oldRange.upperBound >= lastBoundary {
-            end = root.count
-        } else {
-            end = index(after: index(at: oldRange.upperBound)).position
+    func boundary(roundingDown position: Int) -> Int {
+        var i = index(at: position)
+        if i.isBoundary(in: .heightsBaseMetric) {
+            return i.position
         }
+
+        // because .heightsBaseMetric is trailing, there will always be a boundary at 0
+        // If we're not at a boundary (which by definition means start.position > 0) there's
+        // gauranteed to be a boundary before our position.
+        assert(position > 0)
+        return i.prev(using: .heightsBaseMetric)!
+    }
+
+    func boundary(after position: Int) -> Int? {
+        var i = index(at: position)
+        return i.next(using: .heightsBaseMetric)
+    }
+
+    mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
+        let start = boundary(roundingDown: oldRange.lowerBound)
+        let end = boundary(after: oldRange.upperBound) ?? root.count
 
         let prefixCount = oldRange.lowerBound - start
         let suffixCount = end - oldRange.upperBound
@@ -358,7 +373,7 @@ extension Heights {
             hb.addLine(withBaseCount: len, height: 14)
         }
 
-        // Pushing end..<r.count onto a BTree.Builder will always be a no-op even
+        // Pushing r.count..<r.count onto a BTree.Builder will always be a no-op even
         // if there is an empty last line, because pushing an empty range is defined
         // to do nothing. Instead, we have to account for that here by including the
         // empty last line in new if necessary. The check for suffixCount > 0 ensures
@@ -405,18 +420,6 @@ extension Heights {
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
         root.index(at: offset, using: .heightsBaseMetric)
-    }
-
-    func index(before i: Index) -> Index {
-        root.index(before: i, using: .heightsBaseMetric)
-    }
-
-    func index(after i: Index) -> Index {
-        root.index(after: i, using: .heightsBaseMetric)
-    }
-
-    func index(roundingDown i: Index) -> Index {
-        root.index(roundingDown: i, using: .heightsBaseMetric)
     }
 
     var startIndex: Index {
@@ -469,7 +472,7 @@ extension Heights {
             // Handle special cases where leaf ends in a blank line.
             //
             // Note: we don't handle offset == leaf.count where positions.count == 1,
-            // because that would imply positions == [0], implying leaf.count 0,
+            // because that would imply positions == [0], implying leaf.count == 0,
             // and thus, offset == 0, and offset is not allowed to be 0.
             if offset == leaf.count && leaf.endsWithBlankLine && leaf.positions.count == 2 {
                 return 0
@@ -480,7 +483,7 @@ extension Heights {
             for i in 0..<leaf.positions.count {
                 if offset <= leaf.positions[i] {
                     if i == 0 {
-                        return nil
+                        return 0
                     } else {
                         return leaf.positions[i-1]
                     }
