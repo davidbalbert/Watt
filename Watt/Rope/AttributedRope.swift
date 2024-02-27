@@ -757,25 +757,13 @@ extension AttributedSubrope {
         bounds.upperBound
     }
 
-//    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
-//        _read {
-//            yield AttributedSubrope(base: base, bounds: bounds)
-//        }
-//        _modify {
-//            var r = AttributedSubrope(base: base, bounds: bounds)
-//            text = Rope()
-//            spans = SpansBuilder<Style>(totalCount: 0).build()
-//
-//            yield &r
-//
-//            text = r.text
-//            spans = r.spans
-//        }
-//        set {
-//            fatalError("not yet")
-//            // replaceSubrange(bounds, with: newValue)
-//        }
-//    }
+    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
+        let bounds = bounds.relative(to: text)
+        bounds.lowerBound.validate(for: text)
+        bounds.upperBound.validate(for: text)
+
+        return AttributedSubrope(text: text, spans: spans, bounds: bounds)
+    }
 }
 
 // MARK: - Characters
