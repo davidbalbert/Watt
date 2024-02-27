@@ -429,16 +429,10 @@ extension AttributedSubrope {
             var first = true
             var v: K.Value?
 
-            // TODO: Spans should be a collection and we should be able to slice and iterate through only the spans that overlap range.
-            for span in spans {
-                if span.range.endIndex <= r.lowerBound {
-                    continue
-                }
-
-                if span.range.startIndex >= r.upperBound {
-                    break
-                }
-
+            let start = spans.index(withBaseOffset: bounds.lowerBound.position)
+            let end = spans.index(withBaseOffset: bounds.upperBound.position)
+            
+            for span in spans[start..<end] {
                 if first {
                     v = span.data[K.self]
                     first = false
