@@ -879,8 +879,8 @@ extension Rope: BidirectionalCollection {
     }
 
     subscript(bounds: Range<Index>) -> Subrope {
-        let start = index(roundingDown: bounds.lowerBound)
-        let end = index(roundingDown: bounds.upperBound)
+        let start = unicodeScalars.index(roundingDown: bounds.lowerBound)
+        let end = unicodeScalars.index(roundingDown: bounds.upperBound)
         return Subrope(base: self, bounds: start..<end)
     }
 
@@ -1086,10 +1086,16 @@ extension Rope {
 protocol RopeView: BidirectionalCollection where Index == Rope.Index {
     associatedtype Element
     associatedtype Metric: BTreeMetric<RopeSummary> where Metric.Unit == Int
+    associatedtype SliceMetric: BTreeMetric<RopeSummary> where Metric.Unit == Int
 
     var base: Rope { get }
     var bounds: Range<Rope.Index> { get }
     var metric: Metric { get }
+
+    // An optional, more granular boundary for rounding when slicing.
+    // Specifically, when slicing Subropes, indices are rounded down
+    // to UnicodeScalar boundaries instead of Character boundaries.
+    var sliceMetric: SliceMetric { get }
 
     init(base: Rope, bounds: Range<Index>)
     func readElement(at i: Index) -> Element
@@ -1098,6 +1104,12 @@ protocol RopeView: BidirectionalCollection where Index == Rope.Index {
 extension RopeView {
     var root: BTreeNode<RopeSummary> {
         base.root
+    }
+}
+
+extension RopeView where Metric == SliceMetric {
+    var sliceMetric: SliceMetric {
+        metric
     }
 }
 
@@ -1120,8 +1132,8 @@ extension RopeView {
     }
 
     subscript(r: Range<Index>) -> Self {
-        let start = index(roundingDown: r.lowerBound)
-        let end = index(roundingDown: r.upperBound)
+        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric))
+        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric))
         return Self(base: base, bounds: start..<end)
     }
 
@@ -1176,6 +1188,7 @@ extension Rope {
         //
         // Even stranger, the other views works fine without the typealias.
         typealias Element = UTF8.CodeUnit
+        typealias SliceMetric = UTF8Metric
 
         var base: Rope
         var bounds: Range<Index>
@@ -1246,6 +1259,7 @@ extension Rope {
 
     struct UnicodeScalarView: RopeView {
         typealias Element = UnicodeScalar
+        typealias SliceMetric = UnicodeScalarMetric
 
         let base: Rope
         let bounds: Range<Index>
@@ -1406,6 +1420,10 @@ struct Subrope: RopeView {
 
     var metric: Rope.CharacterMetric {
         .characters
+    }
+
+    var sliceMetric: Rope.UnicodeScalarMetric {
+        .unicodeScalars
     }
 
     func readElement(at i: Rope.Index) -> Character {

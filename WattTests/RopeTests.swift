@@ -128,6 +128,27 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, Rope(sr).root.height)
     }
 
+    func testSliceRopeOnUTF8BoundaryProducesScalarAlignedDegenerateSubrope() {
+        let r = Rope("a\u{0301}b")
+
+        XCTAssertEqual(2, r.count)
+        XCTAssertEqual(3, r.unicodeScalars.count)
+        XCTAssertEqual(3, r.utf16.count)
+        XCTAssertEqual(4, r.utf8.count)
+
+        // slicing half way through the combining character rounds
+        // down to the nearest unicode scalar, leaving the subrope
+        // degenerate.
+        let subrope = r[r.utf8.index(at: 2)...]
+
+        XCTAssertEqual(2, subrope.count)
+        XCTAssertEqual(2, subrope.unicodeScalars.count)
+        XCTAssertEqual(2, subrope.utf16.count)
+        XCTAssertEqual(3, subrope.utf8.count)
+
+        XCTAssertEqual("\u{0301}b", String(subrope))
+    }
+
     func testReplaceSubrangeFullRange() {
         var r = Rope("abc")
         r.replaceSubrange(r.startIndex..<r.endIndex, with: "def")
@@ -1957,6 +1978,22 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.lines[0], "")
     }
 
+    func testSliceSubropeOnUTF8BoundaryProducesScalarAlignedDegenerateSubrope() {
+        let r = Rope("aa\u{0301}b")
+        let subrope = r[r.index(at: 1)...]
+
+        // slicing half way through the combining character rounds
+        // down to the nearest unicode scalar, leaving the subrope
+        // degenerate.
+        let subrope2 = subrope[subrope.utf8.index(at: 2)...]
+
+        XCTAssertEqual(2, subrope2.count)
+        XCTAssertEqual(2, subrope2.unicodeScalars.count)
+        XCTAssertEqual(2, subrope2.utf16.count)
+        XCTAssertEqual(3, subrope2.utf8.count)
+
+        XCTAssertEqual("\u{0301}b", String(subrope2))
+    }
 
     // MARK: - Deltas
 
