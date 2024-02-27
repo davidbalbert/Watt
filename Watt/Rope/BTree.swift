@@ -102,6 +102,7 @@ protocol BTreeMetric<Summary> {
     func prev(_ offset: Int, in leaf: Summary.Leaf) -> Int?
     func next(_ offset: Int, in leaf: Summary.Leaf) -> Int?
 
+    // Returns true if the measured unit in this metric can span multiple leaves.
     var canFragment: Bool { get }
     var type: BTreeMetricType { get }
 }
@@ -862,6 +863,12 @@ extension BTreeNode.Index: Comparable {
     static func == (lhs: BTreeNode.Index, rhs: BTreeNode.Index) -> Bool {
         lhs.validate(rhs)
         return lhs.position == rhs.position
+    }
+}
+
+extension BTreeNode.Index: CustomStringConvertible {
+    var description: String {
+        "\(position)[pos]"
     }
 }
 

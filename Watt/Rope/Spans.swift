@@ -155,14 +155,6 @@ struct Spans<T>: BTree {
         root.count
     }
 
-    var count: Int {
-        root.summary.spans
-    }
-
-    var isEmpty: Bool {
-        count == 0
-    }
-
     init(_ root: BTreeNode<SpansSummary<T>>) {
         self.root = root
     }
@@ -300,50 +292,169 @@ struct Spans<T>: BTree {
     }
 }
 
-extension Spans: Sequence {
-    struct Iterator: IteratorProtocol {
-        var base: Spans<T>
-        var i: Index
-        var ii: Int
-
-        init(_ spans: Spans<T>) {
-            self.base = spans
-            self.i = spans.root.startIndex
-            self.ii = 0
+extension Spans {
+    struct SpansBaseMetric: BTreeMetric {
+        func measure(summary: SpansSummary<T>, count: Int) -> Int {
+            count
         }
 
-        mutating func next() -> Span<T>? {
-            guard let (leaf, _) = i.read() else {
-                return nil
-            }
-
-            if leaf.spans.isEmpty {
-                return nil
-            }
-
-            let span = leaf.spans[ii]
-            let offsetOfLeaf = i.offsetOfLeaf
-            ii += 1
-            if ii == leaf.spans.count {
-                _ = i.nextLeaf()
-                ii = 0
-            }
-
-            return Span(range: span.range.offset(by: offsetOfLeaf), data: span.data)
+        func convertToBaseUnits(_ measuredUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            measuredUnits
         }
-    }
 
-    func makeIterator() -> Iterator {
-        Iterator(self)
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            baseUnits
+        }
+
+        func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>) -> Bool {
+            let (_, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
+            return found
+        }
+
+        func prev(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            for span in leaf.spans.reversed() {
+                if span.range.lowerBound < offset {
+                    return span.range.lowerBound
+                }
+            }
+            return nil
+        }
+
+        func next(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            for span in leaf.spans {
+                if span.range.lowerBound > offset {
+                    return span.range.lowerBound
+                }
+            }
+            return leaf.count
+        }
+
+        var canFragment: Bool {
+            false
+        }
+
+        var type: BTreeMetricType {
+            .trailing
+        }
     }
 }
 
-// Collection
 extension Spans {
+    struct SpansMetric: BTreeMetric {
+        func measure(summary: SpansSummary<T>, count: Int) -> Int {
+            summary.spans
+        }
+        
+        func convertToBaseUnits(_ measuredUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            if measuredUnits == 0 {
+                return 0
+            }
+            return leaf.spans[measuredUnits-1].range.lowerBound
+        }
+        
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            for i in (0..<leaf.spans.count).reversed() {
+                if leaf.spans[i].range.lowerBound <= baseUnits {
+                    return i+1
+                }
+            }
+            return 0
+        }
+        
+        func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>) -> Bool {
+            SpansBaseMetric().isBoundary(offset, in: leaf)
+        }
+        
+        func prev(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            SpansBaseMetric().prev(offset, in: leaf)
+        }
+        
+        func next(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            SpansBaseMetric().next(offset, in: leaf)
+        }
+
+        var canFragment: Bool {
+            false
+        }
+
+        var type: BTreeMetricType {
+            .trailing
+        }
+    }
+}
+
+extension SpansSummary: BTreeDefaultMetric {
+    static var defaultMetric: Spans<T>.SpansBaseMetric {
+        Spans.SpansBaseMetric()
+    }
+}
+
+extension Spans: BidirectionalCollection {
     typealias Index = BTreeNode<SpansSummary<T>>.Index
 
-    func index(at offset: Int) -> Index {
-        Index(offsetBy: offset, in: root)
+    var count: Int {
+        root.measure(using: SpansMetric())
+    }
+
+    var startIndex: Index {
+        if count == 0 {
+            return root.startIndex
+        }
+
+        var i = root.startIndex
+        let (leaf, _) = i.read()!
+        i.set(i.offsetOfLeaf + leaf.spans[0].range.lowerBound)
+        return i
+    }
+
+    var endIndex: Index {
+        if count == 0 {
+            return root.startIndex
+        }
+
+        var i = root.endIndex
+        let (leaf, _) = i.read()!
+        i.set(i.offsetOfLeaf + leaf.spans[leaf.spans.count - 1].range.upperBound)
+        return i
+    }
+
+    subscript(position: BTreeNode<SpansSummary<T>>.Index) -> Span<T> {
+        let i = index(roundingDown: position)
+        let (leaf, offsetInLeaf) = i.read()!
+
+        for span in leaf.spans {
+            if span.range.contains(offsetInLeaf) {
+                return Span(range: span.range.offset(by: i.offsetOfLeaf), data: span.data)
+            }
+        }
+
+        fatalError("Didn't find span at \(position) in \(self).")
+    }
+
+    func index(before i: consuming Index) -> Index {
+        root.index(before: i, in: startIndex..<endIndex, using: SpansMetric())
+    }
+
+    func index(after i: Index) -> Index {
+        root.index(after: i, in: startIndex..<endIndex, using: SpansMetric())
+    }
+
+    func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
+        root.index(i, offsetBy: distance, in: startIndex..<endIndex, using: SpansMetric())
+    }
+
+    func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        root.index(i, offsetBy: distance, limitedBy: limit, in: startIndex..<endIndex, using: SpansMetric())
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        root.distance(from: start, to: end, in: startIndex..<endIndex, using: SpansMetric())
+    }
+}
+
+extension Spans {
+    func index(roundingDown i: consuming Index) -> Index {
+        root.index(roundingDown: i, in: startIndex..<endIndex, using: SpansMetric())
     }
 }
 
