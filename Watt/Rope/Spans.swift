@@ -152,15 +152,17 @@ struct Spans<T>: BTree {
     var root: BTreeNode<SpansSummary<T>>
 
     var upperBound: Int {
-        root.count
+        root.measure(using: SpansBaseMetric())
     }
 
     init(_ root: BTreeNode<SpansSummary<T>>) {
         self.root = root
     }
 
-    subscript(_ bounds: Range<Int>) -> Spans<T> {
-        Spans(root, slicedBy: bounds)
+    init(_ slice: SpansSlice<T>) {
+        let start = slice.bounds.lowerBound.position
+        let end = slice.bounds.upperBound.position
+        self.init(slice.root, slicedBy: start..<end)
     }
 
     func span(at offset: Int) -> Span<T>? {
@@ -307,26 +309,23 @@ extension Spans {
         }
 
         func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>) -> Bool {
-            let (_, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
-            return found
+            true
         }
 
         func prev(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
-            for span in leaf.spans.reversed() {
-                if span.range.lowerBound < offset {
-                    return span.range.lowerBound
-                }
+            assert(offset >= 0)
+            if offset == 0 {
+                return nil
             }
-            return nil
+            return offset - 1
         }
 
         func next(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
-            for span in leaf.spans {
-                if span.range.lowerBound > offset {
-                    return span.range.lowerBound
-                }
+            assert(offset <= leaf.count)
+            if offset == leaf.count {
+                return nil
             }
-            return leaf.count
+            return offset + 1
         }
 
         var canFragment: Bool {
@@ -339,8 +338,27 @@ extension Spans {
     }
 }
 
+// A metric counting the first elements in each span.
+//
+// Consider a Spans of length 10 containing 2..<4 and 7..<8:
+//
+// 0 1 2 3 4 5 6 7 8 9
+//     ---       -
+//
+// leading boundaries are 2, 7, and 10
+//
+// count(SpanStartsMetric(), upTo: 0) -> 0
+// count(SpanStartsMetric(), upTo: 1) -> 0
+// count(SpanStartsMetric(), upTo: 2) -> 0
+// count(SpanStartsMetric(), upTo: 3) -> 1
+// ...
+// count(SpanStartsMetric(), upTo: 6)  -> 1
+// count(SpanStartsMetric(), upTo: 7)  -> 1
+// count(SpanStartsMetric(), upTo: 8)  -> 2
+// count(SpanStartsMetric(), upTo: 9)  -> 2
+// count(SpanStartsMetric(), upTo: 10) -> 2
 extension Spans {
-    struct SpansMetric: BTreeMetric {
+    struct SpanStartsMetric: BTreeMetric {
         func measure(summary: SpansSummary<T>, count: Int) -> Int {
             summary.spans
         }
@@ -349,30 +367,121 @@ extension Spans {
             if measuredUnits == 0 {
                 return 0
             }
-            return leaf.spans[measuredUnits-1].range.lowerBound
+            return leaf.spans[measuredUnits-1].range.lowerBound + 1
         }
         
         func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>) -> Int {
-            for i in (0..<leaf.spans.count).reversed() {
-                if leaf.spans[i].range.lowerBound <= baseUnits {
-                    return i+1
+            for i in 0..<leaf.spans.count {
+                if baseUnits <= leaf.spans[i].range.lowerBound {
+                    return i
                 }
             }
-            return 0
+            return leaf.spans.count
         }
         
         func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>) -> Bool {
-            SpansBaseMetric().isBoundary(offset, in: leaf)
+            let (_, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
+            return found
         }
         
         func prev(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
-            SpansBaseMetric().prev(offset, in: leaf)
+            let (i, _) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
+            assert(i >= 0 && i <= leaf.spans.count)
+            if i == 0 {
+                return nil
+            }
+            return leaf.spans[i-1].range.lowerBound
         }
         
         func next(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
-            SpansBaseMetric().next(offset, in: leaf)
+            let (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
+            assert(i >= 0 && i <= leaf.spans.count)
+            if i == leaf.spans.count || (found && i == leaf.spans.count - 1) {
+                return nil
+            } else if found {
+                return leaf.spans[i+1].range.lowerBound
+            }
+            return leaf.spans[i].range.lowerBound
         }
 
+        var canFragment: Bool {
+            false
+        }
+
+        var type: BTreeMetricType {
+            .leading
+        }
+    }
+}
+
+// A metric counting the last element in each span (note, this is the element
+// before upperBound).
+//
+// Consider a Spans of length 10 containing 2..<4 and 7..<8:
+//
+// 0 1 2 3 4 5 6 7 8 9
+//     ---       -
+//
+// SpanEndsMetric trailing boundaries are at 0, 4, and 8
+//
+// count(SpanEndsMetric(), upTo: 0) -> 0
+// count(SpanEndsMetric(), upTo: 1) -> 0
+// count(SpanEndsMetric(), upTo: 2) -> 0
+// count(SpanEndsMetric(), upTo: 3) -> 0
+// count(SpanEndsMetric(), upTo: 4) -> 1
+// ...
+// count(SpanEndsMetric(), upTo: 6)  -> 1
+// count(SpanEndsMetric(), upTo: 7)  -> 1
+// count(SpanEndsMetric(), upTo: 8)  -> 2
+// count(SpanEndsMetric(), upTo: 9)  -> 2
+// count(SpanEndsMetric(), upTo: 10) -> 2
+extension Spans {
+    struct SpanEndsMetric: BTreeMetric {
+        func measure(summary: SpansSummary<T>, count: Int) -> Int {
+            summary.spans
+        }
+        
+        func convertToBaseUnits(_ measuredUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            if measuredUnits == 0 {
+                return 0
+            }
+            return leaf.spans[measuredUnits-1].range.upperBound
+        }
+        
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>) -> Int {
+            for i in 0..<leaf.spans.count {
+                if baseUnits < leaf.spans[i].range.upperBound {
+                    return i
+                }
+            }
+            return leaf.spans.count
+        }
+        
+        func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>) -> Bool {
+            let (_, found) = leaf.spans.map(\.range.upperBound).binarySearch(for: offset)
+            return found
+        }
+        
+        func prev(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            let (i, _) = leaf.spans.map(\.range.upperBound).binarySearch(for: offset)
+            assert(i >= 0 && i <= leaf.spans.count)
+            if i == 0 {
+                return nil
+            }
+            return leaf.spans[i-1].range.upperBound
+        }
+        
+        func next(_ offset: Int, in leaf: SpansLeaf<T>) -> Int? {
+            let (i, found) = leaf.spans.map(\.range.upperBound).binarySearch(for: offset)
+            assert(i >= 0 && i <= leaf.spans.count)
+            if i == leaf.spans.count || (found && i == leaf.spans.count - 1) {
+                return nil
+            } else if found {
+                return leaf.spans[i+1].range.upperBound
+            }
+            return leaf.spans[i].range.upperBound
+        }
+        
         var canFragment: Bool {
             false
         }
@@ -389,11 +498,20 @@ extension SpansSummary: BTreeDefaultMetric {
     }
 }
 
+// Not all possible indices are valid for a given Spans. Spans' base metric is an Int ranging from 0 to upperBound,
+// and you can create an index for any number in that range with index(withBaseOffset:). But there can be empty
+// space between individual Span elements, as well space before the first Span and after the last Span.
+//
+// You can slice a Spans with any index, but attempting to read a Span at and index that doesn't fall within a Span
+// will trap.
+//
+// Additionally, because Spans is conceptually a collection of Spans, startIndex points to the start of the first
+// Span, which is not necessarily 0[pos].
 extension Spans: BidirectionalCollection {
     typealias Index = BTreeNode<SpansSummary<T>>.Index
 
     var count: Int {
-        root.measure(using: SpansMetric())
+        root.measure(using: SpanStartsMetric())
     }
 
     var startIndex: Index {
@@ -419,49 +537,168 @@ extension Spans: BidirectionalCollection {
     }
 
     subscript(position: Index) -> Span<T> {
-        self[startIndex..<endIndex][Swift.max(position, startIndex)]
+        // Let SpanSlice take care of the actual subscript logic. We use root.startIndex and root.endIndex
+        // instead of startIndex and endIndex because we don't want to slice off empty space at the beginning
+        // and end of self.
+        self[root.startIndex..<root.endIndex][position]
     }
 
     subscript(bounds: Range<Index>) -> SpansSlice<T> {
-        // startIndex is the start of the first span, but there if the first span doesn't
-        // start at 0, it's possible to get passed a lower index generated by index(withBaseOffset:).
-        //
-        // Search for index(withBaseOffset:) in AttributedSubrope for an example of how that's used.
-        let start = index(roundingDown: Swift.max(bounds.lowerBound, startIndex))
-        let end = index(roundingDown: bounds.upperBound)
-        return SpansSlice<T>(base: self, bounds: start..<end)
+        bounds.lowerBound.validate(for: root)
+        bounds.upperBound.validate(for: root)
+
+        return SpansSlice<T>(base: self, bounds: bounds)
     }
 
     func index(before i: consuming Index) -> Index {
-        root.index(before: i, in: startIndex..<endIndex, using: SpansMetric())
+        root.index(before: i, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 
     func index(after i: Index) -> Index {
-        root.index(after: i, in: startIndex..<endIndex, using: SpansMetric())
+        root.index(after: i, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        root.index(i, offsetBy: distance, in: startIndex..<endIndex, using: SpansMetric())
+        root.index(i, offsetBy: distance, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        root.index(i, offsetBy: distance, limitedBy: limit, in: startIndex..<endIndex, using: SpansMetric())
+        root.index(i, offsetBy: distance, limitedBy: limit, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start, to: end, in: startIndex..<endIndex, using: SpansMetric())
+        root.distance(from: start, to: end, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 }
 
 extension Spans {
     func index(roundingDown i: consuming Index) -> Index {
-        root.index(roundingDown: i, in: startIndex..<endIndex, using: SpansMetric())
+        root.index(roundingDown: i, in: startIndex..<endIndex, using: SpanStartsMetric())
     }
 
     func index(withBaseOffset offset: Int) -> Index {
         root.index(at: offset)
     }
 }
+
+struct SpansSlice<T> {
+    var base: Spans<T>
+    var bounds: Range<Index>
+
+    init(base: Spans<T>, bounds: Range<Index>) {
+        self.base = base
+        self.bounds = bounds
+    }
+
+    var root: BTreeNode<SpansSummary<T>> {
+        base.root
+    }
+
+    var upperBound: Int {
+        root.distance(from: bounds.lowerBound, to: bounds.upperBound, in: bounds.lowerBound..<bounds.upperBound, using: Spans.SpansBaseMetric())
+    }
+}
+
+extension SpansSlice: BidirectionalCollection {
+    typealias Index = Spans<T>.Index
+
+    var count: Int {
+        let dstart = root.distance(from: root.startIndex, to: bounds.lowerBound, in: root.startIndex..<root.endIndex, using: Spans.SpanStartsMetric())
+        let dend = root.distance(from: root.startIndex, to: bounds.upperBound, in: root.startIndex..<root.endIndex, using: Spans.SpanStartsMetric())
+        let d = dend - dstart // same as distance from bounds.lowerBound to bounds.upperBound in SpanStarts.
+
+        let startsInsideSpan = dstart - root.distance(from: root.startIndex, to: bounds.lowerBound, in: root.startIndex..<root.endIndex, using: Spans.SpanEndsMetric()) == 1
+
+        if startsInsideSpan {
+            return d+1
+        }
+        return d
+    }
+
+    var startIndex: Index {
+        if count == 0 {
+            return bounds.lowerBound
+        }
+
+        var i = bounds.lowerBound
+        let (leaf, offsetInLeaf) = i.read()!
+        let span = leaf.spans.first { offsetInLeaf < $0.range.upperBound }!
+        i.set(Swift.max(i.offsetOfLeaf + span.range.lowerBound, bounds.lowerBound.position))
+        return i
+    }
+
+    var endIndex: Index {
+        if count == 0 {
+            return bounds.lowerBound
+        }
+
+        var i = bounds.upperBound
+        let (leaf, offsetInLeaf) = i.read()!
+        let span = leaf.spans.reversed().first { $0.range.lowerBound <= offsetInLeaf }!
+        i.set(Swift.min(i.offsetOfLeaf + span.range.upperBound, bounds.upperBound.position))
+        return i
+    }
+
+    subscript(position: Index) -> Span<T> {
+        position.validate(for: base.root)
+        precondition(position.position >= bounds.lowerBound.position && position.position < bounds.upperBound.position)
+
+        let (leaf, offsetInLeaf) = position.read()!
+
+        for span in leaf.spans {
+            if span.range.contains(offsetInLeaf) {
+                let rangeInRoot = span.range.offset(by: position.offsetOfLeaf)
+                let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
+
+                return Span(range: rangeInSlice, data: span.data)
+            }
+        }
+
+        fatalError("Didn't find span at \(position) in \(self).")
+    }
+
+    subscript(r: Range<Index>) -> SpansSlice {
+        r.lowerBound.validate(for: base.root)
+        r.upperBound.validate(for: base.root)
+
+        precondition(r.lowerBound.position >= bounds.lowerBound.position)
+        precondition(r.upperBound.position <= bounds.upperBound.position)
+
+        return SpansSlice(base: base, bounds: r)
+    }
+
+    func index(before i: Index) -> Index {
+        root.index(before: i, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+
+    func index(after i: Index) -> Index {
+        root.index(after: i, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        root.index(i, offsetBy: distance, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        root.index(i, offsetBy: distance, limitedBy: limit, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        root.distance(from: start, to: end, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+}
+
+extension SpansSlice {
+    func index(roundingDown i: Index) -> Index {
+        root.index(roundingDown: i, in: startIndex..<endIndex, using: Spans.SpanStartsMetric())
+    }
+
+    func index(withBaseOffset offset: Int) -> Index {
+        base.index(withBaseOffset: startIndex.position + offset)
+    }
+}
+
+
 
 struct SpansBuilder<T> {
     var b: BTreeBuilder<Spans<T>>
@@ -504,82 +741,6 @@ struct SpansBuilder<T> {
         b.push(leaf: leaf)
 
         return b.build()
-    }
-}
-
-struct SpansSlice<T> {
-    var base: Spans<T>
-    var bounds: Range<Index>
-
-    init(base: Spans<T>, bounds: Range<Index>) {
-        self.base = base
-        self.bounds = bounds
-    }
-
-    var root: BTreeNode<SpansSummary<T>> {
-        base.root
-    }
-}
-
-extension SpansSlice: BidirectionalCollection {
-    typealias Index = Spans<T>.Index
-
-    var count: Int {
-        root.distance(from: startIndex, to: endIndex, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-
-    var startIndex: Index {
-        bounds.lowerBound
-    }
-
-    var endIndex: Index {
-        bounds.upperBound
-    }
-
-    subscript(position: Index) -> Span<T> {
-        let i = index(roundingDown: position)
-        let (leaf, offsetInLeaf) = i.read()!
-
-        for span in leaf.spans {
-            if span.range.contains(offsetInLeaf) {
-                return Span(range: span.range.offset(by: i.offsetOfLeaf), data: span.data)
-            }
-        }
-
-        fatalError("Didn't find span at \(position) in \(self).")
-    }
-
-    subscript(r: Range<Index>) -> SpansSlice {
-        // Unlike Spans, startIndex is guaranteed to be the start of the first span.
-        let start = index(roundingDown: r.lowerBound)
-        let end = index(roundingDown: r.upperBound)
-        return SpansSlice(base: base, bounds: start..<end)
-    }
-
-    func index(before i: Index) -> Index {
-        root.index(before: i, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-
-    func index(after i: Index) -> Index {
-        root.index(after: i, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-
-    func index(_ i: Index, offsetBy distance: Int) -> Index {
-        root.index(i, offsetBy: distance, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-
-    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        root.index(i, offsetBy: distance, limitedBy: limit, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-
-    func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start, to: end, in: startIndex..<endIndex, using: Spans.SpansMetric())
-    }
-}
-
-extension SpansSlice {
-    func index(roundingDown i: Index) -> Index {
-        root.index(roundingDown: i, in: startIndex..<endIndex, using: Spans.SpansMetric())
     }
 }
 

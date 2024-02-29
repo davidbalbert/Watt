@@ -371,11 +371,11 @@ extension BTreeNode {
 }
 
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func count<M>(_ metric: M, upThrough offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
+    func count<M>(_ metric: M, upTo offset: Int) -> M.Unit where M: BTreeMetric<Summary> {
         convert(offset, from: Summary.defaultMetric, to: metric)
     }
 
-    func countBaseUnits<M>(upThrough measured: M.Unit, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
+    func countBaseUnits<M>(upTo measured: M.Unit, measuredIn metric: M) -> Int where M: BTreeMetric<Summary> {
         convert(measured, from: metric, to: Summary.defaultMetric)
     }
 }
@@ -588,8 +588,8 @@ extension BTreeNode {
                 position = offsetOfLeaf + newOffsetInLeaf
                 return position
             }
-            if offsetOfLeaf == 0 && (metric.type == .leading || metric.type == .atomic) {
-                // Didn't find a boundary, but leading and atomic metrics have a boundary at startIndex.
+            if offsetOfLeaf == 0 && (metric.type == .trailing || metric.type == .atomic) {
+                // Didn't find a boundary, but trailing and atomic metrics have a boundary at startIndex.
                 position = 0
                 return position
             }
@@ -613,6 +613,10 @@ extension BTreeNode {
             if nextLeaf() == nil {
                 // We were in the last leaf. We're done.
                 return nil
+            }
+
+            if metric.type == .leading && isBoundary(in: metric) {
+                return position
             }
 
             // one more shot
@@ -884,9 +888,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
+        precondition(i.position > range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
 
         i = _index(roundingDown: i, in: range, using: metric)
         precondition(i.position > range.lowerBound.position, "Index out of bounds")
+
         let position = i.prev(using: metric)
         if position == nil || position! < range.lowerBound.position {
             return range.lowerBound
@@ -898,7 +904,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
-        precondition(i.position < range.upperBound.position, "Index out of bounds")
+        precondition(i.position >= range.lowerBound.position && i.position < range.upperBound.position, "Index out of bounds")
 
         let position = i.next(using: metric)
         if position == nil || position! > range.upperBound.position {
@@ -918,8 +924,8 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        let min = count(metric, upThrough: range.lowerBound.position)
-        var max = count(metric, upThrough: range.upperBound.position)
+        let min = count(metric, upTo: range.lowerBound.position)
+        var max = count(metric, upTo: range.upperBound.position)
         if !range.isEmpty && metric.type == .trailing && !range.upperBound.isBoundary(in: metric) {
             max += 1
         }
@@ -928,7 +934,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         if i.position == range.upperBound.position && metric.type == .trailing {
             m = max
         } else {
-            m = count(metric, upThrough: i.position)
+            m = count(metric, upTo: i.position)
         }
 
         precondition(m+distance >= min && m+distance <= max, "Index out of bounds")
@@ -941,7 +947,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        let pos = countBaseUnits(upThrough: m + distance, measuredIn: metric)
+        let pos = countBaseUnits(upTo: m + distance, measuredIn: metric)
         i.set(pos)
         return i
     }
@@ -990,7 +996,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         if start.position == 0 && end.position == count {
             m = measure(using: metric)
         } else {
-            m = count(metric, upThrough: end.position) - count(metric, upThrough: start.position)
+            m = count(metric, upTo: end.position) - count(metric, upTo: start.position)
         }
 
         let fudge: M.Unit
@@ -1063,9 +1069,9 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         range.upperBound.assertValid(for: self)
 
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-        if i.position == range.lowerBound.position && metric.type == .trailing {
+        if i.position == range.lowerBound.position && (metric.type == .trailing || metric.type == .atomic) {
             return true
-        } else if i.position == range.upperBound.position && metric.type == .leading {
+        } else if i.position == range.upperBound.position && (metric.type == .leading || metric.type == .atomic) {
             return true
         }
 

@@ -734,6 +734,14 @@ extension Rope {
         func validate(_ other: Index) {
             i.validate(other.i)
         }
+
+        func assertValid(for rope: Rope) {
+            i.assertValid(for: rope.root)
+        }
+
+        func assertValid(_ other: Index) {
+            i.assertValid(other.i)
+        }
     }
 }
 
@@ -1574,20 +1582,20 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        var i = rope.root.countBaseUnits(upThrough: range.lowerBound, measuredIn: .utf16)
-        var j = rope.root.countBaseUnits(upThrough: range.upperBound, measuredIn: .utf16)
+        var i = rope.root.countBaseUnits(upTo: range.lowerBound, measuredIn: .utf16)
+        var j = rope.root.countBaseUnits(upTo: range.upperBound, measuredIn: .utf16)
 
         // NSTextInputClient seems to sometimes receive ranges that start
         // or end on a trailing surrogate. Round them to the nearest
         // unicode scalar.
-        if rope.root.count(.utf16, upThrough: i) != range.lowerBound {
-            assert(rope.root.count(.utf16, upThrough: i) == range.lowerBound - 1)
+        if rope.root.count(.utf16, upTo: i) != range.lowerBound {
+            assert(rope.root.count(.utf16, upTo: i) == range.lowerBound - 1)
             print("!!! got NSRange starting on a trailing surrogate: \(range). I think this is expected, but try to reproduce and figure out if it's ok")
             i -= 1
         }
 
-        if rope.root.count(.utf16, upThrough: j) != range.upperBound {
-            assert(rope.root.count(.utf16, upThrough: j) == range.upperBound - 1)
+        if rope.root.count(.utf16, upTo: j) != range.upperBound {
+            assert(rope.root.count(.utf16, upTo: j) == range.upperBound - 1)
             j += 1
         }
 
@@ -1630,8 +1638,8 @@ extension NSRange {
         assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
 
         // TODO: is there a reason the majority of this initializer isn't just distance(from:to:)?
-        let i = rope.root.count(.utf16, upThrough: range.lowerBound.position)
-        let j = rope.root.count(.utf16, upThrough: range.upperBound.position)
+        let i = rope.root.count(.utf16, upTo: range.lowerBound.position)
+        let j = rope.root.count(.utf16, upTo: range.upperBound.position)
 
         self.init(location: i, length: j-i)
     }

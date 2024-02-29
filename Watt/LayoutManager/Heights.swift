@@ -402,7 +402,7 @@ extension Heights {
             return root.measure(using: .yOffset) - height
         }
 
-        return root.count(.yOffset, upThrough: offset)
+        return root.count(.yOffset, upTo: offset)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {
@@ -414,7 +414,7 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return root.countBaseUnits(upThrough: yOffset, measuredIn: .yOffset)
+        return root.countBaseUnits(upTo: yOffset, measuredIn: .yOffset)
     }
 
     // Returns an index at a base offset

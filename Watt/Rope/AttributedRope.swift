@@ -37,7 +37,7 @@ struct AttributedRope {
 
     init(_ subrope: AttributedSubrope) {
         self.text = Rope(subrope.text[subrope.bounds])
-        self.spans = subrope.spans[Range(unvalidatedRange: subrope.bounds)]
+        self.spans = Spans(subrope.spans[Range(subrope.bounds, in: subrope.spans)])
     }
 
     // internal
@@ -118,15 +118,93 @@ extension AttributedRope {
 
 extension AttributedRope {
     var runs: Runs {
-        Runs(base: self)
+        Runs(base: self, bounds: startIndex..<endIndex)
     }
 
     struct Runs {
         var base: AttributedRope
+        var bounds: Range<Index>
 
-        var count: Int {
-            base.spans.count
+        private var spans: SpansSlice<AttributedRope.Attributes> {
+            let start = base.spans.index(withBaseOffset: bounds.lowerBound.position)
+            let end = base.spans.index(withBaseOffset: bounds.upperBound.position)
+
+            return base.spans[start..<end]
         }
+
+        private func spansIndex(for i: Index) -> Spans<AttributedRope.Attributes>.Index {
+            i.assertValid(for: base.text)
+            return spans.index(withBaseOffset: i.position - bounds.lowerBound.position)
+        }
+
+        private func index(from i: Spans<AttributedRope.Attributes>.Index) -> Index {
+            i.assertValid(for: spans.base.root)
+            return base.text.utf8.index(at: i.position)
+        }
+    }
+}
+
+extension AttributedRope.Runs: BidirectionalCollection {
+    typealias Index = AttributedRope.Index
+
+    var count: Int {
+        base.spans[spansIndex(for: bounds.lowerBound)..<spansIndex(for: bounds.upperBound)].count
+    }
+
+    var startIndex: Index {
+        bounds.lowerBound
+    }
+
+    var endIndex: Index {
+        bounds.upperBound
+    }
+
+    func index(before i: Index) -> Index {
+        i.validate(for: base.text)
+        precondition(i > bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(before: spansIndex(for: i)))
+    }
+
+    func index(after i: Index) -> Index {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i < bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(after: spansIndex(for: i)))
+    }
+
+    subscript(position: Index) -> AttributedRope.Runs.Run {
+        position.validate(for: base.text)
+        precondition(position >= bounds.lowerBound && position < bounds.upperBound, "Index out of bounds")
+
+        return AttributedRope.Runs.Run(base: base, span: spans[spansIndex(for: position)])
+    }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(spansIndex(for: i), offsetBy: distance))
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        guard let si = spans.index(spansIndex(for: i), offsetBy: distance, limitedBy: spansIndex(for: limit)) else {
+            return nil
+        }
+
+        return index(from: si)
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        start.validate(for: base.text)
+        end.validate(for: base.text)
+        precondition(start >= bounds.lowerBound && start <= bounds.upperBound, "Index out of bounds")
+        precondition(end >= bounds.lowerBound && end <= bounds.upperBound, "Index out of bounds")
+        
+        return spans.distance(from: spansIndex(for: start), to: spansIndex(for: end))
     }
 }
 
@@ -143,30 +221,6 @@ extension AttributedRope.Runs {
         var attributes: AttributedRope.Attributes {
             span.data
         }
-    }
-}
-
-extension AttributedRope.Runs: Sequence {
-    struct Iterator: IteratorProtocol {
-        var i: Spans<AttributedRope.Attributes>.Iterator
-        var base: AttributedRope
-
-        init(_ runs: AttributedRope.Runs) {
-            self.i = runs.base.spans.makeIterator()
-            self.base = runs.base
-        }
-
-        mutating func next() -> Run? {
-            guard let span = i.next() else {
-                return nil
-            }
-
-            return Run(base: base, span: span)
-        }
-    }
-
-    func makeIterator() -> Iterator {
-        Iterator(self)
     }
 }
 
@@ -425,7 +479,6 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(unvalidatedRange: bounds)
             var first = true
             var v: K.Value?
 
@@ -504,11 +557,12 @@ extension AttributedSubrope {
         }
 
         let range = Range(unvalidatedRange: bounds)
+        let spansRange = Range(bounds, in: spans)
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: range.count)
         sb.add(attributes, covering: range)
 
-        var new = spans[range].merging(sb.build()) { a, b in
+        var new = Spans(spans[spansRange]).merging(sb.build()) { a, b in
             if let a, let b {
                 return a.merging(b, mergePolicy: mergePolicy)
             } else {
@@ -1097,5 +1151,13 @@ extension Range where Bound == AttributedRope.Index {
 extension Range where Bound == Int {
     init(_ range: Range<AttributedRope.Index>, in attributedRope: AttributedRope) {
         self.init(range, in: attributedRope.text)
+    }
+}
+
+extension Range where Bound == Spans<AttributedRope.Attributes>.Index {
+    init(_ range: Range<AttributedRope.Index>, in spans: Spans<AttributedRope.Attributes>) {
+        let start = spans.index(withBaseOffset: range.lowerBound.position)
+        let end = spans.index(withBaseOffset: range.upperBound.position)
+        self = start..<end
     }
 }
