@@ -333,7 +333,7 @@ extension Spans {
         }
 
         var type: BTreeMetricType {
-            .trailing
+            .atomic
         }
     }
 }
