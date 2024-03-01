@@ -296,7 +296,7 @@ extension Heights {
         get {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
+            precondition(i.isBoundary(in: .heightsBaseMetric, edge: .trailing), "not a boundary")
 
             let (leaf, offset) = i.read()!
             let li = leaf.index(forOffsetInLeaf: offset)
@@ -313,7 +313,7 @@ extension Heights {
         set {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heightsBaseMetric), "not a boundary")
+            precondition(i.isBoundary(in: .heightsBaseMetric, edge: .trailing), "not a boundary")
 
             root.mutatingForEach(startingAt: i.position) { offsetOfLeaf, leaf in
                 let li = leaf.index(forOffsetInLeaf: i.position - offsetOfLeaf)
@@ -331,27 +331,38 @@ extension Heights {
         }
     }
 
-    func boundary(roundingDown position: Int) -> Int {
-        var i = index(at: position)
-        if i.isBoundary(in: .heightsBaseMetric) {
-            return i.position
+    func startIndexOfLine(containing position: Int) -> Int {
+        // root.count is always both a leading and trailing boundary, but we want to
+        // return the beginning of the line containing position.
+        if position == root.count && root.summary.endsWithBlankLine {
+            return position
         }
 
-        // because .heightsBaseMetric is trailing, there will always be a boundary at 0
-        // If we're not at a boundary (which by definition means start.position > 0) there's
-        // gauranteed to be a boundary before our position.
-        assert(position > 0)
-        return i.prev(using: .heightsBaseMetric)!
+        let i: Index
+        if position == root.count {
+            // the empty string ends in a blank line, so we're guaranteed to have
+            // a valid position - 1 at this point
+            assert(position > 0)
+            i = index(at: position - 1)
+        } else {
+            i = index(at: position)
+        }
+
+        return root.index(roundingDown: i, in: startIndex..<endIndex, using: HeightsBaseMetric(), edge: .leading).position
     }
 
-    func boundary(after position: Int) -> Int? {
-        var i = index(at: position)
-        return i.next(using: .heightsBaseMetric)
+    func endOfLine(containing position: Int) -> Int {
+        if position == root.count {
+            return position
+        }
+
+        let i = index(at: position)
+        return root.index(after: i, in: startIndex..<endIndex, using: HeightsBaseMetric(), edge: .leading).position
     }
 
     mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
-        let start = boundary(roundingDown: oldRange.lowerBound)
-        let end = boundary(after: oldRange.upperBound) ?? root.count
+        let start = startIndexOfLine(containing: oldRange.lowerBound)
+        let end = endOfLine(containing: oldRange.upperBound)
 
         let prefixCount = oldRange.lowerBound - start
         let suffixCount = end - oldRange.upperBound
@@ -419,7 +430,7 @@ extension Heights {
 
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
-        root.index(at: offset, in: startIndex..<endIndex, using: .heightsBaseMetric)
+        root.index(at: offset, in: startIndex..<endIndex, using: .heightsBaseMetric, edge: .trailing)
     }
 
     var startIndex: Index {
@@ -431,6 +442,11 @@ extension Heights {
     }
 }
 
+// HeightsBaseMetric counts lines, measured in bytes.
+//
+// It's a bit unclear to me if this is atomic or not, but I'm starting to think it is. Unlike the Newlines metric,
+// we don't have boundaries on either side of "\n". Instead, we have boundaries on either side of each line,
+// so every trailing boundary of a line is also a leading boundary of the next line.
 extension Heights {
     struct HeightsBaseMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> Int {
@@ -445,7 +461,10 @@ extension Heights {
             baseUnits
         }
 
-        func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
+        func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
+            precondition(offset > 0 || (edge == .leading && offset == 0))
+            precondition(offset < leaf.count || (edge == .trailing && offset == leaf.count))
+
             // binarySearch(for:) will return (i, true) for all boundaries other than
             // 0. Specifically for [3, 6], search(3) will return (0, true),
             // search(6) will return (1, true), but search(0) will return
@@ -455,18 +474,21 @@ extension Heights {
                 return true
             }
 
-            // The end of the leaf is only a valid boundary if the leaf ends with
-            // an empty line. E.g. in [3, 6], 0 and 3 are valid boundaries, but in
-            // [3, 6, 6], 0, 3, and 6 are all valid boundaries.
+            // Leaf.count is always a trailing boundary because leaf.count is always
+            // the end of the last line in the leaf (positions.last). It's always a
+            // leading boundary because it's either the start of the line in the next
+            // leaf, or it's the end of the monoid, which is always a leading boundary.
+            //
+            // I think this is more evidence that HeightsBaseMetric is in fact atomic.
             if offset == leaf.count {
-                return leaf.endsWithBlankLine
+                return true
             }
 
             let (_, found) = leaf.positions.binarySearch(for: offset)
             return found
         }
 
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+        func prev(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
             assert(offset > 0 && offset <= leaf.count)
 
             // Handle special cases where leaf ends in a blank line.
@@ -493,7 +515,7 @@ extension Heights {
             fatalError("this is unreachable, offset must be <= leaf.count")
         }
 
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
+        func next(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
             assert(offset >= 0 && offset < leaf.count)
 
             // situations:
@@ -538,17 +560,18 @@ extension Heights {
             false
         }
 
-        // Even though this looks a lot like the Rope's base metric, and
-        // in fact the units are the same (bytes), there exist (many) strings
-        // when put into Heights where you can find a non-empty string for
-        // which HeightsLeaf has a measure of 0, so the measure is non-atomic.
-        // E.g. if the first line is "abc", positions 0, 1, and 2 will all
-        // have a measure of zero.
+        // TODO: uncomment when isAtomic is added to BTreeMetric
+        // I can't tell if this metric is atomic or not. All non-empty strings have at least
+        // one line. But the empty string has one line too, so it has a measure of one. This
+        // would point to it being non-atomic.
         //
-        // This is not the clearest explanation :/.
-        var type: BTreeMetricType {
-            .trailing
-        }
+        // On the other hand, if we consider the # of lines as the base metric, an empty Heights
+        // has no lines. It's just that we disallow an empty Heights. All Heights must have at
+        // least one line. I'm not sure where that leaves us, but to simplify, it might be
+        // better to have a base metric that I know is atomic that counts bytes rather than lines.
+//        var isAtomic: Bool {
+//            true
+//        }
     }
 }
 
@@ -586,24 +609,20 @@ extension Heights {
             return leaf.height(ofLine: i)
         }
         
-        func isBoundary(_ offset: Int, in leaf: HeightsLeaf) -> Bool {
-            HeightsBaseMetric().isBoundary(offset, in: leaf)
+        func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
+            HeightsBaseMetric().isBoundary(offset, in: leaf, edge: edge)
         }
         
-        func prev(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf)
+        func prev(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
+            HeightsBaseMetric().prev(offset, in: leaf, edge: edge)
         }
         
-        func next(_ offset: Int, in leaf: HeightsLeaf) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf)
+        func next(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
+            HeightsBaseMetric().next(offset, in: leaf, edge: edge)
         }
 
         var canFragment: Bool {
             true
-        }
-
-        var type: BTreeMetricType {
-            .trailing
         }
     }
 }

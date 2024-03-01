@@ -83,28 +83,27 @@ extension BTreeLeaf {
 }
 
 
-enum BTreeMetricType {
+enum BTreeMetricEdge {
     case leading
     case trailing
-    case atomic // both leading and trailing
 }
 
 protocol BTreeMetric<Summary> {
     associatedtype Summary: BTreeSummary
     associatedtype Unit: Numeric & Comparable
 
+    // You always measure to the trailing edge. I.e. when counting newlines
+    // in "foo\nbar", the Newlines metric is 0 at 3[utf8] and 1 at 4[utf8].
     func measure(summary: Summary, count: Int) -> Unit
     func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf) -> Int
     func convertFromBaseUnits(_ baseUnits: Int, in leaf: Summary.Leaf) -> Unit
-    func isBoundary(_ offset: Int, in leaf: Summary.Leaf) -> Bool
 
-    // Prev is never called with offset == 0
-    func prev(_ offset: Int, in leaf: Summary.Leaf) -> Int?
-    func next(_ offset: Int, in leaf: Summary.Leaf) -> Int?
+    func isBoundary(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Bool
+    func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
+    func next(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
 
     // Returns true if the measured unit in this metric can span multiple leaves.
     var canFragment: Bool { get }
-    var type: BTreeMetricType { get }
 }
 
 
@@ -462,57 +461,32 @@ extension BTreeNode {
             self.offsetOfLeaf = offset
         }
 
-        func isBoundary<M>(in metric: M) -> Bool where M: BTreeMetric<Summary> {
+        func isBoundary<M>(in metric: M, edge: BTreeMetricEdge) -> Bool where M: BTreeMetric<Summary> {
             assert(rootStorage != nil)
 
             guard let leaf else {
                 return false
             }
 
-            if offsetInLeaf == 0 && !metric.canFragment {
-                return true
-            }
 
-            switch metric.type {
+            switch edge {
             case .leading:
                 if position == rootStorage!.count {
                     return true
                 } else {
-                    // Unlike the trailing case below, we don't have to peek at the
-                    // next leaf if offsetInLeaf == leaf.count, because offsetInLeaf
-                    // is guaranteed to be less than leaf.count unless we're at
-                    // endIndex (position == root!.count), which we've already taken
-                    // care of above.
-                    return metric.isBoundary(offsetInLeaf, in: leaf)
+                    // The only index with offsetInLeaf == leaf.count is endIndex, where
+                    // position == rootStorage!.count, which we've already handled above.
+                    assert(offsetInLeaf < leaf.count)
+                    return metric.isBoundary(offsetInLeaf, in: leaf, edge: .leading)
                 }
             case .trailing:
                 if position == 0 {
                     return true
                 } else if offsetInLeaf == 0 {
-                    // We have to look to the previous leaf to
-                    // see if we have a boundary.
                     let (prev, _) = peekPrevLeaf()!
-                    return metric.isBoundary(prev.count, in: prev)
+                    return metric.isBoundary(prev.count, in: prev, edge: .trailing)
                 } else {
-                    return metric.isBoundary(offsetInLeaf, in: leaf)
-                }
-            case .atomic:
-                if position == 0 || position == rootStorage!.count {
-                    return true
-                } else {
-                    // Atomic metrics don't make the distinction between leading and
-                    // trailing boundaries. When offsetInLeaf == 0, we could either
-                    // choose to look at the start of the current leaf, or do what
-                    // we do in with trailing metrics and look at the end of the previous
-                    // leaf. Here, we do the former.
-                    //
-                    // I'm not sure if there's a more principled way of deciding which
-                    // of these to do, but CharacterMetric works best if we look at the
-                    // current leaf – looking at the current leaf's prefixCount is the
-                    // only way to tell whether a character starts at the beginning of
-                    // the leaf – and there are no other atomic metrics that care one
-                    // way or another.
-                    return metric.isBoundary(offsetInLeaf, in: leaf)
+                    return metric.isBoundary(offsetInLeaf, in: leaf, edge: .trailing)
                 }
             }
         }
@@ -535,7 +509,7 @@ extension BTreeNode {
         }
 
         @discardableResult
-        mutating func prev<M>(using metric: M) -> Int? where M: BTreeMetric<Summary> {
+        mutating func prev<M>(using metric: M, edge: BTreeMetricEdge) -> Int? where M: BTreeMetric<Summary> {
             assert(rootStorage != nil)
             if leaf == nil || position == 0 {
                 invalidate()
@@ -545,7 +519,7 @@ extension BTreeNode {
             // try to find a boundary within this leaf
             let origPos = position
             if offsetInLeaf > 0 {
-                if let newOffsetInLeaf = metric.prev(offsetInLeaf, in: leaf!) {
+                if let newOffsetInLeaf = metric.prev(offsetInLeaf, in: leaf!, edge: edge) {
                     position = offsetOfLeaf + newOffsetInLeaf
                     return position
                 }
@@ -556,7 +530,7 @@ extension BTreeNode {
                 // We were in the first leaf. We're done.
                 return nil
             }
-            if let position = last(withinLeafUsing: metric, originalPosition: origPos) {
+            if let position = last(withinLeafUsing: metric, edge: edge, originalPosition: origPos) {
                 return position
             }
 
@@ -567,7 +541,7 @@ extension BTreeNode {
             // I'm not sure.
             let measure = measure(upToLeafContaining: position, using: metric)
             descend(toLeafContaining: measure, asMeasuredBy: metric)
-            if let pos = last(withinLeafUsing: metric, originalPosition: origPos) {
+            if let pos = last(withinLeafUsing: metric, edge: edge, originalPosition: origPos) {
                 return pos
             }
             invalidate()
@@ -578,18 +552,18 @@ extension BTreeNode {
         //
         // If the last boundary is at the end of the leaf, it's only valid if
         // it's less than originalPosition.
-        mutating func last<M>(withinLeafUsing metric: M, originalPosition: Int) -> Int? where M: BTreeMetric<Summary> {
+        mutating func last<M>(withinLeafUsing metric: M, edge: BTreeMetricEdge, originalPosition: Int) -> Int? where M: BTreeMetric<Summary> {
             assert(rootStorage != nil && leaf != nil)
-            if offsetOfLeaf + leaf!.count < originalPosition && metric.isBoundary(leaf!.count, in: leaf!) {
+            if offsetOfLeaf + leaf!.count < originalPosition && metric.isBoundary(leaf!.count, in: leaf!, edge: edge) {
                 nextLeaf()
                 return position
             }
-            if let newOffsetInLeaf = metric.prev(leaf!.count, in: leaf!) {
+            if let newOffsetInLeaf = metric.prev(leaf!.count, in: leaf!, edge: edge) {
                 position = offsetOfLeaf + newOffsetInLeaf
                 return position
             }
-            if offsetOfLeaf == 0 && (metric.type == .trailing || metric.type == .atomic) {
-                // Didn't find a boundary, but trailing and atomic metrics have a boundary at startIndex.
+            if offsetOfLeaf == 0 && edge == .trailing {
+                // Didn't find a boundary, but startIndex is a trailing boundary.
                 position = 0
                 return position
             }
@@ -598,14 +572,14 @@ extension BTreeNode {
         }
 
         @discardableResult
-        mutating func next<M>(using metric: M) -> Int? where M: BTreeMetric<Summary> {
+        mutating func next<M>(using metric: M, edge: BTreeMetricEdge) -> Int? where M: BTreeMetric<Summary> {
             assert(rootStorage != nil)
             if leaf == nil || position == rootStorage!.count {
                 invalidate()
                 return nil
             }
 
-            if let pos = next(withinLeafUsing: metric) {
+            if let pos = next(withinLeafUsing: metric, edge: edge) {
                 return pos
             }
 
@@ -615,12 +589,14 @@ extension BTreeNode {
                 return nil
             }
 
-            if metric.type == .leading && isBoundary(in: metric) {
+            // The start of this new leaf might be a leading boundary
+            if edge == .leading && isBoundary(in: metric, edge: .leading) {
+                assert(offsetInLeaf == 0)
                 return position
             }
 
             // one more shot
-            if let pos = next(withinLeafUsing: metric) {
+            if let pos = next(withinLeafUsing: metric, edge: edge) {
                 return pos
             }
 
@@ -632,7 +608,7 @@ extension BTreeNode {
             let measure = measure(upToLeafContaining: position, using: metric)
             descend(toLeafContaining: measure+1, asMeasuredBy: metric)
 
-            if let pos = next(withinLeafUsing: metric) {
+            if let pos = next(withinLeafUsing: metric, edge: edge) {
                 return pos
             }
 
@@ -641,14 +617,14 @@ extension BTreeNode {
             return nil
         }
 
-        mutating func next<M>(withinLeafUsing metric: M) -> Int? where M: BTreeMetric<Summary> {
+        mutating func next<M>(withinLeafUsing metric: M, edge: BTreeMetricEdge) -> Int? where M: BTreeMetric<Summary> {
             assert(rootStorage != nil && leaf != nil)
 
             let isLastLeaf = offsetOfLeaf + leaf!.count == rootStorage!.count
 
-            let newOffsetInLeaf = metric.next(offsetInLeaf, in: leaf!)
-            if newOffsetInLeaf == nil && isLastLeaf && (metric.type == .leading || metric.type == .atomic) {
-                // Didn't find a boundary, but leading and atomic metrics have a boundary at endIndex.
+            let newOffsetInLeaf = metric.next(offsetInLeaf, in: leaf!, edge: edge)
+            if newOffsetInLeaf == nil && isLastLeaf && edge == .leading {
+                // Didn't find a boundary, but endIndex is always a leading boundary
                 position = offsetOfLeaf + leaf!.count
                 return position
             }
@@ -884,54 +860,54 @@ extension BTreeNode.Index: CustomStringConvertible {
 // We use assertValid rather than validate for the passed in range because these should never
 // be user supplied.
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
         precondition(i.position > range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
 
-        i = _index(roundingDown: i, in: range, using: metric)
+        i = _index(roundingDown: i, in: range, using: metric, edge: edge)
         precondition(i.position > range.lowerBound.position, "Index out of bounds")
 
-        let position = i.prev(using: metric)
+        let position = i.prev(using: metric, edge: edge)
         if position == nil || position! < range.lowerBound.position {
             return range.lowerBound
         }
         return i
     }
 
-    func index<M>(after i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(after i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
         precondition(i.position >= range.lowerBound.position && i.position < range.upperBound.position, "Index out of bounds")
 
-        let position = i.next(using: metric)
+        let position = i.next(using: metric, edge: edge)
         if position == nil || position! > range.upperBound.position {
             return range.upperBound
         }
         return i
     }
 
-    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
 
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
 
-        return _index(i, offsetBy: distance, in: range, using: metric)
+        return _index(i, offsetBy: distance, in: range, using: metric, edge: edge)
     }
 
-    private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         let min = count(metric, upTo: range.lowerBound.position)
         var max = count(metric, upTo: range.upperBound.position)
-        if !range.isEmpty && metric.type == .trailing && !range.upperBound.isBoundary(in: metric) {
+        if !range.isEmpty && edge == .trailing && !range.upperBound.isBoundary(in: metric, edge: edge) {
             max += 1
         }
 
         let m: M.Unit
-        if i.position == range.upperBound.position && metric.type == .trailing {
+        if i.position == range.upperBound.position && edge == .trailing {
             m = max
         } else {
             m = count(metric, upTo: i.position)
@@ -952,7 +928,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
         range.lowerBound.assertValid(for: self)
@@ -962,21 +938,21 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         precondition(limit.position >= range.lowerBound.position && limit.position <= range.upperBound.position, "Index out of bounds")
 
         if distance < 0 && limit.position <= i.position {
-            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric), in: range, using: metric)
+            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance < l {
                 return nil
             }
         } else if distance > 0 && limit.position >= i.position {
-            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric), in: range, using: metric)
+            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance > l {
                 return nil
             }
         }
 
-        return _index(i, offsetBy: distance, in: range, using: metric)
+        return _index(i, offsetBy: distance, in: range, using: metric, edge: edge)
     }
 
-    func distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    func distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
         start.validate(for: self)
         end.validate(for: self)
         range.lowerBound.assertValid(for: self)
@@ -984,10 +960,10 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         precondition(start.position >= range.lowerBound.position && start.position <= range.upperBound.position, "Index out of bounds")
         precondition(end.position >= range.lowerBound.position && end.position <= range.upperBound.position, "Index out of bounds")
-        return _distance(from: start, to: end, in: range, using: metric)
+        return _distance(from: start, to: end, in: range, using: metric, edge: edge)
     }
 
-    private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
         if start.position == end.position {
             return 0
         }
@@ -999,10 +975,14 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             m = count(metric, upTo: end.position) - count(metric, upTo: start.position)
         }
 
+        // In Collection, startIndex is always less than endIndex as long as count > 0. But for trailing metrics, endIndex might
+        // not be a boundary. E.g. measuring "foo", we want distance(0, 3, .newlines, .trailing) to == 1 even though
+        // count(.newlines, upTo: 0) == 0 and count(.newlines, upTo: 3) == 0. So if to == endIndex and it's not already a boundary
+        // (i.e. the string doesn't end in "\n"), we add 1.
         let fudge: M.Unit
-        if metric.type == .trailing && start.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric) {
+        if edge == .trailing && start.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric, edge: edge) {
             fudge = -1
-        } else if metric.type == .trailing && end.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric) {
+        } else if edge == .trailing && end.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric, edge: edge) {
             fudge = 1
         } else {
             fudge = 0
@@ -1011,21 +991,21 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return m + fudge
     }
 
-    func index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
 
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-        return _index(roundingDown: i, in: range, using: metric)
+        return _index(roundingDown: i, in: range, using: metric, edge: edge)
     }
 
-    private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
+    private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric, edge: edge) {
             return i
         }
 
-        let position = i.prev(using: metric)
+        let position = i.prev(using: metric, edge: edge)
         if position == nil || position! < range.lowerBound.position {
             // Leading metrics don't have a boundary at pos == 0, but in Swift, startIndex is
             // always a valid index when rounding no matter what.
@@ -1034,21 +1014,21 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
 
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-        return _index(roundingUp: i, in: range, using: metric)
+        return _index(roundingUp: i, in: range, using: metric, edge: edge)
     }
 
-    private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
-        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric) {
+    private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric, edge: edge) {
             return i
         }
 
-        let position = i.next(using: metric)
+        let position = i.next(using: metric, edge: edge)
         if position == nil || position! > range.upperBound.position {
             // Trailing metrics don't have a boundary at pos == count, but
             // in Swift, endIndex is always a boundary no matter what.
@@ -1057,25 +1037,25 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(at offset: M.Unit, in range: Range<Index>, using metric: M) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(at offset: M.Unit, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
-        return _index(range.lowerBound, offsetBy: offset, in: range, using: metric)
+        return _index(range.lowerBound, offsetBy: offset, in: range, using: metric, edge: edge)
     }
 
-    func isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M) -> Bool where M: BTreeMetric<Summary> {
+    func isBoundary<M>(_ i: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Bool where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
 
         precondition(i.position >= range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
-        if i.position == range.lowerBound.position && (metric.type == .trailing || metric.type == .atomic) {
+        if i.position == range.lowerBound.position && edge == .trailing {
             return true
-        } else if i.position == range.upperBound.position && (metric.type == .leading || metric.type == .atomic) {
+        } else if i.position == range.upperBound.position && edge == .leading {
             return true
         }
 
-        return i.isBoundary(in: metric)
+        return i.isBoundary(in: metric, edge: edge)
     }
 }
 

@@ -280,8 +280,10 @@ fileprivate func findPrefixCount(in substring: Substring, using breaker: inout R
 
 // MARK: - Metrics
 
+// The base metric, which measures UTF-8 code units.
+//
+// UTF8Metric is atomic, so edge can be safely ignored.
 extension Rope {
-    // The base metric, which measures UTF-8 code units.
     struct UTF8Metric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             count
@@ -295,26 +297,22 @@ extension Rope {
             baseUnits
         }
 
-        func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
+        func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
             true
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             assert(offset > 0)
             return offset - 1
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             assert(offset < chunk.count)
             return offset + 1
         }
 
         var canFragment: Bool {
             false
-        }
-
-        var type: BTreeMetricType {
-            .atomic
         }
     }
 }
@@ -330,6 +328,8 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF8Metric {
 // boundary. "Skip" is in quotes because there are not actually any leading
 // or trailing surrogates in Rope's storage. It's just Unicode scalars that
 // are encoded as UTF-8.
+//
+// UTF16Metric is atomic, so edge can be safely ignored.
 extension Rope {
     struct UTF16Metric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
@@ -350,13 +350,17 @@ extension Rope {
             return chunk.string.utf16.distance(from: startIndex, to: i)
         }
 
-        func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
+        func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
+            assert(offset > 0 || (edge == .leading && offset == 0))
+            assert(offset < chunk.count || (edge == .trailing && offset == chunk.count))
+
             let i = chunk.string.utf8Index(at: offset)
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
-            assert(offset > 0)
+        func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
+            assert(offset > 0 || (edge == .leading && offset == 0))
+            assert(offset < chunk.count || (edge == .trailing && offset == chunk.count))
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
@@ -368,7 +372,7 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -381,10 +385,6 @@ extension Rope {
         var canFragment: Bool {
             false
         }
-
-        var type: BTreeMetricType {
-            .atomic
-        }
     }
 }
 
@@ -393,6 +393,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF16Metric {
 }
 
 extension Rope {
+    // UnicodeScalarMetric is atomic, so edge can be safely ignored.
     struct UnicodeScalarMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.scalars
@@ -412,12 +413,12 @@ extension Rope {
             return chunk.string.unicodeScalars.distance(from: startIndex, to: i)
         }
 
-        func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
+        func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
             let i = chunk.string.utf8Index(at: offset)
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             assert(offset > 0)
 
             let startIndex = chunk.string.startIndex
@@ -430,7 +431,7 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
+        func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             assert(offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
@@ -443,10 +444,6 @@ extension Rope {
         var canFragment: Bool {
             false
         }
-
-        var type: BTreeMetricType {
-            .atomic
-        }
     }
 }
 
@@ -455,6 +452,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
 }
 
 extension Rope {
+    // CharacterMetric is atomic, so edge can be safely ignored.
     struct CharacterMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.chars
@@ -478,8 +476,8 @@ extension Rope {
             return chunk.characters.distance(from: startIndex, to: i)
         }
 
-        func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            assert(offset <= chunk.count)
+        func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
+            assert(offset >= 0 && offset <= chunk.count)
 
             if offset < chunk.prefixCount {
                 return false
@@ -492,8 +490,8 @@ extension Rope {
             return chunk.isValidCharacterIndex(i)
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
-            assert(offset > 0)
+        func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
+            assert(offset > 0 && offset <= chunk.count)
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
@@ -510,8 +508,8 @@ extension Rope {
             return chunk.string.utf8.distance(from: startIndex, to: target)
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
-            assert(offset < chunk.count)
+        func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
+            assert(offset >= 0 && offset < chunk.count)
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
@@ -526,10 +524,6 @@ extension Rope {
 
         var canFragment: Bool {
             true
-        }
-
-        var type: BTreeMetricType {
-            .atomic
         }
     }
 }
@@ -567,38 +561,51 @@ extension Rope {
             }
         }
 
-        func isBoundary(_ offset: Int, in chunk: Chunk) -> Bool {
-            precondition(offset > 0 && offset <= chunk.count)
+        func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
+            precondition(offset > 0 || (edge == .leading && offset == 0))
+            precondition(offset < chunk.count || (edge == .trailing && offset == chunk.count))
 
+            let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
-                buf[offset - 1] == UInt8(ascii: "\n")
+                switch edge {
+                case .leading:
+                    buf[offset] == nl
+                case .trailing:
+                    buf[offset - 1] == nl
+                }
             }
         }
 
-        func prev(_ offset: Int, in chunk: Chunk) -> Int? {
+        func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
             precondition(offset > 0 && offset <= chunk.count)
 
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
-                buf[..<(offset - 1)].lastIndex(of: nl).map { $0 + 1 }
+                switch edge {
+                case .leading:
+                    buf[..<offset].lastIndex(of: nl)
+                case .trailing:
+                    buf[..<(offset - 1)].lastIndex(of: nl).map { $0 + 1 }
+                }
             }
         }
 
-        func next(_ offset: Int, in chunk: Chunk) -> Int? {
-            precondition(offset >= 0 && offset <= chunk.count)
+        func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
+            precondition(offset >= 0 && offset < chunk.count)
 
             let nl = UInt8(ascii: "\n")
             return chunk.string.withExistingUTF8 { buf in
-                buf[offset...].firstIndex(of: nl).map { $0 + 1 }
+                switch edge {
+                case .leading:
+                    buf[(offset+1)...].firstIndex(of: nl)
+                case .trailing:
+                    buf[offset...].firstIndex(of: nl).map { $0 + 1 }
+                }
             }
         }
 
         var canFragment: Bool {
             true
-        }
-
-        var type: BTreeMetricType {
-            .trailing
         }
     }
 }
@@ -803,7 +810,7 @@ extension Rope.Index {
         }
 
         var end = self
-        if end.i.next(using: .characters) == nil {
+        if end.i.next(using: .characters, edge: .leading) == nil {
             end = Rope(BTreeNode(storage: i.rootStorage!)).endIndex
         }
 
@@ -893,23 +900,23 @@ extension Rope: BidirectionalCollection {
     }
 
     func index(before i: consuming Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .characters))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
     }
 
     func index(after i: consuming Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .characters))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .characters))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .characters))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading)
     }
 }
 
@@ -995,7 +1002,7 @@ extension Rope {
     }
 
     func index(roundingDown i: consuming Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .characters))
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
     }
 
     func index(fromOldIndex oldIndex: consuming Index) -> Index {
@@ -1003,7 +1010,7 @@ extension Rope {
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .characters)
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading)
     }
 }
 
@@ -1099,6 +1106,7 @@ protocol RopeView: BidirectionalCollection where Index == Rope.Index {
     var base: Rope { get }
     var bounds: Range<Rope.Index> { get }
     var metric: Metric { get }
+    var edge: BTreeMetricEdge { get }
 
     // An optional, more granular boundary for rounding when slicing.
     // Specifically, when slicing Subropes, indices are rounded down
@@ -1124,7 +1132,7 @@ extension RopeView where Metric == SliceMetric {
 // BidirectionalCollection
 extension RopeView {
     var count: Int {
-        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: metric)
+        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge)
     }
 
     var startIndex: Index {
@@ -1140,35 +1148,35 @@ extension RopeView {
     }
 
     subscript(r: Range<Index>) -> Self {
-        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric))
-        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric))
+        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
+        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
         return Self(base: base, bounds: start..<end)
     }
 
     func index(before i: consuming Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     func index(after i: consuming Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: metric)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge)
     }
 }
 
 extension RopeView {
     func index(at offset: Int) -> Index {
-        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     subscript(offset: Int) -> Element {
@@ -1176,11 +1184,11 @@ extension RopeView {
     }
 
     func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric))
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: metric)
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge)
     }
 }
 
@@ -1203,6 +1211,10 @@ extension Rope {
 
         var metric: UTF8Metric {
             .utf8
+        }
+
+        var edge: BTreeMetricEdge {
+            .leading
         }
 
         func readElement(at i: Index) -> UTF8.CodeUnit {
@@ -1240,7 +1252,7 @@ extension Rope.UTF16View {
     typealias Index = Rope.Index
 
     var count: Int {
-        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: .utf16)
+        root.distance(from: startIndex.i, to: endIndex.i, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading)
     }
 
    var startIndex: Index {
@@ -1252,11 +1264,11 @@ extension Rope.UTF16View {
    }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .utf16))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .utf16)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading)
     }
 }
 
@@ -1274,6 +1286,10 @@ extension Rope {
 
         var metric: UnicodeScalarMetric {
             .unicodeScalars
+        }
+
+        var edge: BTreeMetricEdge {
+            .leading
         }
 
         func readElement(at i: Index) -> UnicodeScalar {
@@ -1375,29 +1391,29 @@ extension Rope.LineView {
     }
 
     func index(before i: Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     func index(after i: Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .newlines)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing)
     }
 }
 
 extension Rope.LineView {
     func index(at offset: Int) -> Index {
-        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     subscript(offset: Int) -> Subrope {
@@ -1405,11 +1421,11 @@ extension Rope.LineView {
     }
 
     func index(roundingDown i: consuming Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines))
+        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
     }
 
     func isBoundary(_ i: Index) -> Bool {
-        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .newlines)
+        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing)
     }
 }
 
@@ -1428,6 +1444,10 @@ struct Subrope: RopeView {
 
     var metric: Rope.CharacterMetric {
         .characters
+    }
+
+    var edge: BTreeMetricEdge {
+        .leading
     }
 
     var sliceMetric: Rope.UnicodeScalarMetric {

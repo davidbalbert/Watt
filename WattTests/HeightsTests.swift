@@ -964,35 +964,35 @@ final class HeightsTests: XCTestCase {
 
     // MARK: Index manipulation
 
-    func testBoundaryAfter() {
+    func testEndOfLineContaining() {
         var h = Heights(rope: Rope("foo"))
-        XCTAssertNil(h.boundary(after: 0))
+        XCTAssertEqual(3, h.endOfLine(containing: 0))
 
         h = Heights(rope: Rope("foo\n"))
-        XCTAssertEqual(4, h.boundary(after: 0))
+        XCTAssertEqual(4, h.endOfLine(containing: 0))
 
         h = Heights(rope: Rope("foo\nbar"))
-        XCTAssertEqual(4, h.boundary(after: 0))
+        XCTAssertEqual(4, h.endOfLine(containing: 0))
 
         h = Heights(rope: Rope("foo\nbar"))
-        XCTAssertNil(h.boundary(after: 4))
+        XCTAssertEqual(7, h.endOfLine(containing: 4))
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        XCTAssertEqual(8, h.boundary(after: 4))
+        XCTAssertEqual(8, h.endOfLine(containing: 4))
     }
 
-    func testBoundaryRoundingDown() {
+    func testStartOfLineContaining() {
         var h = Heights(rope: Rope("foo"))
-        XCTAssertEqual(0, h.boundary(roundingDown: h.count))
+        XCTAssertEqual(0, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\n"))
-        XCTAssertEqual(4, h.boundary(roundingDown: h.count))
+        XCTAssertEqual(4, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\nbar"))
-        XCTAssertEqual(4, h.boundary(roundingDown: h.count))
+        XCTAssertEqual(4, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        XCTAssertEqual(8, h.boundary(roundingDown: h.count))
+        XCTAssertEqual(8, h.startIndexOfLine(containing: h.count))
     }
 
     // MARK: - Regression tests
