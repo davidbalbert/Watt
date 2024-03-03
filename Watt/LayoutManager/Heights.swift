@@ -510,10 +510,14 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
 // 5..<10 -> 14.0
 // 10 -> 28.0      <- it's 28.0 because this should be the same as the minY of the first line of the next leaf
 //
+// NOTE: Ideally, the leading entry (10 -> 28.0) would return 14.0 if we are the last leaf because endIndex is
+// part of the last line, but getting isLastLeaf into the leaf turned out to be challenging.
+//
+//
 // trailing (maxY):
 // 0..<5 -> 14.0
 // 5..<10 -> 28.0
-// 10 -> 28.0      <- this is assymetric with the leading case. I'm not exactly sure what to do with that yet, but it doesn't feel right.
+// 10 -> 28.0      <- this is asymmetric with the leading case. I'm not exactly sure what to do with that yet, but it doesn't feel right.
 //
 //
 // heights -> base
@@ -522,6 +526,10 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
 // 0.0..<14.0 -> 0
 // 14.0..<28.0 -> 5
 // 28.0 -> 10
+//
+// NOTE: Ideally, the leading entry (28.0 -> 10) would return 14.0 if we are the last leaf because endIndex is
+// part of the last line, but getting isLastLeaf into the leaf turned out to be challenging.
+//
 //
 // trailing (upperBound):
 // 0.0..<14.0 -> 5
@@ -569,7 +577,7 @@ extension Heights {
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= leaf.heights.last!)
 
-            // Same wierd asymetry as below.
+            // Same wierd asymmetry as below.
             if measuredUnits == leaf.heights.last {
                 return leaf.positions.last!
             }
@@ -595,7 +603,7 @@ extension Heights {
             if baseUnits == leaf.count {
                 switch edge {
                 case .leading:
-                    // This is a wierd asymetry. See the examples above for a bit of context.
+                    // This is a wierd asymmetry. See the examples above for a bit of context.
                     return leaf.minY(ofLine: leaf.positions.count)
                 case .trailing:
                     return leaf.maxY(ofLine: leaf.positions.count-1)
