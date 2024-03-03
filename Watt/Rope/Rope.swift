@@ -466,7 +466,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
 }
 
 extension Rope {
-    // CharacterMetric is atomic, so edge can be safely ignored.
+    // CharacterMetric is atomic, so edge can be ignored in isBoundary, prev, and next.
     struct CharacterMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.chars
@@ -474,6 +474,10 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= chunk.characters.count)
+
+            if measuredUnits == 0 {
+                return chunk.prefixCount
+            }
 
             let startIndex = chunk.characters.startIndex
 
@@ -484,6 +488,10 @@ extension Rope {
         }
 
         func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+            if baseUnits == chunk.prefixCount {
+                return 0
+            }
+
             let startIndex = chunk.characters.startIndex
 
             let delta = (edge == .leading ? 1 : 0)
@@ -1157,7 +1165,7 @@ extension RopeView where Metric == SliceMetric {
 // BidirectionalCollection
 extension RopeView {
     var count: Int {
-        distance(from: startIndex, to: endIndex)
+        root.count(in: startIndex.i..<endIndex.i, using: metric)
     }
 
     var startIndex: Index {
@@ -1392,11 +1400,7 @@ extension Rope.LineView {
     }
 
     var count: Int {
-        let d = distance(from: startIndex, to: endIndex)
-        if isBoundary(endIndex) {
-            return d+1
-        }
-        return d
+        root.count(in: startIndex.i..<endIndex.i, using: .newlines) + 1
     }
 
     subscript(position: Index) -> Subrope {
