@@ -207,12 +207,12 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
             }
         }
 
-        var newYOffsets = Array(heights[start..<end])
-        for i in 0..<newYOffsets.count {
-            newYOffsets[i] -= prefixHeight
+        var newHeights = Array(heights[start..<end])
+        for i in 0..<newHeights.count {
+            newHeights[i] -= prefixHeight
         }
 
-        return HeightsLeaf(positions: newPositions, heights: newYOffsets)
+        return HeightsLeaf(positions: newPositions, heights: newHeights)
     }
 
     func lineHeight(atIndex i: Int) -> CGFloat {
@@ -223,12 +223,20 @@ struct HeightsLeaf: BTreeLeaf, Equatable {
         i == 0 ? positions[0] : positions[i] - positions[i-1]
     }
 
-    func offset(ofLine i: Int) -> Int {
+    func lowerBound(ofLine i: Int) -> Int {
         i == 0 ? 0 : positions[i-1]
     }
 
-    func height(ofLine i: Int) -> CGFloat {
+    func upperBound(ofLine i: Int) -> Int {
+        positions[i]
+    }
+
+    func minY(ofLine i: Int) -> CGFloat {
         i == 0 ? 0 : heights[i-1]
+    }
+
+    func maxY(ofLine i: Int) -> CGFloat {
+        heights[i]
     }
 
     func index(forOffsetInLeaf offset: Int) -> Int {
@@ -279,7 +287,7 @@ extension Heights {
     }
 
     var contentHeight: CGFloat {
-        root.measure(using: .yOffset)
+        root.measure(using: .heights)
     }
 
     subscript(position: Int) -> CGFloat {
@@ -405,19 +413,25 @@ extension Heights {
     }
 
     func yOffset(upThroughPosition offset: Int) -> CGFloat {
-        if offset >= root.count {
+        precondition(offset >= 0 && offset <= root.count, "Position out of bounds")
+
+        if offset == root.count {
             let i = endIndex
             let (leaf, _) = i.read()!
             let height = leaf.lineHeight(atIndex: leaf.heights.count - 1)
 
-            return root.measure(using: .yOffset) - height
+            return root.measure(using: .heights) - height
         }
 
-        return root.count(.yOffset, upTo: offset)
+        return root.count(.heights, upTo: offset, edge: .leading)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {
-        if yOffset >= root.measure(using: .yOffset) {
+        if yOffset < 0 {
+            return 0
+        }
+
+        if yOffset >= root.measure(using: .heights) {
             let i = endIndex
             let (leaf, _) = i.read()!
             let lineLength = leaf.lineLength(atIndex: leaf.positions.count - 1)
@@ -425,12 +439,12 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return root.countBaseUnits(upTo: yOffset, measuredIn: .yOffset)
+        return root.countBaseUnits(upTo: yOffset, measuredIn: .heights, edge: .leading)
     }
 
     // Returns an index at a base offset
     func index(at offset: Int) -> Index {
-        root.index(at: offset, in: startIndex..<endIndex, using: .heightsBaseMetric, edge: .trailing)
+        root.index(at: offset, in: startIndex..<endIndex, using: .heightsBaseMetric, edge: .leading)
     }
 
     var startIndex: Index {
@@ -453,11 +467,11 @@ extension Heights {
             count
         }
 
-        func convertToBaseUnits(_ measuredUnits: Int, in leaf: HeightsLeaf) -> Int {
+        func convertToBaseUnits(_ measuredUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
             measuredUnits
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> Int {
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
             baseUnits
         }
 
@@ -579,56 +593,143 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
     static var heightsBaseMetric: Heights.HeightsBaseMetric { Heights.HeightsBaseMetric() }
 }
 
+// HeightsMetric examples
+//
+// positions = [5, 10]
+// heights   = [14.0, 28.0]
+//
+// base -> heights
+//
+// leading (minY):
+// 0..<5 -> 0.0
+// 5..<10 -> 14.0
+// 10 -> 28.0      <- it's 28.0 because this should be the same as the minY of the first line of the next leaf
+//
+// trailing (maxY):
+// 0..<5 -> 14.0
+// 5..<10 -> 28.0
+// 10 -> 28.0      <- this is assymetric with the leading case. I'm not exactly sure what to do with that yet, but it doesn't feel right.
+//
+//
+// heights -> base
+//
+// leading (lowerBound):
+// 0.0..<14.0 -> 0
+// 14.0..<28.0 -> 5
+// 28.0 -> 10
+//
+// trailing (upperBound):
+// 0.0..<14.0 -> 5
+// 14.0..<28.0 -> 10
+// 28.0 -> 10
+//
+//
+// Empty last line
+// positions = [5, 10, 10]
+// heights   = [14.0, 28.0, 42.0]
+//
+// base -> heights
+//
+// leading (minY):
+// 0..<5 -> 0.0
+// 5..<10 -> 14.0
+// 10 -> 28.0
+//
+// trailing (maxY):
+// 0..<5 -> 14.0
+// 5..<10 -> 28.0
+// 10 -> 42.0
+//
+//
+// heights -> base
+//
+// leading (lowerBound):
+// 0.0..<14.0 -> 0
+// 14.0..<28.0 -> 5
+// 28.0..<42.0 -> 10
+// 42.0 -> 10
+//
+// trailing (upperBound):
+// 0.0..<14.0 -> 5
+// 14.0..<28.0 -> 10
+// 28.0..<42.0 -> 10
+// 42.0 -> 10
+
 extension Heights {
-    struct YOffsetMetric: BTreeMetric {
+    struct HeightsMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> CGFloat {
             summary.height
         }
-        
-        func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf) -> Int {
-            if measuredUnits >= leaf.heights.last! {
+
+        func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
+            assert(measuredUnits <= leaf.heights.last!)
+
+            // Same wierd asymetry as below.
+            if measuredUnits == leaf.heights.last {
                 return leaf.positions.last!
             }
 
             var (i, found) = leaf.heights.binarySearch(for: measuredUnits)
-            if found {
+            if found && i < leaf.heights.count - 1 {
                 i += 1
             }
-            return leaf.offset(ofLine: i)
+
+            switch edge {
+            case .leading:
+                return leaf.lowerBound(ofLine: i)
+            case .trailing:
+                return leaf.upperBound(ofLine: i)
+            }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf) -> CGFloat {
-            if baseUnits >= leaf.count {
-                return leaf.heights.last!
+        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> CGFloat {
+            assert(baseUnits <= leaf.count)
+
+            // Can't use binarySearch(for:) on an array with repeated elements,
+            // and leaf could have an empty last line.
+            if baseUnits == leaf.count {
+                switch edge {
+                case .leading:
+                    // This is a wierd asymetry. See the examples above for a bit of context.
+                    return leaf.minY(ofLine: leaf.positions.count)
+                case .trailing:
+                    return leaf.maxY(ofLine: leaf.positions.count-1)
+                }
             }
 
             var (i, found) = leaf.positions.binarySearch(for: baseUnits)
             if found {
                 i += 1
             }
-            return leaf.height(ofLine: i)
+
+            switch edge {
+            case .leading:
+                return leaf.minY(ofLine: i)
+            case .trailing:
+                return leaf.maxY(ofLine: i)
+            }
         }
-        
+
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
             HeightsBaseMetric().isBoundary(offset, in: leaf, edge: edge)
         }
-        
+
         func prev(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
             HeightsBaseMetric().prev(offset, in: leaf, edge: edge)
         }
-        
+
         func next(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
             HeightsBaseMetric().next(offset, in: leaf, edge: edge)
         }
 
         var canFragment: Bool {
-            true
+            false
         }
     }
 }
 
-extension BTreeMetric<HeightsSummary> where Self == Heights.YOffsetMetric {
-    static var yOffset: Heights.YOffsetMetric { Heights.YOffsetMetric() }
+extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsMetric {
+    static var heights: Heights.HeightsMetric { Heights.HeightsMetric() }
 }
 
 struct HeightsBuilder {
