@@ -348,15 +348,15 @@ extension Heights {
 
         let i: Index
         if position == root.count {
-            // the empty string ends in a blank line, so we're guaranteed to have
-            // a valid position - 1 at this point
+            // We're guaranteed not to have an empty string here (it ends in a blank line)
+            // so position - 1 is valid.
             assert(position > 0)
             i = index(at: position - 1)
         } else {
             i = index(at: position)
         }
 
-        return root.index(roundingDown: i, in: startIndex..<endIndex, using: HeightsBaseMetric(), edge: .leading).position
+        return root.index(roundingDown: i, in: startIndex..<endIndex, using: .heights, edge: .leading).position
     }
 
     func endOfLine(containing position: Int) -> Int {
@@ -365,7 +365,7 @@ extension Heights {
         }
 
         let i = index(at: position)
-        return root.index(after: i, in: startIndex..<endIndex, using: HeightsBaseMetric(), edge: .leading).position
+        return root.index(after: i, in: startIndex..<endIndex, using: .heights, edge: .leading).position
     }
 
     mutating func replaceSubrange(_ oldRange: Range<Int>, with subrope: Subrope) {
