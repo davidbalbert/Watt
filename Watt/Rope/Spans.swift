@@ -331,6 +331,10 @@ extension Spans {
         var canFragment: Bool {
             false
         }
+
+        var isAtomic: Bool {
+            true
+        }
     }
 }
 
@@ -420,6 +424,10 @@ extension Spans {
         }
         
         var canFragment: Bool {
+            false
+        }
+
+        var isAtomic: Bool {
             false
         }
     }

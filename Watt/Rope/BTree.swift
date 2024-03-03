@@ -117,8 +117,12 @@ protocol BTreeMetric<Summary> {
     func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
     func next(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
 
-    // Returns true if the measured unit in this metric can span multiple leaves.
+    // Can the measured unit in this metric can span multiple leaves.
     var canFragment: Bool { get }
+
+    // A metric is atomic if the empty tree has a count of 0 and every
+    // non-empty tree has a count > 0.
+    var isAtomic: Bool { get }
 }
 
 
@@ -361,7 +365,8 @@ extension BTreeNode {
         }
 
         // TODO: figure out m1_fudge in xi-editor. I believe it's just an optimization, so this code is probably fine.
-        // If you implement it, remember that the <= comparison becomes <.
+        // If you implement it, remember that the <= comparison becomes <. This optimization may not work for both
+        // leading and trailing boundaries, so be careful.
         var m1 = m1
         var m2: M2.Unit = 0
         var node = self
@@ -483,6 +488,9 @@ extension BTreeNode {
                 return false
             }
 
+            if metric.isAtomic && !metric.canFragment && offsetInLeaf == 0 {
+                return true
+            }
 
             switch edge {
             case .leading:

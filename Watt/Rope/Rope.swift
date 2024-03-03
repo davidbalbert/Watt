@@ -312,6 +312,10 @@ extension Rope {
         var canFragment: Bool {
             false
         }
+
+        var isAtomic: Bool {
+            true
+        }
     }
 }
 
@@ -385,6 +389,10 @@ extension Rope {
         var canFragment: Bool {
             false
         }
+
+        var isAtomic: Bool {
+            true
+        }
     }
 }
 
@@ -445,6 +453,10 @@ extension Rope {
 
         var canFragment: Bool {
             false
+        }
+
+        var isAtomic: Bool {
+            true
         }
     }
 }
@@ -526,6 +538,10 @@ extension Rope {
         }
 
         var canFragment: Bool {
+            true
+        }
+
+        var isAtomic: Bool {
             true
         }
     }
@@ -611,6 +627,10 @@ extension Rope {
 
         var canFragment: Bool {
             true
+        }
+
+        var isAtomic: Bool {
+            false
         }
     }
 }
