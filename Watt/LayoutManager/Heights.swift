@@ -456,11 +456,6 @@ extension Heights {
     }
 }
 
-// HeightsBaseMetric counts lines, measured in bytes.
-//
-// It's a bit unclear to me if this is atomic or not, but I'm starting to think it is. Unlike the Newlines metric,
-// we don't have boundaries on either side of "\n". Instead, we have boundaries on either side of each line,
-// so every trailing boundary of a line is also a leading boundary of the next line.
 extension Heights {
     struct HeightsBaseMetric: BTreeMetric {
         func measure(summary: HeightsSummary, count: Int) -> Int {
@@ -476,117 +471,25 @@ extension Heights {
         }
 
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
-            precondition(offset > 0 || (edge == .leading && offset == 0))
-            precondition(offset < leaf.count || (edge == .trailing && offset == leaf.count))
-
-            // binarySearch(for:) will return (i, true) for all boundaries other than
-            // 0. Specifically for [3, 6], search(3) will return (0, true),
-            // search(6) will return (1, true), but search(0) will return
-            // (0, false). This means we can't use found alone as a measure
-            // of whether we're at a boundary.
-            if offset == 0 {
-                return true
-            }
-
-            // Leaf.count is always a trailing boundary because leaf.count is always
-            // the end of the last line in the leaf (positions.last). It's always a
-            // leading boundary because it's either the start of the line in the next
-            // leaf, or it's the end of the monoid, which is always a leading boundary.
-            //
-            // I think this is more evidence that HeightsBaseMetric is in fact atomic.
-            if offset == leaf.count {
-                return true
-            }
-
-            let (_, found) = leaf.positions.binarySearch(for: offset)
-            return found
+            true
         }
 
         func prev(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
-            assert(offset > 0 && offset <= leaf.count)
-
-            // Handle special cases where leaf ends in a blank line.
-            //
-            // Note: we don't handle offset == leaf.count where positions.count == 1,
-            // because that would imply positions == [0], implying leaf.count == 0,
-            // and thus, offset == 0, and offset is not allowed to be 0.
-            if offset == leaf.count && leaf.endsWithBlankLine && leaf.positions.count == 2 {
-                return 0
-            } else if offset == leaf.count && leaf.endsWithBlankLine {
-                return leaf.positions[leaf.positions.count - 3]
-            }
-
-            for i in 0..<leaf.positions.count {
-                if offset <= leaf.positions[i] {
-                    if i == 0 {
-                        return 0
-                    } else {
-                        return leaf.positions[i-1]
-                    }
-                }
-            }
-
-            fatalError("this is unreachable, offset must be <= leaf.count")
+            assert(offset > 0)
+            return offset - 1
         }
 
         func next(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
-            assert(offset >= 0 && offset < leaf.count)
-
-            // situations:
-            //   endsWithBlankLine
-            //     offset == 0, positions == [0] – Impossible. Leaf.count would be 0.
-            //     positions == [n, n], offset < n – returns n
-            //     positions == [..., x, n, n], offset in x..<n – returns n.
-            //   else
-            //     let (i, found) = binarySearch(offset)
-            //     found ? positions[i+1] : positions[i]
-
-            if leaf.endsWithBlankLine {
-                if leaf.positions.count == 2 {
-                    return leaf.positions[0]
-                } else if leaf.positions[leaf.positions.count - 3] <= offset && offset < leaf.positions[leaf.positions.count - 2] {
-                    return leaf.positions[leaf.positions.count - 2]
-                }
-            }
-
-            // binarySearch(for:) doesn't work if we're searching for repeated elements,
-            // but we know offset < leaf.count, and the only repeated elements will be
-            // leaf.count, so we're ok.
-            let n: Int
-            switch leaf.positions.binarySearch(for: offset) {
-            case let (i, true):
-                n = i + 1
-            case let (i, false):
-                n = i
-            }
-
-            // At this we know offset < leaf.count, so we're not looking at
-            // a trailing blank line, which means the length of the leaf
-            // is never a boundary.
-            if n == leaf.positions.count - 1 {
-                return nil
-            }
-
-            return leaf.positions[n]
+            assert(offset < leaf.count)
+            return offset + 1
         }
 
         var canFragment: Bool {
             false
         }
 
-        // TODO: uncomment when isAtomic is added to BTreeMetric
-        // I can't tell if this metric is atomic or not. All non-empty strings have at least
-        // one line. But the empty string has one line too, so it has a measure of one. This
-        // would point to it being non-atomic.
-        //
-        // On the other hand, if we consider the # of lines as the base metric, an empty Heights
-        // has no lines. It's just that we disallow an empty Heights. All Heights must have at
-        // least one line. I'm not sure where that leaves us, but to simplify, it might be
-        // better to have a base metric that I know is atomic that counts bytes rather than lines.
-        //
-        // TODO: Once we switch this to be a normal base metric, I think isAtomic can be true
         var isAtomic: Bool {
-            false
+            true
         }
     }
 }
@@ -713,15 +616,98 @@ extension Heights {
         }
 
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
-            HeightsBaseMetric().isBoundary(offset, in: leaf, edge: edge)
+            precondition(offset > 0 || (edge == .leading && offset == 0))
+            precondition(offset < leaf.count || (edge == .trailing && offset == leaf.count))
+
+            // binarySearch(for:) will return (i, true) for all boundaries other than
+            // 0. Specifically for [3, 6], search(3) will return (0, true),
+            // search(6) will return (1, true), but search(0) will return
+            // (0, false). This means we can't use found alone as a measure
+            // of whether we're at a boundary.
+            if offset == 0 {
+                return true
+            }
+
+            // Leaf.count is always a trailing boundary because leaf.count is always
+            // the end of the last line in the leaf (positions.last). It's always a
+            // leading boundary because it's either the start of the line in the next
+            // leaf, or it's the end of the monoid, which is always a leading boundary.
+            //
+            // I think this is more evidence that HeightsBaseMetric is in fact atomic.
+            if offset == leaf.count {
+                return true
+            }
+
+            let (_, found) = leaf.positions.binarySearch(for: offset)
+            return found
         }
 
         func prev(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
-            HeightsBaseMetric().prev(offset, in: leaf, edge: edge)
+            assert(offset > 0 && offset <= leaf.count)
+
+            // Handle special cases where leaf ends in a blank line.
+            //
+            // Note: we don't handle offset == leaf.count where positions.count == 1,
+            // because that would imply positions == [0], implying leaf.count == 0,
+            // and thus, offset == 0, and offset is not allowed to be 0.
+            if offset == leaf.count && leaf.endsWithBlankLine && leaf.positions.count == 2 {
+                return 0
+            } else if offset == leaf.count && leaf.endsWithBlankLine {
+                return leaf.positions[leaf.positions.count - 3]
+            }
+
+            for i in 0..<leaf.positions.count {
+                if offset <= leaf.positions[i] {
+                    if i == 0 {
+                        return 0
+                    } else {
+                        return leaf.positions[i-1]
+                    }
+                }
+            }
+
+            fatalError("this is unreachable, offset must be <= leaf.count")
         }
 
         func next(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int? {
-            HeightsBaseMetric().next(offset, in: leaf, edge: edge)
+            assert(offset >= 0 && offset < leaf.count)
+
+            // situations:
+            //   endsWithBlankLine
+            //     offset == 0, positions == [0] – Impossible. Leaf.count would be 0.
+            //     positions == [n, n], offset < n – returns n
+            //     positions == [..., x, n, n], offset in x..<n – returns n.
+            //   else
+            //     let (i, found) = binarySearch(offset)
+            //     found ? positions[i+1] : positions[i]
+
+            if leaf.endsWithBlankLine {
+                if leaf.positions.count == 2 {
+                    return leaf.positions[0]
+                } else if leaf.positions[leaf.positions.count - 3] <= offset && offset < leaf.positions[leaf.positions.count - 2] {
+                    return leaf.positions[leaf.positions.count - 2]
+                }
+            }
+
+            // binarySearch(for:) doesn't work if we're searching for repeated elements,
+            // but we know offset < leaf.count, and the only repeated elements will be
+            // leaf.count, so we're ok.
+            let n: Int
+            switch leaf.positions.binarySearch(for: offset) {
+            case let (i, true):
+                n = i + 1
+            case let (i, false):
+                n = i
+            }
+
+            // At this we know offset < leaf.count, so we're not looking at
+            // a trailing blank line, which means the length of the leaf
+            // is never a boundary.
+            if n == leaf.positions.count - 1 {
+                return nil
+            }
+
+            return leaf.positions[n]
         }
 
         var canFragment: Bool {

@@ -9,7 +9,7 @@ import XCTest
 @testable import Watt
 
 final class HeightsTests: XCTestCase {
-    // MARK: - Measuring y-offsts
+    // MARK: - Measuring y-offsets
 
     func testYOffsetEmpty() {
         let r = Rope()
