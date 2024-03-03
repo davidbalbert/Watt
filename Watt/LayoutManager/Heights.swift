@@ -304,7 +304,7 @@ extension Heights {
         get {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heightsBaseMetric, edge: .trailing), "not a boundary")
+            precondition(i.isBoundary(in: .heights, edge: .trailing), "not a boundary")
 
             let (leaf, offset) = i.read()!
             let li = leaf.index(forOffsetInLeaf: offset)
@@ -321,7 +321,7 @@ extension Heights {
         set {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heightsBaseMetric, edge: .trailing), "not a boundary")
+            precondition(i.isBoundary(in: .heights, edge: .trailing), "not a boundary")
 
             root.mutatingForEach(startingAt: i.position) { offsetOfLeaf, leaf in
                 let li = leaf.index(forOffsetInLeaf: i.position - offsetOfLeaf)
@@ -583,9 +583,11 @@ extension Heights {
         // has no lines. It's just that we disallow an empty Heights. All Heights must have at
         // least one line. I'm not sure where that leaves us, but to simplify, it might be
         // better to have a base metric that I know is atomic that counts bytes rather than lines.
-//        var isAtomic: Bool {
-//            true
-//        }
+        //
+        // TODO: Once we switch this to be a normal base metric, I think isAtomic can be true
+        var isAtomic: Bool {
+            false
+        }
     }
 }
 
@@ -723,6 +725,11 @@ extension Heights {
         }
 
         var canFragment: Bool {
+            false
+        }
+
+        // A Heights with a base count of 0 can (and does) still have a single line.
+        var isAtomic: Bool {
             false
         }
     }
