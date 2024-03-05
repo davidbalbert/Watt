@@ -668,7 +668,7 @@ extension Rope {
         }
 
         var canFragment: Bool {
-            true
+            false
         }
 
         var isAtomic: Bool {
