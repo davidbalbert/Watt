@@ -437,8 +437,20 @@ extension BTreeNode {
         while !node.isLeaf {
             let parent = node
             for (i, child) in node.children.enumerated() {
+                // If m1 is the boundary between two leaves (m1 == childM1) and it's a count of trailing
+                // boundaries (edge1 == .trailing), we want to land at the start of the right leaf,
+                // so we only descend if m1 < childM1. OTOH, if m1 is a count of leading boundaries,
+                // we want to land at the end of the left leaf, so we descend if m1 <= childM1.
+                //
+                // There's one exception: m1 is the measure of `from` in the whole tree, we need to
+                // allow ourselves to descend into the last child of each internal node, so we use
+                // m1 <= childM1 in that case too.
+                //
+                // Xi has similar code – though just for optimizations and I'm not sure that it's
+                // correct – but it uses a fudge of 0 or 1, and the condition `m1 < childM1 + fudge`.
+                // This is simpler, but it doesn't work for us because HeightsMetric.Unit is CGFloat
+                // and can have values in between childM1 and childM1 + 1.
                 let childM1 = child.measure(using: from)
-
                 if m1 < childM1 || (m1 <= childM1 && (edge1 == .leading || i == node.children.count-1)) {
                     node = child
                     break
