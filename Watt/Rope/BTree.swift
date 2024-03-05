@@ -92,26 +92,83 @@ protocol BTreeMetric<Summary> {
     associatedtype Summary: BTreeSummary
     associatedtype Unit: Numeric & Comparable
 
-    // Measure always counts trailing edges. Roughly equivalent to
-    // convertFromBaseUnits(count, in: leaf, .trailing), but is also
-    // used for non-leaf nodes.
+    // To understand leading and trailing boundaries, consider a metric that counts
+    // "\n" characters.
+    //
+    // The string "ab\ncd\nef" has a measure of 8 in the base metric (it contains 8
+    // bytes) and a measure of 2 in the newlines metric (it contains 2 newlines).
+    //
+    // The newlines cover the ranges 2..<3 and 5..<6. This means there are leading
+    // boundaries at 2 and 5, and trailing boundaries at 3 and 6.
+    //
+    // To get some intuition for how metrics work, start by drawing a number line in
+    // the base metric of "ab\ncd\nef" and then superimpose the ranges of each "\n":
+    //
+    // 0 1 2 3 4 5 6 7 8
+    //     |-    |-
+    //
+    // In the above diagram, each "|" represents a leading boundary, and the position
+    // immediately after the last "-" in each range representes a trailing boundary.
+    //
+    // To count leading boundaries in convertToMeasuredUnits, imagine sliding a vertical
+    // line across the number line from left to right until you reach baseUnits. Whenever
+    // your vertical line intersects with a "|", increment your counter. For leading
+    // edges, if there's a leading edge at baseUnits, you should count that too.
+    //
+    // Concretely, if baseUnits == 5, you'll count both leading edges and return 2.
+    //
+    // For trailing boundaries, do the same thing, but increment your counter at the
+    // first index that's not contained within each range (i.e. the range's upperBound).
+    // If baseUnits == 5, you'll count the first trailing boundary (at 3), but not the
+    // second one (at 6) and return 1.
+    //
+    // Conceptually there's always an implicit trailing boundary at 0 and an implicit leading
+    // boundary at count (8 in the above example), but these are never counted, so ignore them
+    // in convertToBaseUnits and convertToMeasuredUnits. You should also ignore these implicit
+    // boundaries in isBoundary, prev, and next. The BTree implementation will handle implict
+    // boundaries for you.
+    //
+    // Intuitionally: even though "foo\nbar" has an implicit trailing newlines boundary at 0,
+    // and an implicit leading boundary at 7, there's only 1 "\n", not 2, so the maximum
+    // number of leading and trailing boundaries your metric should count is 1.
+    //
+    // Note that it's possible to have an explicit leading boundary at 0 or an explicit
+    // trailing boundary at count – "\nfoo\n" has both of these. In these cases you should treat
+    // these boundaries like any other. Note that it's impossible to have an explicit trailing
+    // boundary at 0, or an explicit leading boundary at count.
+    //
+    // In the case of "\nfoo\n" where there's a leading boundary at 0, it's not possible for
+    // convertToMeasuredUnits to return 0 when counting leading boundaries.
+    //
+    // For convertToBaseUnits, slide the vertical line from left to right until you've counted
+    // measuredUnits worth of leading or trailing boundaries. Then return the index of that boundary
+    // on the number line. E.g. in "ab\ncd\nef", convertToBaseUnits(1, measuredIn: .newlines, ege: .leading)
+    // should return 2.
+    //
+    // The number line represents the count of trailing boundaries in the base metric. It's possible
+    // to measure leading boundaries in the base metric as well. It would look like this:
+    //
+    // 0 1 2 3 4 5 6 7 8    <- base metric trailing boundaries – the canonical "number line"
+    // 1 2 3 4 5 6 7 8      <- count of base metric leading boundaries
+    // |-|-|-|-|-|-|-|-     <- ranges of each element in the base metric.
+    //
+    // Trailing boundaries in the base metric are special because they also represent valid indices in
+    // the tree. convertToBaseUnits should always return the count of trailing boundaries,
+    // and the baseUnits parameter in convertToMeasuredUnits should be treated as a count of trailing
+    // base unit boundaries. Don't overthink this. Trailing boundaries in the base metric are just
+    // 0-based indices into the tree.
+
+
+    // Measure always counts trailing boundaries. For leaves, this is equivalent to
+    // convertFromBaseUnits(count, in: leaf, .trailing), but measure(summary:count:) can be
+    // used for internal nodes as well.
     func measure(summary: Summary, count: Int) -> Unit
 
-    // You count a leading edge once you're one base unit past the edge.
-    //
-    // E.g. Consider a .tripleAs metric that measures "aaa", and the leaf
-    // "aaataaa"
-    //
-    // convertFromBaseUnits(0, in: leaf, .leading) = 0
-    // convertFromBaseUnits(1, in: leaf, .leading) = 1
-    // convertFromBaseUnits(4, in: leaf, .leading) = 1
-    // convertFromBaseUnits(5, in: leaf, .leading) = 2
-    //
-    // convertToBaseUnit(0, in: leaf, .leading) = 0
-    // convertToBaseUnit(1, in: leaf, .leading) = 1
-    // convertToBaseUnit(2, in: leaf, .leading) = 5
+    // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
     func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int
-    func convertFromBaseUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
+
+    // Converts a count of trailing edges in the base metric to leading or trailing edges in this metric.
+    func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
 
     func isBoundary(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Bool
     func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
@@ -349,12 +406,22 @@ extension BTreeNode {
         metric.measure(summary: summary, count: count)
     }
 
-    func convert<M1, M2>(_ m1: M1.Unit, from: M1, to: M2, edge: BTreeMetricEdge) -> M2.Unit where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
-        if m1 == 0 {
+    func convert<M1, M2>(_ m1: M1.Unit, from: M1, edge edge1: BTreeMetricEdge, to: M2, edge edge2: BTreeMetricEdge) -> M2.Unit where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
+
+        // startIndex on a leading edge can have a count of 0 or 1. startIndex on a trailing edge can only have a count of 0.
+        //
+        // In "\nbar", you can never have a count of .leading newlines == 0 because startIndex has a count of 1. But startIndex
+        // in .trailing newlines has to be 0, because startIndex doesn't trail anything.
+        //
+        // In contrast, with "foo\nbar", .leading newlines is 0 for positions 0, 1, and 2, and only becomes 1 at position 3.
+        //
+        // All this to say, if we have a measure of 0, whether it's .leading or .trailing, if we're converting it to .trailing
+        // we know it's going to be 0.
+        if m1 == 0 && edge2 == .trailing {
             return 0
         }
 
-        if type(of: from) == type(of: to) {
+        if type(of: from) == type(of: to) && edge1 == edge2 {
             // If both metrics are the same, don't do any conversion.
             // This makes distance(from:to:using:) O(1) for the
             // base metric.
@@ -364,17 +431,15 @@ extension BTreeNode {
             return m1 as! M2.Unit
         }
 
-        // TODO: figure out m1_fudge in xi-editor. I believe it's just an optimization, so this code is probably fine.
-        // If you implement it, remember that the <= comparison becomes <. This optimization may not work for both
-        // leading and trailing boundaries, so be careful.
         var m1 = m1
         var m2: M2.Unit = 0
         var node = self
         while !node.isLeaf {
             let parent = node
-            for child in node.children {
+            for (i, child) in node.children.enumerated() {
                 let childM1 = child.measure(using: from)
-                if m1 <= childM1 {
+
+                if m1 < childM1 || (m1 <= childM1 && (edge1 == .leading || i == node.children.count-1)) {
                     node = child
                     break
                 }
@@ -384,18 +449,18 @@ extension BTreeNode {
             assert(node != parent)
         }
 
-        let base = from.convertToBaseUnits(m1, in: node.leaf, edge: edge)
-        return m2 + to.convertFromBaseUnits(base, in: node.leaf, edge: edge)
+        let base = from.convertToBaseUnits(m1, in: node.leaf, edge: edge1)
+        return m2 + to.convertToMeasuredUnits(base, in: node.leaf, edge: edge2)
     }
 }
 
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func count<M>(_ metric: M, upTo offset: Int, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
-        convert(offset, from: Summary.defaultMetric, to: metric, edge: edge)
+    func count<M>(_ metric: M, upThrough offset: Int, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
+        convert(offset, from: Summary.defaultMetric, edge: .trailing, to: metric, edge: edge)
     }
 
-    func countBaseUnits<M>(upTo measured: M.Unit, measuredIn metric: M, edge: BTreeMetricEdge) -> Int where M: BTreeMetric<Summary> {
-        convert(measured, from: metric, to: Summary.defaultMetric, edge: edge)
+    func countBaseUnits<M>(upThrough measured: M.Unit, measuredIn metric: M, edge: BTreeMetricEdge) -> Int where M: BTreeMetric<Summary> {
+        convert(measured, from: metric, edge: edge, to: Summary.defaultMetric, edge: .trailing)
     }
 }
 
@@ -481,7 +546,7 @@ extension BTreeNode {
             self.offsetOfLeaf = offset
         }
 
-        func isBoundary<M>(in metric: M, edge: BTreeMetricEdge) -> Bool where M: BTreeMetric<Summary> {
+        func isBoundary<M>(using metric: M, edge: BTreeMetricEdge) -> Bool where M: BTreeMetric<Summary> {
             assert(rootStorage != nil)
 
             guard let leaf else {
@@ -613,7 +678,7 @@ extension BTreeNode {
             }
 
             // The start of this new leaf might be a leading boundary
-            if edge == .leading && isBoundary(in: metric, edge: .leading) {
+            if edge == .leading && isBoundary(using: metric, edge: .leading) {
                 assert(offsetInLeaf == 0)
                 return position
             }
@@ -924,29 +989,43 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
     private func _index<M>(_ i: consuming Index, offsetBy distance: M.Unit, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
 
+        // Handling empty slices here makes some logic down below a bit easier.
+        if range.lowerBound.position == range.upperBound.position {
+            precondition(distance == 0, "Index out of bounds")
+            return i
+        }
+
         var i = _index(roundingDown: i, in: range, using: metric, edge: edge)
 
-        let min = _distance(from: startIndex, to: range.lowerBound, in: startIndex..<range.upperBound, using: metric)
-        let max = _distance(from: startIndex, to: range.upperBound, in: startIndex..<range.upperBound, using: metric)
+        var min = _distance(from: startIndex, to: range.lowerBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
+        var max = _distance(from: startIndex, to: range.upperBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
+        var m =   _distance(from: startIndex, to: i, in: startIndex..<range.upperBound, using: metric, edge: edge)
 
-        let m: M.Unit
-        if i.position == range.upperBound.position {
-            m = max
-        } else {
-            m = count(metric, upTo: i.position, edge: edge)
+        // Consider "\nfoo" without slicing (range = 0..<4). In this situation, 0 is not a valid measured unit in newlines,
+        // but e.g. if i.position == 1, distance(0, 1, 0..<4, .newlines, .leading) = 1 - 1 = 0. But m, which is the measure
+        // of where we're starting should be 1, not 0, because even the count of leading newline boundaries from startIndex..<startIndex
+        // is 0. This is true for any value of i that's less than upperBound.
+        //
+        // We have to bump min for the same reason. distance(0, 0) will always be 0, but because startIndex is a boundary, we
+        // want it to be 1.
+        if edge == .leading && startIndex.isBoundary(using: metric, edge: .leading) {
+            min += 1
+            max += 1
+            m += 1
         }
 
         precondition(m+distance >= min && m+distance <= max, "Index out of bounds")
 
-        if m + distance == min {
-            i.set(range.lowerBound.position)
-            return i
-        } else if m + distance == max {
+
+        if m + distance == max {
             i.set(range.upperBound.position)
+            return i
+        } else if m + distance == min {
+            i.set(range.lowerBound.position)
             return i
         }
 
-        let pos = countBaseUnits(upTo: m + distance, measuredIn: metric, edge: .trailing)
+        let pos = countBaseUnits(upThrough: m + distance, measuredIn: metric, edge: edge)
         i.set(pos)
         return i
     }
@@ -961,12 +1040,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         precondition(limit.position >= range.lowerBound.position && limit.position <= range.upperBound.position, "Index out of bounds")
 
         if distance < 0 && limit.position <= i.position {
-            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric, edge: edge), in: range, using: metric)
+            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance < l {
                 return nil
             }
         } else if distance > 0 && limit.position >= i.position {
-            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric, edge: edge), in: range, using: metric)
+            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance > l {
                 return nil
             }
@@ -976,7 +1055,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     // distance(from:to:in:using:) always counts trailing boundaries.
-    func distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    func distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
         start.validate(for: self)
         end.validate(for: self)
         range.lowerBound.assertValid(for: self)
@@ -984,32 +1063,85 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         precondition(start.position >= range.lowerBound.position && start.position <= range.upperBound.position, "Index out of bounds")
         precondition(end.position >= range.lowerBound.position && end.position <= range.upperBound.position, "Index out of bounds")
-        return _distance(from: start, to: end, in: range, using: metric)
+        return _distance(from: start, to: end, in: range, using: metric, edge: edge)
     }
 
-    private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+    private func _distance<M>(from start: Index, to end: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
         if start.position == end.position {
             return 0
         }
 
         let m: M.Unit
-        if start.position == 0 && end.position == count {
             m = measure(using: metric)
-        } else if start.position == count && end.position == 0 {
+        } else if edge == .trailing && start.position == count && end.position == 0 {
             m = -1 * measure(using: metric)
         } else {
-            m = count(metric, upTo: end.position, edge: .trailing) - count(metric, upTo: start.position, edge: .trailing)
+            m = count(metric, upThrough: end.position, edge: edge) - count(metric, upThrough: start.position, edge: edge)
         }
 
-        // In Collection, startIndex is always less than endIndex as long as count > 0. But for trailing metrics, endIndex might
-        // not be a boundary. E.g. measuring "foo", we want distance(0, 3, .newlines, .trailing) to == 1 even though
-        // count(.newlines, upTo: 0) == 0 and count(.newlines, upTo: 3) == 0. So if to == endIndex and it's not already a boundary
-        // (i.e. the string doesn't end in "\n"), we add 1.
+        // In Collection, startIndex is always less than endIndex as long as count > 0. But in the BTree, endIndex
+        // might not be a boundary. Some examples:
+        //
+        // either = {.leading, .trailing}
+        //
+        // "abc".distance(0, 3, .newlines, either) = 1
+        // "abc".distance(3, 0, .newlines, either) = -1
+        //
+        // Because "abc".count(.newlines, upThrough: 3, edge: either) will always return 0, we need to adjust
+        // `m` whenever either start or end == range.upperBound. In the first example, fudge=1 and the second,
+        // fudge = -1.
+        //
+        // Adding a newline at the end adds a bit more complexity.
+        //
+        // "ab\n".distance(0, 3, .newlines, either) = 1
+        // "ab\n".distance(3, 0, .newlines, either) = -1
+        //
+        // In this case, "ab\n".count(.newlines, upThrough: 3, edge: either) always returns 1, so we don't adjust
+        // (fudge = 0), even though end=range.upperBound and start=range.upperBound respectively.
+        //
+        // Slicing off the end (i.e. range.upperBound < count) doesn't change anything for .trailing boundaries,
+        // but it complicates leading boundaries some more.
+        //
+        // Consider slicing "ab\n" by 0..<2, yielding a substring of "ab" where start or end == range.upperBound.
+        //
+        // count(.newlines, upThrough: 2, edge: .trailing) = 0, so we need to adjust (i.e. abs(fudge) == 1). This is
+        // the same behavior as the non-sliced version.
+        //
+        // But for leading edges, we have a problem:
+        //
+        // count(.newlines, upThrough: 2, edge: .leading) = 1, so even if start or end == range.upperBound, we don't
+        // want to adjust (fudge = 0).
+        //
+        // TODO: I have a hunch this won't work with Heights, which is continuous. Look into it.
         let fudge: M.Unit
-        if start.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric, edge: .trailing) {
-            fudge = -1
-        } else if end.position == range.upperBound.position && !range.upperBound.isBoundary(in: metric, edge: .trailing) {
-            fudge = 1
+        if start.position == range.upperBound.position || end.position == range.upperBound.position {
+            if edge == .trailing {
+                if range.upperBound.isBoundary(using: metric, edge: .trailing) {
+                    fudge = 0
+                } else if end.position == range.upperBound.position {
+                    fudge = 1
+                } else {
+                    fudge = -1
+                }
+            } else {
+                // If we're slicing the end (i.e. upperBound.position < count) and upperBound
+                // is a leading boundary, we need to skip fudging. E.g. slicing "ab\n"
+                // by 0..<2 to yield "ab". In this situation, count(.newlines, 2, .leading)
+                // will return 1, and there's no need to fudge.
+                //
+                // If we're not slicing the end, we always need to add an extra leading
+                // index to `m`. In "ab".count(.newlines, 2, .leading) = 0, and
+                // "a\n".count(.newlines, 2, .leading) = 1, but the distance over the entire
+                // ranges should be 1 and 2 respenctively.
+
+                if range.upperBound.position < count && range.upperBound.isBoundary(using: metric, edge: .leading) {
+                    fudge = 0
+                } else if end.position == range.upperBound.position {
+                    fudge = 1
+                } else {
+                    fudge = -1
+                }
+            }
         } else {
             fudge = 0
         }
@@ -1027,7 +1159,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     private func _index<M>(roundingDown i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
-        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric, edge: edge) {
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(using: metric, edge: edge) {
             return i
         }
 
@@ -1050,7 +1182,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 
     private func _index<M>(roundingUp i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
-        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(in: metric, edge: edge) {
+        if i.position == range.lowerBound.position || i.position == range.upperBound.position || i.isBoundary(using: metric, edge: edge) {
             return i
         }
 
@@ -1081,7 +1213,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return true
         }
 
-        return i.isBoundary(in: metric, edge: edge)
+        return i.isBoundary(using: metric, edge: edge)
     }
 
     func count<M>(in range: Range<Index>, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
@@ -1095,7 +1227,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         if range.lowerBound.position == 0 && range.upperBound.position == count {
             return measure(using: metric)
         } else {
-            return count(metric, upTo: range.upperBound.position, edge: .leading) - count(metric, upTo: range.lowerBound.position, edge: .trailing)
+            return count(metric, upThrough: range.upperBound.position - 1, edge: .leading) - count(metric, upThrough: range.lowerBound.position, edge: .trailing)
         }
     }
 }

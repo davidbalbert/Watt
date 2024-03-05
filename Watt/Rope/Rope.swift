@@ -288,13 +288,20 @@ extension Rope {
         }
 
         func convertToBaseUnits(_ measuredUnits: Int, in leaf: Chunk, edge: BTreeMetricEdge) -> Int {
-            measuredUnits
+            switch edge {
+            case .leading: Swift.max(measuredUnits - 1, 0)
+            case .trailing: measuredUnits
+            }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: Chunk, edge: BTreeMetricEdge) -> Int {
-            baseUnits
+        func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Chunk, edge: BTreeMetricEdge) -> Int {
+            switch edge {
+            case .leading: Swift.min(baseUnits + 1, leaf.count)
+            case .trailing: baseUnits
+            }
         }
 
+        // Because UTF8Metric is atomic, we can ignore edge for isBoundary, prev, and next.
         func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
             true
         }
@@ -305,7 +312,7 @@ extension Rope {
         }
 
         func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
-            assert(offset < chunk.count)
+            assert(offset < chunk.count-1 || (edge == .leading && offset < chunk.count))
             return offset + 1
         }
 
@@ -330,8 +337,6 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF8Metric {
 // boundary. "Skip" is in quotes because there are not actually any leading
 // or trailing surrogates in Rope's storage. It's just Unicode scalars that
 // are encoded as UTF-8.
-//
-// UTF16Metric is atomic.
 extension Rope {
     struct UTF16Metric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
@@ -340,31 +345,37 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             let startIndex = chunk.string.startIndex
-
             let delta = (edge == .leading ? 1 : 0)
             let i = chunk.string.utf16Index(at: measuredUnits - delta)
-            return chunk.string.utf8.distance(from: startIndex, to: i) + delta
+            return chunk.string.utf8.distance(from: startIndex, to: i)
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+        func convertToMeasuredUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+            // Slightly optimized version of returning Swift.min(d + 1, chunk.string.utf16.count)
+            // for .leading. Skips the string index math below. Also works for .trailing.
+            if baseUnits == chunk.string.utf8.count {
+                return chunk.string.utf16.count
+            }
+
             let startIndex = chunk.string.startIndex
+            let i = chunk.string.utf8Index(at: baseUnits)
+            let d = chunk.string.utf16.distance(from: startIndex, to: i)
 
-            let delta = (edge == .leading ? 1 : 0)
-            let i = chunk.string.utf8Index(at: baseUnits - delta)
-            return chunk.string.utf16.distance(from: startIndex, to: i) + delta
+            switch edge {
+            case .leading: return d + 1
+            case .trailing: return d
+            }
         }
 
+        // Because UTF16Metric is atomic, we can ignore edge for isBoundary, prev, and next.
         func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
-            assert(offset > 0 || (edge == .leading && offset == 0))
-            assert(offset < chunk.count || (edge == .trailing && offset == chunk.count))
-
+            assert(offset >= 0 || offset <= chunk.count)
             let i = chunk.string.utf8Index(at: offset)
             return chunk.isValidUnicodeScalarIndex(i)
         }
 
         func prev(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
-            assert(offset > 0 || (edge == .leading && offset == 0))
-            assert(offset < chunk.count || (edge == .trailing && offset == chunk.count))
+            assert(offset > 1 || (edge == .trailing && offset > 0))
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
@@ -377,7 +388,7 @@ extension Rope {
         }
 
         func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
-            assert(offset < chunk.count)
+            assert(offset < chunk.count-1 || (edge == .leading && offset < chunk.count))
 
             let startIndex = chunk.string.startIndex
             let current = chunk.string.utf8Index(at: offset)
@@ -401,7 +412,6 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF16Metric {
 }
 
 extension Rope {
-    // UnicodeScalarMetric is atomic, so edge can be safely ignored.
     struct UnicodeScalarMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.scalars
@@ -409,20 +419,29 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             let startIndex = chunk.string.startIndex
-
             let delta = (edge == .leading ? 1 : 0)
             let i = chunk.string.unicodeScalarIndex(at: measuredUnits - delta)
-            return chunk.string.utf8.distance(from: startIndex, to: i) + delta
+            return chunk.string.utf8.distance(from: startIndex, to: i)
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+        func convertToMeasuredUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+            // Slightly optimized version of returning Swift.min(d + 1, chunk.unicodeScalars.count)
+            // for .leading. Skips the string index math below. Also works for .trailing.
+            if baseUnits == chunk.string.utf8.count {
+                return chunk.string.unicodeScalars.count
+            }
+
             let startIndex = chunk.string.startIndex
+            let i = chunk.string.utf8Index(at: baseUnits)
+            let d = chunk.string.unicodeScalars.distance(from: startIndex, to: i)
 
-            let delta = (edge == .leading ? 1 : 0)
-            let i = chunk.string.utf8Index(at: baseUnits - delta)
-            return chunk.string.unicodeScalars.distance(from: startIndex, to: i) + delta
+            switch edge {
+            case .leading: return d + 1
+            case .trailing: return d
+            }
         }
 
+        // Because UnicodeScalarMetric is atomic, we can ignore edge for isBoundary, prev, and next.
         func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
             let i = chunk.string.utf8Index(at: offset)
             return chunk.isValidUnicodeScalarIndex(i)
@@ -466,7 +485,6 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
 }
 
 extension Rope {
-    // CharacterMetric is atomic, so edge can be ignored in isBoundary, prev, and next.
     struct CharacterMetric: BTreeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.chars
@@ -474,31 +492,42 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= chunk.characters.count)
+            assert(measuredUnits > 0 || (edge == .trailing && measuredUnits > 0))
 
             if measuredUnits == 0 {
+                assert(edge == .trailing)
                 return chunk.prefixCount
             }
 
             let startIndex = chunk.characters.startIndex
-
             let delta = (edge == .leading ? 1 : 0)
             let i = chunk.characters.index(startIndex, offsetBy: measuredUnits - delta)
             assert(chunk.isValidCharacterIndex(i))
-            return chunk.prefixCount + chunk.string.utf8.distance(from: startIndex, to: i) + delta
+            return chunk.prefixCount + chunk.string.utf8.distance(from: startIndex, to: i)
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
-            if baseUnits == chunk.prefixCount {
+        func convertToMeasuredUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+            if baseUnits < chunk.prefixCount {
                 return 0
             }
 
-            let startIndex = chunk.characters.startIndex
+            // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
+            // for .leading. Skips the string index math below. Also works for .trailing.
+            if baseUnits == chunk.string.utf8.count {
+                return chunk.characters.count
+            }
 
-            let delta = (edge == .leading ? 1 : 0)
-            let i = chunk.string.utf8Index(at: baseUnits - delta)
-            return chunk.characters.distance(from: startIndex, to: i) + delta
+            let startIndex = chunk.characters.startIndex
+            let i = chunk.string.utf8Index(at: baseUnits)
+            let d = chunk.characters.distance(from: startIndex, to: i)
+
+            switch edge {
+            case .leading: return d + 1
+            case .trailing: return d
+            }
         }
 
+        // CharacterMetric is atomic, so edge can be ignored in isBoundary, prev, and next.
         func isBoundary(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Bool {
             assert(offset >= 0 && offset <= chunk.count)
 
@@ -565,8 +594,6 @@ extension Rope {
             summary.newlines
         }
 
-        // Because "\n" is a single base unit wide, counting leading edges and trailing edges works
-        // the same. One base unit after the leading edge of a "\n" is the same as the trailing edge.
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             let nl = UInt8(ascii: "\n")
 
@@ -574,19 +601,26 @@ extension Rope {
             var count = 0
             chunk.string.withExistingUTF8 { buf in
                 while count < measuredUnits {
-                    precondition(offset <= buf.count)
+                    precondition(offset < buf.count)
                     offset = buf[offset...].firstIndex(of: nl)! + 1
                     count += 1
                 }
             }
 
-            return offset
+            // The above code calculates the offset one byte after the Nth newline.
+
+            switch edge {
+            case .leading: return Swift.max(offset - 1, 0)
+            case .trailing: return offset
+            }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
+        func convertToMeasuredUnits(_ baseUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             return chunk.string.withExistingUTF8 { buf in
                 precondition(baseUnits <= buf.count)
-                return countNewlines(in: buf[..<baseUnits])
+                let delta = edge == .leading ? 1 : 0
+                let end = Swift.min(baseUnits+delta, buf.count)
+                return countNewlines(in: buf[..<end])
             }
         }
 
@@ -949,7 +983,7 @@ extension Rope: BidirectionalCollection {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading)
     }
 }
 
@@ -1203,7 +1237,7 @@ extension RopeView {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: metric)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge)
     }
 }
 
@@ -1301,7 +1335,7 @@ extension Rope.UTF16View {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .utf16)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading)
     }
 }
 
@@ -1436,7 +1470,7 @@ extension Rope.LineView {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .newlines)
+        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing)
     }
 }
 
@@ -1631,20 +1665,20 @@ extension Range where Bound == Rope.Index {
             return nil
         }
 
-        var i = rope.root.countBaseUnits(upTo: range.lowerBound, measuredIn: .utf16, edge: .trailing)
-        var j = rope.root.countBaseUnits(upTo: range.upperBound, measuredIn: .utf16, edge: .trailing)
+        var i = rope.root.countBaseUnits(upThrough: range.lowerBound, measuredIn: .utf16, edge: .trailing)
+        var j = rope.root.countBaseUnits(upThrough: range.upperBound, measuredIn: .utf16, edge: .trailing)
 
         // NSTextInputClient seems to sometimes receive ranges that start
         // or end on a trailing surrogate. Round them to the nearest
         // unicode scalar.
-        if rope.root.count(.utf16, upTo: i, edge: .trailing) != range.lowerBound {
-            assert(rope.root.count(.utf16, upTo: i, edge: .trailing) == range.lowerBound - 1)
+        if rope.root.count(.utf16, upThrough: i, edge: .trailing) != range.lowerBound {
+            assert(rope.root.count(.utf16, upThrough: i, edge: .trailing) == range.lowerBound - 1)
             print("!!! got NSRange starting on a trailing surrogate: \(range). I think this is expected, but try to reproduce and figure out if it's ok")
             i -= 1
         }
 
-        if rope.root.count(.utf16, upTo: j, edge: .trailing) != range.upperBound {
-            assert(rope.root.count(.utf16, upTo: j, edge: .trailing) == range.upperBound - 1)
+        if rope.root.count(.utf16, upThrough: j, edge: .trailing) != range.upperBound {
+            assert(rope.root.count(.utf16, upThrough: j, edge: .trailing) == range.upperBound - 1)
             j += 1
         }
 
@@ -1687,8 +1721,8 @@ extension NSRange {
         assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
 
         // TODO: is there a reason the majority of this initializer isn't just distance(from:to:)?
-        let i = rope.root.count(.utf16, upTo: range.lowerBound.position, edge: .trailing)
-        let j = rope.root.count(.utf16, upTo: range.upperBound.position, edge: .trailing)
+        let i = rope.root.count(.utf16, upThrough: range.lowerBound.position, edge: .trailing)
+        let j = rope.root.count(.utf16, upThrough: range.upperBound.position, edge: .trailing)
 
         self.init(location: i, length: j-i)
     }

@@ -304,7 +304,7 @@ extension Heights {
         get {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heights, edge: .trailing), "not a boundary")
+            precondition(i.isBoundary(using: .heights, edge: .trailing), "not a boundary")
 
             let (leaf, offset) = i.read()!
             let li = leaf.index(forOffsetInLeaf: offset)
@@ -321,7 +321,7 @@ extension Heights {
         set {
             i.validate(for: root)
             precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
-            precondition(i.isBoundary(in: .heights, edge: .trailing), "not a boundary")
+            precondition(i.isBoundary(using: .heights, edge: .trailing), "not a boundary")
 
             root.mutatingForEach(startingAt: i.position) { offsetOfLeaf, leaf in
                 let li = leaf.index(forOffsetInLeaf: i.position - offsetOfLeaf)
@@ -423,7 +423,7 @@ extension Heights {
             return root.measure(using: .heights) - height
         }
 
-        return root.count(.heights, upTo: offset, edge: .leading)
+        return root.count(.heights, upThrough: offset, edge: .leading)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {
@@ -439,7 +439,7 @@ extension Heights {
             return root.count - lineLength
         }
 
-        return root.countBaseUnits(upTo: yOffset, measuredIn: .heights, edge: .leading)
+        return root.countBaseUnits(upThrough: yOffset, measuredIn: .heights, edge: .leading)
     }
 
     // Returns an index at a base offset
@@ -463,11 +463,17 @@ extension Heights {
         }
 
         func convertToBaseUnits(_ measuredUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
-            measuredUnits
+            switch edge {
+            case .leading: Swift.max(measuredUnits - 1, 0)
+            case .trailing: measuredUnits
+            }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
-            baseUnits
+        func convertToMeasuredUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
+            switch edge {
+            case .leading: Swift.min(baseUnits + 1, leaf.count)
+            case .trailing: baseUnits
+            }
         }
 
         func isBoundary(_ offset: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Bool {
@@ -508,16 +514,12 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
 // leading (minY):
 // 0..<5 -> 0.0
 // 5..<10 -> 14.0
-// 10 -> 28.0      <- it's 28.0 because this should be the same as the minY of the first line of the next leaf
-//
-// NOTE: Ideally, the leading entry (10 -> 28.0) would return 14.0 if we are the last leaf because endIndex is
-// part of the last line, but getting isLastLeaf into the leaf turned out to be challenging.
-//
+// 10 -> 14.0
 //
 // trailing (maxY):
 // 0..<5 -> 14.0
 // 5..<10 -> 28.0
-// 10 -> 28.0      <- this is asymmetric with the leading case. I'm not exactly sure what to do with that yet, but it doesn't feel right.
+// 10 -> 28.0
 //
 //
 // heights -> base
@@ -525,11 +527,7 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
 // leading (lowerBound):
 // 0.0..<14.0 -> 0
 // 14.0..<28.0 -> 5
-// 28.0 -> 10
-//
-// NOTE: Ideally, the leading entry (28.0 -> 10) would return 14.0 if we are the last leaf because endIndex is
-// part of the last line, but getting isLastLeaf into the leaf turned out to be challenging.
-//
+// 28.0 -> 5
 //
 // trailing (upperBound):
 // 0.0..<14.0 -> 5
@@ -577,13 +575,8 @@ extension Heights {
         func convertToBaseUnits(_ measuredUnits: CGFloat, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= leaf.heights.last!)
 
-            // Same wierd asymmetry as below.
-            if measuredUnits == leaf.heights.last {
-                return leaf.positions.last!
-            }
-
             var (i, found) = leaf.heights.binarySearch(for: measuredUnits)
-            if found && i < leaf.heights.count - 1 {
+            if found && (edge == .leading || i < leaf.heights.count-1) {
                 i += 1
             }
 
@@ -595,16 +588,16 @@ extension Heights {
             }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> CGFloat {
+        func convertToMeasuredUnits(_ baseUnits: Int, in leaf: HeightsLeaf, edge: BTreeMetricEdge) -> CGFloat {
             assert(baseUnits <= leaf.count)
 
-            // Can't use binarySearch(for:) on an array with repeated elements,
-            // and leaf could have an empty last line.
+            // It's undefined to binarySearch(for:) when `for` is repeated in the array, and leaf.count
+            // will be repeated if we have a leaf with an empty last line (excluding an empty document
+            // which has positions=[0])
             if baseUnits == leaf.count {
                 switch edge {
                 case .leading:
-                    // This is a wierd asymmetry. See the examples above for a bit of context.
-                    return leaf.minY(ofLine: leaf.positions.count)
+                    return leaf.minY(ofLine: leaf.positions.count-1)
                 case .trailing:
                     return leaf.maxY(ofLine: leaf.positions.count-1)
                 }
@@ -627,22 +620,9 @@ extension Heights {
             precondition(offset > 0 || (edge == .leading && offset == 0))
             precondition(offset < leaf.count || (edge == .trailing && offset == leaf.count))
 
-            // binarySearch(for:) will return (i, true) for all boundaries other than
-            // 0. Specifically for [3, 6], search(3) will return (0, true),
-            // search(6) will return (1, true), but search(0) will return
-            // (0, false). This means we can't use found alone as a measure
-            // of whether we're at a boundary.
+            // Unless the leaf is totally empty (i.e. positions = [0]), binarySearch(for: 0)
+            // will always return found=false, but 0 is always a boundary.
             if offset == 0 {
-                return true
-            }
-
-            // Leaf.count is always a trailing boundary because leaf.count is always
-            // the end of the last line in the leaf (positions.last). It's always a
-            // leading boundary because it's either the start of the line in the next
-            // leaf, or it's the end of the monoid, which is always a leading boundary.
-            //
-            // I think this is more evidence that HeightsBaseMetric is in fact atomic.
-            if offset == leaf.count {
                 return true
             }
 

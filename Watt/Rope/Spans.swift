@@ -301,11 +301,17 @@ extension Spans {
         }
 
         func convertToBaseUnits(_ measuredUnits: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int {
-            measuredUnits
+            switch edge {
+            case .leading: Swift.max(measuredUnits - 1, 0)
+            case .trailing: measuredUnits
+            }
         }
 
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int {
-            baseUnits
+        func convertToMeasuredUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int {
+            switch edge {
+            case .leading: Swift.min(baseUnits + 1, leaf.count)
+            case .trailing: baseUnits
+            }
         }
 
         func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Bool {
@@ -344,22 +350,35 @@ extension Spans {
 // Consider a Spans of length 10 containing 2..<4 and 7..<8:
 //
 // 0 1 2 3 4 5 6 7 8 9
-//     ---       -
+//     |---      |-
 //
 // Leading boundaries are at 2, 7, and 10
 // Trailing boundaries are at 0, 4, and 8.
 //
-// count(SpansMetric(), upTo: 0) -> 0
-// count(SpansMetric(), upTo: 1) -> 0
-// count(SpansMetric(), upTo: 2) -> 0
-// count(SpansMetric(), upTo: 3) -> 0
-// count(SpansMetric(), upTo: 4) -> 1
-// count(SpansMetric(), upTo: 5)  -> 1
-// count(SpansMetric(), upTo: 6)  -> 1
-// count(SpansMetric(), upTo: 7)  -> 1
-// count(SpansMetric(), upTo: 8)  -> 2
-// count(SpansMetric(), upTo: 9)  -> 2
-// count(SpansMetric(), upTo: 10) -> 2
+// Counting leading edges:
+//
+// count(SpansMetric(), upThrough: 0, edge: .leading) -> 0
+// count(SpansMetric(), upThrough: 1, edge: .leading) -> 0
+// count(SpansMetric(), upThrough: 2, edge: .leading) -> 1
+// ...
+// count(SpansMetric(), upThrough: 6, edge: .leading) -> 1
+// count(SpansMetric(), upThrough: 7, edge: .leading) -> 2
+// ...
+// count(SpansMetric(), upThrough: 10, edge: .leading) -> 1
+//
+//
+//
+// Counting trailing edges:
+//
+// count(SpansMetric(), upThrough: 0, edge: .trailing) -> 0
+// ...
+// count(SpansMetric(), upThrough: 3, edge: .trailing) -> 0
+// count(SpansMetric(), upThrough: 4, edge: .trailing) -> 1
+// ...
+// count(SpansMetric(), upThrough: 7, edge: .trailing)  -> 1
+// count(SpansMetric(), upThrough: 8, edge: .trailing)  -> 2
+// ...
+// count(SpansMetric(), upThrough: 10, edge: .trailing) -> 2
 extension Spans {
     struct SpansMetric: BTreeMetric {
         func measure(summary: SpansSummary<T>, count: Int) -> Int {
@@ -372,22 +391,27 @@ extension Spans {
             }
             switch edge {
             case .leading:
-                return leaf.spans[measuredUnits-1].range.lowerBound + 1
+                return leaf.spans[measuredUnits-1].range.lowerBound
             case .trailing:
                 return leaf.spans[measuredUnits-1].range.upperBound
             }
         }
         
-        func convertFromBaseUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int {
-            for i in 0..<leaf.spans.count {
-                let range = leaf.spans[i].range
-                let target = edge == .leading ? range.lowerBound + 1 : range.upperBound
-
-                if baseUnits < target {
-                    return i
-                }
+        func convertToMeasuredUnits(_ baseUnits: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int {
+            var i: Int
+            let found: Bool
+            switch edge {
+            case .leading:
+                (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: baseUnits)
+            case .trailing:
+                (i, found) = leaf.spans.map(\.range.upperBound).binarySearch(for: baseUnits)
             }
-            return leaf.spans.count
+
+            if found {
+                i += 1
+            }
+
+            return i
         }
 
         func isBoundary(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Bool {
@@ -508,7 +532,7 @@ extension Spans: BidirectionalCollection {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start, to: end, in: startIndex..<endIndex, using: SpansMetric())
+        root.distance(from: start, to: end, in: startIndex..<endIndex, using: SpansMetric(), edge: .leading)
     }
 }
 
@@ -536,7 +560,7 @@ struct SpansSlice<T> {
     }
 
     var upperBound: Int {
-        root.distance(from: bounds.lowerBound, to: bounds.upperBound, in: bounds.lowerBound..<bounds.upperBound, using: Spans.SpansBaseMetric())
+        root.distance(from: bounds.lowerBound, to: bounds.upperBound, in: bounds.lowerBound..<bounds.upperBound, using: Spans.SpansBaseMetric(), edge: .leading)
     }
 }
 
@@ -616,7 +640,7 @@ extension SpansSlice: BidirectionalCollection {
     }
 
     func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start, to: end, in: startIndex..<endIndex, using: Spans.SpansMetric())
+        root.distance(from: start, to: end, in: startIndex..<endIndex, using: Spans.SpansMetric(), edge: .leading)
     }
 }
 
