@@ -1079,7 +1079,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return 0
         }
 
+        // TODO: we should be able to remove the edge == .trailing check so that we can use measure(using:)
+        // with leading metrics. The issue is that if we have a metric where 0[pos] is a .leading boundary,
+        // measure(using: metric) will return one boundary past count(end) - count(start), and we'd need to
+        // correct for that.
         let m: M.Unit
+        if edge == .trailing && start.position == 0 && end.position == count {
             m = measure(using: metric)
         } else if edge == .trailing && start.position == count && end.position == 0 {
             m = -1 * measure(using: metric)
