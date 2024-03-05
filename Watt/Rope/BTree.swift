@@ -1006,16 +1006,14 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         // of where we're starting should be 1, not 0, because even the count of leading newline boundaries from startIndex..<startIndex
         // is 0. This is true for any value of i that's less than upperBound.
         //
-        // We have to bump min for the same reason. distance(0, 0) will always be 0, but because startIndex is a boundary, we
+        // We have to bump min and max for the same reason. distance(0, 0) will always be 0, but because startIndex is a boundary, we
         // want it to be 1.
         if edge == .leading && startIndex.isBoundary(using: metric, edge: .leading) {
             min += 1
             max += 1
             m += 1
         }
-
         precondition(m+distance >= min && m+distance <= max, "Index out of bounds")
-
 
         if m + distance == max {
             i.set(range.upperBound.position)
