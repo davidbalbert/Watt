@@ -576,6 +576,18 @@ extension Heights {
             assert(measuredUnits <= leaf.heights.last!)
 
             var (i, found) = leaf.heights.binarySearch(for: measuredUnits)
+
+            // If measuredUnits is equal to the height of the leaf (leaf.heights.last),
+            // binarySearch will return (leaf.heights.count-1, true). If we were to
+            // increment
+
+            // measuredUnits being equal to the maxY of the whole leaf (leaf.heights.last)
+            // is a special case when we're asking for the trailing edge. There's no line
+            // that starts at the leaf's maxY, so we want to return the last line in the
+            // leaf, that ends there.
+            //
+            // If we were to increment i to leaf.heights.count, upperBound(ofLine:) would
+            // trap with index out of bounds.
             if found && (edge == .leading || i < leaf.heights.count-1) {
                 i += 1
             }
