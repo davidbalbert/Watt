@@ -995,8 +995,6 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        var i = _index(roundingDown: i, in: range, using: metric, edge: edge)
-
         var min = _distance(from: startIndex, to: range.lowerBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
         var max = _distance(from: startIndex, to: range.upperBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
         var m =   _distance(from: startIndex, to: i, in: startIndex..<range.upperBound, using: metric, edge: edge)
