@@ -312,7 +312,7 @@ extension Rope {
         }
 
         func next(_ offset: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int? {
-            assert(offset < chunk.count-1 || (edge == .leading && offset < chunk.count))
+            assert(offset < chunk.count)
             return offset + 1
         }
 

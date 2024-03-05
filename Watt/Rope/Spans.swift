@@ -318,19 +318,16 @@ extension Spans {
             true
         }
 
+        // TODO: the fact that prev accepts offset == 0 and next accepts offset == leaf.count
+        // is different from UTF8Metric and HeightsBaseMetric. Figure out why that is and write
+        // a comment explaining it.
         func prev(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int? {
-            assert(offset >= 0)
-            if offset == 0 {
-                return nil
-            }
+            assert(offset > 0)
             return offset - 1
         }
 
         func next(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int? {
-            assert(offset <= leaf.count)
-            if offset == leaf.count {
-                return nil
-            }
+            assert(offset < leaf.count)
             return offset + 1
         }
 
