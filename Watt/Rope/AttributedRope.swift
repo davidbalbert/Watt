@@ -143,6 +143,12 @@ extension AttributedRope {
     }
 }
 
+extension AttributedSubrope {
+    var runs: AttributedRope.Runs {
+        AttributedRope.Runs(base: base, bounds: bounds)
+    }
+}
+
 extension AttributedRope.Runs: BidirectionalCollection {
     typealias Index = AttributedRope.Index
 
