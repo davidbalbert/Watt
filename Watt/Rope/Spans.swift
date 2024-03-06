@@ -165,26 +165,6 @@ struct Spans<T>: BTree {
         self.init(slice.root, slicedBy: start..<end)
     }
 
-    func span(at offset: Int) -> Span<T>? {
-        let i = root.index(at: offset)
-
-        guard let (leaf, offsetInLeaf) = i.read() else {
-            return nil
-        }
-
-        for span in leaf.spans {
-            if span.range.contains(offsetInLeaf) {
-                return Span(range: span.range.offset(by: i.offsetOfLeaf), data: span.data)
-            }
-        }
-
-        return nil
-    }
-
-    func data(at offset: Int) -> T? {
-        span(at: offset)?.data
-    }
-
     func merging<O>(_ other: Spans<T>, transform: (T?, T?) -> O?) -> Spans<O> {
         precondition(upperBound == other.upperBound)
 

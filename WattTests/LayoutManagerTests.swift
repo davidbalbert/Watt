@@ -64,7 +64,7 @@ final class LayoutManagerTests: XCTestCase {
         let layoutManager = makeLayoutManager("abc")
         let buffer = layoutManager.buffer
 
-        let font = buffer.getAttributes(at: buffer.index(at: 0)).font!
+        let font = buffer.runs[buffer.index(at: 0)].font!
         XCTAssertEqual(charWidth, font.maximumAdvancement.width)
 
         let line = layoutManager.line(containing: buffer.index(at: 0))

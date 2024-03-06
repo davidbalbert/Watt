@@ -617,7 +617,7 @@ class LayoutManager {
             attrs = delegate?.defaultAttributes(for: self) ?? AttributedRope.Attributes()
         } else {
             let last = buffer.index(before: buffer.endIndex)
-            attrs = buffer.getAttributes(at: last)
+            attrs = buffer.runs[last].attributes
         }
 
         let origin = CGPoint(x: textContainer.lineFragmentPadding, y: 0)

@@ -284,10 +284,6 @@ class Buffer {
         }
     }
 
-    func getAttributes(at i: Index) -> AttributedRope.Attributes {
-        contents.getAttributes(at: i)
-    }
-
     func applyTokens(_ tokens: [Token]) {
         var ranges: [Range<Index>] = []
 

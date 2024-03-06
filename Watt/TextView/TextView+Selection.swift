@@ -12,9 +12,9 @@ extension TextView {
         if buffer.isEmpty {
             typingAttributes = defaultAttributes
         } else if selection.lowerBound == buffer.endIndex {
-            typingAttributes = buffer.getAttributes(at: buffer.index(before: selection.lowerBound))
+            typingAttributes = buffer.runs[buffer.index(before: selection.lowerBound)].attributes
         } else {
-            typingAttributes = buffer.getAttributes(at: selection.lowerBound)
+            typingAttributes = buffer.runs[selection.lowerBound].attributes
         }
     }
 
