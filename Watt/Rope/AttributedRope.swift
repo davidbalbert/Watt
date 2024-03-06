@@ -822,13 +822,11 @@ extension AttributedRope {
         }
         _modify {
             var c = CharacterView(base: self, bounds: startIndex..<endIndex)
-            text = Rope()
-            spans = SpansBuilder<Attributes>(totalCount: 0).build()
+            self = AttributedRope()
 
             yield &c
 
-            text = c.base.text
-            spans = c.base.spans
+            self = c.base
         }
     }
 }
