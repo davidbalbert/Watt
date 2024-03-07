@@ -766,6 +766,9 @@ extension AttributedRope {
 
             yield AttributedSubrope(base: self, bounds: bounds)
         }
+        // TODO: it's possible to for the caller to totally replace c.base rather
+        // than modifying the one we give it. We should prevent this. AttributedString
+        // sets an ID and then verifies that it remians the same after the yield.
         _modify {
             let bounds = bounds.relative(to: text)
             bounds.lowerBound.validate(for: text)
@@ -820,6 +823,9 @@ extension AttributedRope {
         _read {
             yield CharacterView(base: self, bounds: startIndex..<endIndex)
         }
+        // TODO: it's possible to for the caller to totally replace c.base rather
+        // than modifying the one we give it. We should prevent this. AttributedString
+        // sets an ID and then verifies that it remians the same after the yield.
         _modify {
             var c = CharacterView(base: self, bounds: startIndex..<endIndex)
             self = AttributedRope()
