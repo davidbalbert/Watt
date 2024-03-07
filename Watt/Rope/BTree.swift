@@ -957,8 +957,20 @@ extension BTreeNode.Index: CustomStringConvertible {
 // at the end of the tree) and Swift collection semantics (every collection has a startIndex
 // and endIndex regardless of what metric backs it).
 //
-// We use assertValid rather than validate for the passed in range because these should never
-// be user supplied.
+// All Collection helpers take a range, which allows them to be used for both the base
+// Collection as well as slice types.
+//
+// Rules for index validation:
+// 1. All the public index helpers validate their user-provided indices with preconditions.
+//    The caller, which should be in a type that implements BTree, does not need to validate.
+// 2. The ranges are assumed to be valid because they are not user provided. If a Rope is sliced
+//    to a Subrope, the indices should be validated at the point the Subrope is created. After
+//    that they are assumed valid.
+// 3. All index validation should happen at the top of the first Collection helper called by the
+//    type that implements the BTree protocol. If it needs to call another collection helper,
+//    it should call the underscored version of that helper that skips validation.
+// 4. Every Collection helper, both public and private, should call assertValid(for:) on its
+//    indices, which validate with assert instead of precondition.
 extension BTreeNode where Summary: BTreeDefaultMetric {
     func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
