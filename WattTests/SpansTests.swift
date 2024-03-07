@@ -208,6 +208,29 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
     }
 
+    func testIteration() {
+        var sb = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            sb.add(i, covering: i..<i+2)
+        }
+        let spans = sb.build()
+
+        var i = 0
+        for span in spans {
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+            i += 2
+        }
+
+        // reverse
+        i = 254
+        for span in spans.reversed() {
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+            i -= 2
+        }
+    }
+
     func testBuilderFixupPushSlicedByEmptyBuilder() {
         var sb = SpansBuilder<Int>(totalCount: 256)
         for i in stride(from: 0, through: 255, by: 2) {
