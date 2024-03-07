@@ -802,7 +802,7 @@ extension AttributedSubrope {
         bounds.upperBound
     }
 
-    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
+    subscript<R>(bounds: R) -> AttributedSubrope where R: RangeExpression<AttributedRope.Index> {
         let bounds = bounds.relative(to: base.text)
         bounds.lowerBound.validate(for: base.text)
         bounds.upperBound.validate(for: base.text)
