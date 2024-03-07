@@ -128,6 +128,27 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, Rope(sr).root.height)
     }
 
+    func testSliceRopeOnUTF8BoundaryProducesScalarAlignedDegenerateSubrope() {
+        let r = Rope("a\u{0301}b")
+
+        XCTAssertEqual(2, r.count)
+        XCTAssertEqual(3, r.unicodeScalars.count)
+        XCTAssertEqual(3, r.utf16.count)
+        XCTAssertEqual(4, r.utf8.count)
+
+        // slicing half way through the combining character rounds
+        // down to the nearest unicode scalar, leaving the subrope
+        // degenerate.
+        let subrope = r[r.utf8.index(at: 2)...]
+
+        XCTAssertEqual(2, subrope.count)
+        XCTAssertEqual(2, subrope.unicodeScalars.count)
+        XCTAssertEqual(2, subrope.utf16.count)
+        XCTAssertEqual(3, subrope.utf8.count)
+
+        XCTAssertEqual("\u{0301}b", String(subrope))
+    }
+
     func testReplaceSubrangeFullRange() {
         var r = Rope("abc")
         r.replaceSubrange(r.startIndex..<r.endIndex, with: "def")
@@ -1048,6 +1069,35 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, r.unicodeScalars.index(r.utf8.index(at: 22), offsetBy: -6).position)
     }
 
+    func testIndexOffsetByLimitedByAccent() {
+        let s = "é"
+        let r = Rope(s)
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 0), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 1), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(2, r.index(r.utf8.index(at: 2), offsetBy: 0, limitedBy: r.utf8.index(at: 0))?.position)
+
+        XCTAssertNil(r.index(r.utf8.index(at: 0), offsetBy: 1, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertEqual(2, r.index(r.utf8.index(at: 1), offsetBy: 1, limitedBy: r.utf8.index(at: 0))?.position)
+        assertCrashes(r.index(r.utf8.index(at: 2), offsetBy: 1, limitedBy: r.utf8.index(at: 0))?.position)
+
+        XCTAssertNil(r.index(r.utf8.index(at: 0), offsetBy: 1, limitedBy: r.utf8.index(at: 1))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 1), offsetBy: 1, limitedBy: r.utf8.index(at: 1))?.position)
+        assertCrashes(r.index(r.utf8.index(at: 2), offsetBy: 1, limitedBy: r.utf8.index(at: 1))?.position)
+
+        XCTAssertNil(r.index(r.utf8.index(at: 2), offsetBy: -1, limitedBy: r.utf8.index(at: 2))?.position)
+        assertCrashes(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 2))?.position)
+        assertCrashes(r.index(r.utf8.index(at: 0), offsetBy: -1, limitedBy: r.utf8.index(at: 2))?.position)
+
+        XCTAssertNil(r.index(r.utf8.index(at: 2), offsetBy: -1, limitedBy: r.utf8.index(at: 1))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 1))?.position)
+        assertCrashes(r.index(r.utf8.index(at: 0), offsetBy: -1, limitedBy: r.utf8.index(at: 1))?.position)
+
+        XCTAssertEqual(0, r.index(r.utf8.index(at: 2), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 1), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+        XCTAssertNil(r.index(r.utf8.index(at: 0), offsetBy: -1, limitedBy: r.utf8.index(at: 0))?.position)
+    }
+
     func testIndexOffsetByLimitedByEmoji() {
         let s = "😁😬"
         let r = Rope(s)
@@ -1332,362 +1382,314 @@ final class RopeTests: XCTestCase {
     func testLinesIndexAt() {
         var r = Rope("")
         var i = r.lines.index(at: 0)
-        XCTAssertEqual(r.startIndex, i)
+        XCTAssertEqual(r.index(at: 0), i)
 
-        i = r.lines.index(at: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
+        assertCrashes(r.lines.index(at: 1))
 
         r = Rope("foo")
         i = r.lines.index(at: 0)
-        XCTAssertEqual(r.startIndex, i)
+        XCTAssertEqual(r.index(at: 0), i)
 
         i = r.lines.index(at: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
+        XCTAssertEqual(r.index(at: 3), i)
 
         r = Rope("foo\n")
         i = r.lines.index(at: 0)
-        XCTAssertEqual(r.startIndex, i)
+        XCTAssertEqual(r.index(at: 0), i)
 
         i = r.lines.index(at: 1)
-        XCTAssertEqual(r.endIndex, i)
-
-        i = r.lines.index(at: 2)
-        XCTAssertEqual(r.lines.endIndex, i)
+        XCTAssertEqual(r.index(at: 4), i)
     }
 
     func testLinesIndexAfter() {
         var r = Rope("")
-        var i = r.lines.index(after: r.startIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(after: r.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        // out of bounds
-        assertCrashes(r.lines.index(after: r.lines.endIndex))
+        assertCrashes(r.lines.index(after: r.index(at: 0)))
 
         r = Rope("foo")
-        i = r.lines.index(after: r.index(at: 0)) // r.startIndex
-        XCTAssertEqual(r.lines.endIndex, i)
+        var i = r.lines.index(after: r.index(at: 0))
+        XCTAssertEqual(r.index(at: 3), i)
 
-        i = r.lines.index(after: r.index(at: 1))
-        XCTAssertEqual(r.lines.endIndex, i)
+        i = r.lines.index(after: r.index(at: 2))
+        XCTAssertEqual(r.index(at: 3), i)
 
-        i = r.lines.index(after: r.index(at: 3)) // r.endIndex
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        // out of bounds
-        assertCrashes(r.lines.index(after: r.lines.endIndex))
+        assertCrashes(r.lines.index(after: r.index(at: 3)))
 
         r = Rope("foo\n")
-        i = r.lines.index(after: r.index(at: 0)) // r.startIndex
-        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+        i = r.lines.index(after: r.index(at: 0))
+        XCTAssertEqual(r.index(at: 4), i)
 
         i = r.lines.index(after: r.index(at: 3))
-        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+        XCTAssertEqual(r.index(at: 4), i)
 
-        i = r.lines.index(after: r.index(at: 4))
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        // out of bounds
-        assertCrashes(r.lines.index(after: r.lines.endIndex))
+        assertCrashes(r.lines.index(after: r.index(at: 4)))
     }
 
     func testLinesIndexBefore() {
         var r = Rope("")
-        var i = r.lines.index(before: r.lines.endIndex)
-        XCTAssertEqual(r.startIndex, i)
-
-        // out of bounds
-        assertCrashes(r.lines.index(before: r.endIndex))
+        assertCrashes(r.lines.index(before: r.index(at: 0)))
 
         r = Rope("foo")
-        i = r.lines.index(before: r.lines.endIndex)
-        XCTAssertEqual(r.startIndex, i)
 
-        // out of bounds
-        assertCrashes(r.lines.index(before: r.endIndex))
+        var i = r.lines.index(before: r.index(at: 3))
+        XCTAssertEqual(r.index(at: 0), i)
+        assertCrashes(r.lines.index(before: r.index(at: 2)))
 
         r = Rope("foo\n")
-        i = r.lines.index(before: r.lines.endIndex)
-        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
-
         i = r.lines.index(before: r.index(at: 4))
         XCTAssertEqual(r.index(at: 0), i)
 
-        // out of bounds
         assertCrashes(r.lines.index(before: r.index(at: 3)))
     }
 
     func testLinesIndexOffsetBy() {
         var r = Rope("")
-        var i = r.lines.index(r.startIndex, offsetBy: 0)
-        XCTAssertEqual(r.startIndex, i)
-
-        i = r.lines.index(r.startIndex, offsetBy: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: 0)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: -1)
-        XCTAssertEqual(r.startIndex, i)
-
-        // out of bounds
-        assertCrashes(r.lines.index(r.startIndex, offsetBy: 2))
-
-        // out of bounds
-        assertCrashes(r.lines.index(r.lines.endIndex, offsetBy: 1))
-
-        // out of bounds
-        assertCrashes(r.lines.index(r.lines.endIndex, offsetBy: -2))
-
-        r = Rope("foo")
-        i = r.lines.index(r.index(at: 0), offsetBy: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.index(at: 2), offsetBy: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.index(at: 3), offsetBy: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        // out of bounds
-        assertCrashes(i = r.lines.index(r.index(at: 0), offsetBy: 2))
-
-        // out of bounds
-        assertCrashes(i = r.lines.index(r.index(at: 3), offsetBy: 2))
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: -1)
+        var i = r.lines.index(r.index(at: 0), offsetBy: 0)
         XCTAssertEqual(r.index(at: 0), i)
 
-        // out of bounds
-        assertCrashes(i = r.lines.index(r.index(at: 3), offsetBy: -1))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: 1))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -1))
 
-        // out of bounds
-        assertCrashes(i = r.lines.index(r.lines.endIndex, offsetBy: -2))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: 2))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -2))
+
+        r = Rope("foo")
+        i = r.lines.index(r.index(at: 0), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 3), i)
+
+
+        i = r.lines.index(r.index(at: 0), offsetBy: 1)
+        XCTAssertEqual(r.index(at: 3), i)
+
+        i = r.lines.index(r.index(at: 2), offsetBy: 1)
+        XCTAssertEqual(r.index(at: 3), i)
+
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 1))
+
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: 2))
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 2))
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 2))
+
+        i = r.lines.index(r.index(at: 3), offsetBy: -1)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: -1))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -2))
+
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: -2))
 
         r = Rope("foo\n")
+        i = r.lines.index(r.index(at: 0), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 3), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        i = r.lines.index(r.index(at: 4), offsetBy: 0)
+        XCTAssertEqual(r.index(at: 4), i)
+
+
         i = r.lines.index(r.index(at: 0), offsetBy: 1)
-        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+        XCTAssertEqual(r.index(at: 4), i)
 
         i = r.lines.index(r.index(at: 3), offsetBy: 1)
-        XCTAssertEqual(r.index(at: 4), i) // r.endIndex
+        XCTAssertEqual(r.index(at: 4), i)
 
-        i = r.lines.index(r.index(at: 4), offsetBy: 1)
-        XCTAssertEqual(r.lines.endIndex, i)
+        assertCrashes(r.lines.index(r.index(at: 4), offsetBy: 1))
 
-        // out of bounds
-        assertCrashes(i = r.lines.index(r.index(at: 4), offsetBy: 2))
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: 2))
+        assertCrashes(r.lines.index(r.index(at: 4), offsetBy: 2))
+
+        i = r.lines.index(r.index(at: 4), offsetBy: -1)
+        XCTAssertEqual(r.index(at: 0), i)
+
+        assertCrashes(r.lines.index(before: r.index(at: 3)))
     }
 
     func testLinesIndexOffsetByLimitedBy() {
         var r = Rope("")
-        var i = r.lines.index(r.index(at: 0), offsetBy: 0, limitedBy: r.startIndex)
-        XCTAssertEqual(r.startIndex, i)
+        XCTAssertEqual(0, r.lines.index(r.index(at: 0), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
 
-        i = r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.startIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: 0, limitedBy: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: 1, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: -1, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.lines.endIndex, offsetBy: -2, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 0)))
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 0)))
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 0)))
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 0)))
 
 
-        r = Rope("foo")
-        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.endIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
-
-        i = r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.lines.endIndex)
-        XCTAssertNil(i)
-
-        // the second character is still part of the first line, so even though
-        // the 2[utf8] > 0[utf8], they're part of the same line, so the limit
-        // does take effect
-        i = r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.startIndex)
-        XCTAssertNil(i)
-
-        // Same applies to r.endIndex, which is still part of the first line
-        i = r.lines.index(r.endIndex, offsetBy: 1, limitedBy: r.startIndex)
-        XCTAssertNil(i)
+        r = Rope("fo")
+        XCTAssertEqual(0, r.lines.index(r.index(at: 0), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(0, r.lines.index(r.index(at: 1), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(2, r.lines.index(r.index(at: 2), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
 
 
-        r = Rope("foo\n")
-        i = r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.endIndex)
-        XCTAssertEqual(r.index(at: 4), i)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(2, r.lines.index(r.index(at: 1), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
 
-        i = r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.endIndex)
-        XCTAssertNil(i)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 1))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: 1, limitedBy: r.index(at: 1))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 1))?.position)
 
-        i = r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.lines.endIndex)
-        XCTAssertEqual(r.index(at: 4), i)
+        XCTAssertEqual(2, r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
+        XCTAssertEqual(2, r.lines.index(r.index(at: 1), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
 
-        i = r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
 
-        i = r.lines.index(r.index(at: 4), offsetBy: -1, limitedBy: r.startIndex)
-        XCTAssertEqual(r.index(at: 0), i)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 1), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
 
-        i = r.lines.index(r.index(at: 3), offsetBy: -1, limitedBy: r.startIndex)
-        XCTAssertNil(i)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 1))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: -1, limitedBy: r.index(at: 1))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 1))?.position)
+
+        XCTAssertEqual(0, r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 1), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 1))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: 2, limitedBy: r.index(at: 1))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 1))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+
+
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 1), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 1))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: -2, limitedBy: r.index(at: 1))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 1))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 1), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
+
+
+
+        r = Rope("fo\n")
+        XCTAssertEqual(0, r.lines.index(r.index(at: 0), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(0, r.lines.index(r.index(at: 2), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(3, r.lines.index(r.index(at: 3), offsetBy: 0, limitedBy: r.index(at: 0))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(3, r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.index(at: 2))?.position)
+
+        XCTAssertEqual(3, r.lines.index(r.index(at: 0), offsetBy: 1, limitedBy: r.index(at: 3))?.position)
+        XCTAssertEqual(3, r.lines.index(r.index(at: 2), offsetBy: 1, limitedBy: r.index(at: 3))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: 1, limitedBy: r.index(at: 3))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: -1, limitedBy: r.index(at: 3))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 3))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 3))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 2))?.position)
+
+        XCTAssertEqual(0, r.lines.index(r.index(at: 3), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.index(at: 2))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: 2, limitedBy: r.index(at: 3))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: 2, limitedBy: r.index(at: 3))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: 2, limitedBy: r.index(at: 3))?.position)
+
+
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: -2, limitedBy: r.index(at: 3))?.position)
+        assertCrashes(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 3))?.position)
+        assertCrashes(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 3))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+        assertCrashes(r.lines.index(r.index(at: 1), offsetBy: -2, limitedBy: r.index(at: 2))?.position)
+
+        XCTAssertNil(r.lines.index(r.index(at: 3), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 2), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 0), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
 
 
         r = Rope("foo\nbar\nbaz")
-        i = r.lines.index(r.index(at: 4), offsetBy: 1, limitedBy: r.startIndex)
-        XCTAssertEqual(r.index(at: 8), i)
-
-        i = r.lines.index(r.index(at: 4), offsetBy: 2, limitedBy: r.startIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(r.index(at: 4), offsetBy: -1, limitedBy: r.startIndex)
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(r.index(at: 4), offsetBy: -2, limitedBy: r.startIndex)
-        XCTAssertNil(i)
+        XCTAssertEqual(8, r.lines.index(r.index(at: 4), offsetBy: 1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(11, r.lines.index(r.index(at: 4), offsetBy: 2, limitedBy: r.index(at: 0))?.position)
+        XCTAssertEqual(0, r.lines.index(r.index(at: 4), offsetBy: -1, limitedBy: r.index(at: 0))?.position)
+        XCTAssertNil(r.lines.index(r.index(at: 4), offsetBy: -2, limitedBy: r.index(at: 0))?.position)
     }
 
     func testLinesDistance() {
-        var r = Rope("foo")
-        var d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 0))
-        XCTAssertEqual(0, d)
+        var r = Rope("fo")
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 0), to: r.index(at: 0)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 0), to: r.index(at: 1)))
+        XCTAssertEqual(1, r.lines.distance(from: r.index(at: 0), to: r.index(at: 2)))
 
-        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 3))
-        XCTAssertEqual(0, d)
+        XCTAssertEqual(1, r.lines.distance(from: r.index(at: 1), to: r.index(at: 2)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 2), to: r.index(at: 2)))
 
-        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 3))
-        XCTAssertEqual(0, d)
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 2), to: r.index(at: 1)))
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 2), to: r.index(at: 0)))
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 2), to: r.index(at: 1)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 1), to: r.index(at: 0)))
 
-        d = r.lines.distance(from: r.index(at: 0), to: r.lines.endIndex)
-        XCTAssertEqual(1, d)
 
-        d = r.lines.distance(from: r.index(at: 3), to: r.lines.endIndex)
-        XCTAssertEqual(1, d)
+        r = Rope("fo\n")
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 0), to: r.index(at: 0)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 0), to: r.index(at: 1)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 0), to: r.index(at: 2)))
+        XCTAssertEqual(1, r.lines.distance(from: r.index(at: 0), to: r.index(at: 3)))
 
-        d = r.lines.distance(from: r.lines.endIndex, to: r.lines.endIndex)
-        XCTAssertEqual(0, d)
+        XCTAssertEqual(1, r.lines.distance(from: r.index(at: 1), to: r.index(at: 3)))
+        XCTAssertEqual(1, r.lines.distance(from: r.index(at: 2), to: r.index(at: 3)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 3), to: r.index(at: 3)))
 
-        d = r.lines.distance(from: r.lines.endIndex, to: r.index(at: 3))
-        XCTAssertEqual(-1, d)
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 3), to: r.index(at: 2)))
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 3), to: r.index(at: 1)))
+        XCTAssertEqual(-1, r.lines.distance(from: r.index(at: 3), to: r.index(at: 0)))
 
-        d = r.lines.distance(from: r.lines.endIndex, to: r.index(at: 0))
-        XCTAssertEqual(-1, d)
-
-        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 1))
-        XCTAssertEqual(0, d)
-
-        r = Rope("foo\n")
-        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 3))
-        XCTAssertEqual(0, d)
-
-        d = r.lines.distance(from: r.index(at: 0), to: r.index(at: 4))
-        XCTAssertEqual(1, d)
-
-        d = r.lines.distance(from: r.index(at: 3), to: r.index(at: 4))
-        XCTAssertEqual(1, d)
-
-        d = r.lines.distance(from: r.index(at: 3), to: r.lines.endIndex)
-        XCTAssertEqual(2, d)
-
-        d = r.lines.distance(from: r.index(at: 4), to: r.lines.endIndex)
-        XCTAssertEqual(1, d)
-
-        d = r.lines.distance(from: r.lines.endIndex, to: r.lines.endIndex)
-        XCTAssertEqual(0, d)
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 2), to: r.index(at: 1)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 2), to: r.index(at: 0)))
+        XCTAssertEqual(0, r.lines.distance(from: r.index(at: 1), to: r.index(at: 0)))
     }
 
     func testLinesRoundingDown() {
         var r = Rope("")
-        var i = r.lines.index(roundingDown: r.startIndex)
-        XCTAssertEqual(r.startIndex, i)
-
-        i = r.lines.index(roundingDown: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
+        XCTAssertEqual(0, r.lines.index(roundingDown: r.index(at: 0)).position)
 
         r = Rope("foo")
-        i = r.lines.index(roundingDown: r.index(at: 0))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingDown: r.index(at: 1))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingDown: r.index(at: 3))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingDown: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
+        XCTAssertEqual(0, r.lines.index(roundingDown: r.index(at: 0)).position)
+        XCTAssertEqual(0, r.lines.index(roundingDown: r.index(at: 1)).position)
+        XCTAssertEqual(3, r.lines.index(roundingDown: r.index(at: 3)).position)
 
         r = Rope("foo\n")
-        i = r.lines.index(roundingDown: r.index(at: 3))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingDown: r.index(at: 4))
-        XCTAssertEqual(r.index(at: 4), i)
-
-        i = r.lines.index(roundingDown: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        // tricky, rounding down from r.lines.endIndex in a different
-        // view yields r.endIndex:
-        i = r.index(roundingDown: r.lines.endIndex)
-        XCTAssertEqual(r.endIndex, i)
-    }
-
-    func testLinesRoundingUp() {
-        var r = Rope("")
-        var i = r.lines.index(roundingUp: r.startIndex)
-        XCTAssertEqual(r.startIndex, i)
-
-        i = r.lines.index(roundingUp: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        r = Rope("foo")
-        i = r.lines.index(roundingUp: r.index(at: 0))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingUp: r.index(at: 1))
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(roundingUp: r.index(at: 3))
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        i = r.lines.index(roundingUp: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
-
-        r = Rope("foo\n")
-        i = r.lines.index(roundingUp: r.index(at: 0))
-        XCTAssertEqual(r.index(at: 0), i)
-
-        i = r.lines.index(roundingUp: r.index(at: 1))
-        XCTAssertEqual(r.index(at: 4), i)
-
-        i = r.lines.index(roundingUp: r.index(at: 3))
-        XCTAssertEqual(r.index(at: 4), i)
-
-        i = r.lines.index(roundingUp: r.index(at: 4))
-        XCTAssertEqual(r.index(at: 4), i)
-
-        i = r.lines.index(roundingUp: r.lines.endIndex)
-        XCTAssertEqual(r.lines.endIndex, i)
+        XCTAssertEqual(0, r.lines.index(roundingDown: r.index(at: 0)).position)
+        XCTAssertEqual(0, r.lines.index(roundingDown: r.index(at: 3)).position)
+        XCTAssertEqual(4, r.lines.index(roundingDown: r.index(at: 4)).position)
     }
 
     func testLineSlicing() {
@@ -1696,17 +1698,17 @@ final class RopeTests: XCTestCase {
 
         var slice = r.lines[r.index(at: 1)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 2)
-        XCTAssertEqual(slice[0], "oo\n")
-        XCTAssertEqual(slice[1], "ba")
+        XCTAssertEqual(slice[0], "foo\n")
+        XCTAssertEqual(slice[1], "")
 
         slice = r.lines[r.index(at:3)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 2)
-        XCTAssertEqual(slice[0], "\n")
-        XCTAssertEqual(slice[1], "ba")
+        XCTAssertEqual(slice[0], "foo\n")
+        XCTAssertEqual(slice[1], "")
 
         slice = r.lines[r.index(at: 4)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 1)
-        XCTAssertEqual(slice[0], "ba")
+        XCTAssertEqual(slice[0], "")
 
         slice = r.lines[r.index(at: 6)..<r.index(at: 6)]
         XCTAssertEqual(slice.count, 1)
@@ -1716,18 +1718,14 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(slice.count, 1)
         XCTAssertEqual(slice[0], "")
 
-        slice = r.lines[r.index(at: 0)..<r.lines.endIndex]
+        slice = r.lines[r.index(at: 0)..<r.index(at: 7)]
         XCTAssertEqual(slice.count, 2)
         XCTAssertEqual(slice[0], "foo\n")
         XCTAssertEqual(slice[1], "bar")
 
-        slice = r.lines[r.index(at: 4)..<r.lines.endIndex]
+        slice = r.lines[r.index(at: 4)..<r.index(at: 7)]
         XCTAssertEqual(slice.count, 1)
         XCTAssertEqual(slice[0], "bar")
-
-        slice = r.lines[r.index(at: 7)..<r.lines.endIndex]
-        XCTAssertEqual(slice.count, 1)
-        XCTAssertEqual(slice[0], "")
     }
 
     // MARK: - Subropes
@@ -1749,11 +1747,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 0), i)
 
         i = subrope.lines.index(before: subrope.index(at: 5))
-        XCTAssertEqual(subrope.index(at: 0), i)
-
-        i = subrope.lines.index(before: subrope.lines.endIndex)
         XCTAssertEqual(subrope.index(at: 3), i)
-
 
         // "oo\n"
         subrope = r[r.index(at: 1)..<r.index(at: 4)]
@@ -1764,9 +1758,6 @@ final class RopeTests: XCTestCase {
 
         i = subrope.lines.index(before: subrope.index(at: 3))
         XCTAssertEqual(subrope.index(at: 0), i)
-
-        i = subrope.lines.index(before: subrope.lines.endIndex)
-        XCTAssertEqual(subrope.index(at: 3), i)
     }
 
     func testSubropeLinesIndexBeforeSliceOnNewlineBoundary() {
@@ -1786,11 +1777,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 0), i)
 
         i = subrope.lines.index(before: subrope.index(at: 5))
-        XCTAssertEqual(subrope.index(at: 0), i)
-
-        i = subrope.lines.index(before: subrope.lines.endIndex)
         XCTAssertEqual(subrope.index(at: 3), i)
-
 
         // "oo\n"
         subrope = r[r.index(at: 2)..<r.index(at: 5)]
@@ -1801,9 +1788,6 @@ final class RopeTests: XCTestCase {
 
         i = subrope.lines.index(before: subrope.index(at: 3))
         XCTAssertEqual(subrope.index(at: 0), i)
-
-        i = subrope.lines.index(before: subrope.lines.endIndex)
-        XCTAssertEqual(subrope.index(at: 3), i)
     }
 
     func testSubropeLinesIndexAfter() {
@@ -1822,15 +1806,12 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(after: subrope.index(at: 3))
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         i = subrope.lines.index(after: subrope.index(at: 4))
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
-        i = subrope.lines.index(after: subrope.index(at: 5))
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+        assertCrashes(subrope.lines.index(after: subrope.index(at: 5)))
 
         // "oo\n"
         subrope = r[r.index(at: 1)..<r.index(at: 4)]
@@ -1844,10 +1825,7 @@ final class RopeTests: XCTestCase {
         i = subrope.lines.index(after: subrope.index(at: 2))
         XCTAssertEqual(subrope.index(at: 3), i)
 
-        i = subrope.lines.index(after: subrope.index(at: 3))
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+        assertCrashes(subrope.lines.index(after: subrope.index(at: 3)))
     }
 
     func testSubropeLinesIndexAfterSliceOnNewlineBoundary() {
@@ -1866,15 +1844,12 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(after: subrope.index(at: 3))
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         i = subrope.lines.index(after: subrope.index(at: 4))
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
-        i = subrope.lines.index(after: subrope.index(at: 5))
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+        assertCrashes(subrope.lines.index(after: subrope.index(at: 5)))
 
         // "oo\n"
         subrope = r[r.index(at: 2)..<r.index(at: 5)]
@@ -1888,15 +1863,12 @@ final class RopeTests: XCTestCase {
         i = subrope.lines.index(after: subrope.index(at: 2))
         XCTAssertEqual(subrope.index(at: 3), i)
 
-        i = subrope.lines.index(after: subrope.index(at: 3))
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-        assertCrashes(subrope.lines.index(after: subrope.lines.endIndex))
+        assertCrashes(subrope.lines.index(after: subrope.index(at: 3)))
     }
 
     func testSubropeLinesIndexOffsetBy() {
         let r = Rope("foo\nbar")
-        
+
         // "oo\nba"
         let subrope = r[r.index(at: 1)..<r.index(at: 6)]
 
@@ -1907,7 +1879,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(subrope.index(at: 0), offsetBy: 2)
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         assertCrashes(subrope.lines.index(subrope.index(at: 0), offsetBy: 3))
 
@@ -1919,7 +1891,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(subrope.index(at: 2), offsetBy: 2)
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         assertCrashes(subrope.lines.index(subrope.index(at: 2), offsetBy: 3))
 
@@ -1928,7 +1900,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(subrope.index(at: 3), offsetBy: 1)
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         assertCrashes(subrope.lines.index(subrope.index(at: 3), offsetBy: 2))
 
@@ -1937,38 +1909,30 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.index(at: 3), i)
 
         i = subrope.lines.index(subrope.index(at: 4), offsetBy: 1)
-        XCTAssertEqual(subrope.lines.endIndex, i)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
         assertCrashes(subrope.lines.index(subrope.index(at: 4), offsetBy: 2))
         
 
-        i = subrope.lines.index(subrope.endIndex, offsetBy: 0)
-        XCTAssertEqual(subrope.index(at: 3), i)
+        i = subrope.lines.index(subrope.index(at: 5), offsetBy: 0)
+        XCTAssertEqual(subrope.index(at: 5), i)
 
-        i = subrope.lines.index(subrope.endIndex, offsetBy: 1)
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-
-        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: 0)
-        XCTAssertEqual(subrope.lines.endIndex, i)
-
-        assertCrashes(subrope.lines.index(subrope.lines.endIndex, offsetBy: 1))
-
-
-        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: -1)
-        XCTAssertEqual(subrope.index(at: 3), i)
-
-        i = subrope.lines.index(subrope.lines.endIndex, offsetBy: -2)
-        XCTAssertEqual(subrope.index(at: 0), i)
-
-        assertCrashes(subrope.lines.index(subrope.lines.endIndex, offsetBy: -3))
+        assertCrashes(subrope.lines.index(subrope.index(at: 5), offsetBy: 1))
 
 
         i = subrope.lines.index(subrope.index(at: 5), offsetBy: -1)
+        XCTAssertEqual(subrope.index(at: 3), i)
+
+        i = subrope.lines.index(subrope.index(at: 5), offsetBy: -2)
         XCTAssertEqual(subrope.index(at: 0), i)
 
-        assertCrashes(subrope.lines.index(subrope.index(at: 5), offsetBy: -2))
+        assertCrashes(subrope.lines.index(subrope.index(at: 5), offsetBy: -3))
 
+
+        i = subrope.lines.index(subrope.index(at: 4), offsetBy: -1)
+        XCTAssertEqual(subrope.index(at: 0), i)
+
+        assertCrashes(subrope.lines.index(subrope.index(at: 4), offsetBy: -2))
 
         i = subrope.lines.index(subrope.index(at: 3), offsetBy: -1)
         XCTAssertEqual(subrope.index(at: 0), i)
@@ -2014,6 +1978,22 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(subrope.lines[0], "")
     }
 
+    func testSliceSubropeOnUTF8BoundaryProducesScalarAlignedDegenerateSubrope() {
+        let r = Rope("aa\u{0301}b")
+        let subrope = r[r.index(at: 1)...]
+
+        // slicing half way through the combining character rounds
+        // down to the nearest unicode scalar, leaving the subrope
+        // degenerate.
+        let subrope2 = subrope[subrope.utf8.index(at: 2)...]
+
+        XCTAssertEqual(2, subrope2.count)
+        XCTAssertEqual(2, subrope2.unicodeScalars.count)
+        XCTAssertEqual(2, subrope2.utf16.count)
+        XCTAssertEqual(3, subrope2.utf8.count)
+
+        XCTAssertEqual("\u{0301}b", String(subrope2))
+    }
 
     // MARK: - Deltas
 
@@ -2179,8 +2159,8 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual("\n", r.root.children[0].leaf.string.last)
 
-        let i = r.root.index(at: 1500, using: .characters)
-        let j = r.root.index(roundingDown: i, using: .newlines)
+        let i = r.root.index(at: 1500, in: r.startIndex.i..<r.endIndex.i, using: .characters, edge: .leading)
+        let j = r.root.index(roundingDown: i, in: r.startIndex.i..<r.endIndex.i, using: .newlines, edge: .trailing)
 
         XCTAssertEqual(1000, j.position)
     }
@@ -2195,7 +2175,7 @@ final class RopeTests: XCTestCase {
         // This shouldn't crash
         let j = r.lines.index(roundingDown: i)
 
-        XCTAssertEqual(0, j.position)
+        XCTAssertEqual(1020+1021+1022, j.position)
     }
 
     func testReplaceSubrangeOnChunkBoudariesAppendingToChunkWorks() {
@@ -2351,18 +2331,6 @@ final class RopeTests: XCTestCase {
 
         XCTAssertEqual(r.root.height, 0)
         XCTAssertEqual(r.root.count, 1001)
-    }
-
-    func testMoveToLastLineIndexInEmptyRope() {
-        let r = Rope()
-        XCTAssertEqual(r.lines.count, 1)
-
-        let i = r.startIndex
-        XCTAssertEqual(i, r.endIndex)
-        XCTAssertEqual(r.lines[i], "")
-
-        let j = r.lines.index(after: i)
-        XCTAssertEqual(j, r.lines.endIndex)
     }
 }
 

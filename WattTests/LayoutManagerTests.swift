@@ -64,7 +64,7 @@ final class LayoutManagerTests: XCTestCase {
         let layoutManager = makeLayoutManager("abc")
         let buffer = layoutManager.buffer
 
-        let font = buffer.getAttributes(at: buffer.index(at: 0)).font!
+        let font = buffer.runs[buffer.index(at: 0)].font!
         XCTAssertEqual(charWidth, font.maximumAdvancement.width)
 
         let line = layoutManager.line(containing: buffer.index(at: 0))
@@ -75,14 +75,48 @@ final class LayoutManagerTests: XCTestCase {
     // MARK: Editing + invalidating
 
     func testYOffsetAfterSplittingLine() {
+        class Delegate: NSObject, LayoutManagerDelegate {
+            func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
+                CGRect(x: 0, y: 0, width: 100, height: 100)
+            }
+            func visibleRect(for layoutManager: LayoutManager) -> CGRect {
+                viewportBounds(for: layoutManager)
+            }
+            func didInvalidateLayout(for layoutManager: LayoutManager) {}
+            func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes {
+                AttributedRope.Attributes()
+            }
+            func selections(for layoutManager: LayoutManager) -> [Selection] {
+                []
+            }
+            func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {}
+            func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {}
+            func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
+                LineLayer(line: line)
+            }
+            func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer) {}
+        }
+
         let string = "0123456789wrap"
         let l = makeLayoutManager(string)
         let b = l.buffer
 
-        l.ensureLayout(for: b.startIndex..<b.endIndex)
+        // This test is only relevant if layout info is cached, so we need
+        // a delegate to provide layers for the lines.
+        let delegate = Delegate()
+        l.delegate = delegate
+        // ensures layout info is cached
+        l.layoutText { _, _ in }
+
+        XCTAssertEqual(l.lineLayers.count, 1)
 
         // insert "\n" after "w"
         b.replaceSubrange(b.index(at: 11)..<b.index(at: 11), with: "\n")
+
+        // ensures layout info is cached
+        l.layoutText { _, _ in }
+
+        XCTAssertEqual(l.lineLayers.count, 2)
         XCTAssertEqual(b.text, "0123456789w\nrap")
 
         let line2 = l.line(containing: b.index(at: 12))

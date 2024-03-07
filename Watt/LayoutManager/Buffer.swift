@@ -284,10 +284,6 @@ class Buffer {
         }
     }
 
-    func getAttributes(at i: Index) -> AttributedRope.Attributes {
-        contents.getAttributes(at: i)
-    }
-
     func applyTokens(_ tokens: [Token]) {
         var ranges: [Range<Index>] = []
 
@@ -325,16 +321,11 @@ extension Buffer: HighlighterDelegate {
 
 extension Buffer: TextContent {
     func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
-        var j = i
-        if lines.isBoundary(j) {
-            j = index(before: j)
-        }
-        return lines.index(roundingDown: j)
+        lines.index(before: i)
     }
 
     func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
-        // hack to make sure we don't get lines.endIndex.
-        lines.index(i, offsetBy: 1, limitedBy: endIndex) ?? endIndex
+        lines.index(after: i)
     }
 }
 

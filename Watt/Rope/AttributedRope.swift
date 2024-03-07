@@ -36,8 +36,8 @@ struct AttributedRope {
     }
 
     init(_ subrope: AttributedSubrope) {
-        self.text = Rope(subrope.text[subrope.bounds])
-        self.spans = subrope.spans[Range(unvalidatedRange: subrope.bounds)]
+        self.text = Rope(subrope.base.text[subrope.bounds])
+        self.spans = Spans(subrope.base.spans[Range(subrope.bounds, in: subrope.base.spans)])
     }
 
     // internal
@@ -50,8 +50,7 @@ struct AttributedRope {
 
 @dynamicMemberLookup
 struct AttributedSubrope {
-    var text: Rope
-    var spans: Spans<AttributedRope.Attributes>
+    var base: AttributedRope
     var bounds: Range<AttributedRope.Index>
 }
 
@@ -118,15 +117,99 @@ extension AttributedRope {
 
 extension AttributedRope {
     var runs: Runs {
-        Runs(base: self)
+        Runs(base: self, bounds: startIndex..<endIndex)
     }
 
     struct Runs {
         var base: AttributedRope
+        var bounds: Range<Index>
 
-        var count: Int {
-            base.spans.count
+        private var spans: SpansSlice<AttributedRope.Attributes> {
+            let start = base.spans.index(withBaseOffset: bounds.lowerBound.position)
+            let end = base.spans.index(withBaseOffset: bounds.upperBound.position)
+
+            return base.spans[start..<end]
         }
+
+        private func spansIndex(for i: Index) -> Spans<AttributedRope.Attributes>.Index {
+            i.assertValid(for: base.text)
+            return spans.index(withBaseOffset: i.position - bounds.lowerBound.position)
+        }
+
+        private func index(from i: Spans<AttributedRope.Attributes>.Index) -> Index {
+            i.assertValid(for: spans.base.root)
+            return base.text.utf8.index(at: i.position)
+        }
+    }
+}
+
+extension AttributedSubrope {
+    var runs: AttributedRope.Runs {
+        AttributedRope.Runs(base: base, bounds: bounds)
+    }
+}
+
+extension AttributedRope.Runs: BidirectionalCollection {
+    typealias Index = AttributedRope.Index
+
+    var count: Int {
+        base.spans[spansIndex(for: bounds.lowerBound)..<spansIndex(for: bounds.upperBound)].count
+    }
+
+    var startIndex: Index {
+        bounds.lowerBound
+    }
+
+    var endIndex: Index {
+        bounds.upperBound
+    }
+
+    func index(before i: Index) -> Index {
+        i.validate(for: base.text)
+        precondition(i > bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(before: spansIndex(for: i)))
+    }
+
+    func index(after i: Index) -> Index {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i < bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(after: spansIndex(for: i)))
+    }
+
+    subscript(position: Index) -> AttributedRope.Runs.Run {
+        position.validate(for: base.text)
+        precondition(position >= bounds.lowerBound && position < bounds.upperBound, "Index out of bounds")
+
+        return AttributedRope.Runs.Run(base: base, span: spans[spansIndex(for: position)])
+    }
+
+    func index(_ i: Index, offsetBy distance: Int) -> Index {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        return index(from: spans.index(spansIndex(for: i), offsetBy: distance))
+    }
+
+    func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
+        i.validate(for: base.text)
+        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+
+        guard let si = spans.index(spansIndex(for: i), offsetBy: distance, limitedBy: spansIndex(for: limit)) else {
+            return nil
+        }
+
+        return index(from: si)
+    }
+
+    func distance(from start: Index, to end: Index) -> Int {
+        start.validate(for: base.text)
+        end.validate(for: base.text)
+        precondition(start >= bounds.lowerBound && start <= bounds.upperBound, "Index out of bounds")
+        precondition(end >= bounds.lowerBound && end <= bounds.upperBound, "Index out of bounds")
+        
+        return spans.distance(from: spansIndex(for: start), to: spansIndex(for: end))
     }
 }
 
@@ -143,30 +226,6 @@ extension AttributedRope.Runs {
         var attributes: AttributedRope.Attributes {
             span.data
         }
-    }
-}
-
-extension AttributedRope.Runs: Sequence {
-    struct Iterator: IteratorProtocol {
-        var i: Spans<AttributedRope.Attributes>.Iterator
-        var base: AttributedRope
-
-        init(_ runs: AttributedRope.Runs) {
-            self.i = runs.base.spans.makeIterator()
-            self.base = runs.base
-        }
-
-        mutating func next() -> Run? {
-            guard let span = i.next() else {
-                return nil
-            }
-
-            return Run(base: base, span: span)
-        }
-    }
-
-    func makeIterator() -> Iterator {
-        Iterator(self)
     }
 }
 
@@ -391,11 +450,6 @@ extension AttributedRope {
     func mergingAttributes(_ attributes: Attributes, mergePolicy: AttributeMergePolicy = .keepNew) -> AttributedRope {
         self[...].mergingAttributes(attributes, mergePolicy: mergePolicy)
     }
-
-    func getAttributes(at i: Index) -> Attributes {
-        precondition(i >= startIndex && i < endIndex)
-        return spans.data(at: i.position)!
-    }
 }
 
 extension AttributedRope.Runs {
@@ -425,20 +479,13 @@ extension AttributedSubrope {
                 return nil
             }
 
-            let r = Range(unvalidatedRange: bounds)
             var first = true
             var v: K.Value?
 
-            // TODO: Spans should be a collection and we should be able to slice and iterate through only the spans that overlap range.
-            for span in spans {
-                if span.range.endIndex <= r.lowerBound {
-                    continue
-                }
+            let start = base.spans.index(withBaseOffset: bounds.lowerBound.position)
+            let end = base.spans.index(withBaseOffset: bounds.upperBound.position)
 
-                if span.range.startIndex >= r.upperBound {
-                    break
-                }
-
+            for span in base.spans[start..<end] {
                 if first {
                     v = span.data[K.self]
                     first = false
@@ -455,12 +502,12 @@ extension AttributedSubrope {
                 return
             }
 
-            var b = SpansBuilder<AttributedRope.Attributes>(totalCount: text.utf8.count)
+            var b = SpansBuilder<AttributedRope.Attributes>(totalCount: base.text.utf8.count)
             var s = AttributedRope.Attributes()
             s[K.self] = newValue
             b.add(s, covering: Range(unvalidatedRange: bounds))
 
-            spans = spans.merging(b.build()) { a, b in
+            base.spans = base.spans.merging(b.build()) { a, b in
                 var a = a ?? AttributedRope.Attributes()
                 if let b {
                     a[K.self] = b[K.self]
@@ -487,15 +534,15 @@ extension AttributedSubrope {
 
         var new = sb.build()
 
-        var dup = spans
+        var dup = base.spans
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
         b.push(&dup.root, slicedBy: 0..<range.lowerBound)
         b.push(&new.root)
         b.push(&dup.root, slicedBy: range.upperBound..<dup.upperBound)
 
-        spans = b.build()
+        base.spans = b.build()
 
-        assert(spans.upperBound == text.utf8.count)
+        assert(base.spans.upperBound == base.text.utf8.count)
     }
 
     func settingAttributes(_ attributes: AttributedRope.Attributes) -> AttributedRope {
@@ -510,11 +557,12 @@ extension AttributedSubrope {
         }
 
         let range = Range(unvalidatedRange: bounds)
+        let spansRange = Range(bounds, in: base.spans)
 
         var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: range.count)
         sb.add(attributes, covering: range)
 
-        var new = spans[range].merging(sb.build()) { a, b in
+        var new = Spans(base.spans[spansRange]).merging(sb.build()) { a, b in
             if let a, let b {
                 return a.merging(b, mergePolicy: mergePolicy)
             } else {
@@ -522,15 +570,15 @@ extension AttributedSubrope {
             }
         }
 
-        var dup = spans
+        var dup = base.spans
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
         b.push(&dup.root, slicedBy: 0..<range.lowerBound)
         b.push(&new.root)
         b.push(&dup.root, slicedBy: range.upperBound..<dup.upperBound)
 
-        spans = b.build()
+        base.spans = b.build()
 
-        assert(spans.upperBound == text.utf8.count)
+        assert(base.spans.upperBound == base.text.utf8.count)
     }
 
     func mergingAttributes(_ attributes: AttributedRope.Attributes, mergePolicy: AttributedRope.AttributeMergePolicy = .keepNew) -> AttributedRope {
@@ -544,16 +592,12 @@ extension AttributedSubrope {
 
 extension AttributedRope {
     struct AttributeTransformer<T> where T: AttributedRopeKey {
-        let text: Rope
-        let spans: Spans<Attributes>
-        let range: Range<Index>
+        let run: Runs.Run
         var builder: SpansBuilder<Attributes>
 
         var value: T.Value? {
             get {
-                let span = spans.span(at: range.lowerBound.position)!
-                assert(span.range == Range(unvalidatedRange: range))
-                return span.data[T.self]
+                return run.attributes[T.self]
             }
             set {
                 if let newValue {
@@ -565,7 +609,7 @@ extension AttributedRope {
         }
 
         mutating func replace(with attributes: Attributes) {
-            builder.add(attributes, covering: Range(unvalidatedRange: range))
+            builder.add(attributes, covering: Range(unvalidatedRange: run.range))
         }
 
         mutating func replace<U>(with key: U.Type, value: U.Value) where U: AttributedRopeKey {
@@ -584,7 +628,7 @@ extension AttributedRope {
 
         for run in runs {
             if run.attributes[K.self] != nil {
-                var t = AttributeTransformer<K>(text: text, spans: spans, range: run.range, builder: b)
+                var t = AttributeTransformer<K>(run: run, builder: b)
                 block(&t)
                 b = t.builder
             }
@@ -720,21 +764,22 @@ extension AttributedRope {
             bounds.lowerBound.validate(for: text)
             bounds.upperBound.validate(for: text)
 
-            yield AttributedSubrope(text: text, spans: spans, bounds: bounds)
+            yield AttributedSubrope(base: self, bounds: bounds)
         }
+        // TODO: it's possible to for the caller to totally replace c.base rather
+        // than modifying the one we give it. We should prevent this. AttributedString
+        // sets an ID and then verifies that it remians the same after the yield.
         _modify {
             let bounds = bounds.relative(to: text)
             bounds.lowerBound.validate(for: text)
             bounds.upperBound.validate(for: text)
 
-            var r = AttributedSubrope(text: text, spans: spans, bounds: bounds)
-            text = Rope()
-            spans = SpansBuilder<Attributes>(totalCount: 0).build()
+            var r = AttributedSubrope(base: self, bounds: bounds)
+            self = AttributedRope()
 
             yield &r
 
-            text = r.text
-            spans = r.spans
+            self = r.base
         }
     }
 
@@ -757,56 +802,44 @@ extension AttributedSubrope {
         bounds.upperBound
     }
 
-//    subscript(bounds: Range<AttributedRope.Index>) -> AttributedSubrope {
-//        _read {
-//            yield AttributedSubrope(base: base, bounds: bounds)
-//        }
-//        _modify {
-//            var r = AttributedSubrope(base: base, bounds: bounds)
-//            text = Rope()
-//            spans = SpansBuilder<Style>(totalCount: 0).build()
-//
-//            yield &r
-//
-//            text = r.text
-//            spans = r.spans
-//        }
-//        set {
-//            fatalError("not yet")
-//            // replaceSubrange(bounds, with: newValue)
-//        }
-//    }
+    subscript<R>(bounds: R) -> AttributedSubrope where R: RangeExpression<AttributedRope.Index> {
+        let bounds = bounds.relative(to: base.text)
+        bounds.lowerBound.validate(for: base.text)
+        bounds.upperBound.validate(for: base.text)
+
+        return AttributedSubrope(base: base, bounds: bounds)
+    }
 }
 
 // MARK: - Characters
 
 extension AttributedRope {
     struct CharacterView {
-        var text: Rope
-        var spans: Spans<Attributes>
+        var base: AttributedRope
         var bounds: Range<AttributedRope.Index>
     }
 
     var characters: CharacterView {
         _read {
-            yield CharacterView(text: text, spans: spans, bounds: startIndex..<endIndex)
+            yield CharacterView(base: self, bounds: startIndex..<endIndex)
         }
+        // TODO: it's possible to for the caller to totally replace c.base rather
+        // than modifying the one we give it. We should prevent this. AttributedString
+        // sets an ID and then verifies that it remians the same after the yield.
         _modify {
-            var c = CharacterView(text: text, spans: spans, bounds: startIndex..<endIndex)
-            text = Rope()
-            spans = SpansBuilder<Attributes>(totalCount: 0).build()
+            var c = CharacterView(base: self, bounds: startIndex..<endIndex)
+            self = AttributedRope()
 
             yield &c
 
-            text = c.text
-            spans = c.spans
+            self = c.base
         }
     }
 }
 
 extension AttributedSubrope {
     var characters: AttributedRope.CharacterView {
-        AttributedRope.CharacterView(text: text, spans: spans, bounds: bounds)
+        AttributedRope.CharacterView(base: base, bounds: bounds)
     }
 }
 
@@ -823,30 +856,30 @@ extension AttributedRope.CharacterView: BidirectionalCollection {
 
     func index(after i: Index) -> Index {
         precondition(bounds.lowerBound <= i && i < bounds.upperBound, "out of bounds")
-        return text.index(after: i)
+        return base.text.index(after: i)
     }
 
     func index(before i: Index) -> Index {
         precondition(bounds.lowerBound < i && i <= bounds.upperBound, "out of bounds")
-        return text.index(before: i)
+        return base.text.index(before: i)
     }
 
     subscript(position: Index) -> Character {
         precondition(bounds.lowerBound <= position && position < bounds.upperBound, "out of bounds")
-        return text[position]
+        return base.text[position]
     }
 
     // Delegate to Rope's more efficient implementations of these methods.
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         precondition(bounds.lowerBound <= i && i <= bounds.upperBound, "out of bounds")
-        let res = text.index(i, offsetBy: distance)
+        let res = base.text.index(i, offsetBy: distance)
         precondition(bounds.lowerBound <= res && res <= bounds.upperBound, "out of bounds")
         return res
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         precondition(bounds.lowerBound <= i && i <= bounds.upperBound, "out of bounds")
-        guard let res = text.index(i, offsetBy: distance, limitedBy: limit) else { return nil }
+        guard let res = base.text.index(i, offsetBy: distance, limitedBy: limit) else { return nil }
         precondition(bounds.lowerBound <= res && res <= bounds.upperBound, "out of bounds")
         return res
     }
@@ -854,29 +887,21 @@ extension AttributedRope.CharacterView: BidirectionalCollection {
     func distance(from start: Index, to end: Index) -> Int {
         precondition(bounds.lowerBound <= start && start <= bounds.upperBound)
         precondition(bounds.lowerBound <= end && end <= bounds.upperBound)
-        return text.distance(from: start, to: end)
+        return base.text.distance(from: start, to: end)
     }
 }
 
 extension AttributedRope.CharacterView: RangeReplaceableCollection {
     init() {
-        let text = Rope()
-        self.init(text: text, spans: SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build(), bounds: text.startIndex..<text.endIndex)
+        let r = AttributedRope()
+        self.init(base: r, bounds: r.startIndex..<r.endIndex)
     }
     
     mutating func replaceSubrange<C>(_ subrange: Range<Index>, with newElements: C) where C: Collection, C.Element == Character {
         precondition(subrange.lowerBound >= startIndex && subrange.upperBound <= endIndex, "index out of bounds")
 
-        let s = AttributedRope(Rope(newElements), attributes: attributes(forReplacementRange: Range(subrange, in: text), in: spans))
-        var tmp = AttributedRope(text: text, spans: spans)
-
-        text = Rope()
-        spans = SpansBuilder<AttributedRope.Attributes>(totalCount: 0).build()
-
-        tmp.replaceSubrange(subrange, with: s)
-
-        text = tmp.text
-        spans = tmp.spans
+        let s = AttributedRope(Rope(newElements), attributes: attributes(forReplacementRange: subrange, in: base))
+        base.replaceSubrange(subrange, with: s)
     }
 
     // The default implementation calls append(_:) in a loop.
@@ -885,18 +910,21 @@ extension AttributedRope.CharacterView: RangeReplaceableCollection {
     }
 }
 
-fileprivate func attributes(forReplacementRange range: Range<Int>, in spans: Spans<AttributedRope.Attributes>) -> AttributedRope.Attributes {
-    if spans.isEmpty {
+fileprivate func attributes(forReplacementRange range: Range<AttributedRope.Index>, in attrRope: AttributedRope) -> AttributedRope.Attributes {
+    range.lowerBound.assertValid(for: attrRope.text)
+    range.upperBound.assertValid(for: attrRope.text)
+
+    if attrRope.isEmpty {
         return AttributedRope.Attributes()
     }
 
-    let location = range.lowerBound == spans.upperBound ? range.lowerBound - 1 : range.lowerBound
-    var firstSpan = spans.span(at: location)!
-    if range.isEmpty && range.lowerBound == firstSpan.range.lowerBound && firstSpan.range.lowerBound != 0 {
-        firstSpan = spans.span(at: range.lowerBound - 1)!
+    let location = range.lowerBound.position == attrRope.text.utf8.count ? attrRope.index(beforeCharacter: attrRope.endIndex) : range.lowerBound
+    var run = attrRope.runs[location]
+    if range.isEmpty && range.lowerBound.position == run.range.lowerBound.position && run.range.lowerBound.position != 0 {
+        run = attrRope.runs[attrRope.index(beforeCharacter: range.lowerBound)]
     }
 
-    return firstSpan.data
+    return run.attributes
 }
 
 // MARK: - Builder
@@ -913,8 +941,8 @@ extension AttributedRope {
 
         mutating func push(_ r: AttributedSubrope) {
             var dup = r
-            rb.push(&dup.text, slicedBy: r.bounds)
-            sb.push(&dup.spans.root, slicedBy: Range(unvalidatedRange: r.bounds))
+            rb.push(&dup.base.text, slicedBy: r.bounds)
+            sb.push(&dup.base.spans.root, slicedBy: Range(unvalidatedRange: r.bounds))
         }
 
         consuming func build() -> AttributedRope {
@@ -965,7 +993,7 @@ extension AttributedRope {
 
             let r = Range(start..<end, in: attrRope)
 
-            let attrs = attributes(forReplacementRange: r, in: attrRope.spans)
+            let attrs = attributes(forReplacementRange: start..<end, in: attrRope)
             var b = SpansBuilder<Attributes>(totalCount: s.utf8.count)
             b.add(attrs, covering: 0..<s.utf8.count)
             let spans = b.build()
@@ -1057,7 +1085,7 @@ extension AttributedRope {
 
 extension String {
     init(_ attributedSubrope: AttributedSubrope) {
-        self = String(attributedSubrope.text[attributedSubrope.startIndex..<attributedSubrope.endIndex])
+        self.init(attributedSubrope.base.text[attributedSubrope.startIndex..<attributedSubrope.endIndex])
     }
 }
 
@@ -1115,5 +1143,13 @@ extension Range where Bound == AttributedRope.Index {
 extension Range where Bound == Int {
     init(_ range: Range<AttributedRope.Index>, in attributedRope: AttributedRope) {
         self.init(range, in: attributedRope.text)
+    }
+}
+
+extension Range where Bound == Spans<AttributedRope.Attributes>.Index {
+    init(_ range: Range<AttributedRope.Index>, in spans: Spans<AttributedRope.Attributes>) {
+        let start = spans.index(withBaseOffset: range.lowerBound.position)
+        let end = spans.index(withBaseOffset: range.upperBound.position)
+        self = start..<end
     }
 }

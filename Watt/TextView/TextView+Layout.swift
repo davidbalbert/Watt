@@ -286,6 +286,20 @@ extension TextView: LayoutManagerDelegate {
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>) {
         lineNumberView.lineCount = new.lines.count
     }
+
+    func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
+        let l = LineLayer(line: line)
+        l.anchorPoint = .zero
+        l.needsDisplayOnBoundsChange = true
+        l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
+        l.contentsScale = window?.backingScaleFactor ?? 1.0
+        return l
+    }
+
+    func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer) {
+        layer.bounds = layer.line.renderingSurfaceBounds
+        layer.position = convertFromTextContainer(layer.line.origin)
+    }
 }
 
 // MARK: - Text layout
@@ -302,23 +316,13 @@ extension TextView {
 
         var lineno: Int?
 
-        layoutManager.layoutText { line, prevAlignmentFrame in
-            let l = textLayerCache[line.id] ?? makeLayer(forLine: line)
-
-            // Without making the layer's bounds aligned to the nearest point
-            // I run into an issue where the glyphs seem to shift back and forth
-            // by a fraction of a point. I'm not sure why that is given that
-            // CALayer.masksToBounds is false.
-            l.bounds = line.renderingSurfaceBounds
-            l.position = convertFromTextContainer(line.origin)
-            textLayerCache[line.id] = l
-
-            textLayer.addSublayer(l)
+        layoutManager.layoutText { layer, prevAlignmentFrame in
+            textLayer.addSublayer(layer)
 
             let oldHeight = prevAlignmentFrame.height
-            let newHeight = line.alignmentFrame.height
+            let newHeight = layer.line.alignmentFrame.height
             let delta = newHeight - oldHeight
-            let oldMaxY = line.origin.y + oldHeight
+            let oldMaxY = layer.line.origin.y + oldHeight
 
             // TODO: I don't know why I have to use the previous frame's
             // visible rect here. My best guess is that it has something
@@ -335,13 +339,13 @@ extension TextView {
             }
 
             if updateLineNumbers {
-                let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: line.range.lowerBound)
+                let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: layer.line.range.lowerBound)
                 let inset = computedTextContainerInset
                 let origin = CGPoint(
-                    x: line.alignmentFrame.minX + inset.left - lineNumberView.frame.width,
-                    y: line.alignmentFrame.minY + inset.top
+                    x: layer.line.alignmentFrame.minX + inset.left - lineNumberView.frame.width,
+                    y: layer.line.alignmentFrame.minY + inset.top
                 )
-                lineNumberView.addLineNumber(n+1, withAlignmentFrame: CGRect(origin: origin, size: line.alignmentFrame.size))
+                lineNumberView.addLineNumber(n+1, withAlignmentFrame: CGRect(origin: origin, size: layer.line.alignmentFrame.size))
                 lineno = n+1
             }
         }
@@ -363,16 +367,6 @@ extension TextView {
         }
 
         updateFrameHeightIfNeeded()
-    }
-
-    func makeLayer(forLine line: Line) -> CALayer {
-        let l = LineLayer(line: line)
-        l.anchorPoint = .zero
-        l.needsDisplayOnBoundsChange = true
-        l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
-        l.contentsScale = window?.backingScaleFactor ?? 1.0
-
-        return l
     }
 }
 

@@ -9,7 +9,7 @@ import XCTest
 @testable import Watt
 
 final class HeightsTests: XCTestCase {
-    // MARK: - Measuring y-offsts
+    // MARK: - Measuring y-offsets
 
     func testYOffsetEmpty() {
         let r = Rope()
@@ -964,74 +964,35 @@ final class HeightsTests: XCTestCase {
 
     // MARK: Index manipulation
 
-    func testIndexBefore() {
+    func testEndOfLineContaining() {
         var h = Heights(rope: Rope("foo"))
-        assertCrashes(h.index(before: h.endIndex))
+        XCTAssertEqual(3, h.endOfLine(containing: 0))
 
         h = Heights(rope: Rope("foo\n"))
-        var i = h.index(before: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(0, i.position)
+        XCTAssertEqual(4, h.endOfLine(containing: 0))
 
         h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(before: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(0, i.position)
+        XCTAssertEqual(4, h.endOfLine(containing: 0))
+
+        h = Heights(rope: Rope("foo\nbar"))
+        XCTAssertEqual(7, h.endOfLine(containing: 4))
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(before: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(4, i.position)
-
-        assertCrashes(h.index(before: h.startIndex))
+        XCTAssertEqual(8, h.endOfLine(containing: 4))
     }
 
-    func testIndexAfter() {
+    func testStartOfLineContaining() {
         var h = Heights(rope: Rope("foo"))
-        var i = h.startIndex
-        // can't use h.index(after:) because that would panic with "index out of bounds"
-        XCTAssertNil(i.next(using: .heightsBaseMetric))
+        XCTAssertEqual(0, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\n"))
-        i = h.index(after: h.startIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(4, i.position)
+        XCTAssertEqual(4, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(after: h.startIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(4, i.position)
-
-        h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(at: 4)
-        XCTAssertNil(i.next(using: .heightsBaseMetric))
+        XCTAssertEqual(4, h.startIndexOfLine(containing: h.count))
 
         h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(after: h.index(at: 4))
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(8, i.position)
-    }
-
-    func testRoundingDown() {
-        var h = Heights(rope: Rope("foo"))
-        var i = h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(0, i.position)
-
-        h = Heights(rope: Rope("foo\n"))
-        i =  h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(4, i.position)
-
-        h = Heights(rope: Rope("foo\nbar"))
-        i = h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(4, i.position)
-
-        h = Heights(rope: Rope("foo\nbar\n"))
-        i = h.index(roundingDown: h.endIndex)
-        XCTAssertTrue(i.isValid)
-        XCTAssertEqual(8, i.position)
+        XCTAssertEqual(8, h.startIndexOfLine(containing: h.count))
     }
 
     // MARK: - Regression tests

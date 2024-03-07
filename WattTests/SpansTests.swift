@@ -8,6 +8,15 @@
 import XCTest
 
 @testable import Watt
+
+extension Spans {
+    subscript(baseBounds bounds: Range<Int>) -> SpansSlice<T> {
+        let start = index(withBaseOffset: bounds.lowerBound)
+        let end = index(withBaseOffset: bounds.upperBound)
+        return self[start..<end]
+    }
+}
+
 final class SpansTests: XCTestCase {
     // MARK: - Merging adjacent equatable spans
     func testAdjacentEquatableSpansGetMerged() {
@@ -101,6 +110,67 @@ final class SpansTests: XCTestCase {
         }
     }
 
+    func testSpansSlice() {
+        var b = SpansBuilder<Int>(totalCount: 10)
+        b.add(1, covering: 1..<3)
+        b.add(2, covering: 5..<7)
+        b.add(3, covering: 7..<8)
+        let s = b.build()
+
+        XCTAssertEqual(10, s.upperBound)
+
+        XCTAssertEqual(3, s.count)
+        XCTAssertEqual(10, s.upperBound)
+        XCTAssertEqual(1, s.startIndex.position)
+        XCTAssertEqual(8, s.endIndex.position)
+
+        XCTAssertEqual(3, s[baseBounds: 0..<10].count)
+        XCTAssertEqual(10, s[baseBounds: 0..<10].upperBound)
+        XCTAssertEqual(1, s[baseBounds: 0..<10].startIndex.position)
+        XCTAssertEqual(8, s[baseBounds: 0..<10].endIndex.position)
+
+        XCTAssertEqual(3, s[baseBounds: 1..<9].count)
+        XCTAssertEqual(8, s[baseBounds: 1..<9].upperBound)
+        XCTAssertEqual(1, s[baseBounds: 1..<9].startIndex.position)
+        XCTAssertEqual(8, s[baseBounds: 1..<9].endIndex.position)
+
+        XCTAssertEqual(3, s[baseBounds: 2..<8].count)
+        XCTAssertEqual(6, s[baseBounds: 2..<8].upperBound)
+        XCTAssertEqual(2, s[baseBounds: 2..<8].startIndex.position)
+        XCTAssertEqual(8, s[baseBounds: 2..<8].endIndex.position)
+
+        XCTAssertEqual(2, s[baseBounds: 3..<8].count)
+        XCTAssertEqual(5, s[baseBounds: 3..<8].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 3..<8].startIndex.position)
+        XCTAssertEqual(8, s[baseBounds: 3..<8].endIndex.position)
+
+        XCTAssertEqual(1, s[baseBounds: 3..<7].count)
+        XCTAssertEqual(4, s[baseBounds: 3..<7].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 3..<7].startIndex.position)
+        XCTAssertEqual(7, s[baseBounds: 3..<7].endIndex.position)
+
+        XCTAssertEqual(1, s[baseBounds: 4..<6].count)
+        XCTAssertEqual(2, s[baseBounds: 4..<6].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 4..<6].startIndex.position)
+        XCTAssertEqual(6, s[baseBounds: 4..<6].endIndex.position)
+
+        XCTAssertEqual(1, s[baseBounds: 5..<6].count)
+        XCTAssertEqual(1, s[baseBounds: 5..<6].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 5..<6].startIndex.position)
+        XCTAssertEqual(6, s[baseBounds: 5..<6].endIndex.position)
+
+        // Empty, so startIndex and endIndex start at bounds.lowerBound
+        XCTAssertEqual(0, s[baseBounds: 4..<5].count)
+        XCTAssertEqual(1, s[baseBounds: 4..<5].upperBound)
+        XCTAssertEqual(4, s[baseBounds: 4..<5].startIndex.position)
+        XCTAssertEqual(4, s[baseBounds: 4..<5].endIndex.position)
+
+        XCTAssertEqual(0, s[baseBounds: 5..<5].count)
+        XCTAssertEqual(0, s[baseBounds: 5..<5].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 5..<5].startIndex.position)
+        XCTAssertEqual(5, s[baseBounds: 5..<5].endIndex.position)
+    }
+
     func testSubscriptRange() {
         var b = SpansBuilder<Int>(totalCount: 6)
         b.add(1, covering: 0..<3)
@@ -110,32 +180,55 @@ final class SpansTests: XCTestCase {
         XCTAssertEqual(6, s.upperBound)
         XCTAssertEqual(2, s.count)
 
-        var iter = s[0..<6].makeIterator()
+        var iter = s[baseBounds: 0..<6].makeIterator()
         XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
         XCTAssertEqual(Span(range: 3..<6, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
-        iter = s[0..<3].makeIterator()
+        iter = s[baseBounds: 0..<3].makeIterator()
         XCTAssertEqual(Span(range: 0..<3, data: 1), iter.next())
         XCTAssertNil(iter.next())
 
-        iter = s[3..<6].makeIterator()
+        iter = s[baseBounds: 3..<6].makeIterator()
         XCTAssertEqual(Span(range: 0..<3, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
-        iter = s[0..<0].makeIterator()
+        iter = s[baseBounds: 0..<0].makeIterator()
         XCTAssertNil(iter.next())
 
-        iter = s[0..<1].makeIterator()
+        iter = s[baseBounds: 0..<1].makeIterator()
         XCTAssertEqual(Span(range: 0..<1, data: 1), iter.next())
         XCTAssertNil(iter.next())
 
-        iter = s[5..<6].makeIterator()
+        iter = s[baseBounds: 5..<6].makeIterator()
         XCTAssertEqual(Span(range: 0..<1, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
-        iter = s[6..<6].makeIterator()
+        iter = s[baseBounds: 6..<6].makeIterator()
         XCTAssertNil(iter.next())
+    }
+
+    func testIteration() {
+        var sb = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            sb.add(i, covering: i..<i+2)
+        }
+        let spans = sb.build()
+
+        var i = 0
+        for span in spans {
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+            i += 2
+        }
+
+        // reverse
+        i = 254
+        for span in spans.reversed() {
+            XCTAssertEqual(i..<i+2, span.range)
+            XCTAssertEqual(i, span.data)
+            i -= 2
+        }
     }
 
     func testBuilderFixupPushSlicedByEmptyBuilder() {

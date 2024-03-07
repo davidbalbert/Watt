@@ -11,7 +11,9 @@
 		6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FF2A9B769100B8A077 /* AttributedRope.swift */; };
 		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
+		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
+		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
 		63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */ = {isa = PBXBuildFile; productRef = 63359A3D2AA9115100082762 /* TreeSitterC */; };
 		6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346D1942A06EC2900CFB7EE /* TextContainer.swift */; };
 		634A70A22B1F79CB00BDD0D3 /* CwlPreconditionTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 634A70A12B1F79CB00BDD0D3 /* CwlPreconditionTesting */; };
@@ -78,8 +80,6 @@
 		63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C2C04F2B4F3BB700BFB976 /* Dirent.swift */; };
 		63C541EB2B486210001C370B /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C541EA2B486210001C370B /* Workspace.swift */; };
 		63C907822A7319E300E4D7C9 /* HeightsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907812A7319E300E4D7C9 /* HeightsTests.swift */; };
-		63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907832A7847BC00E4D7C9 /* IntervalCache.swift */; };
-		63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */; };
 		63C9078A2A795F1B00E4D7C9 /* Spans.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C907892A795F1B00E4D7C9 /* Spans.swift */; };
 		63D280892B5B275900CDCF04 /* DirentTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D280882B5B275900CDCF04 /* DirentTextField.swift */; };
 		63D2808B2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */; };
@@ -129,7 +129,9 @@
 		6315D2FF2A9B769100B8A077 /* AttributedRope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedRope.swift; sourceTree = "<group>"; };
 		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
+		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
+		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
 		6346D1942A06EC2900CFB7EE /* TextContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContainer.swift; sourceTree = "<group>"; };
 		634A70A42B1F7A1700BDD0D3 /* AssertPreconditionViolation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssertPreconditionViolation.swift; sourceTree = "<group>"; };
 		6356588F2ACD9D5400F1DC63 /* Themes */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Themes; sourceTree = "<group>"; };
@@ -207,8 +209,6 @@
 		63C2C04F2B4F3BB700BFB976 /* Dirent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Dirent.swift; sourceTree = "<group>"; };
 		63C541EA2B486210001C370B /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		63C907812A7319E300E4D7C9 /* HeightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightsTests.swift; sourceTree = "<group>"; };
-		63C907832A7847BC00E4D7C9 /* IntervalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCache.swift; sourceTree = "<group>"; };
-		63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntervalCacheTests.swift; sourceTree = "<group>"; };
 		63C907892A795F1B00E4D7C9 /* Spans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spans.swift; sourceTree = "<group>"; };
 		63D280882B5B275900CDCF04 /* DirentTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirentTextField.swift; sourceTree = "<group>"; };
 		63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSViewController+Extensions.swift"; sourceTree = "<group>"; };
@@ -315,6 +315,7 @@
 				63D2808F2B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift */,
 				637867862A1FB2C50039960E /* NSRange+Extensions.swift */,
 				63D2808A2B5C2E1E00CDCF04 /* NSViewController+Extensions.swift */,
+				632A73712B87C69F009F38C3 /* Range+Extensions.swift */,
 				635B36AA2AAE1D94002FAE70 /* String+Extensions.swift */,
 				636E84632B681BB900772ECE /* URL+Extensions.swift */,
 			);
@@ -415,7 +416,6 @@
 				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
 				637E58532B8415A400C498EE /* DragAndDrop.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
-				63C907832A7847BC00E4D7C9 /* IntervalCache.swift */,
 				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
@@ -440,9 +440,9 @@
 			isa = PBXGroup;
 			children = (
 				6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */,
+				63267C282B97BF0B00F6E968 /* BTreeTests.swift */,
 				6377E3F02AB3308D0075AEC4 /* BufferTests.swift */,
 				63C907812A7319E300E4D7C9 /* HeightsTests.swift */,
-				63C907872A7847FB00E4D7C9 /* IntervalCacheTests.swift */,
 				63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
@@ -680,6 +680,7 @@
 				63A618742A0EC37700E70B0E /* LineNumberView.swift in Sources */,
 				635B36AD2AAE4D7F002FAE70 /* Language.swift in Sources */,
 				6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */,
+				632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */,
 				63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */,
 				63DD20DB2B7278E400E55747 /* CheckedContinuationReference.swift in Sources */,
 				637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */,
@@ -694,7 +695,6 @@
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */,
 				63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */,
-				63C907842A7847BD00E4D7C9 /* IntervalCache.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */,
 				63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */,
@@ -726,9 +726,9 @@
 				6377E3F12AB3308D0075AEC4 /* BufferTests.swift in Sources */,
 				63C907822A7319E300E4D7C9 /* HeightsTests.swift in Sources */,
 				63B8B1782A9F8A3A00F32C2C /* UtilitiesTest.swift in Sources */,
-				63C907882A7847FB00E4D7C9 /* IntervalCacheTests.swift in Sources */,
 				63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */,
 				6315D2FE2A96630F00B8A077 /* SpansTests.swift in Sources */,
+				63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */,
 				63D546402AFC304B00C72CDE /* LayoutManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
