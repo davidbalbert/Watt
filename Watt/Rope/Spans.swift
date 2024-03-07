@@ -575,17 +575,16 @@ extension SpansSlice: BidirectionalCollection {
 
         let (leaf, offsetInLeaf) = position.read()!
 
-        // TODO: binary search
-        for span in leaf.spans {
-            if span.range.contains(offsetInLeaf) {
-                let rangeInRoot = span.range.offset(by: position.offsetOfLeaf)
-                let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
+        let (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offsetInLeaf)
+        let span = found ? leaf.spans[i] : leaf.spans[i-1]
 
-                return Span(range: rangeInSlice, data: span.data)
-            }
+        if !span.range.contains(offsetInLeaf) {
+            fatalError("Didn't find span at \(position) in \(self).")
         }
 
-        fatalError("Didn't find span at \(position) in \(self).")
+        let rangeInRoot = span.range.offset(by: position.offsetOfLeaf)
+        let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
+        return Span(range: rangeInSlice, data: span.data)
     }
 
     subscript(r: Range<Index>) -> SpansSlice {
