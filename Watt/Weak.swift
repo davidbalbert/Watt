@@ -22,6 +22,18 @@ struct Weak<Value> where Value: AnyObject {
     }
 }
 
+final class WeakRef<Value> where Value: AnyObject {
+    weak var value: Value?
+
+    init(_ value: Value) {
+        self.value = value
+    }
+
+    init() {
+        self.value = nil
+    }
+}
+
 struct WeakDictionary<Key: Hashable, Value: AnyObject> {
     private var storage: [Key: Weak<Value>]
 

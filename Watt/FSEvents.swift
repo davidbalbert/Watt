@@ -287,7 +287,7 @@ enum FSEvent {
     }
 }
 
-final class FSEventStream: Sendable {
+final class FSEventStream: @unchecked Sendable {
     struct Flags: OptionSet {
         let rawValue: FSEventStreamCreateFlags
 
@@ -304,7 +304,7 @@ final class FSEventStream: Sendable {
     }
 
     private let streamRef: FSEventStreamRef
-    private let weakRefPtr: UnsafeMutablePointer<Weak<FSEventStream>>
+    private let weakRef: WeakRef<FSEventStream>
     private let flags: Flags
     private let queue: DispatchQueue
     private let callback: @Sendable (FSEventStream, [FSEvent]) -> Void
@@ -317,26 +317,22 @@ final class FSEventStream: Sendable {
             flags.insert(.useExtendedData)
         }
 
+        self.weakRef = WeakRef()
         self.flags = flags
         self.queue = queue
         self.callback = callback
         self.isRunning = OSAllocatedUnfairLock(initialState: false)
 
-        // TODO: this is almost certainly unsafe because I doubt Weak<FSEventStream> is bitwise copyable. Switch to an Unmanaged reference.
-        weakRefPtr = UnsafeMutablePointer<Weak<FSEventStream>>.allocate(capacity: 1)
-        weakRefPtr.initialize(to: Weak())
-
         var context = FSEventStreamContext(
             version: 0,
-            info: weakRefPtr,
+            info: Unmanaged.passUnretained(weakRef).toOpaque(),
             retain: nil,
             release: nil,
             copyDescription: nil
         )
 
         let streamCallback: FSEventStreamCallback = { streamRef, clientCallBackInfo, numEvents, eventPaths, eventFlags, eventIds in
-            let weakRefPtr = clientCallBackInfo!.assumingMemoryBound(to: Weak<FSEventStream>.self)
-            guard let stream = weakRefPtr.pointee.value else {
+            guard let stream = Unmanaged<WeakRef<FSEventStream>>.fromOpaque(clientCallBackInfo!).takeUnretainedValue().value else {
                 return
             }
 
@@ -381,7 +377,7 @@ final class FSEventStream: Sendable {
         FSEventStreamSetDispatchQueue(streamRef, queue)
 
         self.streamRef = streamRef
-        weakRefPtr.pointee.value = self
+        weakRef.value = self
     }
 
     convenience init?(_ path: String, since: FSEventStreamEventId? = nil, latency: CFTimeInterval = 0, flags: consuming Flags = .none, queue: DispatchQueue = .global(), callback: @escaping @Sendable (FSEventStream, [FSEvent]) -> Void) {
@@ -393,9 +389,6 @@ final class FSEventStream: Sendable {
 
         FSEventStreamInvalidate(streamRef)
         FSEventStreamRelease(streamRef)
-
-        weakRefPtr.deinitialize(count: 1)
-        weakRefPtr.deallocate()
     }
 
     func start() {
