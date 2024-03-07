@@ -575,6 +575,7 @@ extension SpansSlice: BidirectionalCollection {
 
         let (leaf, offsetInLeaf) = position.read()!
 
+        // TODO: binary search
         for span in leaf.spans {
             if span.range.contains(offsetInLeaf) {
                 let rangeInRoot = span.range.offset(by: position.offsetOfLeaf)
