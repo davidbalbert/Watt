@@ -1738,6 +1738,7 @@ extension CFRange {
         self.init(location: nsRange.location, length: nsRange.length)
     }
 
+    // Don't use for user provided ranges.
     init(unvalidatedRange range: Range<Rope.Index>, in rope: Rope) {
         let nsRange = NSRange(unvalidatedRange: range, in: rope)
         self.init(location: nsRange.location, length: nsRange.length)

@@ -888,9 +888,8 @@ extension BTreeNode {
             self.offsetOfLeaf = offset
         }
 
-        // For testing.
         var isValid: Bool {
-            leaf != nil
+            leafStorage != nil
         }
 
         func validate(for root: BTreeNode) {
@@ -1259,6 +1258,65 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
     }
 }
 
+protocol BTreeIndex: Comparable {
+    associatedtype Summary: BTreeSummary
+
+    var baseIndex: BTreeNode<Summary>.Index { get }
+}
+
+extension BTreeNode.Index: BTreeIndex {
+    var baseIndex: BTreeNode<Summary>.Index {
+        self
+    }
+}
+
+protocol BTreeSlice {
+    associatedtype Summary: BTreeSummary
+    associatedtype Element
+    associatedtype Index: BTreeIndex where Index.Summary == Summary
+
+    var root: BTreeNode<Summary> { get }
+    var startIndex: Index { get }
+    var endIndex: Index { get }
+    subscript(unvalidatedIndex index: BTreeNode<Summary>.Index) -> Element { get }
+}
+
+// A more efficient Iterator than IndexingIterator that doesn't need to
+// validate its indices.
+extension BTreeNode where Summary: BTreeDefaultMetric {
+    struct Iterator<Slice, Metric>: IteratorProtocol where Slice: BTreeSlice, Metric: BTreeMetric<Summary>, Slice.Summary == Summary {
+        typealias Element = Slice.Element
+
+        let slice: Slice
+        let metric: Metric
+        let edge: BTreeMetricEdge
+        let bounds: Range<Index>
+        var index: Index
+
+        init(slice: Slice, metric: Metric, edge: BTreeMetricEdge) {
+            let bounds = slice.startIndex.baseIndex..<slice.endIndex.baseIndex
+
+            bounds.lowerBound.assertValid(for: slice.root)
+            bounds.upperBound.assertValid(for: slice.root)
+
+            self.slice = slice
+            self.metric = metric
+            self.edge = edge
+            self.bounds = bounds
+            self.index = bounds.lowerBound
+        }
+
+        mutating func next() -> Element? {
+            index.assertValid(for: slice.root)
+            if !index.isValid || index >= bounds.upperBound {
+                return nil
+            }
+            let element = slice[unvalidatedIndex: index]
+            index.next(using: metric, edge: edge)
+            return element
+        }
+    }
+}
 
 
 // MARK: - Mutation

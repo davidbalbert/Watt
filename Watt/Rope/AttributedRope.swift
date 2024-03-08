@@ -164,37 +164,59 @@ extension AttributedRope.Runs: BidirectionalCollection {
         bounds.upperBound
     }
 
+    struct Iterator: IteratorProtocol {
+        let base: AttributedRope
+        var spansIter: Spans<AttributedRope.Attributes>.Iterator
+
+        init(_ runs: AttributedRope.Runs) {
+            self.base = runs.base
+            spansIter = runs.spans.makeIterator()
+        }
+
+        mutating func next() -> AttributedRope.Runs.Run? {
+            guard let span = spansIter.next() else {
+                return nil
+            }
+
+            return AttributedRope.Runs.Run(base: base, span: span)
+        }
+    }
+
+    func makeIterator() -> Iterator {
+        Iterator(self)
+    }
+
     func index(before i: Index) -> Index {
         i.validate(for: base.text)
-        precondition(i > bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+        precondition(i.position > bounds.lowerBound.position && i.position <= bounds.upperBound.position, "Index out of bounds")
 
         return index(from: spans.index(before: spansIndex(for: i)))
     }
 
     func index(after i: Index) -> Index {
         i.validate(for: base.text)
-        precondition(i >= bounds.lowerBound && i < bounds.upperBound, "Index out of bounds")
+        precondition(i.position >= bounds.lowerBound.position && i.position < bounds.upperBound.position, "Index out of bounds")
 
         return index(from: spans.index(after: spansIndex(for: i)))
     }
 
     subscript(position: Index) -> AttributedRope.Runs.Run {
         position.validate(for: base.text)
-        precondition(position >= bounds.lowerBound && position < bounds.upperBound, "Index out of bounds")
+        precondition(position.position >= bounds.lowerBound.position && position.position < bounds.upperBound.position, "Index out of bounds")
 
         return AttributedRope.Runs.Run(base: base, span: spans[spansIndex(for: position)])
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
         i.validate(for: base.text)
-        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+        precondition(i.position >= bounds.lowerBound.position && i.position <= bounds.upperBound.position, "Index out of bounds")
 
         return index(from: spans.index(spansIndex(for: i), offsetBy: distance))
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
         i.validate(for: base.text)
-        precondition(i >= bounds.lowerBound && i <= bounds.upperBound, "Index out of bounds")
+        precondition(i.position >= bounds.lowerBound.position && i.position <= bounds.upperBound.position, "Index out of bounds")
 
         guard let si = spans.index(spansIndex(for: i), offsetBy: distance, limitedBy: spansIndex(for: limit)) else {
             return nil
@@ -206,9 +228,9 @@ extension AttributedRope.Runs: BidirectionalCollection {
     func distance(from start: Index, to end: Index) -> Int {
         start.validate(for: base.text)
         end.validate(for: base.text)
-        precondition(start >= bounds.lowerBound && start <= bounds.upperBound, "Index out of bounds")
-        precondition(end >= bounds.lowerBound && end <= bounds.upperBound, "Index out of bounds")
-        
+        precondition(start.position >= bounds.lowerBound.position && start.position <= bounds.upperBound.position, "Index out of bounds")
+        precondition(end.position >= bounds.lowerBound.position && end.position <= bounds.upperBound.position, "Index out of bounds")
+
         return spans.distance(from: spansIndex(for: start), to: spansIndex(for: end))
     }
 }

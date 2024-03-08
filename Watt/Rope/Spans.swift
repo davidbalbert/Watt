@@ -475,6 +475,10 @@ extension Spans: BidirectionalCollection {
         return i
     }
 
+    func makeIterator() -> BTreeNode<SpansSummary<T>>.Iterator<SpansSlice<T>, Spans<T>.SpansMetric> {
+        self[root.startIndex..<root.endIndex].makeIterator()
+    }
+
     subscript(position: Index) -> Span<T> {
         // Let SpanSlice take care of the actual subscript logic. We use root.startIndex and root.endIndex
         // instead of startIndex and endIndex because we don't want to slice off empty space at the beginning
@@ -538,6 +542,26 @@ struct SpansSlice<T> {
     }
 }
 
+extension SpansSlice: BTreeSlice {
+    subscript(unvalidatedIndex index: Index) -> Span<T> {
+        index.assertValid(for: base.root)
+        assert(index.position >= bounds.lowerBound.position && index.position < bounds.upperBound.position, "Index out of bounds")
+
+        let (leaf, offsetInLeaf) = index.read()!
+
+        let (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offsetInLeaf)
+        let span = found ? leaf.spans[i] : leaf.spans[i-1]
+
+        if !span.range.contains(offsetInLeaf) {
+            fatalError("Didn't find span at \(index) in \(self).")
+        }
+
+        let rangeInRoot = span.range.offset(by: index.offsetOfLeaf)
+        let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
+        return Span(range: rangeInSlice, data: span.data)
+    }
+}
+
 extension SpansSlice: BidirectionalCollection {
     typealias Index = Spans<T>.Index
 
@@ -569,22 +593,15 @@ extension SpansSlice: BidirectionalCollection {
         return i
     }
 
+    func makeIterator() -> BTreeNode<SpansSummary<T>>.Iterator<SpansSlice<T>, Spans<T>.SpansMetric> {
+        BTreeNode<SpansSummary<T>>.Iterator(slice: self, metric: Spans.SpansMetric(), edge: .leading)
+    }
+
     subscript(position: Index) -> Span<T> {
         position.validate(for: base.root)
-        precondition(position.position >= bounds.lowerBound.position && position.position < bounds.upperBound.position)
+        precondition(position.position >= bounds.lowerBound.position && position.position < bounds.upperBound.position, "Index out of bounds")
 
-        let (leaf, offsetInLeaf) = position.read()!
-
-        let (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offsetInLeaf)
-        let span = found ? leaf.spans[i] : leaf.spans[i-1]
-
-        if !span.range.contains(offsetInLeaf) {
-            fatalError("Didn't find span at \(position) in \(self).")
-        }
-
-        let rangeInRoot = span.range.offset(by: position.offsetOfLeaf)
-        let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
-        return Span(range: rangeInSlice, data: span.data)
+        return self[unvalidatedIndex: position]
     }
 
     subscript(r: Range<Index>) -> SpansSlice {
