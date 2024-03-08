@@ -1120,17 +1120,42 @@ extension Dictionary where Key == NSAttributedString.Key, Value == Any {
 
 extension NSAttributedString {
     convenience init(_ attributedRope: AttributedRope) {
-        let s = NSMutableAttributedString(string: String(attributedRope.text))
-        for span in attributedRope.spans {
-            let attrs = Dictionary(span.data)
-            let range = Range(span.range, in: attributedRope.text)
-            s.addAttributes(attrs, range: NSRange(range, in: attributedRope.text))
-        }
-        self.init(attributedString: s)
+        // Creating CFAttributedStrings seems somewhat faster than
+        // creating NSAttributedStrings directly.
+        self.init(attributedString: attributedRope.cfAttributedString)
     }
 
     convenience init(_ attributedSubrope: AttributedSubrope) {
         self.init(AttributedRope(attributedSubrope))
+    }
+}
+
+extension AttributedRope {
+    var cfAttributedString: CFAttributedString {
+        let u16len = text.utf16.count
+        let attrStr = CFAttributedStringCreateMutable(kCFAllocatorDefault, u16len)!
+
+        CFAttributedStringBeginEditing(attrStr)
+        CFAttributedStringReplaceString(
+            attrStr,
+            CFRange(location: 0, length: 0),
+            String(text) as CFString
+        )
+
+        for run in runs {
+            let attrs = Dictionary(run.attributes) as CFDictionary
+            let range = CFRange(unvalidatedRange: run.range, in: text)
+            CFAttributedStringSetAttributes(
+                attrStr,
+                range,
+                attrs,
+                false
+            )
+        }
+
+        CFAttributedStringEndEditing(attrStr)
+
+        return attrStr
     }
 }
 

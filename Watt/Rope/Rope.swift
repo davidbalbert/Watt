@@ -1720,11 +1720,27 @@ extension NSRange {
         assert(range.lowerBound.position >= 0 && range.lowerBound.position <= rope.root.count)
         assert(range.upperBound.position >= 0 && range.upperBound.position <= rope.root.count)
 
-        // TODO: is there a reason the majority of this initializer isn't just distance(from:to:)?
+        self.init(unvalidatedRange: range, in: rope)
+    }
+
+    // Don't use for user provided ranges.
+    init(unvalidatedRange range: Range<Rope.Index>, in rope: Rope) {
         let i = rope.root.count(.utf16, upThrough: range.lowerBound.position, edge: .trailing)
         let j = rope.root.count(.utf16, upThrough: range.upperBound.position, edge: .trailing)
 
         self.init(location: i, length: j-i)
+    }
+}
+
+extension CFRange {
+    init<R>(_ region: R, in rope: Rope) where R : RangeExpression, R.Bound == Rope.Index {
+        let nsRange = NSRange(region, in: rope)
+        self.init(location: nsRange.location, length: nsRange.length)
+    }
+
+    init(unvalidatedRange range: Range<Rope.Index>, in rope: Rope) {
+        let nsRange = NSRange(unvalidatedRange: range, in: rope)
+        self.init(location: nsRange.location, length: nsRange.length)
     }
 }
 

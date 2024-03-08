@@ -535,13 +535,17 @@ class LayoutManager {
     }
 
     func nsAttributedString(for range: Range<Buffer.Index>) -> NSAttributedString {
-        let attributedRope = AttributedRope(buffer[range])
+        cfAttributedString(for: range)
+    }
 
-        guard let delegate else {
-            return NSAttributedString(attributedRope)
+    func cfAttributedString(for range: Range<Buffer.Index>) -> CFAttributedString {
+        var attributedRope = AttributedRope(buffer[range])
+
+        if let delegate {
+            attributedRope = delegate.layoutManager(self, attributedRopeFor: attributedRope)
         }
 
-        return NSAttributedString(delegate.layoutManager(self, attributedRopeFor: attributedRope))
+        return attributedRope.cfAttributedString
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this
@@ -556,7 +560,7 @@ class LayoutManager {
             return makeEmptyLastLine(using: buffer, at: point)
         }
 
-        let attrStr = nsAttributedString(for: range)
+        let attrStr = cfAttributedString(for: range)
 
         // N.b. Docs say this can return NULL, but its declared inside CF_ASSUME_NONNULL_BEGIN,
         // so it's imported into swift as non-optional. I bet this just means the documentation
@@ -570,7 +574,7 @@ class LayoutManager {
 
         var lineFragments: [LineFragment] = []
 
-        while i < attrStr.length {
+        while i < CFAttributedStringGetLength(attrStr) {
             let next = i + CTTypesetterSuggestLineBreak(typesetter, i, textContainer.lineFragmentWidth)
             let bnext = buffer.utf16.index(bi, offsetBy: next - i)
             let ctLine = CTTypesetterCreateLine(typesetter, CFRange(location: i, length: next - i))
@@ -599,7 +603,7 @@ class LayoutManager {
             // We round heights because fragments are aligned on integer values. We
             // don't round the last height because we don't want to cut off the final
             // fragment if the majority of fragment heights round down.
-            if next == attrStr.length {
+            if next == CFAttributedStringGetLength(attrStr) {
                 height += typographicBounds.height
             } else {
                 height += round(typographicBounds.height)
