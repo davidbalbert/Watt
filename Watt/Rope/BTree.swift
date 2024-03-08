@@ -1019,9 +1019,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return i
         }
 
-        var min = _distance(from: startIndex, to: range.lowerBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
-        var max = _distance(from: startIndex, to: range.upperBound, in: startIndex..<range.upperBound, using: metric, edge: edge)
-        var m =   _distance(from: startIndex, to: i, in: startIndex..<range.upperBound, using: metric, edge: edge)
+        let start = startIndex
+
+        var min = _distance(from: start, to: range.lowerBound, in: start..<range.upperBound, using: metric, edge: edge)
+        var max = _distance(from: start, to: range.upperBound, in: start..<range.upperBound, using: metric, edge: edge)
+        var m =   _distance(from: start, to: i, in: start..<range.upperBound, using: metric, edge: edge)
 
         // Consider "\nfoo" without slicing (range = 0..<4). In this situation, 0 is not a valid measured unit in newlines,
         // but e.g. if i.position == 1, distance(0, 1, 0..<4, .newlines, .leading) = 1 - 1 = 0. But m, which is the measure
@@ -1030,7 +1032,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         //
         // We have to bump min and max for the same reason. distance(0, 0) will always be 0, but because startIndex is a boundary, we
         // want it to be 1.
-        if edge == .leading && startIndex.isBoundary(using: metric, edge: .leading) {
+        if edge == .leading && start.isBoundary(using: metric, edge: .leading) {
             min += 1
             max += 1
             m += 1
