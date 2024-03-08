@@ -507,7 +507,7 @@ class LayoutManager {
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
         let intRange = Range(unvalidatedRange: range)
-        let (i, found) = lineLayers.map { Range(unvalidatedRange: $0.line.range).lowerBound }.binarySearch(for: intRange.lowerBound)
+        let (i, found) = lineLayers.binarySearch { $0.line.range.lowerBound.position.compare(to: intRange.lowerBound) }
         if found {
             let layer = lineLayers[i]
             assert(Range(unvalidatedRange: layer.line.range) == intRange)

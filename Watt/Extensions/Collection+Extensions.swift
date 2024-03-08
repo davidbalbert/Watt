@@ -44,3 +44,27 @@ extension RandomAccessCollection where Element: Comparable {
         return (low, false)
     }
 }
+
+extension RandomAccessCollection {
+    // In your comparison, the argument to the comparitor should be on the left, and the element you
+    // close over should be on the right.
+    func binarySearch(using comparator: (Element) -> ComparisonResult) -> (index: Index, found: Bool) {
+        var low = startIndex
+        var high = endIndex
+
+        while low < high {
+            let mid = index(low, offsetBy: distance(from: low, to: high) / 2)
+            let res = comparator(self[mid])
+
+            if res == .orderedSame {
+                return (mid, true)
+            } else if res == .orderedAscending {
+                low = index(after: mid)
+            } else {
+                high = mid
+            }
+        }
+
+        return (low, false)
+    }
+}
