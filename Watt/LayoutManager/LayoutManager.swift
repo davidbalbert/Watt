@@ -20,7 +20,7 @@ protocol LayoutManagerDelegate: AnyObject {
     func selections(for layoutManager: LayoutManager) -> [Selection]
 
     // An opportunity for the delegate to return a custom AttributedRope.
-    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: consuming AttributedRope) -> AttributedRope
+    func layoutManager(_ layoutManager: LayoutManager, attributedSubropeFor attrSubrope: AttributedSubrope) -> AttributedSubrope
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
@@ -30,8 +30,8 @@ protocol LayoutManagerDelegate: AnyObject {
 }
 
 extension LayoutManagerDelegate {
-    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: AttributedRope) -> AttributedRope {
-        attrRope
+    func layoutManager(_ layoutManager: LayoutManager, attributedSubropeFor attrSubrope: AttributedSubrope) -> AttributedSubrope {
+        attrSubrope
     }
 }
 
@@ -539,13 +539,13 @@ class LayoutManager {
     }
 
     func cfAttributedString(for range: Range<Buffer.Index>) -> CFAttributedString {
-        var attributedRope = AttributedRope(buffer[range])
+        var attributedSubrope = buffer[range]
 
         if let delegate {
-            attributedRope = delegate.layoutManager(self, attributedRopeFor: attributedRope)
+            attributedSubrope = delegate.layoutManager(self, attributedSubropeFor: attributedSubrope)
         }
 
-        return attributedRope.cfAttributedString
+        return attributedSubrope.cfAttributedString
     }
 
     // TODO: once we save breaks, perhaps attrStr could be a visual line and this

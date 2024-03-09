@@ -15,13 +15,19 @@ import Foundation
 
 struct Rope: BTree {
     var root: BTreeNode<RopeSummary>
+    var bounds: Range<Rope.Index>
 
     init() {
-        self.root = BTreeNode<RopeSummary>()
+        self.init(BTreeNode<RopeSummary>())
     }
 
     init(_ root: BTreeNode<RopeSummary>) {
         self.root = root
+
+        let start = root.startIndex
+        let end = root.endIndex
+        assert(start <= end)
+        self.bounds = Range(uncheckedBounds: (Index(start), Index(end)))
     }
 }
 
@@ -917,79 +923,78 @@ extension Rope.Index: CustomDebugStringConvertible {
 
 // MARK: - Collection conformances
 
-// TODO: audit default methods from Collection, BidirectionalCollection and RangeReplaceableCollection for default implementations that perform poorly.
-extension Rope: BidirectionalCollection {
-    var count: Int {
-        root.measure(using: .characters)
+
+// N.b. Rope and Subrope have a different behavior than String when subscripting
+// on a non-character boundary. String will round down to the closest UnicodeScalar
+// and then do some interesting things depending on what the index is pointing to:
+//
+// All example indices are unicode scalar indices.
+//
+// s = "e\u{0301}"          - "e" + combining accute accent
+//   s[0] = "e\u{0301}"
+//   s[1] = "\u{0301}"
+//
+// s = "👨‍👩‍👧‍👦"
+//   = "👨\u{200D}👩\u{200D}👧\u{200D}👦"
+//   = "\u{0001F468}\u{200D}\u{0001F469}\u{200D}\u{0001F467}\u{200D}\u{0001F466}"
+//
+//   s[0] = "👨‍👩‍👧‍👦"
+//   s[1] = "\u{200D}"
+//   s[2] = "👩\u{200D}👧\u{200D}👦"
+//   s[3] = "\u{200D}"
+//   s[4] = "👧\u{200D}👦"
+//   s[5] = "\u{200D}"
+//   s[6] = "👦"
+//
+// This is pretty gnarley behavior that is doing special things with grapheme breaking,
+// so it's not worth reproducing.
+
+extension Rope: RopeView {
+    typealias Element = Character
+
+    init(base: Rope, bounds: Range<Index>) {
+        assert(base.bounds == bounds)
+        self = base
+    }
+    
+
+    var base: Rope {
+        self
     }
 
-    var startIndex: Index {
-        Index(root.startIndex)
+    var metric: Rope.CharacterMetric {
+        .characters
     }
 
-    var endIndex: Index {
-        Index(root.endIndex)
+    var edge: BTreeMetricEdge {
+        .leading
     }
 
-    // N.b. This has a different behavior than String when subscripting on a
-    // non-character boundary. String will round down to the closest UnicodeScalar
-    // and then do some interesting things depending on what the index is
-    // pointing to:
-    //
-    // All example indices are unicode scalar indices.
-    //
-    // s = "e\u{0301}"          - "e" + combining accute accent
-    //   s[0] = "e\u{0301}"
-    //   s[1] = "\u{0301}"
-    //
-    // s = "👨‍👩‍👧‍👦"
-    //   = "👨\u{200D}👩\u{200D}👧\u{200D}👦"
-    //   = "\u{0001F468}\u{200D}\u{0001F469}\u{200D}\u{0001F467}\u{200D}\u{0001F466}"
-    //
-    //   s[0] = "👨‍👩‍👧‍👦"
-    //   s[1] = "\u{200D}"
-    //   s[2] = "👩\u{200D}👧\u{200D}👦"
-    //   s[3] = "\u{200D}"
-    //   s[4] = "👧\u{200D}👦"
-    //   s[5] = "\u{200D}"
-    //   s[6] = "👦"
-    //
-    // This is pretty gnarley behavior that is doing special things with grapheme breaking,
-    // so it's not worth reproducing.
-    subscript(position: Index) -> Character {
-        index(roundingDown: position).readChar()!
+    var sliceMetric: Rope.UnicodeScalarMetric {
+        .unicodeScalars
     }
 
+    func readElement(at i: Rope.Index) -> Character {
+        i.readChar()!
+    }
+
+
+    // TODO: RopeView assumes SubSequence == Self, and when I tried to allow SubSequence to be anything
+    // anything that conforms to RopeView, and then added typealias SubSequence = Subrope, the compiler
+    // said something like "Rope doesn't conform to BidirectionalCollection." I'm not sure why. Try to
+    // fix this.
     subscript(bounds: Range<Index>) -> Subrope {
         let start = unicodeScalars.index(roundingDown: bounds.lowerBound)
         let end = unicodeScalars.index(roundingDown: bounds.upperBound)
         return Subrope(base: self, bounds: start..<end)
     }
-
-    func index(before i: consuming Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
-    }
-
-    func index(after i: consuming Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
-    }
-
-    func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
-    }
-
-    func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
-    }
-
-    func distance(from start: Index, to end: Index) -> Int {
-        root.distance(from: start.i, to: end.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading)
-    }
 }
 
+// TODO: audit default methods from RangeReplaceableCollection for default implementations that perform poorly.
 extension Rope: RangeReplaceableCollection {
     init(_ rope: Rope) {
         self.root = rope.root
+        self.bounds = rope.bounds
     }
 
     init(_ subrope: Subrope) {
@@ -1057,27 +1062,9 @@ extension Rope {
     }
 }
 
-// Some convenience methods that make string indexing not
-// a total pain to work with.
 extension Rope {
-    func index(at offset: Int) -> Index {
-        index(startIndex, offsetBy: offset)
-    }
-
-    subscript(offset: Int) -> Character {
-        self[index(at: offset)]
-    }
-
-    func index(roundingDown i: consuming Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading))
-    }
-
     func index(fromOldIndex oldIndex: consuming Index) -> Index {
         utf8.index(at: oldIndex.position)
-    }
-
-    func isBoundary(_ i: Index) -> Bool {
-        root.isBoundary(i.i, in: startIndex.i..<endIndex.i, using: .characters, edge: .leading)
     }
 }
 
@@ -1182,6 +1169,12 @@ protocol RopeView: BidirectionalCollection where Index == Rope.Index {
 
     init(base: Rope, bounds: Range<Index>)
     func readElement(at i: Index) -> Element
+
+    // These have default implementations
+    func index(at offset: Int) -> Index
+    subscript(offset: Int) -> Element { get }
+    func index(roundingDown i: Index) -> Index
+    func isBoundary(_ i: Index) -> Bool
 }
 
 extension RopeView {
@@ -1261,7 +1254,7 @@ extension RopeView {
 
 extension Rope {
     var utf8: UTF8View {
-        UTF8View(base: self, bounds: startIndex..<endIndex)
+        UTF8View(base: self, bounds: bounds)
     }
 
     struct UTF8View: RopeView {
@@ -1287,6 +1280,11 @@ extension Rope {
         func readElement(at i: Index) -> UTF8.CodeUnit {
             i.readUTF8()!
         }
+
+        // faster than using root.index(at:in:using:edge:)
+        func index(at offset: Int) -> Index {
+            Index(root.index(at: offset))
+        }
     }
 }
 
@@ -1300,7 +1298,7 @@ extension Rope {
 // do this, our ability to click on a line fragment after an emoji will fail.
 extension Rope {
     var utf16: UTF16View {
-        UTF16View(base: self, bounds: startIndex..<endIndex)
+        UTF16View(base: self, bounds: bounds)
     }
 
     struct UTF16View {
@@ -1319,7 +1317,7 @@ extension Rope.UTF16View {
     typealias Index = Rope.Index
 
     var count: Int {
-        distance(from: startIndex, to: endIndex)
+        root.count(in: Range(uncheckedBounds: (bounds.lowerBound.i, bounds.upperBound.i)), using: .utf16)
     }
 
    var startIndex: Index {
@@ -1341,7 +1339,7 @@ extension Rope.UTF16View {
 
 extension Rope {
     var unicodeScalars: UnicodeScalarView {
-        UnicodeScalarView(base: self, bounds: startIndex..<endIndex)
+        UnicodeScalarView(base: self, bounds: bounds)
     }
 
     struct UnicodeScalarView: RopeView {
@@ -1367,7 +1365,7 @@ extension Rope {
 
 extension Rope {
     var lines: LineView {
-        LineView(base: self, bounds: startIndex..<endIndex)
+        LineView(base: self, bounds: bounds)
     }
 
     struct LineView {
@@ -1730,6 +1728,11 @@ extension NSRange {
 
         self.init(location: i, length: j-i)
     }
+
+    init(unvalidatedRange range: Range<Rope.Index>, in subrope: Subrope) {
+        let nsRange = NSRange(unvalidatedRange: range, in: subrope.base)
+        self.init(location: nsRange.location - subrope.bounds.lowerBound.position, length: nsRange.length)
+    }
 }
 
 extension CFRange {
@@ -1741,6 +1744,11 @@ extension CFRange {
     // Don't use for user provided ranges.
     init(unvalidatedRange range: Range<Rope.Index>, in rope: Rope) {
         let nsRange = NSRange(unvalidatedRange: range, in: rope)
+        self.init(location: nsRange.location, length: nsRange.length)
+    }
+
+    init(unvalidatedRange range: Range<Rope.Index>, in subrope: Subrope) {
+        let nsRange = NSRange(unvalidatedRange: range, in: subrope)
         self.init(location: nsRange.location, length: nsRange.length)
     }
 }

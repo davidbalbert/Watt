@@ -241,10 +241,10 @@ extension TextView: LayoutManagerDelegate {
         [selection]
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, attributedRopeFor attrRope: consuming AttributedRope) -> AttributedRope {
-        attrRope.mergeAttributes(defaultAttributes, mergePolicy: .keepCurrent)
+    func layoutManager(_ layoutManager: LayoutManager, attributedSubropeFor attrSubrope: consuming AttributedSubrope) -> AttributedSubrope {
+        attrSubrope.mergeAttributes(defaultAttributes, mergePolicy: .keepCurrent)
 
-        return attrRope.transformingAttributes(\.token) { attr in
+        attrSubrope.transformAttributes(\.token) { attr in
             var attributes = theme[attr.value!.type] ?? AttributedRope.Attributes()
 
             if attributes.font != nil {
@@ -267,6 +267,8 @@ extension TextView: LayoutManagerDelegate {
 
             return attr.replace(with: attributes)
         }
+
+        return attrSubrope
     }
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {

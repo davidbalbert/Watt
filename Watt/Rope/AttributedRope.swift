@@ -26,22 +26,25 @@ struct AttributedRope {
     }
 
     init(_ text: Rope, attributes: Attributes = Attributes()) {
-        self.text = text
-
         var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
         if text.utf8.count > 0 {
             b.add(attributes, covering: 0..<text.utf8.count)
         }
-        self.spans = b.build()
+
+        self.init(text: text, spans: b.build())
     }
 
     init(_ subrope: AttributedSubrope) {
-        self.text = Rope(subrope.base.text[subrope.bounds])
-        self.spans = Spans(subrope.base.spans[Range(subrope.bounds, in: subrope.base.spans)])
+        if Range(unvalidatedRange: subrope.bounds) == 0..<subrope.base.text.utf8.count {
+            self.init(text: subrope.base.text, spans: subrope.base.spans)
+            return
+        }
+
+        self.init(text: Rope(subrope.text), spans: Spans(subrope.spans))
     }
 
     // internal
-    init(text: Rope, spans: Spans<Attributes>) {
+    fileprivate init(text: Rope, spans: Spans<Attributes>) {
         assert(text.utf8.count == spans.upperBound)
         self.text = text
         self.spans = spans
@@ -52,6 +55,14 @@ struct AttributedRope {
 struct AttributedSubrope {
     var base: AttributedRope
     var bounds: Range<AttributedRope.Index>
+
+    var text: Subrope {
+        base.text[bounds]
+    }
+
+    var spans: SpansSlice<AttributedRope.Attributes> {
+        base.spans[Range(bounds, in: base.spans)]
+    }
 }
 
 extension AttributedRope {
@@ -578,13 +589,16 @@ extension AttributedSubrope {
             return
         }
 
-        let range = Range(unvalidatedRange: bounds)
+        let intRange = Range(unvalidatedRange: bounds)
         let spansRange = Range(bounds, in: base.spans)
 
-        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: range.count)
-        sb.add(attributes, covering: range)
+        let newSpans = Spans(base.spans[spansRange])
+        let newIntRange = 0..<newSpans.upperBound
 
-        var new = Spans(base.spans[spansRange]).merging(sb.build()) { a, b in
+        var sb = SpansBuilder<AttributedRope.Attributes>(totalCount: newIntRange.count)
+        sb.add(attributes, covering: newIntRange)
+
+        var new = newSpans.merging(sb.build()) { a, b in
             if let a, let b {
                 return a.merging(b, mergePolicy: mergePolicy)
             } else {
@@ -594,9 +608,9 @@ extension AttributedSubrope {
 
         var dup = base.spans
         var b = BTreeBuilder<Spans<AttributedRope.Attributes>>()
-        b.push(&dup.root, slicedBy: 0..<range.lowerBound)
+        b.push(&dup.root, slicedBy: 0..<intRange.lowerBound)
         b.push(&new.root)
-        b.push(&dup.root, slicedBy: range.upperBound..<dup.upperBound)
+        b.push(&dup.root, slicedBy: intRange.upperBound..<dup.upperBound)
 
         base.spans = b.build()
 
@@ -606,6 +620,48 @@ extension AttributedSubrope {
     func mergingAttributes(_ attributes: AttributedRope.Attributes, mergePolicy: AttributedRope.AttributeMergePolicy = .keepNew) -> AttributedRope {
         var dup = self
         dup.mergeAttributes(attributes, mergePolicy: mergePolicy)
+        return AttributedRope(dup)
+    }
+
+    mutating func transformAttributes<K>(_ k: K.Type, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) where K: AttributedRopeKey {
+        var b = SpansBuilder<AttributedRope.Attributes>(totalCount: base.text.utf8.count)
+
+        for run in runs {
+            if run.attributes[K.self] != nil {
+                var t = AttributedRope.AttributeTransformer<K>(run: run, builder: b)
+                block(&t)
+                b = t.builder
+            }
+        }
+
+        let newSpans = base.spans.merging(b.build()) { a, b in
+            guard let b else {
+                return a
+            }
+
+            var a = a ?? AttributedRope.Attributes()
+            a[K.self] = nil
+            a.merge(b)
+            return a
+        }
+
+        base.spans = newSpans
+    }
+
+    mutating func transformAttributes<K>(_ k: KeyPath<AttributedRope.AttributeKeys, K>, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) where K: AttributedRopeKey {
+        transformAttributes(K.self, block)
+    }
+
+    func transformingAttributes<K>(_ k: K.Type, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        var dup = self
+        dup.transformAttributes(K.self, block)
+        return AttributedRope(dup)
+    }
+
+
+    func transformingAttributes<K>(_ k: KeyPath<AttributedRope.AttributeKeys, K>, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
+        var dup = self
+        dup.transformAttributes(K.self, block)
         return AttributedRope(dup)
     }
 }
@@ -645,33 +701,20 @@ extension AttributedRope {
         }
     }
 
+    mutating func transformAttributes<K>(_ k: K.Type, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) where K: AttributedRopeKey {
+        self[...].transformAttributes(k, block)
+    }
+
+    mutating func transformAttributes<K>(_ k: KeyPath<AttributedRope.AttributeKeys, K>, _ block: (inout AttributedRope.AttributeTransformer<K>) -> Void) where K: AttributedRopeKey {
+        self[...].transformAttributes(k, block)
+    }
+
     func transformingAttributes<K>(_ k: K.Type, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
-        var b = SpansBuilder<Attributes>(totalCount: text.utf8.count)
-
-        for run in runs {
-            if run.attributes[K.self] != nil {
-                var t = AttributeTransformer<K>(run: run, builder: b)
-                block(&t)
-                b = t.builder
-            }
-        }
-
-        let newSpans = spans.merging(b.build()) { a, b in
-            guard let b else {
-                return a
-            }
-
-            var a = a ?? Attributes()
-            a[K.self] = nil
-            a.merge(b)
-            return a
-        }
-
-        return AttributedRope(text: text, spans: newSpans)
+        self[...].transformingAttributes(k, block)
     }
 
     func transformingAttributes<K>(_ k: KeyPath<AttributeKeys, K>, _ block: (inout AttributeTransformer<K>) -> Void) -> AttributedRope where K: AttributedRopeKey {
-        transformingAttributes(K.self, block)
+        self[...].transformingAttributes(k, block)
     }
 }
 
@@ -1148,11 +1191,17 @@ extension NSAttributedString {
     }
 
     convenience init(_ attributedSubrope: AttributedSubrope) {
-        self.init(AttributedRope(attributedSubrope))
+        self.init(attributedString: attributedSubrope.cfAttributedString)
     }
 }
 
 extension AttributedRope {
+    var cfAttributedString: CFAttributedString {
+        self[...].cfAttributedString
+    }
+}
+
+extension AttributedSubrope {
     var cfAttributedString: CFAttributedString {
         let u16len = text.utf16.count
         let attrStr = CFAttributedStringCreateMutable(kCFAllocatorDefault, u16len)!

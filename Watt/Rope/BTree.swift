@@ -1294,7 +1294,8 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         var index: Index
 
         init(slice: Slice, metric: Metric, edge: BTreeMetricEdge) {
-            let bounds = slice.startIndex.baseIndex..<slice.endIndex.baseIndex
+            assert(slice.startIndex.baseIndex.position <= slice.endIndex.baseIndex.position)
+            let bounds = Range(uncheckedBounds: (slice.startIndex.baseIndex, slice.endIndex.baseIndex))
 
             bounds.lowerBound.assertValid(for: slice.root)
             bounds.upperBound.assertValid(for: slice.root)
