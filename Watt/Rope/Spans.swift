@@ -538,7 +538,7 @@ struct SpansSlice<T> {
     }
 
     var upperBound: Int {
-        root.distance(from: bounds.lowerBound, to: bounds.upperBound, in: bounds.lowerBound..<bounds.upperBound, using: Spans.SpansBaseMetric(), edge: .leading)
+        bounds.upperBound.position
     }
 }
 

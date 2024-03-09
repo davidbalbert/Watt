@@ -130,43 +130,43 @@ final class SpansTests: XCTestCase {
         XCTAssertEqual(8, s[baseBounds: 0..<10].endIndex.position)
 
         XCTAssertEqual(3, s[baseBounds: 1..<9].count)
-        XCTAssertEqual(8, s[baseBounds: 1..<9].upperBound)
+        XCTAssertEqual(9, s[baseBounds: 1..<9].upperBound)
         XCTAssertEqual(1, s[baseBounds: 1..<9].startIndex.position)
         XCTAssertEqual(8, s[baseBounds: 1..<9].endIndex.position)
 
         XCTAssertEqual(3, s[baseBounds: 2..<8].count)
-        XCTAssertEqual(6, s[baseBounds: 2..<8].upperBound)
+        XCTAssertEqual(8, s[baseBounds: 2..<8].upperBound)
         XCTAssertEqual(2, s[baseBounds: 2..<8].startIndex.position)
         XCTAssertEqual(8, s[baseBounds: 2..<8].endIndex.position)
 
         XCTAssertEqual(2, s[baseBounds: 3..<8].count)
-        XCTAssertEqual(5, s[baseBounds: 3..<8].upperBound)
+        XCTAssertEqual(8, s[baseBounds: 3..<8].upperBound)
         XCTAssertEqual(5, s[baseBounds: 3..<8].startIndex.position)
         XCTAssertEqual(8, s[baseBounds: 3..<8].endIndex.position)
 
         XCTAssertEqual(1, s[baseBounds: 3..<7].count)
-        XCTAssertEqual(4, s[baseBounds: 3..<7].upperBound)
+        XCTAssertEqual(7, s[baseBounds: 3..<7].upperBound)
         XCTAssertEqual(5, s[baseBounds: 3..<7].startIndex.position)
         XCTAssertEqual(7, s[baseBounds: 3..<7].endIndex.position)
 
         XCTAssertEqual(1, s[baseBounds: 4..<6].count)
-        XCTAssertEqual(2, s[baseBounds: 4..<6].upperBound)
+        XCTAssertEqual(6, s[baseBounds: 4..<6].upperBound)
         XCTAssertEqual(5, s[baseBounds: 4..<6].startIndex.position)
         XCTAssertEqual(6, s[baseBounds: 4..<6].endIndex.position)
 
         XCTAssertEqual(1, s[baseBounds: 5..<6].count)
-        XCTAssertEqual(1, s[baseBounds: 5..<6].upperBound)
+        XCTAssertEqual(6, s[baseBounds: 5..<6].upperBound)
         XCTAssertEqual(5, s[baseBounds: 5..<6].startIndex.position)
         XCTAssertEqual(6, s[baseBounds: 5..<6].endIndex.position)
 
         // Empty, so startIndex and endIndex start at bounds.lowerBound
         XCTAssertEqual(0, s[baseBounds: 4..<5].count)
-        XCTAssertEqual(1, s[baseBounds: 4..<5].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 4..<5].upperBound)
         XCTAssertEqual(4, s[baseBounds: 4..<5].startIndex.position)
         XCTAssertEqual(4, s[baseBounds: 4..<5].endIndex.position)
 
         XCTAssertEqual(0, s[baseBounds: 5..<5].count)
-        XCTAssertEqual(0, s[baseBounds: 5..<5].upperBound)
+        XCTAssertEqual(5, s[baseBounds: 5..<5].upperBound)
         XCTAssertEqual(5, s[baseBounds: 5..<5].startIndex.position)
         XCTAssertEqual(5, s[baseBounds: 5..<5].endIndex.position)
     }
