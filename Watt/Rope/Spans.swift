@@ -557,7 +557,7 @@ extension SpansSlice: BTreeSlice {
         }
 
         let rangeInRoot = span.range.offset(by: index.offsetOfLeaf)
-        let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position).offset(by: -bounds.lowerBound.position)
+        let rangeInSlice = rangeInRoot.clamped(to: bounds.lowerBound.position..<bounds.upperBound.position)
         return Span(range: rangeInSlice, data: span.data)
     }
 }

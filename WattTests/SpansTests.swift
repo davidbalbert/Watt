@@ -190,7 +190,7 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
 
         iter = s[baseBounds: 3..<6].makeIterator()
-        XCTAssertEqual(Span(range: 0..<3, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 3..<6, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
         iter = s[baseBounds: 0..<0].makeIterator()
@@ -201,7 +201,7 @@ final class SpansTests: XCTestCase {
         XCTAssertNil(iter.next())
 
         iter = s[baseBounds: 5..<6].makeIterator()
-        XCTAssertEqual(Span(range: 0..<1, data: 2), iter.next())
+        XCTAssertEqual(Span(range: 5..<6, data: 2), iter.next())
         XCTAssertNil(iter.next())
 
         iter = s[baseBounds: 6..<6].makeIterator()
