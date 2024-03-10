@@ -1627,8 +1627,38 @@ extension String {
     }
 
     init(_ subrope: Subrope) {
-        let r = Rope(subrope)
-        self.init(r)
+        if subrope.bounds.lowerBound.position == 0 && subrope.bounds.upperBound.position == subrope.base.utf8.count {
+            self.init(subrope.base)
+            return
+        }
+
+        self.init()
+        self.reserveCapacity(subrope.utf8.count)
+
+        // manually iterate over chunks, starting at subrope.startIndex, slicing the first and last chunk if necessary
+        var i = subrope.startIndex
+        let end = subrope.endIndex
+
+        while i.i.isValid && i.position < end.position {
+            let chunk = i.i.read()!.0
+
+            if i.i.offsetInLeaf == 0 && i.i.offsetOfLeaf + chunk.count <= end.i.offsetOfLeaf {
+                append(chunk.string)
+            } else {
+                let j = i.i.offsetInLeaf == 0 ? chunk.string.startIndex : chunk.string.utf8Index(at: i.i.offsetInLeaf)
+
+                let k: String.Index
+                if i.i.offsetOfLeaf == end.i.offsetOfLeaf && end.i.offsetInLeaf < chunk.count {
+                    k = chunk.string.utf8Index(at: end.i.offsetInLeaf)
+                } else {
+                    k = chunk.string.endIndex
+                }
+
+                append(contentsOf: chunk.string[j..<k])
+            }
+
+            i.i.nextLeaf()
+        }
     }
 }
 

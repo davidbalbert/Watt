@@ -1995,6 +1995,43 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("\u{0301}b", String(subrope2))
     }
 
+    func testInitializeStringFromSubrope() {
+        let r = Rope(String(repeating: "abc", count: 1000))
+        XCTAssertEqual(r.count, 3000)
+        XCTAssertEqual(3, r.root.leafCount)
+        XCTAssertEqual(1023, r.root.children[0].count)
+        XCTAssertEqual(1023, r.root.children[1].count)
+        XCTAssertEqual(954, r.root.children[2].count)
+        
+        // Slice within a single chunk
+        var subrope = r[r.index(at: 50)..<r.index(at: 100)]
+        var s = String(subrope)
+        
+        XCTAssertEqual(50, s.count)
+        XCTAssertEqual("c" + String(repeating: "abc", count: 16) + "a", s)
+
+        // Slice the latter part of chunk 0 and the first part of chunk 1
+        subrope = r[r.index(at: 500)..<r.index(at: 2000)]
+        s = String(subrope)
+
+        XCTAssertEqual(1500, s.count)
+        XCTAssertEqual("c" + String(repeating: "abc", count: 499) + "ab", s)
+
+        // Slice the entirety of chunks 1 and 2
+        subrope = r[r.index(at: 1023)..<r.index(at: 3000)]
+        s = String(subrope)
+
+        XCTAssertEqual(1977, s.count)
+        XCTAssertEqual(String(repeating: "abc", count: 659) , s)
+
+        // Slice the whole Rope
+        subrope = r[r.index(at: 0)..<r.index(at: 3000)]
+        s = String(subrope)
+
+        XCTAssertEqual(3000, s.count)
+        XCTAssertEqual(String(repeating: "abc", count: 1000), s)
+    }
+
     // MARK: - Deltas
 
     func testDeltaSummarizeCombiningCharactersAtChunkBoundary() {
