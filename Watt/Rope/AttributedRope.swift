@@ -132,8 +132,8 @@ extension AttributedRope {
     }
 
     struct Runs {
-        var base: AttributedRope
-        var bounds: Range<Index>
+        let base: AttributedRope
+        let bounds: Range<Index>
 
         private var spans: SpansSlice<AttributedRope.Attributes> {
             let start = base.spans.index(withBaseOffset: bounds.lowerBound.position)
@@ -249,8 +249,8 @@ extension AttributedRope.Runs: BidirectionalCollection {
 extension AttributedRope.Runs {
     @dynamicMemberLookup
     struct Run {
-        var base: AttributedRope
-        var span: Span<AttributedRope.Attributes>
+        let base: AttributedRope
+        let span: Span<AttributedRope.Attributes>
 
         var range: Range<AttributedRope.Index> {
             Range(span.range, in: base.text)
