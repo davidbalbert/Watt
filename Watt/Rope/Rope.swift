@@ -951,18 +951,18 @@ extension Rope.Index: CustomDebugStringConvertible {
 
 extension Rope: RopeView {
     typealias Element = Character
+    typealias SubSequence = Subrope
 
     init(base: Rope, bounds: Range<Index>) {
         assert(base.bounds == bounds)
         self = base
     }
-    
 
     var base: Rope {
         self
     }
 
-    var metric: Rope.CharacterMetric {
+    var metric: CharacterMetric {
         .characters
     }
 
@@ -970,23 +970,12 @@ extension Rope: RopeView {
         .leading
     }
 
-    var sliceMetric: Rope.UnicodeScalarMetric {
+    var sliceMetric: UnicodeScalarMetric {
         .unicodeScalars
     }
 
-    func readElement(at i: Rope.Index) -> Character {
+    func readElement(at i: Index) -> Character {
         i.readChar()!
-    }
-
-
-    // TODO: RopeView assumes SubSequence == Self, and when I tried to allow SubSequence to be anything
-    // anything that conforms to RopeView, and then added typealias SubSequence = Subrope, the compiler
-    // said something like "Rope doesn't conform to BidirectionalCollection." I'm not sure why. Try to
-    // fix this.
-    subscript(bounds: Range<Index>) -> Subrope {
-        let start = unicodeScalars.index(roundingDown: bounds.lowerBound)
-        let end = unicodeScalars.index(roundingDown: bounds.upperBound)
-        return Subrope(base: self, bounds: start..<end)
     }
 }
 
@@ -1152,7 +1141,7 @@ extension Rope {
 // Consider making it fileprivate and making each view conform to
 // BidirectionalCollection directly, forwarding to a private struct implementing
 // RopeView. It's possible we could use a macro to generate the forwarding methods.
-protocol RopeView: BidirectionalCollection where Index == Rope.Index {
+protocol RopeView: BidirectionalCollection where Index == Rope.Index, SubSequence: RopeView {
     associatedtype Element
     associatedtype Metric: BTreeMetric<RopeSummary> where Metric.Unit == Int
     associatedtype SliceMetric: BTreeMetric<RopeSummary> where Metric.Unit == Int
@@ -1183,12 +1172,6 @@ extension RopeView {
     }
 }
 
-extension RopeView where Metric == SliceMetric {
-    var sliceMetric: SliceMetric {
-        metric
-    }
-}
-
 // BidirectionalCollection
 extension RopeView {
     var count: Int {
@@ -1207,10 +1190,10 @@ extension RopeView {
         readElement(at: index(roundingDown: position))
     }
 
-    subscript(r: Range<Index>) -> Self {
+    subscript(r: Range<Index>) -> SubSequence {
         let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
         let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
-        return Self(base: base, bounds: start..<end)
+        return SubSequence(base: base, bounds: start..<end)
     }
 
     func index(before i: consuming Index) -> Index {
@@ -1264,7 +1247,7 @@ extension Rope {
         //
         // Even stranger, the other views works fine without the typealias.
         typealias Element = UTF8.CodeUnit
-        typealias SliceMetric = UTF8Metric
+        typealias SubSequence = Self
 
         var base: Rope
         var bounds: Range<Index>
@@ -1275,6 +1258,10 @@ extension Rope {
 
         var edge: BTreeMetricEdge {
             .leading
+        }
+
+        var sliceMetric: UTF8Metric {
+            .utf8
         }
 
         func readElement(at i: Index) -> UTF8.CodeUnit {
@@ -1344,7 +1331,7 @@ extension Rope {
 
     struct UnicodeScalarView: RopeView {
         typealias Element = UnicodeScalar
-        typealias SliceMetric = UnicodeScalarMetric
+        typealias SubSequence = Self
 
         let base: Rope
         let bounds: Range<Index>
@@ -1355,6 +1342,10 @@ extension Rope {
 
         var edge: BTreeMetricEdge {
             .leading
+        }
+
+        var sliceMetric: UnicodeScalarMetric {
+            .unicodeScalars
         }
 
         func readElement(at i: Index) -> UnicodeScalar {
@@ -1494,7 +1485,8 @@ extension Rope.LineView {
 
 struct Subrope: RopeView {
     typealias Element = Character
-    
+    typealias SubSequence = Self
+
     init(base: Rope, bounds: Range<Rope.Index>) {
         self.base = base
         self.bounds = bounds
