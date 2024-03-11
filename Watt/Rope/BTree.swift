@@ -971,13 +971,16 @@ extension BTreeNode.Index: CustomStringConvertible {
 // 4. Every Collection helper, both public and private, should call assertValid(for:) on its
 //    indices, which validate with assert instead of precondition.
 extension BTreeNode where Summary: BTreeDefaultMetric {
-    func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index where M: BTreeMetric<Summary> {
+    func index<M>(before i: consuming Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge, isKnownAligned: Bool) -> Index where M: BTreeMetric<Summary> {
         i.validate(for: self)
         range.lowerBound.assertValid(for: self)
         range.upperBound.assertValid(for: self)
         precondition(i.position > range.lowerBound.position && i.position <= range.upperBound.position, "Index out of bounds")
 
-        i = _index(roundingDown: i, in: range, using: metric, edge: edge)
+        if !isKnownAligned {
+            i = _index(roundingDown: i, in: range, using: metric, edge: edge)
+        }
+
         precondition(i.position > range.lowerBound.position, "Index out of bounds")
 
         let position = i.prev(using: metric, edge: edge)
@@ -1051,7 +1054,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         return i
     }
 
-    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge) -> Index? where M: BTreeMetric<Summary> {
+    func index<M>(_ i: consuming Index, offsetBy distance: M.Unit, limitedBy limit: Index, in range: Range<Index>, using metric: M, edge: BTreeMetricEdge, isKnownAligned: Bool) -> Index? where M: BTreeMetric<Summary> {
         i.validate(for: self)
         limit.validate(for: self)
         range.lowerBound.assertValid(for: self)
@@ -1061,12 +1064,12 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         precondition(limit.position >= range.lowerBound.position && limit.position <= range.upperBound.position, "Index out of bounds")
 
         if distance < 0 && limit.position <= i.position {
-            let l = self._distance(from: i, to: _index(roundingUp: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
+            let l = self._distance(from: i, to: isKnownAligned ? limit : _index(roundingUp: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance < l {
                 return nil
             }
         } else if distance > 0 && limit.position >= i.position {
-            let l = self._distance(from: i, to: _index(roundingDown: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
+            let l = self._distance(from: i, to: isKnownAligned ? limit : _index(roundingDown: limit, in: range, using: metric, edge: edge), in: range, using: metric, edge: edge)
             if distance > l {
                 return nil
             }

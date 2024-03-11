@@ -27,7 +27,7 @@ struct Rope: BTree {
         let start = root.startIndex
         let end = root.endIndex
         assert(start <= end)
-        self.bounds = Range(uncheckedBounds: (Index(start), Index(end)))
+        self.bounds = Range(uncheckedBounds: (Index(start, alignment: .line), Index(end, alignment: .line)))
     }
 }
 
@@ -288,7 +288,7 @@ fileprivate func findPrefixCount(in substring: Substring, using breaker: inout R
 
 // The base metric, which measures UTF-8 code units.
 extension Rope {
-    struct UTF8Metric: BTreeMetric {
+    struct UTF8Metric: RopeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             count
         }
@@ -329,6 +329,10 @@ extension Rope {
         var isAtomic: Bool {
             true
         }
+
+        var alignment: Index.Alignment {
+            .byte
+        }
     }
 }
 
@@ -344,7 +348,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF8Metric {
 // or trailing surrogates in Rope's storage. It's just Unicode scalars that
 // are encoded as UTF-8.
 extension Rope {
-    struct UTF16Metric: BTreeMetric {
+    struct UTF16Metric: RopeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.utf16
         }
@@ -410,6 +414,10 @@ extension Rope {
         var isAtomic: Bool {
             true
         }
+
+        var alignment: Index.Alignment {
+            .unicodeScalar
+        }
     }
 }
 
@@ -418,7 +426,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF16Metric {
 }
 
 extension Rope {
-    struct UnicodeScalarMetric: BTreeMetric {
+    struct UnicodeScalarMetric: RopeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.scalars
         }
@@ -483,6 +491,10 @@ extension Rope {
         var isAtomic: Bool {
             true
         }
+
+        var alignment: Index.Alignment {
+            .unicodeScalar
+        }
     }
 }
 
@@ -491,7 +503,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
 }
 
 extension Rope {
-    struct CharacterMetric: BTreeMetric {
+    struct CharacterMetric: RopeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.chars
         }
@@ -517,18 +529,19 @@ extension Rope {
                 return 0
             }
 
-            // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
-            // for .leading. Skips the string index math below. Also works for .trailing.
-            if baseUnits == chunk.string.utf8.count {
-                return chunk.characters.count
-            }
-
             let startIndex = chunk.characters.startIndex
             let i = chunk.string.utf8Index(at: baseUnits)
+
+            // Make sure we don't count the trailing edge of a character that continues
+            // onto the next leaf.
+            if chunk.lastCharSplits && edge == .trailing && i >= chunk.lastBreak {
+                return chunk.characters.count - 1
+            }
+
             let d = chunk.characters.distance(from: startIndex, to: i)
 
             switch edge {
-            case .leading: return d + 1
+            case .leading: return Swift.min(d + 1, chunk.characters.count)
             case .trailing: return d
             }
         }
@@ -587,6 +600,10 @@ extension Rope {
         var isAtomic: Bool {
             true
         }
+
+        var alignment: Index.Alignment {
+            .character
+        }
     }
 }
 
@@ -595,7 +612,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.CharacterMetric {
 }
 
 extension Rope {
-    struct NewlinesMetric: BTreeMetric {
+    struct NewlinesMetric: RopeMetric {
         func measure(summary: RopeSummary, count: Int) -> Int {
             summary.newlines
         }
@@ -679,6 +696,10 @@ extension Rope {
 
         var isAtomic: Bool {
             false
+        }
+
+        var alignment: Index.Alignment {
+            .line
         }
     }
 }
@@ -792,15 +813,24 @@ fileprivate func boundary(for s: Substring, startingAt minSplit: Int) -> String.
 
 extension Rope {
     struct Index {
-        var i: BTreeNode<RopeSummary>.Index
-
-        init(_ i: BTreeNode<RopeSummary>.Index) {
-            self.i = i
+        enum Alignment: Comparable {
+            case byte
+            case unicodeScalar
+            case character
+            case line
         }
 
-        init?(_ i: BTreeNode<RopeSummary>.Index?) {
-            guard let i else { return nil }
+        var i: BTreeNode<RopeSummary>.Index
+        var alignment: Alignment
+
+        init(_ i: BTreeNode<RopeSummary>.Index, alignment: Alignment) {
             self.i = i
+            self.alignment = alignment
+        }
+
+        init?(_ i: BTreeNode<RopeSummary>.Index?, alignment: Alignment) {
+            guard let i else { return nil }
+            self.init(i, alignment: alignment)
         }
 
         var position: Int {
@@ -826,6 +856,10 @@ extension Rope {
 }
 
 extension Rope.Index: Comparable {
+    static func == (lhs: Rope.Index, rhs: Rope.Index) -> Bool {
+        lhs.i == rhs.i
+    }
+
     static func < (lhs: Rope.Index, rhs: Rope.Index) -> Bool {
         lhs.i < rhs.i
     }
@@ -968,6 +1002,10 @@ extension Rope: RopeView {
 
     var edge: BTreeMetricEdge {
         .leading
+    }
+
+    var alignment: Index.Alignment {
+        .character
     }
 
     var sliceMetric: UnicodeScalarMetric {
@@ -1137,14 +1175,18 @@ extension Rope {
 
 // MARK: - Views
 
+protocol RopeMetric: BTreeMetric<RopeSummary> {
+    var alignment: Rope.Index.Alignment { get }
+}
+
 // TODO: RopeView is really an implementation detail for code deduplication.
 // Consider making it fileprivate and making each view conform to
 // BidirectionalCollection directly, forwarding to a private struct implementing
 // RopeView. It's possible we could use a macro to generate the forwarding methods.
 protocol RopeView: BidirectionalCollection where Index == Rope.Index, SubSequence: RopeView {
     associatedtype Element
-    associatedtype Metric: BTreeMetric<RopeSummary> where Metric.Unit == Int
-    associatedtype SliceMetric: BTreeMetric<RopeSummary> where Metric.Unit == Int
+    associatedtype Metric: RopeMetric where Metric.Unit == Int
+    associatedtype SliceMetric: RopeMetric where Metric.Unit == Int
 
     var base: Rope { get }
     var bounds: Range<Rope.Index> { get }
@@ -1187,29 +1229,44 @@ extension RopeView {
     }
 
     subscript(position: Index) -> Element {
-        readElement(at: index(roundingDown: position))
+        readElement(at: position.alignment < metric.alignment ? index(roundingDown: position) : position)
     }
 
     subscript(r: Range<Index>) -> SubSequence {
-        let start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
-        let end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge))
+        // We always set the alignment of start and end to .line because startIndex and endIndex are aligned to
+        // everything, and .line is the highest known alignment. We don't delegate to index(roundingDown:) because
+        // we need to round using sliceMetric, not metric.
+        let start: Rope.Index
+        if r.lowerBound.alignment >= sliceMetric.alignment {
+            start = Index(r.lowerBound.i, alignment: .line)
+        } else {
+            start = Index(root.index(roundingDown: r.lowerBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge), alignment: .line)
+        }
+
+        let end: Rope.Index
+        if r.upperBound.alignment >= sliceMetric.alignment {
+            end = Index(r.upperBound.i, alignment: .line)
+        } else {
+            end = Index(root.index(roundingDown: r.upperBound.i, in: startIndex.i..<endIndex.i, using: sliceMetric, edge: edge), alignment: .line)
+        }
+
         return SubSequence(base: base, bounds: start..<end)
     }
 
     func index(before i: consuming Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge, isKnownAligned: i.alignment >= metric.alignment), alignment: metric.alignment)
     }
 
     func index(after i: consuming Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge), alignment: metric.alignment)
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: metric, edge: edge), alignment: metric.alignment)
     }
 
     func index(_ i: consuming Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge, isKnownAligned: i.alignment >= metric.alignment), alignment: metric.alignment)
     }
 
     func distance(from start: Index, to end: Index) -> Int {
@@ -1219,15 +1276,18 @@ extension RopeView {
 
 extension RopeView {
     func index(at offset: Int) -> Index {
-        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: metric, edge: edge), alignment: metric.alignment)
     }
 
     subscript(offset: Int) -> Element {
         self[index(at: offset)]
     }
 
-    func index(roundingDown i: Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge))
+    func index(roundingDown i: consuming Index) -> Index {
+        if i.alignment >= metric.alignment {
+            return i
+        }
+        return Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: metric, edge: edge), alignment: metric.alignment)
     }
 
     func isBoundary(_ i: Index) -> Bool {
@@ -1260,6 +1320,10 @@ extension Rope {
             .leading
         }
 
+        var alignment: Rope.Index.Alignment {
+            .byte
+        }
+
         var sliceMetric: UTF8Metric {
             .utf8
         }
@@ -1270,7 +1334,7 @@ extension Rope {
 
         // faster than using root.index(at:in:using:edge:)
         func index(at offset: Int) -> Index {
-            Index(root.index(at: offset))
+            Index(root.index(at: offset), alignment: .byte)
         }
     }
 }
@@ -1316,7 +1380,7 @@ extension Rope.UTF16View {
    }
 
     func index(_ i: consuming Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .utf16, edge: .leading), alignment: .unicodeScalar)
     }
 
     func distance(from start: Index, to end: Index) -> Int {
@@ -1342,6 +1406,10 @@ extension Rope {
 
         var edge: BTreeMetricEdge {
             .leading
+        }
+
+        var alignment: Index.Alignment {
+            .unicodeScalar
         }
 
         var sliceMetric: UnicodeScalarMetric {
@@ -1431,31 +1499,31 @@ extension Rope.LineView {
             return Subrope(base: base, bounds: endIndex..<endIndex)
         }
 
-        let start = index(roundingDown: position)
+        let start = position.alignment < .line ? index(roundingDown: position) : position
         let end = index(after: start)
         return Subrope(base: base, bounds: start..<end)
     }
 
     subscript(r: Range<Index>) -> Self {
-        let start = index(roundingDown: r.lowerBound)
-        let end = index(roundingDown: r.upperBound)
+        let start = r.lowerBound.alignment < .line ? index(roundingDown: r.lowerBound) : r.lowerBound
+        let end = r.upperBound.alignment < .line ? index(roundingDown: r.upperBound) : r.upperBound
         return Self(base: base, bounds: start..<end)
     }
 
     func index(before i: Index) -> Index {
-        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        Index(root.index(before: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing, isKnownAligned: i.alignment >= .line), alignment: .line)
     }
 
     func index(after i: Index) -> Index {
-        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        Index(root.index(after: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing), alignment: .line)
     }
 
     func index(_ i: Index, offsetBy distance: Int) -> Index {
-        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        Index(root.index(i.i, offsetBy: distance, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing), alignment: .line)
     }
 
     func index(_ i: Index, offsetBy distance: Int, limitedBy limit: Index) -> Index? {
-        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        Index(root.index(i.i, offsetBy: distance, limitedBy: limit.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing, isKnownAligned: i.alignment >= .line), alignment: .line)
     }
 
     func distance(from start: Index, to end: Index) -> Int {
@@ -1465,7 +1533,7 @@ extension Rope.LineView {
 
 extension Rope.LineView {
     func index(at offset: Int) -> Index {
-        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        Index(root.index(at: offset, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing), alignment: .line)
     }
 
     subscript(offset: Int) -> Subrope {
@@ -1473,7 +1541,10 @@ extension Rope.LineView {
     }
 
     func index(roundingDown i: consuming Index) -> Index {
-        Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing))
+        if i.alignment >= .line {
+            return i
+        }
+        return Index(root.index(roundingDown: i.i, in: startIndex.i..<endIndex.i, using: .newlines, edge: .trailing), alignment: .line)
     }
 
     func isBoundary(_ i: Index) -> Bool {
@@ -1485,6 +1556,7 @@ extension Rope.LineView {
 
 struct Subrope: RopeView {
     typealias Element = Character
+    typealias Index = Rope.Index
     typealias SubSequence = Self
 
     init(base: Rope, bounds: Range<Rope.Index>) {
@@ -1503,11 +1575,15 @@ struct Subrope: RopeView {
         .leading
     }
 
+    var alignment: Index.Alignment {
+        .character
+    }
+
     var sliceMetric: Rope.UnicodeScalarMetric {
         .unicodeScalars
     }
 
-    func readElement(at i: Rope.Index) -> Character {
+    func readElement(at i: Index) -> Character {
         i.readChar()!
     }
 }
