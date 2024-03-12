@@ -165,10 +165,10 @@ protocol BTreeMetric<Summary> {
     func measure(summary: Summary, count: Int, edge: BTreeMetricEdge) -> Unit
 
     // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
-    func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int
+    func convertToBaseUnits(_ measuredUnits: Unit, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Int
 
     // Converts a count of trailing edges in the base metric to leading or trailing edges in this metric.
-    func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
+    func convertToMeasuredUnits(_ baseUnits: Int, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Unit
 
     // Edge can be ignored if the metric is atomic because in an atomic metric every leading edge is also
     // a trailing edge. N.b. this is different from the situation where edge can be ignored in
