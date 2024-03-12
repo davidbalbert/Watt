@@ -152,7 +152,7 @@ struct Spans<T>: BTree {
     var root: BTreeNode<SpansSummary<T>>
 
     var upperBound: Int {
-        root.measure(using: SpansBaseMetric())
+        root.measure(using: SpansBaseMetric(), edge: .trailing)
     }
 
     init(_ root: BTreeNode<SpansSummary<T>>) {
@@ -276,7 +276,7 @@ struct Spans<T>: BTree {
 
 extension Spans {
     struct SpansBaseMetric: BTreeMetric {
-        func measure(summary: SpansSummary<T>, count: Int) -> Int {
+        func measure(summary: SpansSummary<T>, count: Int, edge: BTreeMetricEdge) -> Int {
             count
         }
 
@@ -355,7 +355,7 @@ extension Spans {
 // count(SpansMetric(), upThrough: 10, edge: .trailing) -> 2
 extension Spans {
     struct SpansMetric: BTreeMetric {
-        func measure(summary: SpansSummary<T>, count: Int) -> Int {
+        func measure(summary: SpansSummary<T>, count: Int, edge: BTreeMetricEdge) -> Int {
             summary.spans
         }
         
@@ -450,7 +450,7 @@ extension Spans: BidirectionalCollection {
     typealias Index = BTreeNode<SpansSummary<T>>.Index
 
     var count: Int {
-        root.measure(using: SpansMetric())
+        root.measure(using: SpansMetric(), edge: .trailing)
     }
 
     var startIndex: Index {

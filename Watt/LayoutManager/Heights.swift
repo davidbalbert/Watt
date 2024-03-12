@@ -283,11 +283,11 @@ extension Heights {
     }
 
     var count: Int {
-        root.measure(using: .heightsBaseMetric)
+        root.measure(using: .heightsBaseMetric, edge: .trailing)
     }
 
     var contentHeight: CGFloat {
-        root.measure(using: .heights)
+        root.measure(using: .heights, edge: .trailing)
     }
 
     subscript(position: Int) -> CGFloat {
@@ -303,7 +303,7 @@ extension Heights {
     subscript(i: Index) -> CGFloat {
         get {
             i.validate(for: root)
-            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric, edge: .trailing), "index out of bounds")
             precondition(i.isBoundary(using: .heights, edge: .trailing), "not a boundary")
 
             let (leaf, offset) = i.read()!
@@ -320,7 +320,7 @@ extension Heights {
         }
         set {
             i.validate(for: root)
-            precondition(i.position <= root.measure(using: .heightsBaseMetric), "index out of bounds")
+            precondition(i.position <= root.measure(using: .heightsBaseMetric, edge: .trailing), "index out of bounds")
             precondition(i.isBoundary(using: .heights, edge: .trailing), "not a boundary")
 
             root.mutatingForEach(startingAt: i.position) { offsetOfLeaf, leaf in
@@ -420,7 +420,7 @@ extension Heights {
             let (leaf, _) = i.read()!
             let height = leaf.lineHeight(atIndex: leaf.heights.count - 1)
 
-            return root.measure(using: .heights) - height
+            return root.measure(using: .heights, edge: .trailing) - height
         }
 
         return root.count(.heights, upThrough: offset, edge: .leading)
@@ -431,7 +431,7 @@ extension Heights {
             return 0
         }
 
-        if yOffset >= root.measure(using: .heights) {
+        if yOffset >= root.measure(using: .heights, edge: .trailing) {
             let i = endIndex
             let (leaf, _) = i.read()!
             let lineLength = leaf.lineLength(atIndex: leaf.positions.count - 1)
@@ -458,7 +458,7 @@ extension Heights {
 
 extension Heights {
     struct HeightsBaseMetric: BTreeMetric {
-        func measure(summary: HeightsSummary, count: Int) -> Int {
+        func measure(summary: HeightsSummary, count: Int, edge: BTreeMetricEdge) -> Int {
             count
         }
 
@@ -568,7 +568,7 @@ extension BTreeMetric<HeightsSummary> where Self == Heights.HeightsBaseMetric {
 
 extension Heights {
     struct HeightsMetric: BTreeMetric {
-        func measure(summary: HeightsSummary, count: Int) -> CGFloat {
+        func measure(summary: HeightsSummary, count: Int, edge: BTreeMetricEdge) -> CGFloat {
             summary.height
         }
 

@@ -34,13 +34,15 @@ struct Rope: BTree {
 struct RopeSummary: BTreeSummary {
     var utf16: Int
     var scalars: Int
-    var chars: Int
+    var leadingChars: Int
+    var trailingChars: Int
     var newlines: Int
 
     static func += (left: inout RopeSummary, right: RopeSummary) {
         left.utf16 += right.utf16
         left.scalars += right.scalars
-        left.chars += right.chars
+        left.leadingChars += right.leadingChars
+        left.trailingChars += right.trailingChars
         left.newlines += right.newlines
     }
 
@@ -51,14 +53,16 @@ struct RopeSummary: BTreeSummary {
     init() {
         self.utf16 = 0
         self.scalars = 0
-        self.chars = 0
+        self.leadingChars = 0
+        self.trailingChars = 0
         self.newlines = 0
     }
 
     init(summarizing chunk: Chunk) {
         self.utf16 = chunk.string.utf16.count
         self.scalars = chunk.string.unicodeScalars.count
-        self.chars = chunk.characters.count
+        self.leadingChars = chunk.leadingBoundaryCount
+        self.trailingChars = chunk.trailingBoundaryCount
 
         self.newlines = chunk.string.withExistingUTF8 { buf in
             countNewlines(in: buf[...])
@@ -121,6 +125,22 @@ struct Chunk: BTreeLeaf {
 
     var characters: Substring {
         string[firstBreak...]
+    }
+
+    var leadingBoundaryCount: Int {
+        characters.count
+    }
+
+    var trailingBoundaryCount: Int {
+        var n = characters.count
+        if prefixCount > 0 {
+            n += 1
+        }
+        if lastCharSplits {
+            n -= 1
+        }
+        assert(n >= 0)
+        return n
     }
 
     init() {
@@ -289,7 +309,7 @@ fileprivate func findPrefixCount(in substring: Substring, using breaker: inout R
 // The base metric, which measures UTF-8 code units.
 extension Rope {
     struct UTF8Metric: BTreeMetric {
-        func measure(summary: RopeSummary, count: Int) -> Int {
+        func measure(summary: RopeSummary, count: Int, edge: BTreeMetricEdge) -> Int {
             count
         }
 
@@ -345,7 +365,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF8Metric {
 // are encoded as UTF-8.
 extension Rope {
     struct UTF16Metric: BTreeMetric {
-        func measure(summary: RopeSummary, count: Int) -> Int {
+        func measure(summary: RopeSummary, count: Int, edge: BTreeMetricEdge) -> Int {
             summary.utf16
         }
 
@@ -419,7 +439,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UTF16Metric {
 
 extension Rope {
     struct UnicodeScalarMetric: BTreeMetric {
-        func measure(summary: RopeSummary, count: Int) -> Int {
+        func measure(summary: RopeSummary, count: Int, edge: BTreeMetricEdge) -> Int {
             summary.scalars
         }
 
@@ -492,17 +512,33 @@ extension BTreeMetric<RopeSummary> where Self == Rope.UnicodeScalarMetric {
 
 extension Rope {
     struct CharacterMetric: BTreeMetric {
-        func measure(summary: RopeSummary, count: Int) -> Int {
-            summary.chars
+        func measure(summary: RopeSummary, count: Int, edge: BTreeMetricEdge) -> Int {
+            switch edge {
+            case .leading:
+                summary.leadingChars
+            case .trailing:
+                summary.trailingChars
+            }
         }
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
-            assert(measuredUnits <= chunk.characters.count)
-            assert(measuredUnits > 0 || (edge == .trailing && measuredUnits > 0))
+            assert(measuredUnits <= chunk.characters.count || (measuredUnits == 1 && chunk.characters.count == 0 && chunk.prefixCount == chunk.count && !chunk.lastCharSplits))
+            assert(measuredUnits >= 0 || (measuredUnits == 0 && edge == .trailing) || (measuredUnits == 0 && chunk.prefixCount == chunk.count))
 
             if measuredUnits == 0 {
-                assert(edge == .trailing)
-                return chunk.prefixCount
+                switch edge {
+                case .leading:
+                    assert(chunk.prefixCount == chunk.count)
+                    return 0
+                case .trailing:
+                    return chunk.prefixCount
+                }
+            }
+
+
+            if measuredUnits == 1 && chunk.prefixCount == chunk.count {
+                assert(edge == .trailing && !chunk.lastCharSplits)
+                return chunk.count
             }
 
             let startIndex = chunk.characters.startIndex
@@ -517,9 +553,11 @@ extension Rope {
                 return 0
             }
 
-            // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
-            // for .leading. Skips the string index math below. Also works for .trailing.
-            if baseUnits == chunk.string.utf8.count {
+            if baseUnits == chunk.count && chunk.prefixCount == chunk.count && !chunk.lastCharSplits && edge == .trailing {
+                return 1
+            } else if baseUnits == chunk.count {
+                // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
+                // for .leading. Skips the string index math below. Also works for .trailing.
                 return chunk.characters.count
             }
 
@@ -596,7 +634,7 @@ extension BTreeMetric<RopeSummary> where Self == Rope.CharacterMetric {
 
 extension Rope {
     struct NewlinesMetric: BTreeMetric {
-        func measure(summary: RopeSummary, count: Int) -> Int {
+        func measure(summary: RopeSummary, count: Int, edge: BTreeMetricEdge) -> Int {
             summary.newlines
         }
 
@@ -1723,8 +1761,8 @@ extension Range where Bound == Int {
     }
 
     init(_ range: Range<Rope.Index>, in rope: Rope) {
-        let start = rope.utf8.distance(from: rope.utf8.startIndex, to: range.lowerBound)
-        let end = rope.utf8.distance(from: rope.utf8.startIndex, to: range.upperBound)
+        let start = range.lowerBound.position
+        let end = range.upperBound.position
 
         self.init(uncheckedBounds: (start, end))
     }
