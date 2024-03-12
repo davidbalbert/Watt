@@ -525,12 +525,14 @@ extension Spans {
 }
 
 struct SpansSlice<T> {
-    var base: Spans<T>
-    var bounds: Range<Index>
+    let base: Spans<T>
+    let bounds: Range<Index>
+    let count: Int
 
     init(base: Spans<T>, bounds: Range<Index>) {
         self.base = base
         self.bounds = bounds
+        self.count = base.root.count(in: bounds, using: Spans.SpansMetric())
     }
 
     var root: BTreeNode<SpansSummary<T>> {
@@ -565,10 +567,7 @@ extension SpansSlice: BTreeSlice {
 extension SpansSlice: BidirectionalCollection {
     typealias Index = Spans<T>.Index
 
-    var count: Int {
-        root.count(in: bounds, using: Spans.SpansMetric())
-    }
-
+    // TODO: cache these on SpansSlice
     var startIndex: Index {
         if count == 0 {
             return bounds.lowerBound
