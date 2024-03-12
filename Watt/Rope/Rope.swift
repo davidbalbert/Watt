@@ -575,17 +575,10 @@ extension Rope {
 
             let startIndex = chunk.characters.startIndex
             let i = chunk.string.utf8Index(at: baseUnits)
-
-            // Make sure we don't count the trailing edge of a character that continues
-            // onto the next leaf.
-            if chunk.lastCharSplits && edge == .trailing && i >= chunk.lastBreak {
-                return chunk.characters.count - 1
-            }
-
             let d = chunk.characters.distance(from: startIndex, to: i)
 
             switch edge {
-            case .leading: return Swift.min(d + 1, chunk.characters.count)
+            case .leading: return d + 1
             case .trailing: return d
             }
         }
