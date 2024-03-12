@@ -1341,7 +1341,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         mutating func next() -> Element? {
             index.assertValid(for: slice.root)
-            if !index.isValid || index >= bounds.upperBound {
+            if !index.isValid || index.position >= bounds.upperBound.position {
                 return nil
             }
             let element = slice[unvalidatedIndex: index]
