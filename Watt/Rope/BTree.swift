@@ -454,7 +454,8 @@ extension BTreeNode {
                 //    left leaf. Consider "foo\n" "bar" baz" converting from (.newlines, .trailing) to (.utf8, .trailing)
                 //    with m1 == 1. If we iterate again so we land on "bar", m1 will be 0, and childM1 will also be 0, so
                 //    we'll keep iterating and incrementing m2 until we get to the end of the tree. Instead, we want to
-                //    descend at the end of "foo\n".
+                //    descend at the end of "foo\n". Atomic metrics don't have this problem because the right leaf is
+                //    guaranteed to have a count of at least 1 (there will never be an empty leaf if there's more than one).
                 // 3. If we're on the last child, it doesn't matter what situation we're in, we have to descend.
                 //
                 // In all other cases (which are all .trailing), we want to end at the beginning of the right leaf.
