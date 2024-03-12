@@ -159,10 +159,10 @@ protocol BTreeMetric<Summary> {
     // 0-based indices into the tree.
 
 
-    // Measure always counts trailing boundaries. For leaves, this is equivalent to
-    // convertFromBaseUnits(count, in: leaf, .trailing), but measure(summary:count:) can be
-    // used for internal nodes as well.
-    func measure(summary: Summary, count: Int) -> Unit
+    // measure(summary:count:edge:) is equivalent to convertFromBaseUnits(_:in:edge:), but it is also
+    // used for internal nodes. Edge can be ignored if the metric doesn't fragment because each node
+    // will have the same number of leading and trailing edges.
+    func measure(summary: Summary, count: Int, edge: BTreeMetricEdge) -> Unit
 
     // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
     func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int
@@ -170,6 +170,9 @@ protocol BTreeMetric<Summary> {
     // Converts a count of trailing edges in the base metric to leading or trailing edges in this metric.
     func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
 
+    // Edge can be ignored if the metric is atomic because in an atomic metric every leading edge is also
+    // a trailing edge. N.b. this is different from the situation where edge can be ignored in
+    // measure(summary:count:edge:).
     func isBoundary(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Bool
     func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
     func next(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
@@ -402,8 +405,8 @@ extension BTreeNode: Equatable {
 // MARK: - Metrics conversion
 
 extension BTreeNode {
-    func measure<M>(using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
-        metric.measure(summary: summary, count: count)
+    func measure<M>(using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
+        metric.measure(summary: summary, count: count, edge: edge)
     }
 
     func convert<M1, M2>(_ m1: M1.Unit, from: M1, edge edge1: BTreeMetricEdge, to: M2, edge edge2: BTreeMetricEdge) -> M2.Unit where M1: BTreeMetric<Summary>, M2: BTreeMetric<Summary> {
@@ -434,34 +437,56 @@ extension BTreeNode {
         var m1 = m1
         var m2: M2.Unit = 0
         var node = self
+        var i = 0
+        var parent: BTreeNode? = nil
         while !node.isLeaf {
-            let parent = node
-            for (i, child) in node.children.enumerated() {
-                // If m1 is the boundary between two leaves (m1 == childM1) and it's a count of trailing
-                // boundaries (edge1 == .trailing), we want to land at the start of the right leaf,
-                // so we only descend if m1 < childM1. OTOH, if m1 is a count of leading boundaries,
-                // we want to land at the end of the left leaf, so we descend if m1 <= childM1.
+            i = 0
+            parent = node
+            for child in node.children {
+                let childM1 = child.measure(using: from, edge: edge1)
+                assert(childM1 >= 0)
+                // There are some edge cases when m1 is on a leaf boundary. We have to decide whether we're going to
+                // land at the end of the left child and descend, or do another iteration of the loop and start on the
+                // right child.
                 //
-                // There's one exception: m1 is the measure of `from` in the whole tree, we need to
-                // allow ourselves to descend into the last child of each internal node, so we use
-                // m1 <= childM1 in that case too.
+                // 1. If we're counting `from` on a .leading edge, we need to stop at the end of the left child. This
+                //    is because index 0 on the trailing leaf could be 1. Consider "foo\n" "\nbar" where we're
+                //    converting from (.newlines, .leading) to (.utf8, .trailing) with m1 == 1. If we land at the
+                //    beginning of "\nbar", we'll end up counting 2 newlines instead of 1, and will incorrectly return
+                //    4 instead of 3.
+                // 2. If we're counting `from` on a .trailing edge, and `from` is not atomic, we need to land on the
+                //    left leaf. Consider "foo\n" "bar" baz" converting from (.newlines, .trailing) to (.utf8, .trailing)
+                //    with m1 == 1. If we iterate again so we land on "bar", m1 will be 0, and childM1 will also be 0, so
+                //    we'll keep iterating and incrementing m2 until we get to the end of the tree. Instead, we want to
+                //    descend at the end of "foo\n". Atomic metrics don't have this problem because the right leaf is
+                //    guaranteed to have a count of at least 1 (there will never be an empty leaf if there's more than one).
+                // 3. If we're on the last child, it doesn't matter what situation we're in, we have to descend.
                 //
-                // Xi has similar code – though just for optimizations and I'm not sure that it's
-                // correct – but it uses a fudge of 0 or 1, and the condition `m1 < childM1 + fudge`.
-                // This is simpler, but it doesn't work for us because HeightsMetric.Unit is CGFloat
-                // and can have values in between childM1 and childM1 + 1.
-                let childM1 = child.measure(using: from)
-                if m1 < childM1 || (m1 <= childM1 && (edge1 == .leading || i == node.children.count-1)) {
+                // In all other cases (which are all .trailing), we want to end at the beginning of the right leaf.
+                if m1 < childM1 || (m1 == childM1 && (edge1 == .leading || !from.isAtomic || i == node.children.count - 1)) {
+                    parent = node
                     node = child
                     break
                 }
                 m1 -= childM1
-                m2 += child.measure(using: to)
+                m2 += child.measure(using: to, edge: edge2)
+                i += 1
             }
             assert(node != parent)
         }
 
         let base = from.convertToBaseUnits(m1, in: node.leaf, edge: edge1)
+
+        // If base is a boundary and we're converting to a .leading edge, we need to start on the right leaf
+        // (if it exists). Consider converting from (.newlines, .trailing) to (.utf8, .leading) in "foo\n" "bar"
+        // with m1 == 1. If we land at the end of "foo\n", we'll count 4 .leading .charcters because there's no
+        // .leading edge at the end of "foo\n". Landing on "bar" let's us count index 0 in "bar" as a leading
+        // boundary, giving us the correct answer of 5.
+        if edge2 == .leading && base == node.leaf.count, let parent, i < parent.children.count - 1 {
+            m2 += node.measure(using: to, edge: .leading)
+            return m2 + to.convertToMeasuredUnits(0, in: parent.children[i+1].leaf, edge: .leading)
+        }
+
         return m2 + to.convertToMeasuredUnits(base, in: node.leaf, edge: edge2)
     }
 }
@@ -639,8 +664,8 @@ extension BTreeNode {
             //
             // TODO: it's possible this only works with trailing boundaries, but
             // I'm not sure.
-            let measure = measure(upToLeafContaining: position, using: metric)
-            descend(toLeafContaining: measure, asMeasuredBy: metric)
+            let measure = measure(upToLeafContaining: position, using: metric, edge: edge)
+            descend(toLeafContaining: measure, asMeasuredBy: metric, edge: edge)
             if let pos = last(withinLeafUsing: metric, edge: edge, originalPosition: origPos) {
                 return pos
             }
@@ -705,8 +730,8 @@ extension BTreeNode {
             //
             // TODO: it's possible this only works with trailing boundaries, but
             // I'm not sure.
-            let measure = measure(upToLeafContaining: position, using: metric)
-            descend(toLeafContaining: measure+1, asMeasuredBy: metric)
+            let measure = measure(upToLeafContaining: position, using: metric, edge: edge)
+            descend(toLeafContaining: measure+1, asMeasuredBy: metric, edge: edge)
 
             if let pos = next(withinLeafUsing: metric, edge: edge) {
                 return pos
@@ -838,7 +863,7 @@ extension BTreeNode {
             return leaf
         }
 
-        func measure<M>(upToLeafContaining pos: Int, using metric: M) -> M.Unit where M: BTreeMetric<Summary> {
+        func measure<M>(upToLeafContaining pos: Int, using metric: M, edge: BTreeMetricEdge) -> M.Unit where M: BTreeMetric<Summary> {
             if pos == 0 {
                 return 0
             }
@@ -854,14 +879,14 @@ extension BTreeNode {
                         break
                     }
                     pos -= child.count
-                    measure += child.measure(using: metric)
+                    measure += child.measure(using: metric, edge: edge)
                 }
             }
 
             return measure
         }
 
-        mutating func descend<M>(toLeafContaining measure: M.Unit, asMeasuredBy metric: M) where M: BTreeMetric<Summary> {
+        mutating func descend<M>(toLeafContaining measure: M.Unit, asMeasuredBy metric: M, edge: BTreeMetricEdge) where M: BTreeMetric<Summary> {
             var node = BTreeNode(storage: rootStorage!)
             var offset = 0
             var measure = measure
@@ -871,7 +896,7 @@ extension BTreeNode {
             while !node.isLeaf {
                 var slot = 0
                 for child in node.children.dropLast() {
-                    let childMeasure = child.measure(using: metric)
+                    let childMeasure = child.measure(using: metric, edge: edge)
                     if measure <= childMeasure {
                         break
                     }
@@ -1095,15 +1120,15 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
             return 0
         }
 
-        // TODO: we should be able to remove the edge == .trailing check so that we can use measure(using:)
+        // TODO: we should be able to remove the edge == .trailing check so that we can use measure(using:edge:)
         // with leading metrics. The issue is that if we have a metric where 0[pos] is a .leading boundary,
         // measure(using: metric) will return one boundary past count(end) - count(start), and we'd need to
         // correct for that.
         let m: M.Unit
         if edge == .trailing && start.position == 0 && end.position == count {
-            m = measure(using: metric)
+            m = measure(using: metric, edge: .trailing)
         } else if edge == .trailing && start.position == count && end.position == 0 {
-            m = -1 * measure(using: metric)
+            m = -1 * measure(using: metric, edge: .trailing)
         } else {
             m = count(metric, upThrough: end.position, edge: edge) - count(metric, upThrough: start.position, edge: edge)
         }
@@ -1254,7 +1279,9 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
         }
 
         if range.lowerBound.position == 0 && range.upperBound.position == count {
-            return measure(using: metric)
+            // If we're showing the entire tree, counting .leading and .trailing should
+            // always return the same number.
+            return measure(using: metric, edge: .trailing)
         } else {
             return count(metric, upThrough: range.upperBound.position - 1, edge: .leading) - count(metric, upThrough: range.lowerBound.position, edge: .trailing)
         }
