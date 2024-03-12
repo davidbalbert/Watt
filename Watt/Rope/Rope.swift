@@ -523,7 +523,18 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= chunk.characters.count || (measuredUnits == 1 && chunk.characters.count == 0 && chunk.prefixCount == chunk.count && !chunk.lastCharSplits))
-            assert(measuredUnits > 0 || (edge == .trailing && measuredUnits == 0))
+            assert(measuredUnits >= 0 || (measuredUnits == 0 && edge == .trailing) || (measuredUnits == 0 && chunk.prefixCount == chunk.count))
+
+            if measuredUnits == 0 {
+                switch edge {
+                case .leading:
+                    assert(chunk.prefixCount == chunk.count)
+                    return 0
+                case .trailing:
+                    return chunk.prefixCount
+                }
+            }
+
 
             if measuredUnits == 1 && chunk.prefixCount == chunk.count {
                 assert(edge == .trailing && !chunk.lastCharSplits)
@@ -542,9 +553,11 @@ extension Rope {
                 return 0
             }
 
-            // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
-            // for .leading. Skips the string index math below. Also works for .trailing.
-            if baseUnits == chunk.string.utf8.count {
+            if baseUnits == chunk.count && chunk.prefixCount == chunk.count && !chunk.lastCharSplits && edge == .trailing {
+                return 1
+            } else if baseUnits == chunk.count {
+                // Slightly optimized version of returning Swift.min(d + 1, chunk.characters.count)
+                // for .leading. Skips the string index math below. Also works for .trailing.
                 return chunk.characters.count
             }
 

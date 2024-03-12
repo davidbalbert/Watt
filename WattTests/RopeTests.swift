@@ -2131,6 +2131,50 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual("ab", String(r))
     }
 
+    // MARK: - CharacterMetric
+
+    func testCharacterMetricConversions() {
+        let r = Rope(repeating: "e", count: 1000) + Rope(repeating: "\u{0301}", count: 500) + Rope(repeating: "\u{0301}", count: 500)
+        XCTAssertEqual(r.count, 1000)
+        XCTAssertEqual(r.utf8.count, 3000)
+
+        XCTAssertEqual(r.root.height, 1)
+        XCTAssertEqual(r.root.children.count, 3)
+
+        let middle = r.root.children[1].leaf
+
+        XCTAssertEqual(1000, middle.count)
+
+        XCTAssertEqual(0, Rope.CharacterMetric().convertToMeasuredUnits(1000, in: middle, edge: .leading))
+        XCTAssertEqual(0, Rope.CharacterMetric().convertToBaseUnits(0, in: middle, edge: .leading))
+
+        XCTAssertEqual(0, Rope.CharacterMetric().convertToMeasuredUnits(1000, in: middle, edge: .trailing))
+        XCTAssertEqual(1000, Rope.CharacterMetric().convertToBaseUnits(0, in: middle, edge: .trailing))
+
+        let last = r.root.children[2].leaf
+
+        XCTAssertEqual(1000, last.count)
+
+        XCTAssertEqual(0, Rope.CharacterMetric().convertToMeasuredUnits(1000, in: last, edge: .leading))
+        XCTAssertEqual(0, Rope.CharacterMetric().convertToBaseUnits(0, in: last, edge: .leading))
+
+        XCTAssertEqual(1, Rope.CharacterMetric().convertToMeasuredUnits(1000, in: last, edge: .trailing))
+        XCTAssertEqual(1000, Rope.CharacterMetric().convertToBaseUnits(0, in: last, edge: .trailing))
+        XCTAssertEqual(1000, Rope.CharacterMetric().convertToBaseUnits(1, in: last, edge: .trailing))
+    }
+
+    func testHmm() {
+        let r = Rope(repeating: "e", count: 1000) + Rope(repeating: "\u{0301}", count: 500) + Rope(repeating: "\u{0301}", count: 500)
+
+        XCTAssertEqual(0, r.root.convert(1, from: .characters, edge: .leading, to: .utf8, edge: .trailing))
+        XCTAssertEqual(1, r.root.convert(2, from: .characters, edge: .leading, to: .utf8, edge: .trailing))
+        XCTAssertEqual(999, r.root.convert(1000, from: .characters, edge: .leading, to: .utf8, edge: .trailing))
+
+        XCTAssertEqual(0, r.root.convert(0, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
+        XCTAssertEqual(1, r.root.convert(1, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
+        XCTAssertEqual(3000, r.root.convert(1000, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
+    }
+
     // MARK: - Regression tests
 
     func testConvertMultiChunkRopeToStringAsSequence() {
