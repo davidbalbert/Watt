@@ -542,7 +542,7 @@ extension BTreeNode {
         }
 
         init<N>(offsetBy offset: Int, in root: N) where N: BTreeNodeProtocol<Summary> {
-            precondition((0...root.count).contains(offset), "Index out of bounds")
+            precondition(offset >= 0 && offset <= root.count, "Index out of bounds")
 
             self.rootStorage = root.storage
             self.mutationCount = root.mutationCount
