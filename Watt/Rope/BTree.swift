@@ -619,7 +619,7 @@ extension BTreeNode {
         }
 
         mutating func set(_ position: Int) {
-            precondition((0...rootStorage!.count).contains(position), "Index out of bounds")
+            precondition(position >= 0 && position <= rootStorage!.count, "Index out of bounds")
 
             self.position = position
 
