@@ -523,13 +523,7 @@ extension Rope {
 
         func convertToBaseUnits(_ measuredUnits: Int, in chunk: Chunk, edge: BTreeMetricEdge) -> Int {
             assert(measuredUnits <= chunk.characters.count || (measuredUnits == 1 && chunk.characters.count == 0 && chunk.prefixCount == chunk.count && !chunk.lastCharSplits))
-
             assert(measuredUnits > 0 || (edge == .trailing && measuredUnits == 0))
-
-            if measuredUnits == 0 {
-                assert(edge == .trailing)
-                return chunk.prefixCount
-            }
 
             if measuredUnits == 1 && chunk.prefixCount == chunk.count {
                 assert(edge == .trailing && !chunk.lastCharSplits)
