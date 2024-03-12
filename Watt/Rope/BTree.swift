@@ -159,9 +159,8 @@ protocol BTreeMetric<Summary> {
     // 0-based indices into the tree.
 
 
-    // Measure always counts trailing boundaries. For leaves, this is equivalent to
-    // convertFromBaseUnits(count, in: leaf, .trailing), but measure(summary:count:) can be
-    // used for internal nodes as well.
+    // measure(summary:count:edge:) is equivalent to convertFromBaseUnits(_:in:edge:), but it
+    // is also used for internal nodes.
     func measure(summary: Summary, count: Int, edge: BTreeMetricEdge) -> Unit
 
     // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
@@ -437,26 +436,28 @@ extension BTreeNode {
         var i = 0
         var parent: BTreeNode? = nil
         while !node.isLeaf {
-                // If m1 is the boundary between two leaves (m1 == childM1) and it's a count of trailing
-                // boundaries (edge1 == .trailing), we want to land at the start of the right leaf,
-                // so we only descend if m1 < childM1. OTOH, if m1 is a count of leading boundaries,
-                // we want to land at the end of the left leaf, so we descend if m1 <= childM1.
             i = 0
             parent = node
             for child in node.children {
-                //
-                // There's one exception: m1 is the measure of `from` in the whole tree, we need to
-                // allow ourselves to descend into the last child of each internal node, so we use
-                // m1 <= childM1 in that case too.
-                //
-                // Xi has similar code – though just for optimizations and I'm not sure that it's
-                // correct – but it uses a fudge of 0 or 1, and the condition `m1 < childM1 + fudge`.
-                // This is simpler, but it doesn't work for us because HeightsMetric.Unit is CGFloat
-                // and can have values in between childM1 and childM1 + 1.
-                let childM1 = child.measure(using: from)
-                if m1 < childM1 || (m1 <= childM1 && (edge1 == .leading || i == node.children.count-1)) {
                 let childM1 = child.measure(using: from, edge: edge1)
                 assert(childM1 >= 0)
+                // There are some edge cases when m1 is on a leaf boundary. We have to decide whether we're going to
+                // land at the end of the left leaf and descend, or do another iteration of the loop and start on the
+                // right leaf.
+                //
+                // 1. If we're counting `from` on a .leading edge, we need to stop at the end of the previous leaf.
+                //    This is because index 0 on the trailing leaf could be 1. Consider "foo\n" "\nbar" where we're
+                //    converting from (.newlines, .leading) to (.utf8, .trailing) with m1 == 1. If we land at the
+                //    beginning of "\nbar", we'll end up counting 2 newlines instead of 1, and will incorrectly return
+                //    4 instead of 3.
+                // 2. If we're counting `from` on a .trailing edge, and `from` is not atomic, we need to land on the
+                //    left leaf. Consider "foo\n" "bar" baz" converting from (.newlines, .trailing) to (.utf8, .trailing)
+                //    with m1 == 1. If we iterate again so we land on "bar", m1 will be 0, and childM1 will also be 0, so
+                //    we'll keep iterating and incrementing m2 until we get to the end of the tree. Instead, we want to
+                //    descend at the end of "foo\n".
+                // 3. If we're on the last child, it doesn't matter what situation we're in, we have to descend.
+                //
+                // In all other cases (which are all .trailing), we want to end at the beginning of the right leaf.
                 if m1 < childM1 || (m1 == childM1 && (edge1 == .leading || !from.isAtomic || i == node.children.count - 1)) {
                     parent = node
                     node = child
@@ -471,6 +472,7 @@ extension BTreeNode {
 
         let base = from.convertToBaseUnits(m1, in: node.leaf, edge: edge1)
 
+        // If
         if edge2 == .leading && base == node.leaf.count, let parent, i < parent.children.count - 1 {
             m2 += node.measure(using: to, edge: .leading)
             return m2 + to.convertToMeasuredUnits(0, in: parent.children[i+1].leaf, edge: .leading)
