@@ -586,7 +586,7 @@ extension AttributedSubrope {
     }
 
     mutating func mergeAttributes(_ attributes: AttributedRope.Attributes, mergePolicy: AttributedRope.AttributeMergePolicy = .keepNew) {
-        if bounds.isEmpty {
+        if bounds.lowerBound.position == bounds.upperBound.position {
             return
         }
 
