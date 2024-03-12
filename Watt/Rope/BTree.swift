@@ -159,8 +159,9 @@ protocol BTreeMetric<Summary> {
     // 0-based indices into the tree.
 
 
-    // measure(summary:count:edge:) is equivalent to convertFromBaseUnits(_:in:edge:), but it
-    // is also used for internal nodes.
+    // measure(summary:count:edge:) is equivalent to convertFromBaseUnits(_:in:edge:), but it is also
+    // used for internal nodes. Edge can be ignored if the metric doesn't fragment because each node
+    // will have the same number of leading and trailing edges.
     func measure(summary: Summary, count: Int, edge: BTreeMetricEdge) -> Unit
 
     // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
@@ -169,6 +170,9 @@ protocol BTreeMetric<Summary> {
     // Converts a count of trailing edges in the base metric to leading or trailing edges in this metric.
     func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
 
+    // Edge can be ignored if the metric is atomic because in an atomic metric every leading edge is also
+    // a trailing edge. N.b. this is different from the situation where edge can be ignored in
+    // measure(summary:count:edge:).
     func isBoundary(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Bool
     func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
     func next(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
