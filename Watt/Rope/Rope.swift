@@ -1754,8 +1754,8 @@ extension Range where Bound == Int {
     }
 
     init(_ range: Range<Rope.Index>, in rope: Rope) {
-        let start = rope.utf8.distance(from: rope.utf8.startIndex, to: range.lowerBound)
-        let end = rope.utf8.distance(from: rope.utf8.startIndex, to: range.upperBound)
+        let start = range.lowerBound.position
+        let end = range.upperBound.position
 
         self.init(uncheckedBounds: (start, end))
     }
