@@ -136,10 +136,11 @@ extension AttributedRope {
         let bounds: Range<Index>
 
         private var spans: SpansSlice<AttributedRope.Attributes> {
+            assert(bounds.lowerBound.position >= 0 && bounds.upperBound.position <= base.text.utf8.count, "Index out of bounds")
             let start = base.spans.index(withBaseOffset: bounds.lowerBound.position)
             let end = base.spans.index(withBaseOffset: bounds.upperBound.position)
 
-            return base.spans[start..<end]
+            return base.spans[Range(uncheckedBounds: (start, end))]
         }
 
         private func spansIndex(for i: Index) -> Spans<AttributedRope.Attributes>.Index {

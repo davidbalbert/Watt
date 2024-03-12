@@ -551,6 +551,8 @@ extension BTreeNode {
             self.leafStorage = nil
             self.offsetOfLeaf = -1
 
+            path.reserveCapacity(root.height)
+
             descend()
         }
 
