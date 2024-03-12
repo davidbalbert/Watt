@@ -442,11 +442,11 @@ extension BTreeNode {
                 let childM1 = child.measure(using: from, edge: edge1)
                 assert(childM1 >= 0)
                 // There are some edge cases when m1 is on a leaf boundary. We have to decide whether we're going to
-                // land at the end of the left leaf and descend, or do another iteration of the loop and start on the
-                // right leaf.
+                // land at the end of the left child and descend, or do another iteration of the loop and start on the
+                // right child.
                 //
-                // 1. If we're counting `from` on a .leading edge, we need to stop at the end of the previous leaf.
-                //    This is because index 0 on the trailing leaf could be 1. Consider "foo\n" "\nbar" where we're
+                // 1. If we're counting `from` on a .leading edge, we need to stop at the end of the left child. This
+                //    is because index 0 on the trailing leaf could be 1. Consider "foo\n" "\nbar" where we're
                 //    converting from (.newlines, .leading) to (.utf8, .trailing) with m1 == 1. If we land at the
                 //    beginning of "\nbar", we'll end up counting 2 newlines instead of 1, and will incorrectly return
                 //    4 instead of 3.
@@ -472,7 +472,11 @@ extension BTreeNode {
 
         let base = from.convertToBaseUnits(m1, in: node.leaf, edge: edge1)
 
-        // If
+        // If base is a boundary and we're converting to a .leading edge, we need to start on the right leaf
+        // (if it exists). Consider converting from (.newlines, .trailing) to (.utf8, .leading) in "foo\n" "bar"
+        // with m1 == 1. If we land at the end of "foo\n", we'll count 4 .leading .charcters because there's no
+        // .leading edge at the end of "foo\n". Landing on "bar" let's us count index 0 in "bar" as a leading
+        // boundary, giving us the correct answer of 5.
         if edge2 == .leading && base == node.leaf.count, let parent, i < parent.children.count - 1 {
             m2 += node.measure(using: to, edge: .leading)
             return m2 + to.convertToMeasuredUnits(0, in: parent.children[i+1].leaf, edge: .leading)
