@@ -1254,7 +1254,7 @@ extension RopeView {
 // BidirectionalCollection
 extension RopeView {
     var count: Int {
-        root.count(in: startIndex.i..<endIndex.i, using: metric)
+        root.count(in: btreeBounds, using: metric)
     }
 
     var startIndex: Index {
@@ -1412,7 +1412,7 @@ extension Rope.UTF16View {
     typealias Index = Rope.Index
 
     var count: Int {
-        root.count(in: Range(uncheckedBounds: (bounds.lowerBound.i, bounds.upperBound.i)), using: .utf16)
+        root.count(in: btreeBounds, using: .utf16)
     }
 
    var startIndex: Index {
