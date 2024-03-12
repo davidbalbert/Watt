@@ -2163,7 +2163,7 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(1000, Rope.CharacterMetric().convertToBaseUnits(1, in: last, edge: .trailing))
     }
 
-    func testHmm() {
+    func testConversionWithCharacterMetric() {
         let r = Rope(repeating: "e", count: 1000) + Rope(repeating: "\u{0301}", count: 500) + Rope(repeating: "\u{0301}", count: 500)
 
         XCTAssertEqual(0, r.root.convert(1, from: .characters, edge: .leading, to: .utf8, edge: .trailing))
@@ -2173,6 +2173,18 @@ final class RopeTests: XCTestCase {
         XCTAssertEqual(0, r.root.convert(0, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
         XCTAssertEqual(1, r.root.convert(1, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
         XCTAssertEqual(3000, r.root.convert(1000, from: .characters, edge: .trailing, to: .utf8, edge: .trailing))
+
+        XCTAssertEqual(1000, r.root.convert(1998, from: .utf8, edge: .trailing, to: .characters, edge: .leading))
+        XCTAssertEqual(1000, r.root.convert(1999, from: .utf8, edge: .trailing, to: .characters, edge: .leading))
+        XCTAssertEqual(1000, r.root.convert(2000, from: .utf8, edge: .trailing, to: .characters, edge: .leading))
+        XCTAssertEqual(1000, r.root.convert(2999, from: .utf8, edge: .trailing, to: .characters, edge: .leading))
+        XCTAssertEqual(1000, r.root.convert(3000, from: .utf8, edge: .trailing, to: .characters, edge: .leading))
+
+        XCTAssertEqual(999, r.root.convert(1998, from: .utf8, edge: .trailing, to: .characters, edge: .trailing))
+        XCTAssertEqual(999, r.root.convert(1999, from: .utf8, edge: .trailing, to: .characters, edge: .trailing))
+        XCTAssertEqual(999, r.root.convert(2000, from: .utf8, edge: .trailing, to: .characters, edge: .trailing))
+        XCTAssertEqual(999, r.root.convert(2999, from: .utf8, edge: .trailing, to: .characters, edge: .trailing))
+        XCTAssertEqual(1000, r.root.convert(3000, from: .utf8, edge: .trailing, to: .characters, edge: .trailing))
     }
 
     // MARK: - Regression tests
