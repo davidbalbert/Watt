@@ -1327,10 +1327,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         init(slice: Slice, metric: Metric, edge: BTreeMetricEdge) {
             assert(slice.startIndex.baseIndex.position <= slice.endIndex.baseIndex.position)
-            let bounds = Range(uncheckedBounds: (slice.startIndex.baseIndex, slice.endIndex.baseIndex))
+            
+            slice.startIndex.baseIndex.assertValid(for: slice.root)
+            slice.endIndex.baseIndex.assertValid(for: slice.root)
 
-            bounds.lowerBound.assertValid(for: slice.root)
-            bounds.upperBound.assertValid(for: slice.root)
+            let bounds = Range(uncheckedBounds: (slice.startIndex.baseIndex, slice.endIndex.baseIndex))
 
             self.slice = slice
             self.metric = metric
