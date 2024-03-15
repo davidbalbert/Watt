@@ -1837,6 +1837,7 @@ extension Range where Bound == Rope.Index {
             j += 1
         }
 
+        assert(i <= j)
         self.init(uncheckedBounds: (rope.utf8.index(at: i), rope.utf8.index(at: j)))
     }
 
