@@ -8,7 +8,7 @@
 import Cocoa
 
 class LineNumberLayer: CALayer {
-    var lineNumber: Int
+    let lineNumber: Int
     weak var lineNumberView: LineNumberView?
 
     init(lineNumber: Int, lineNumberView: LineNumberView? = nil) {
