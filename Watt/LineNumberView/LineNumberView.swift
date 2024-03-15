@@ -27,11 +27,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     var textLayer: CALayer = CALayer()
-//    var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
-
     var lineNumberLayers: [LineNumberLayer] = []
     var newLayers: [LineNumberLayer] = []
-//    var firstLine: Int? = nil
 
     override var isFlipped: Bool {
         true
