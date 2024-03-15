@@ -100,6 +100,7 @@
 		63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F046892A65D3EA001B8DA8 /* BTree.swift */; };
 		63F0468C2A65D3F8001B8DA8 /* Rope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468B2A65D3F8001B8DA8 /* Rope.swift */; };
 		63F0468F2A65D417001B8DA8 /* RopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F0468E2A65D417001B8DA8 /* RopeTests.swift */; };
+		63F234622BA4E48B007696B4 /* CALayer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F234612BA4E48B007696B4 /* CALayer+Extensions.swift */; };
 		63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BD82A683CC500DEACCF /* Buffer.swift */; };
 		63F25BE12A689D2400DEACCF /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE02A689D2400DEACCF /* Line.swift */; };
 		63F25BE32A689EA700DEACCF /* LineLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F25BE22A689EA700DEACCF /* LineLayer.swift */; };
@@ -229,6 +230,7 @@
 		63F046892A65D3EA001B8DA8 /* BTree.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BTree.swift; sourceTree = "<group>"; };
 		63F0468B2A65D3F8001B8DA8 /* Rope.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Rope.swift; sourceTree = "<group>"; };
 		63F0468E2A65D417001B8DA8 /* RopeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RopeTests.swift; sourceTree = "<group>"; };
+		63F234612BA4E48B007696B4 /* CALayer+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CALayer+Extensions.swift"; sourceTree = "<group>"; };
 		63F25BD82A683CC500DEACCF /* Buffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buffer.swift; sourceTree = "<group>"; };
 		63F25BDA2A68409700DEACCF /* LLDBInitFile */ = {isa = PBXFileReference; lastKnownFileType = text; path = LLDBInitFile; sourceTree = "<group>"; };
 		63F25BE02A689D2400DEACCF /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
@@ -304,6 +306,7 @@
 			children = (
 				63DD20E02B73D00A00E55747 /* NSObject+Extensions.h */,
 				63DD20DE2B73CFF200E55747 /* NSObject+Extensions.m */,
+				63F234612BA4E48B007696B4 /* CALayer+Extensions.swift */,
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
@@ -658,6 +661,7 @@
 				6364DDAC2B6C4A3E00886DE3 /* GenericDocumentViewController.swift in Sources */,
 				63A618762A0FD61B00E70B0E /* TextView+LineNumbers.swift in Sources */,
 				63C2C0502B4F3BB700BFB976 /* Dirent.swift in Sources */,
+				63F234622BA4E48B007696B4 /* CALayer+Extensions.swift in Sources */,
 				63B61A1C29FDA9FB00787BB9 /* LayoutManager.swift in Sources */,
 				63B61A1429FD9E1D00787BB9 /* TextDocumentViewController.swift in Sources */,
 				63D546422AFD927300C72CDE /* TextView+FirstResponder.swift in Sources */,
