@@ -591,7 +591,6 @@ extension SpansSlice: BTreeSlice {
 extension SpansSlice: BidirectionalCollection {
     typealias Index = Spans<T>.Index
 
-    // TODO: cache these on SpansSlice
     var startIndex: Index {
         if count == 0 {
             return bounds.lowerBound
