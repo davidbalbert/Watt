@@ -9,9 +9,7 @@ import Foundation
 import CoreGraphics
 import CoreText
 
-struct Line: Identifiable {
-    var id: UUID = UUID()
-
+struct Line {
     // The origin in the text container's coordinate
     // space.
     //

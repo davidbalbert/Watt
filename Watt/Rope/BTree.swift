@@ -162,20 +162,20 @@ protocol BTreeMetric<Summary> {
     // measure(summary:count:edge:) is equivalent to convertFromBaseUnits(_:in:edge:), but it is also
     // used for internal nodes. Edge can be ignored if the metric doesn't fragment because each node
     // will have the same number of leading and trailing edges.
-    func measure(summary: Summary, count: Int, edge: BTreeMetricEdge) -> Unit
+    func measure(summary: borrowing Summary, count: Int, edge: BTreeMetricEdge) -> Unit
 
     // Converts a count of leading or trailing edges in this metric, to trailing edges in the base metric.
-    func convertToBaseUnits(_ measuredUnits: Unit, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int
+    func convertToBaseUnits(_ measuredUnits: Unit, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Int
 
     // Converts a count of trailing edges in the base metric to leading or trailing edges in this metric.
-    func convertToMeasuredUnits(_ baseUnits: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Unit
+    func convertToMeasuredUnits(_ baseUnits: Int, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Unit
 
     // Edge can be ignored if the metric is atomic because in an atomic metric every leading edge is also
     // a trailing edge. N.b. this is different from the situation where edge can be ignored in
     // measure(summary:count:edge:).
-    func isBoundary(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Bool
-    func prev(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
-    func next(_ offset: Int, in leaf: Summary.Leaf, edge: BTreeMetricEdge) -> Int?
+    func isBoundary(_ offset: Int, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Bool
+    func prev(_ offset: Int, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Int?
+    func next(_ offset: Int, in leaf: borrowing Summary.Leaf, edge: BTreeMetricEdge) -> Int?
 
     // Can the measured unit in this metric can span multiple leaves.
     var canFragment: Bool { get }
@@ -542,7 +542,7 @@ extension BTreeNode {
         }
 
         init<N>(offsetBy offset: Int, in root: N) where N: BTreeNodeProtocol<Summary> {
-            precondition((0...root.count).contains(offset), "Index out of bounds")
+            precondition(offset >= 0 && offset <= root.count, "Index out of bounds")
 
             self.rootStorage = root.storage
             self.mutationCount = root.mutationCount
@@ -550,6 +550,8 @@ extension BTreeNode {
             self.path = []
             self.leafStorage = nil
             self.offsetOfLeaf = -1
+
+            path.reserveCapacity(root.height)
 
             descend()
         }
@@ -617,7 +619,7 @@ extension BTreeNode {
         }
 
         mutating func set(_ position: Int) {
-            precondition((0...rootStorage!.count).contains(position), "Index out of bounds")
+            precondition(position >= 0 && position <= rootStorage!.count, "Index out of bounds")
 
             self.position = position
 
@@ -1325,10 +1327,11 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         init(slice: Slice, metric: Metric, edge: BTreeMetricEdge) {
             assert(slice.startIndex.baseIndex.position <= slice.endIndex.baseIndex.position)
-            let bounds = Range(uncheckedBounds: (slice.startIndex.baseIndex, slice.endIndex.baseIndex))
+            
+            slice.startIndex.baseIndex.assertValid(for: slice.root)
+            slice.endIndex.baseIndex.assertValid(for: slice.root)
 
-            bounds.lowerBound.assertValid(for: slice.root)
-            bounds.upperBound.assertValid(for: slice.root)
+            let bounds = Range(uncheckedBounds: (slice.startIndex.baseIndex, slice.endIndex.baseIndex))
 
             self.slice = slice
             self.metric = metric
@@ -1339,7 +1342,7 @@ extension BTreeNode where Summary: BTreeDefaultMetric {
 
         mutating func next() -> Element? {
             index.assertValid(for: slice.root)
-            if !index.isValid || index >= bounds.upperBound {
+            if !index.isValid || index.position >= bounds.upperBound.position {
                 return nil
             }
             let element = slice[unvalidatedIndex: index]

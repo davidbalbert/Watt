@@ -376,9 +376,9 @@ extension Spans {
             let found: Bool
             switch edge {
             case .leading:
-                (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: baseUnits)
+                (i, found) = leaf.spans.binarySearch { $0.range.lowerBound.compare(to: baseUnits) }
             case .trailing:
-                (i, found) = leaf.spans.map(\.range.upperBound).binarySearch(for: baseUnits)
+                (i, found) = leaf.spans.binarySearch { $0.range.upperBound.compare(to: baseUnits) }
             }
 
             if found {
@@ -392,33 +392,57 @@ extension Spans {
             let found: Bool
             switch edge {
             case .leading:
-                (_, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offset)
+                (_, found) = leaf.spans.binarySearch { $0.range.lowerBound.compare(to: offset) }
             case .trailing:
-                (_, found) = leaf.spans.map(\.range.upperBound).binarySearch(for: offset)
+                (_, found) = leaf.spans.binarySearch { $0.range.upperBound.compare(to: offset) }
             }
             return found
         }
         
         func prev(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int? {
-            let bound: KeyPath<Range<Int>, Int> = edge == .leading ? \.lowerBound : \.upperBound
-            let (i, _) = leaf.spans.map { $0.range[keyPath: bound] }.binarySearch(for: offset)
+            let i: Int
+            switch edge {
+            case .leading:
+                (i, _) = leaf.spans.binarySearch { $0.range.lowerBound.compare(to: offset) }
+            case .trailing:
+                (i, _) = leaf.spans.binarySearch { $0.range.upperBound.compare(to: offset) }
+            }
+
             if i == 0 {
                 return nil
             }
-            return leaf.spans[i-1].range[keyPath: bound]
+            switch edge {
+            case .leading:
+                return leaf.spans[i-1].range.lowerBound
+            case .trailing:
+                return leaf.spans[i-1].range.upperBound
+            }
         }
         
         func next(_ offset: Int, in leaf: SpansLeaf<T>, edge: BTreeMetricEdge) -> Int? {
-            let bound: KeyPath<Range<Int>, Int> = edge == .leading ? \.lowerBound : \.upperBound
+            var i: Int
+            let found: Bool
+            switch edge {
+            case .leading:
+                (i, found) = leaf.spans.binarySearch { $0.range.lowerBound.compare(to: offset) }
+            case .trailing:
+                (i, found) = leaf.spans.binarySearch { $0.range.upperBound.compare(to: offset) }
+            }
 
-            let (i, found) = leaf.spans.map { $0.range[keyPath: bound] }.binarySearch(for: offset)
             assert(i >= 0 && i <= leaf.spans.count)
             if i == leaf.spans.count || (found && i == leaf.spans.count - 1) {
                 return nil
-            } else if found {
-                return leaf.spans[i+1].range[keyPath: bound]
             }
-            return leaf.spans[i].range[keyPath: bound]
+            if found {
+                i += 1
+            }
+
+            switch edge {
+            case .leading:
+                return leaf.spans[i].range.lowerBound
+            case .trailing:
+                return leaf.spans[i].range.upperBound
+            }
         }
         
         var canFragment: Bool {
@@ -525,12 +549,14 @@ extension Spans {
 }
 
 struct SpansSlice<T> {
-    var base: Spans<T>
-    var bounds: Range<Index>
+    let base: Spans<T>
+    let bounds: Range<Index>
+    let count: Int
 
     init(base: Spans<T>, bounds: Range<Index>) {
         self.base = base
         self.bounds = bounds
+        self.count = base.root.count(in: bounds, using: Spans.SpansMetric())
     }
 
     var root: BTreeNode<SpansSummary<T>> {
@@ -549,7 +575,7 @@ extension SpansSlice: BTreeSlice {
 
         let (leaf, offsetInLeaf) = index.read()!
 
-        let (i, found) = leaf.spans.map(\.range.lowerBound).binarySearch(for: offsetInLeaf)
+        let (i, found) = leaf.spans.binarySearch { $0.range.lowerBound.compare(to: offsetInLeaf) }
         let span = found ? leaf.spans[i] : leaf.spans[i-1]
 
         if !span.range.contains(offsetInLeaf) {
@@ -564,10 +590,6 @@ extension SpansSlice: BTreeSlice {
 
 extension SpansSlice: BidirectionalCollection {
     typealias Index = Spans<T>.Index
-
-    var count: Int {
-        root.count(in: bounds, using: Spans.SpansMetric())
-    }
 
     var startIndex: Index {
         if count == 0 {

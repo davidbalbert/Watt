@@ -27,7 +27,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     var textLayer: CALayer = CALayer()
-    var layerCache: WeakDictionary<Int, CALayer> = WeakDictionary()
+    var lineNumberLayers: [LineNumberLayer] = []
+    var newLayers: [LineNumberLayer] = []
 
     override var isFlipped: Bool {
         true
@@ -113,28 +114,32 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     func beginUpdates() {
-        textLayer.sublayers = nil
+        newLayers = []
     }
 
+    // Must be called in ascending lineno order.
     func addLineNumber(_ lineno: Int, withAlignmentFrame alignmentFrame: CGRect) {
-        let l = layerCache[lineno] ?? makeLayer(for: lineno)
+        let l = existingLayer(for: lineno) ?? makeLayer(for: lineno)
         l.position = alignmentFrame.origin
         l.bounds = CGRect(x: 0, y: 0, width: frame.width, height: alignmentFrame.height)
-        layerCache[lineno] = l
-        textLayer.addSublayer(l)
+        newLayers.append(l)
     }
 
     func endUpdates() {
-        // no-op
+        lineNumberLayers = newLayers
+        textLayer.setSublayers(to: lineNumberLayers)
+        newLayers = []
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, lineCountDidChangeFrom old: Int, to new: Int) {
-        if floor(log10(Double(old))) != floor(log10(Double(new))) {
-            invalidateIntrinsicContentSize()
+    func existingLayer(for lineno: Int) -> LineNumberLayer? {
+        let (i, found) = lineNumberLayers.binarySearch { $0.lineNumber.compare(to: lineno) }
+        if found {
+            return lineNumberLayers[i]
         }
+        return nil
     }
 
-    func makeLayer(for lineNumber: Int) -> CALayer {
+    func makeLayer(for lineNumber: Int) -> LineNumberLayer {
         let l = LineNumberLayer(lineNumber: lineNumber, lineNumberView: self)
 
         l.delegate = self

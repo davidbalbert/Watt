@@ -42,6 +42,7 @@ class TextView: NSView, ClipViewDelegate {
             buffer.contents.font = font
             lineNumberView.font = font
             typingAttributes.font = font
+            defaultAttributes.font = font
 
             layoutManager.invalidateLayout()
         }
@@ -58,7 +59,10 @@ class TextView: NSView, ClipViewDelegate {
 
     var foregroundColor: NSColor {
         get { theme.foregroundColor }
-        set { theme.foregroundColor = newValue }
+        set {
+            theme.foregroundColor = newValue
+            defaultAttributes.foregroundColor = newValue
+        }
     }
 
     var backgroundColor: NSColor {
@@ -81,11 +85,11 @@ class TextView: NSView, ClipViewDelegate {
         set { theme.lineNumberColor = newValue }
     }
 
-    var defaultAttributes: AttributedRope.Attributes {
+    lazy var defaultAttributes: AttributedRope.Attributes = {
         AttributedRope.Attributes
             .font(font)
             .foregroundColor(foregroundColor)
-    }
+    }()
 
     lazy var typingAttributes: AttributedRope.Attributes = defaultAttributes
 

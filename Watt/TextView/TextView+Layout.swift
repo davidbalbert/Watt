@@ -308,8 +308,6 @@ extension TextView: LayoutManagerDelegate {
 
 extension TextView {
     func layoutTextLayer() {
-        textLayer.sublayers = nil
-
         var scrollAdjustment: CGFloat = 0
         let updateLineNumbers = lineNumberView.superview != nil
         if updateLineNumbers {
@@ -318,8 +316,9 @@ extension TextView {
 
         var lineno: Int?
 
+        var layers: [CALayer] = []
         layoutManager.layoutText { layer, prevAlignmentFrame in
-            textLayer.addSublayer(layer)
+            layers.append(layer)
 
             let oldHeight = prevAlignmentFrame.height
             let newHeight = layer.line.alignmentFrame.height
@@ -351,6 +350,8 @@ extension TextView {
                 lineno = n+1
             }
         }
+
+        textLayer.setSublayers(to: layers)
 
         if updateLineNumbers {
             lineNumberView.endUpdates()
