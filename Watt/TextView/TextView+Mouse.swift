@@ -21,18 +21,12 @@ extension TextView {
 
         if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift {
             selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
-            return
-        }
-
-        switch event.clickCount {
-        case 1:
+        } else if event.clickCount == 1 {
             selection = SelectionNavigator.selection(interactingAt: point, dataSource: layoutManager)
-        case 2:
+        } else if event.clickCount == 2 {
             selection = SelectionNavigator(selection).selection(for: .word, enclosing: point, dataSource: layoutManager)
-        case 3:
+        } else if event.clickCount == 3 {
             selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
-        default:
-            break
         }
 
         var mouseEvent = event

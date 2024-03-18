@@ -321,7 +321,12 @@ extension Buffer: HighlighterDelegate {
 
 extension Buffer: TextContent {
     func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
-        lines.index(before: i)
+        var j = i
+        if lines.isBoundary(j) {
+            j = index(before: j)
+        }
+
+        return lines.index(roundingDown: j)
     }
 
     func index(ofParagraphBoundaryAfter i: Buffer.Index) -> Buffer.Index {
