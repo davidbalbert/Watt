@@ -8,17 +8,19 @@
 import Cocoa
 
 protocol ClipViewDelegate: AnyObject {
-    func viewDidMoveToClipView()
+    func viewDidMoveToClipView(_ clipView: ClipView)
 }
 
 extension ClipViewDelegate {
-    func viewDidMoveToClipView() {}
+    func viewDidMoveToClipView(_ clipView: ClipView) {}
 }
 
 class ClipView: NSClipView {
+    weak var delegate: ClipViewDelegate?
+
     override var documentView: NSView? {
         didSet {
-            (documentView as? ClipViewDelegate)?.viewDidMoveToClipView()
+            delegate?.viewDidMoveToClipView(self)
         }
     }
 }

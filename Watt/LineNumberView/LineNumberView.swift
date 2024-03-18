@@ -109,6 +109,19 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
     }
 
+    override func viewDidMoveToWindow() {
+        // TextView's .viewDidMoveToWindow gets called before LineNumberView's, so we've already done our first
+        // layout pass, including creating the first set of LineNumberLayers with a contentsScale of 1.0.
+        //
+        // At this point, draw(in:) hasn't been called for any layers, so this doesn't trigger any
+        // unnecessary drawing.
+        if let window {
+            for layer in lineNumberLayers {
+                layer.contentsScale = window.backingScaleFactor
+            }
+        }
+    }
+
     func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
         true
     }

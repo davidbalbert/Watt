@@ -86,9 +86,9 @@ extension TextView: NSTextInputClient {
 
         // TODO: if we're the only one who calls unmarkText(), we can remove
         // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
+        layoutTextLayer()
+        layoutSelectionLayer()
+        layoutInsertionPointLayer()
     }
 
     func selectedRange() -> NSRange {

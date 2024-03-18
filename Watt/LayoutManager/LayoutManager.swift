@@ -10,10 +10,8 @@ import CoreText
 import StandardKeyBindingResponder
 
 protocol LayoutManagerDelegate: AnyObject {
-    // Text container coordinates. Includes overdraw.
+    // Text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    // Text container coordinates. No overdraw.
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
@@ -853,7 +851,7 @@ extension LayoutManager: TextLayoutDataSource {
     }
 
     var viewportSize: CGSize {
-        delegate?.visibleRect(for: self).size ?? .zero
+        delegate?.viewportBounds(for: self).size ?? .zero
     }
 
     // Enumerating over the first line fragment of each string:

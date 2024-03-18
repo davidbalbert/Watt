@@ -8,19 +8,6 @@
 import Cocoa
 
 class TextView: NSView, ClipViewDelegate {
-    class func scrollableTextView() -> NSScrollView {
-        let textView = Self()
-
-        let scrollView = NSScrollView()
-        scrollView.contentView = ClipView()
-        scrollView.hasVerticalScroller = true
-        scrollView.documentView = textView
-
-        textView.autoresizingMask = [.width, .height]
-
-        return scrollView
-    }
-
     override var isFlipped: Bool {
         true
     }
@@ -112,8 +99,8 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             setTypingAttributes()
 
-            selectionLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
+            layoutSelectionLayer()
+            layoutInsertionPointLayer()
             updateInsertionPointTimer()
         }
     }
@@ -173,6 +160,8 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     func commonInit() {
+        layerContentsRedrawPolicy = .never
+
         layoutManager.buffer = buffer
 
         layoutManager.delegate = self
@@ -223,19 +212,26 @@ class TextView: NSView, ClipViewDelegate {
     // has had a chance to update its geometry.
     //
     // If we don't do this, the LineNumberView is flipped upside down.
-    func viewDidMoveToClipView() {
+    func viewDidMoveToClipView(_ clipView: ClipView) {
         addLineNumberView()
     }
 
     override func viewDidMoveToWindow() {
+        NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
-        guard let window else {
-            return
+        if let scrollView {
+            NotificationCenter.default.addObserver(self, selector: #selector(didScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
         }
 
-        NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
-        NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+        if let window {
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+
+            layoutTextLayer()
+            layoutSelectionLayer()
+            layoutInsertionPointLayer()
+        }
     }
 }

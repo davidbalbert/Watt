@@ -11,6 +11,7 @@
 		6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FF2A9B769100B8A077 /* AttributedRope.swift */; };
 		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
+		63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */; };
 		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
@@ -130,6 +131,7 @@
 		6315D2FF2A9B769100B8A077 /* AttributedRope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedRope.swift; sourceTree = "<group>"; };
 		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
+		63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Scrolling.swift"; sourceTree = "<group>"; };
 		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
@@ -341,6 +343,7 @@
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
 				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
+				63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
 				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
@@ -646,6 +649,7 @@
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
 				63D280892B5B275900CDCF04 /* DirentTextField.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
+				63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */,
 				63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */,
 				63DD20D92B71A53200E55747 /* Window.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,

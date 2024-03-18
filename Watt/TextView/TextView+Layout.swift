@@ -34,19 +34,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
     }
 
-    func layoutSublayers(of layer: CALayer) {
-        switch layer {
-        case textLayer:
-            layoutTextLayer()
-        case selectionLayer:
-            layoutSelectionLayer()
-        case insertionPointLayer:
-            layoutInsertionPointLayer()
-        default:
-            break
-        }
-    }
-
     func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
         true
     }
@@ -63,22 +50,9 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         if layoutManager.textContainer.size.width != width {
             layoutManager.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
 
-            // This isn't needed when this function is called from
-            // setFrameSize, but it is needed when the line number
-            // view is added, removed, or resized due to the number
-            // of lines in the document changing.
-            //
-            // In the former case, AppKit will resize the view's
-            // layer, which will trigger the resizing of these layers
-            // due to their autoresizing masks.
-            //
-            // In the latter case, because the line number view floats
-            // above the text view, the text view's frame size doesn't
-            // change when the line number view's size changes, but we
-            // do need to re-layout our text.
-            selectionLayer.setNeedsLayout()
-            textLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
+            layoutTextLayer()
+            layoutSelectionLayer()
+            layoutInsertionPointLayer()
         }
     }
 
@@ -145,88 +119,19 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
         return CGRect(x: x, y: y, width: maxX - x, height: maxY - y)
     }
-}
-
-// MARK: - Scrolling
-
-extension TextView {
-    override func prepareContent(in rect: NSRect) {
-        super.prepareContent(in: rect)
-
-        selectionLayer.setNeedsLayout()
-        textLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-    }
-
-    var scrollView: NSScrollView? {
-        if let enclosingScrollView, enclosingScrollView.documentView == self {
-            return enclosingScrollView
-        }
-
-        return nil
-    }
-
-    var scrollOffset: CGPoint {
-        guard let scrollView else {
-            return .zero
-        }
-
-        return scrollView.contentView.bounds.origin
-    }
-
-    var textContainerScrollOffset: CGPoint {
-        convertToTextContainer(scrollOffset)
-    }
 
     var textContainerVisibleRect: CGRect {
         convertToTextContainer(clampToTextContainer(visibleRect))
-    }
-
-    func scrollIndexToVisible(_ index: Buffer.Index) {
-        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToVisible(viewRect)
-    }
-
-    func scrollIndexToCenter(_ index: Buffer.Index) {
-        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToCenter(viewRect)
-    }
-
-    func scrollToCenter(_ rect: NSRect) {
-        let dx = rect.midX - visibleRect.midX
-        let dy = rect.midY - visibleRect.midY
-        scroll(CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy))
     }
 }
 
 extension TextView: LayoutManagerDelegate {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
-        var bounds: CGRect
-        if preparedContentRect.intersects(visibleRect) {
-            bounds = preparedContentRect.union(visibleRect)
-        } else {
-            bounds = visibleRect
-        }
-
-        return convertToTextContainer(clampToTextContainer(bounds))
-    }
-
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect {
         textContainerVisibleRect
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
+        layoutTextLayer()
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
@@ -292,6 +197,8 @@ extension TextView: LayoutManagerDelegate {
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
+        // Bounds origin is always (0, 0), so setNeedsDisplay() will only be called when the
+        // layer's size changes due window resize.
         l.needsDisplayOnBoundsChange = true
         l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
         l.contentsScale = window?.backingScaleFactor ?? 1.0
@@ -308,6 +215,10 @@ extension TextView: LayoutManagerDelegate {
 
 extension TextView {
     func layoutTextLayer() {
+        if window == nil {
+            return
+        }
+
         var scrollAdjustment: CGFloat = 0
         let updateLineNumbers = lineNumberView.superview != nil
         if updateLineNumbers {
@@ -384,6 +295,10 @@ extension TextView: LineLayerDelegate {
 
 extension TextView {
     func layoutSelectionLayer() {
+        if window == nil {
+            return
+        }
+
         selectionLayer.sublayers = nil
 
         layoutManager.layoutSelections { rect in
@@ -400,6 +315,7 @@ extension TextView {
         l.delegate = self // SelectionLayerDelegate +  NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.isOpaque = true
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
@@ -411,6 +327,10 @@ extension TextView {
 
 extension TextView {
     func layoutInsertionPointLayer() {
+        if window == nil {
+            return
+        }
+
         insertionPointLayer.sublayers = nil
 
         layoutManager.layoutInsertionPoints { rect in
@@ -427,6 +347,7 @@ extension TextView {
         l.delegate = self // InsertionPointLayerDelegate + NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.isOpaque = true
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
