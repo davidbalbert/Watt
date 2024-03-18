@@ -272,6 +272,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		63206D2B2BA8E73000CAFBC4 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */,
+				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
+				63DD20DA2B7278E400E55747 /* CheckedContinuationReference.swift */,
+				637E58532B8415A400C498EE /* DragAndDrop.swift */,
+				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
+				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
+				63B8B1752A9F890100F32C2C /* Utilities.swift */,
+				63A618712A0EAF2000E70B0E /* Weak.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
 		63359A392AA9081B00082762 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -330,6 +345,7 @@
 		636E850F2B6AAD7C00772ECE /* TextView */ = {
 			isa = PBXGroup;
 			children = (
+				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				635B36AE2AAE5424002FAE70 /* Highlighter.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				635B36AC2AAE4D7F002FAE70 /* Language.swift */,
@@ -412,21 +428,10 @@
 			children = (
 				6356588F2ACD9D5400F1DC63 /* Themes */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
-				63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */,
 				63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */,
-				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				63DD20DA2B7278E400E55747 /* CheckedContinuationReference.swift */,
-				63286AE12A13DF5D00839B25 /* ClipView.swift */,
-				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
-				637E58532B8415A400C498EE /* DragAndDrop.swift */,
-				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
-				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
-				63B8B1752A9F890100F32C2C /* Utilities.swift */,
-				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
-				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				636E84662B683F3A00772ECE /* Localizable.xcstrings */,
@@ -437,6 +442,7 @@
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
 				636E85102B6AADC900772ECE /* Rope */,
 				636E850F2B6AAD7C00772ECE /* TextView */,
+				63206D2B2BA8E73000CAFBC4 /* Utilities */,
 				63C2C04E2B4F3B8E00BFB976 /* Workspace */,
 			);
 			path = Watt;
@@ -452,6 +458,7 @@
 				63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
+				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				634A70A32B1F7A0A00BDD0D3 /* Support */,
 			);
 			path = WattTests;
@@ -478,9 +485,11 @@
 		63C2C04E2B4F3B8E00BFB976 /* Workspace */ = {
 			isa = PBXGroup;
 			children = (
+				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				6364DDA22B6C408700886DE3 /* DocumentPaneViewController.swift */,
+				63DD20D82B71A53200E55747 /* Window.swift */,
 				6364DD9E2B6C3BB000886DE3 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
@@ -488,7 +497,6 @@
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */,
-				63DD20D82B71A53200E55747 /* Window.swift */,
 			);
 			path = Workspace;
 			sourceTree = "<group>";
