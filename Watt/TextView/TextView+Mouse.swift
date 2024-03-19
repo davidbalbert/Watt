@@ -29,12 +29,13 @@ extension TextView {
             selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
         }
 
-        var lastLocationInView: CGPoint?
+        var lastRoundedLocation: CGPoint?
         autoscroller = Autoscroller(self, event: event) { [weak self] locationInView in
             guard let self else { return }
-            defer { lastLocationInView = locationInView }
+            let roundedLocation = locationInView.rounded()
+            defer { lastRoundedLocation = roundedLocation }
 
-            if lastLocationInView == locationInView {
+            if lastRoundedLocation == roundedLocation {
                 return
             }
 
