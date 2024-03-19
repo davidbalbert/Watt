@@ -45,10 +45,6 @@ extension TextView {
 
         if layoutManager.textContainer.size.width != width {
             layoutManager.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
-
-            layoutTextLayer()
-            layoutSelectionLayer()
-            layoutInsertionPointLayer()
         }
     }
 
@@ -127,7 +123,11 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
-        layoutTextLayer()
+        transaction {
+            schedule(.textLayout)
+            schedule(.insertionPointLayout)
+            schedule(.selectionLayout)
+        }
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()

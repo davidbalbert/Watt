@@ -72,9 +72,11 @@ extension TextView {
         scroll(CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy))
     }
 
-    @objc func didScroll(_ notification: Notification) {
-        layoutTextLayer()
-        layoutSelectionLayer()
-        layoutInsertionPointLayer()
+    @objc func clipViewDidScroll(_ notification: Notification) {
+        transaction {
+            schedule(.textLayout)
+            schedule(.selectionLayout)
+            schedule(.insertionPointLayout)
+        }
     }
 }

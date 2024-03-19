@@ -13,6 +13,7 @@
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
 		63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */; };
 		63206D2D2BA8E8F400CAFBC4 /* Autoscroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */; };
+		63206D312BA9FFD300CAFBC4 /* TextView+Transactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D302BA9FFD300CAFBC4 /* TextView+Transactions.swift */; };
 		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
@@ -134,6 +135,7 @@
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Scrolling.swift"; sourceTree = "<group>"; };
 		63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Autoscroller.swift; sourceTree = "<group>"; };
+		63206D302BA9FFD300CAFBC4 /* TextView+Transactions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Transactions.swift"; sourceTree = "<group>"; };
 		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
@@ -364,6 +366,7 @@
 				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
 				63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
+				63206D302BA9FFD300CAFBC4 /* TextView+Transactions.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
 				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
 			);
@@ -693,6 +696,7 @@
 				636DD5322B599E150064C989 /* Workspace+LoadRequest.swift in Sources */,
 				637867832A1EC5B50039960E /* TextView+Input.swift in Sources */,
 				6364DDA32B6C408700886DE3 /* DocumentPaneViewController.swift in Sources */,
+				63206D312BA9FFD300CAFBC4 /* TextView+Transactions.swift in Sources */,
 				6396DD2E2B45A5DE000F85D1 /* TextView+Pasteboard.swift in Sources */,
 				63A618722A0EAF2000E70B0E /* Weak.swift in Sources */,
 				63D280922B5ECDF600CDCF04 /* NSFileCoordinator+Extensions.swift in Sources */,

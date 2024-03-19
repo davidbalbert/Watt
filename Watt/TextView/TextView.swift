@@ -89,7 +89,9 @@ class TextView: NSView, ClipViewDelegate {
             layoutManager.buffer
         }
         set {
-            layoutManager.buffer = newValue
+            transaction {
+                layoutManager.buffer = newValue
+            }
         }
     }
 
@@ -99,8 +101,10 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             setTypingAttributes()
 
-            layoutSelectionLayer()
-            layoutInsertionPointLayer()
+            transaction {
+                schedule(.selectionLayout)
+                schedule(.insertionPointLayout)
+            }
             updateInsertionPointTimer()
         }
     }
@@ -141,6 +145,8 @@ class TextView: NSView, ClipViewDelegate {
     var insertionPointTimer: Timer?
 
     var autoscroller: Autoscroller?
+
+    var transaction: Transaction = Transaction()
 
     // HACK: See layoutTextLayer() for context.
     var previousVisibleRect: CGRect = .zero
@@ -218,22 +224,38 @@ class TextView: NSView, ClipViewDelegate {
         addLineNumberView()
     }
 
+    func clipView(_ clipView: ClipView, frameSizeDidChangeFrom oldSize: NSSize) {
+        let heightChanged = oldSize.height != clipView.frame.height
+        let widthChanged = oldSize.width != clipView.frame.width
+
+        if heightChanged || (widthChanged && textContainer.width < .greatestFiniteMagnitude) {
+            transaction {
+                schedule(.textLayout)
+                schedule(.selectionLayout)
+                schedule(.insertionPointLayout)
+            }
+        }
+    }
+
     override func viewDidMoveToWindow() {
         NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
         if let scrollView {
-            NotificationCenter.default.addObserver(self, selector: #selector(didScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+            NotificationCenter.default.addObserver(self, selector: #selector(clipViewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+
         }
 
         if let window {
             NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
             NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
 
-            layoutTextLayer()
-            layoutSelectionLayer()
-            layoutInsertionPointLayer()
+            transaction {
+                schedule(.textLayout)
+                schedule(.selectionLayout)
+                schedule(.insertionPointLayout)
+            }
         }
     }
 }
