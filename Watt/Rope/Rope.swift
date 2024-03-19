@@ -1881,6 +1881,9 @@ extension NSRange {
 
     // Don't use for user provided ranges.
     init(unvalidatedRange range: Range<Rope.Index>, in rope: Rope) {
+        range.lowerBound.assertValid(for: rope.base)
+        range.upperBound.assertValid(for: rope.base)
+
         let i = rope.root.count(.utf16, upThrough: range.lowerBound.position, edge: .trailing)
         let j = rope.root.count(.utf16, upThrough: range.upperBound.position, edge: .trailing)
 
@@ -1888,8 +1891,14 @@ extension NSRange {
     }
 
     init(unvalidatedRange range: Range<Rope.Index>, in subrope: Subrope) {
+        range.lowerBound.assertValid(for: subrope.base)
+        range.upperBound.assertValid(for: subrope.base)
+        assert(range.lowerBound.position >= subrope.startIndex.position && range.lowerBound.position <= subrope.endIndex.position)
+        assert(range.upperBound.position >= subrope.startIndex.position && range.upperBound.position <= subrope.endIndex.position)
+
         let nsRange = NSRange(unvalidatedRange: range, in: subrope.base)
-        self.init(location: nsRange.location - subrope.bounds.lowerBound.position, length: nsRange.length)
+        let start = subrope.root.count(.utf16, upThrough: subrope.startIndex.position, edge: .trailing)
+        self.init(location: nsRange.location - start, length: nsRange.length)
     }
 }
 
