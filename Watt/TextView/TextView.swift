@@ -140,6 +140,8 @@ class TextView: NSView, ClipViewDelegate {
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointTimer: Timer?
 
+    var autoscroller: Autoscroller?
+
     // HACK: See layoutTextLayer() for context.
     var previousVisibleRect: CGRect = .zero
 
