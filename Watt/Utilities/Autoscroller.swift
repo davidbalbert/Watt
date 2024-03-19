@@ -20,26 +20,42 @@ fileprivate let mouseEvents: [NSEvent.EventType] = [
     .mouseMoved
 ]
 
+// A helper class for smooth autoscrolling.
 class Autoscroller {
+    // TODO: for whatever reason, I'm not actually able to get 120 Hz working on my M1 MacBook Pro. Investigate.
+    static var preferredFrameRateRange: CAFrameRateRange {
+        // Apple recommends min=80 max=120 preferred=120 for 120 Hz displays. https://developer.apple.com/documentation/quartzcore/optimizing_promotion_refresh_rates_for_iphone_13_pro_and_ipad_pro
+
+        let max: Float = Float(NSScreen.screens.map(\.maximumFramesPerSecond).max() ?? 60)
+        let min: Float = max >= 80.0 ? 80.0 : 60.0
+
+        return CAFrameRateRange(minimum: min, maximum: max, preferred: max)
+    }
+
     private weak var view: NSView?
-    private let runloop: RunLoop
-    private let mode: RunLoop.Mode
     private let callback: (NSPoint) -> Void
 
-    private (set) var locationInWindow: NSPoint
+    private var locationInWindow: NSPoint
+
+    private var dxRemainder: CGFloat
+    private var dyRemainder: CGFloat
 
     private(set) var running: Bool
     private var displayLink: CADisplayLink!
 
-    init(_ view: NSView, event: NSEvent, runloop: RunLoop = .main, mode: RunLoop.Mode = .common, using block: @escaping (CGPoint) -> Void) {
+
+    init(_ view: NSView, event: NSEvent, using block: @escaping (CGPoint) -> Void) {
         self.view = view
-        self.runloop = runloop
-        self.mode = mode
         self.callback = block
         self.locationInWindow = event.locationInWindow
 
+        self.dxRemainder = 0
+        self.dyRemainder = 0
+
         self.running = false
         self.displayLink = view.displayLink(target: self, selector: #selector(tick(_:)))
+
+        displayLink.preferredFrameRateRange = Self.preferredFrameRateRange
     }
 
     deinit {
@@ -55,7 +71,7 @@ class Autoscroller {
         if running || view == nil {
             return
         }
-        displayLink.add(to: runloop, forMode: mode)
+        displayLink.add(to: .main, forMode: .common)
         running = true
     }
 
@@ -63,7 +79,7 @@ class Autoscroller {
         if !running {
             return
         }
-        displayLink.remove(from: runloop, forMode: mode)
+        displayLink.remove(from: .main, forMode: .common)
         running = false
     }
 
@@ -126,6 +142,6 @@ class Autoscroller {
 
         view.scroll(NSPoint(x: x, y: y))
 
-        callback(locationInView)
+        callback(NSPoint(x: locationInView.x + dx, y: locationInView.y + dy))
     }
 }
