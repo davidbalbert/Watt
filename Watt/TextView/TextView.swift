@@ -168,7 +168,7 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     func commonInit() {
-        layerContentsRedrawPolicy = .never
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
 
         layoutManager.buffer = buffer
 
