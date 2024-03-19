@@ -103,8 +103,9 @@ class Autoscroller {
         let dt = sender.targetTimestamp - sender.timestamp
         let hz = (1/dt).rounded()
 
-        // minScroll is set up so that we end up scrolling at least one point per second, or 0.5 points per
-        // 0.5 seconds, which seems to be the granularity of an NSScrollView on a 2x display.
+        // minScroll is set up so that we end up scrolling at least one point per second. On a 2x display
+        // where NSScrollView's minimum scroll is 0.5 points (1 physical pixel), this means we scroll a
+        // minimum of 0.5 points every half second.
         //
         // maxScroll=256 and slowdown=(1/16) feel right for 60 Hz. To keep the same feel for other refresh
         // rates, we scale these values. Slowdown ends up squared, so we have to scale it by the square root.
