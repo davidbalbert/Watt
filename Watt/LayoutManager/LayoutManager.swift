@@ -87,7 +87,17 @@ class LayoutManager {
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer, prevAlignmentFrame)
-            return true
+
+            // viewportRange is derived from heights, and performing layout can cause heights to change.
+            // If heights are growing, e.g. from an estimates to an actual heights, it's possible for
+            // viewportRange to be too big, and we'd end up laying out lines that we don't need.
+            //
+            // To prevent this, bail as soon as the viewport is full.
+            //
+            // TODO: what about when line height shrinks. Then viewportRange will be too short, and we'll
+            // miss paragraphs. Probably what we want is enumerateLines(startingAt:), which is what
+            // NSTextLayoutManager has, and then bail when we're ready.
+            return line.alignmentFrame.maxY <= viewportBounds.maxY
         }
         lineLayers = layers
     }
