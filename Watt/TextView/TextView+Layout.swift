@@ -174,7 +174,17 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {
         lineNumberView.lineCount = buffer.lines.count
-        selection = Selection(atStartOf: buffer)
+
+        transaction {
+            schedule(.textLayout)
+            schedule(.insertionPointLayout)
+            schedule(.selectionLayout)
+
+            selection = Selection(atStartOf: buffer)
+        }
+
+        inputContext?.invalidateCharacterCoordinates()
+        updateFrameHeightIfNeeded()
     }
 
     // TODO: once we're showing the same Buffer in more than one TextView, editing the text in one TextView

@@ -725,7 +725,6 @@ class LayoutManager {
         heights = Heights(rope: buffer.text)
         lineLayers = []
         delegate?.layoutManager(self, bufferDidReload: buffer)
-        delegate?.didInvalidateLayout(for: self)
     }
 
     // MARK: - Converting coordinates
