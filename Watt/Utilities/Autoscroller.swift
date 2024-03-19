@@ -47,7 +47,7 @@ class Autoscroller {
     private var displayLink: CADisplayLink!
 
 
-    init(_ view: NSView, event: NSEvent, using block: @escaping (CGPoint) -> Void) {
+    init(_ view: NSView, event: NSEvent, using block: @escaping (NSPoint) -> Void) {
         self.view = view
         self.callback = block
         self.locationInWindow = event.locationInWindow

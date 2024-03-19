@@ -29,8 +29,15 @@ extension TextView {
             selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
         }
 
+        var lastLocationInView: CGPoint?
         autoscroller = Autoscroller(self, event: event) { [weak self] locationInView in
             guard let self else { return }
+            defer { lastLocationInView = locationInView }
+
+            if lastLocationInView == locationInView {
+                return
+            }
+
             let clamped = locationInView.clamped(to: visibleRect)
             let point = convertToTextContainer(clamped)
             selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
