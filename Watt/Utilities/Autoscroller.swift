@@ -43,9 +43,8 @@ class Autoscroller {
     private var dxRemainder: CGFloat
     private var dyRemainder: CGFloat
 
-    private(set) var running: Bool
+    private(set) var enabled: Bool
     private var displayLink: CADisplayLink!
-
 
     init(_ view: NSView, event: NSEvent, using block: @escaping (NSPoint) -> Void) {
         self.view = view
@@ -55,7 +54,7 @@ class Autoscroller {
         self.dxRemainder = 0
         self.dyRemainder = 0
 
-        self.running = false
+        self.enabled = false
         self.displayLink = view.displayLink(target: self, selector: #selector(tick(_:)))
 
         displayLink.preferredFrameRateRange = Self.preferredFrameRateRange
@@ -68,22 +67,48 @@ class Autoscroller {
     func update(with event: NSEvent) {
         precondition(mouseEvents.contains(event.type), "Expected mouse event but got \(event.type).")
         locationInWindow = event.locationInWindow
+
+        if displayLink.isPaused, let view {
+            let locationInView = view.convert(locationInWindow, from: nil)
+            callback(locationInView)
+        }
+
+        if displayLink.isPaused != shouldPauseDisplayLink() {
+            displayLink.isPaused.toggle()
+        }
+    }
+
+    private func shouldPauseDisplayLink() -> Bool {
+        guard let view else {
+            return true
+        }
+
+        guard let scrollView = view.enclosingScrollView, scrollView.documentView == view else {
+            return true
+        }
+
+        let locationInView = view.convert(locationInWindow, from: nil)
+        let viewportBounds = scrollView.contentView.bounds
+
+        return locationInView.x > viewportBounds.minX && locationInView.x < viewportBounds.maxX &&
+            locationInView.y > viewportBounds.minY && locationInView.y < viewportBounds.maxY
     }
 
     func start() {
-        if running || view == nil {
+        if enabled || view == nil {
             return
         }
+        enabled = true
+        displayLink.isPaused = shouldPauseDisplayLink()
         displayLink.add(to: .main, forMode: .common)
-        running = true
     }
 
     func stop() {
-        if !running {
+        if !enabled {
             return
         }
+        enabled = false
         displayLink.remove(from: .main, forMode: .common)
-        running = false
     }
 
     @objc func tick(_ sender: CADisplayLink) {
