@@ -204,7 +204,10 @@ extension TextView {
 
         let undoContents = AttributedRope(buffer[r])
 
-        buffer.replaceSubrange(r, with: s)
+        transaction {
+            buffer.replaceSubrange(r, with: s)
+            updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
+        }
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 
@@ -212,8 +215,6 @@ extension TextView {
             let u = Range(undoRange, in: target.buffer)
             target.replaceSubrange(u, with: undoContents)
         }
-
-        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: String) {
