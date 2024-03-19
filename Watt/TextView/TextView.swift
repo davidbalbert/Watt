@@ -37,8 +37,10 @@ class TextView: NSView, ClipViewDelegate {
 
     var theme: Theme = .system {
         didSet {
+            defaultAttributes.foregroundColor = theme.foregroundColor
             layoutManager.invalidateLayout()
             needsDisplay = true
+            
             lineNumberView.textColor = theme.lineNumberColor
             lineNumberView.backgroundColor = theme.backgroundColor
         }
