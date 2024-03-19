@@ -59,24 +59,26 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes.merging(markedTextAttributes))
         }
 
-        replaceSubrange(range, with: attrRope)
+        transaction {
+            replaceSubrange(range, with: attrRope)
 
-        let start = buffer.index(fromOldIndex: range.lowerBound)
-        let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
-        let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
+            let start = buffer.index(fromOldIndex: range.lowerBound)
+            let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
+            let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-        let markedRange: Range<Buffer.Index>?
-        if attrRope.count == 0 {
-            markedRange = nil
-        } else {
-            let end = buffer.index(start, offsetBy: attrRope.count)
-            markedRange = start..<end
-        }
+            let markedRange: Range<Buffer.Index>?
+            if attrRope.count == 0 {
+                markedRange = nil
+            } else {
+                let end = buffer.index(start, offsetBy: attrRope.count)
+                markedRange = start..<end
+            }
 
-        if anchor == head {
-            selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
-        } else {
-            selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
+            if anchor == head {
+                selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
+            } else {
+                selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
+            }
         }
     }
 
@@ -225,7 +227,10 @@ extension TextView {
 
         let undoContents = String(buffer[r])
 
-        buffer.replaceSubrange(r, with: s)
+        transaction {
+            buffer.replaceSubrange(r, with: s)
+            updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
+        }
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 
@@ -233,8 +238,6 @@ extension TextView {
             let u = Range(undoRange, in: target.buffer)
             target.replaceSubrange(u, with: undoContents)
         }
-
-        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func updateStateAfterReplacingSubrange(_ subrange: Range<Buffer.Index>, withStringOfCount count: Int) {

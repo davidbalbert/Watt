@@ -397,11 +397,13 @@ extension TextView {
             return
         }
 
-        replaceSubrange((i...j).relative(to: buffer.text), with: String(buffer[j]) + String(buffer[i]))
-
-        let anchor = buffer.index(fromOldIndex: i)
-        let head = buffer.index(anchor, offsetBy: 2)
-        selection = Selection(anchor: anchor, head: head, granularity: .character)
+        transaction {
+            replaceSubrange((i...j).relative(to: buffer.text), with: String(buffer[j]) + String(buffer[i]))
+            
+            let anchor = buffer.index(fromOldIndex: i)
+            let head = buffer.index(anchor, offsetBy: 2)
+            selection = Selection(anchor: anchor, head: head, granularity: .character)
+        }
     }
 
     override func transposeWords(_ sender: Any?) {
@@ -414,12 +416,14 @@ extension TextView {
         b.push(buffer[word1.upperBound..<word2.lowerBound])
         b.push(buffer[word1])
 
-        replaceSubrange(word1.lowerBound..<word2.upperBound, with: b.build())
+        transaction {
+            replaceSubrange(word1.lowerBound..<word2.upperBound, with: b.build())
 
-        let anchor = buffer.index(fromOldIndex: word1.lowerBound)
-        let head = buffer.index(fromOldIndex: word2.upperBound)
+            let anchor = buffer.index(fromOldIndex: word1.lowerBound)
+            let head = buffer.index(fromOldIndex: word2.upperBound)
 
-        selection = Selection(anchor: anchor, head: head, granularity: .character)
+            selection = Selection(anchor: anchor, head: head, granularity: .character)
+        }
     }
 
 
@@ -456,8 +460,10 @@ extension TextView {
     }
 
     override func insertTab(_ sender: Any?) {
-        replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
-        unmarkText()
+        transaction {
+            replaceSubrange(selection.range, with: AttributedRope("\t", attributes: typingAttributes))
+            unmarkText()
+        }
     }
 
     override func insertBacktab(_ sender: Any?) {
@@ -465,8 +471,10 @@ extension TextView {
     }
 
     override func insertNewline(_ sender: Any?) {
-        replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
-        unmarkText()
+        transaction {
+            replaceSubrange(selection.range, with: AttributedRope("\n", attributes: typingAttributes))
+            unmarkText()
+        }
     }
 
     override func insertParagraphSeparator(_ sender: Any?) {
@@ -521,32 +529,42 @@ extension TextView {
 
     override func deleteForward(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .right, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteBackward(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .left, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteBackwardByDecomposingPreviousCharacter(_ sender: Any?) {
         let (range, s) = SelectionNavigator(selection).replacementForDeleteBackwardsByDecomposing(dataSource: layoutManager)
-        replaceSubrange(range, with: AttributedRope(s, attributes: typingAttributes))
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: AttributedRope(s, attributes: typingAttributes))
+            unmarkText()
+        }
     }
 
     override func deleteWordForward(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .wordRight, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteWordBackward(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .wordLeft, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     // Follow Xcode's lead and make deleteToBeginningOfLine: behave like deleteToBeginningOfParagraph:.
@@ -557,26 +575,34 @@ extension TextView {
     // Perhaps this would be a good place for some sort of preference in the future.
     override func deleteToBeginningOfLine(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .beginningOfParagraph, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteToEndOfLine(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .endOfLine, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteToBeginningOfParagraph(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .beginningOfParagraph, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
     override func deleteToEndOfParagraph(_ sender: Any?) {
         let range = SelectionNavigator(selection).rangeToDelete(movement: .endOfParagraph, dataSource: layoutManager)
-        replaceSubrange(range, with: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: "")
+            unmarkText()
+        }
     }
 
 
