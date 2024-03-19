@@ -7,7 +7,7 @@
 
 import Cocoa
 
-extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
+extension TextView {
     override func layout() {
         // If we need to call setNeedsLayout on our subviews, do it here,
         // before calling super.layout()
@@ -32,10 +32,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             insertionPointLayer.bounds = layer.bounds
             layer.addSublayer(insertionPointLayer)
         }
-    }
-
-    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
-        true
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -281,6 +277,12 @@ extension TextView {
         }
 
         updateFrameHeightIfNeeded()
+    }
+}
+
+extension TextView: NSViewLayerContentScaleDelegate {
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
     }
 }
 
