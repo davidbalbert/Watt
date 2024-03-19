@@ -32,10 +32,11 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes)
         }
 
-        replaceSubrange(range, with: attrRope)
-
-        print("insertText - ", terminator: "")
-        unmarkText()
+        transaction {
+            replaceSubrange(range, with: attrRope)
+            print("insertText - ", terminator: "")
+            unmarkText()
+        }
     }
 
     override func doCommand(by selector: Selector) {
