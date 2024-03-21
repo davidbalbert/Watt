@@ -225,15 +225,15 @@ extension TextView {
             return
         }
 
+        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
         var scrollAdjustment: CGFloat = 0
+
         let updateLineNumbers = lineNumberView.superview != nil
         if updateLineNumbers {
             lineNumberView.beginUpdates()
         }
 
         var lineno: Int?
-
-        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
 
         var layers: [CALayer] = []
         layoutManager.layoutText { layer, prevAlignmentFrame in
