@@ -79,4 +79,16 @@ extension TextView {
             schedule(.insertionPointLayout)
         }
     }
+
+    @objc func willStartLiveScroll(_ notification: Notification) {
+        guard let scrollView = notification.object as? NSScrollView else {
+            return
+        }
+
+        isDraggingScroller = scrollView.verticalScroller?.hitPart == .knob
+    }
+
+    @objc func didEndLiveScroll(_ notification: Notification) {
+        isDraggingScroller = false
+    }
 }

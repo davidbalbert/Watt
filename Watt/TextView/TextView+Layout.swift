@@ -233,6 +233,8 @@ extension TextView {
 
         var lineno: Int?
 
+        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
+
         var layers: [CALayer] = []
         layoutManager.layoutText { layer, prevAlignmentFrame in
             layers.append(layer)
@@ -240,19 +242,8 @@ extension TextView {
             let oldHeight = prevAlignmentFrame.height
             let newHeight = layer.line.alignmentFrame.height
             let delta = newHeight - oldHeight
-            let oldMaxY = layer.line.origin.y + oldHeight
 
-            // TODO: I don't know why I have to use the previous frame's
-            // visible rect here. My best guess is that it has something
-            // to do with the fact that I'm doing deferred layout of my
-            // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
-            // changing the deferred layout calls in prepareContent(in:)
-            // to immediate layout calls, but it didn't seem to fix the
-            // problem. On the other hand, I'm not sure if I've totally
-            // gotten scroll correction right here anyways (there are
-            // sometimes things that look like jumps during scrolling).
-            // I'll come back to this later.
-            if oldMaxY <= previousVisibleRect.minY && delta != 0 {
+            if scrollingUp || isDraggingScroller {
                 scrollAdjustment += delta
             }
 
@@ -275,18 +266,12 @@ extension TextView {
         }
 
         previousVisibleRect = visibleRect
+        updateFrameHeightIfNeeded()
 
-        // Adjust scroll offset.
-        // TODO: is it possible to move this into prepareContent(in:) directly?
-        // That way it would only happen when we scroll. It's also possible
-        // that would let us get rid of previousVisibleRect, but according to
-        // the comment below, I tried that, so I'm doubtful.
         if scrollAdjustment != 0 {
             let current = scrollOffset
             scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
         }
-
-        updateFrameHeightIfNeeded()
     }
 }
 
