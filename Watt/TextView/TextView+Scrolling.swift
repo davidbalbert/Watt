@@ -73,6 +73,13 @@ extension TextView {
     }
 
     @objc func clipViewDidScroll(_ notification: Notification) {
+        // As part of textLayout, we may end up calling NSView.scroll(_:) in order to change our
+        // scroll offset in response to a change in document height. In that case, we're in the
+        // middle of committing a transaction, and starting a new one would panic.
+        if performingScrollCorrection {
+            return
+        }
+
         transaction {
             schedule(.textLayout)
             schedule(.selectionLayout)

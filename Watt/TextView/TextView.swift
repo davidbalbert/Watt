@@ -153,6 +153,7 @@ class TextView: NSView, ClipViewDelegate {
     // HACK: See layoutTextLayer() for context.
     var previousVisibleRect: CGRect = .zero
     var isDraggingScroller: Bool = false
+    var performingScrollCorrection: Bool = false
 
     override init(frame frameRect: NSRect) {
         layoutManager = LayoutManager()

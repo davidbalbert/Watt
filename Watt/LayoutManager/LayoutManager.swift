@@ -12,6 +12,8 @@ import StandardKeyBindingResponder
 protocol LayoutManagerDelegate: AnyObject {
     // Text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
+    func willPerformScrollCorrection(for layoutManager: LayoutManager) -> Bool
+
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
@@ -78,15 +80,22 @@ class LayoutManager {
             return
         }
 
-        let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = characterRange(intersecting: viewportBounds)
+        let willPerformScrollCorrection = delegate.willPerformScrollCorrection(for: self)
+        var viewportBounds = delegate.viewportBounds(for: self)
+        let start = startOfFirstLine(intersecting: viewportBounds)
 
         var layers: [LineLayer] = []
-        enumerateLines(in: viewportRange) { line, existingLayer, prevAlignmentFrame in
+        enumerateLines(startingAt: start) { line, existingLayer, prevAlignmentFrame in
             let layer = existingLayer ?? delegate.layoutManager(self, createLayerForLine: line)
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer, prevAlignmentFrame)
+
+            if willPerformScrollCorrection {
+                let oldHeight = prevAlignmentFrame.height
+                let newHeight = line.alignmentFrame.height
+                viewportBounds.origin.y += newHeight - oldHeight
+            }
 
             // viewportRange is derived from heights, and performing layout can cause heights to change.
             // If heights are growing, e.g. from an estimates to an actual heights, it's possible for
@@ -194,7 +203,7 @@ class LayoutManager {
     }
 
     func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
-        enumerateLines(in: range) { line, _, _ in
+        enumerateLines(startingAt: range.lowerBound) { line, _, _ in
             for frag in line.lineFragments {
                 let rangesOverlap = range.overlaps(frag.range) || range.isEmpty && frag.range.contains(range.lowerBound)
                 let atEndOfDocument = frag.range.upperBound == buffer.endIndex && frag.range.upperBound == range.lowerBound
@@ -249,17 +258,9 @@ class LayoutManager {
     //   range - the range of the line in buffer
     //   line - the line
     //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
-    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ layer: LineLayer?, _ prevAlignmentFrame: CGRect) -> Bool) {
-        var i = buffer.lines.index(roundingDown: range.lowerBound)
-
-        let end: Buffer.Index
-        if range.upperBound == buffer.endIndex {
-            end = buffer.endIndex
-        } else if buffer.lines.isBoundary(range.upperBound) && range.upperBound > i {
-            end = range.upperBound
-        } else {
-            end = buffer.lines.index(after: range.upperBound)
-        }
+    func enumerateLines(startingAt index: Buffer.Index, using block: (_ line: Line, _ layer: LineLayer?, _ prevAlignmentFrame: CGRect) -> Bool) {
+        var i = buffer.lines.index(roundingDown: index)
+        let end = buffer.endIndex
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
@@ -689,6 +690,13 @@ class LayoutManager {
         )
 
         return (glyphOrigin, typographicBounds)
+    }
+
+    func startOfFirstLine(intersecting rect: CGRect) -> Buffer.Index {
+        let byteOffset = heights.position(upThroughYOffset: rect.minY)
+        let i = buffer.utf8.index(at: byteOffset)
+        assert(buffer.lines.isBoundary(i))
+        return i
     }
 
     // Returns the range of the buffer contained by rect. The start

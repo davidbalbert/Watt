@@ -18,14 +18,17 @@ extension TextView {
     struct Transaction {
         var count: Int
         var actions: OrderedSet<Action>
+        var committing: Bool
 
         init() {
             count = 0
             actions = []
+            committing = false
         }
     }
 
     func beginTransaction() {
+        precondition(!transaction.committing, "can't start a transaction while committing an existing one")
         transaction.count += 1
     }
 
@@ -36,6 +39,9 @@ extension TextView {
         guard transaction.count == 0 else {
             return
         }
+
+        transaction.committing = true
+        defer { transaction.committing = false }
 
         for action in transaction.actions {
             switch action {

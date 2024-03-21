@@ -122,6 +122,12 @@ extension TextView: LayoutManagerDelegate {
         textContainerVisibleRect
     }
 
+    func willPerformScrollCorrection(for layoutManager: LayoutManager) -> Bool {
+        // TODO: currently duplicated between here and layoutTextLayer(). Remove duplication once LayoutManager becomes Editor.
+        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
+        return scrollingUp || isDraggingScroller
+    }
+
     func didInvalidateLayout(for layoutManager: LayoutManager) {
         transaction {
             schedule(.textLayout)
@@ -243,6 +249,7 @@ extension TextView {
             let newHeight = layer.line.alignmentFrame.height
             let delta = newHeight - oldHeight
 
+            // TODO: currently duplicated in willPerformScrollCorrection(for:). Remove duplication once LayoutManager becomes Editor.
             if scrollingUp || isDraggingScroller {
                 scrollAdjustment += delta
             }
@@ -270,7 +277,9 @@ extension TextView {
 
         if scrollAdjustment != 0 {
             let current = scrollOffset
+            performingScrollCorrection = true
             scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
+            performingScrollCorrection = false
         }
     }
 }
