@@ -380,6 +380,17 @@ extension TextView {
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
+        // TODO: if the scroll animation is slow enough, and the heights for the lines at the bottom of
+        // the document haven't yet been laid out, you can see a jump at the final frame as the 2nd
+        // to last line of Moby Dick is laid out.
+        //
+        // The solution is to make sure we've laid out the text in the viewport at the bottom of the
+        // document at least once. I want to find a general solution to this problem so we're not just
+        // hard coding things here.
+        //
+        // N.b. after forcing layout for the end of the document, frame.height probably won't be correct
+        // yet, so we'll have to either use layoutManager.contentHeight + inset.top + inset.bottom, or
+        // structure things in another way so that frame.height is correct.
         let viewport = visibleRect
         let point = CGPoint(
             x: scrollOffset.x,
