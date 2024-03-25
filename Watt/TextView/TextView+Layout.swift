@@ -125,7 +125,7 @@ extension TextView: LayoutManagerDelegate {
     func willPerformScrollCorrection(for layoutManager: LayoutManager) -> Bool {
         // TODO: currently duplicated between here and layoutTextLayer(). Remove duplication once LayoutManager becomes Editor.
         let scrollingUp = visibleRect.minY < previousVisibleRect.minY
-        return scrollingUp || isDraggingScroller
+        return scrollingUp || isDraggingScroller || scrollAnimator.isAnimating
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
@@ -250,7 +250,7 @@ extension TextView {
             let delta = newHeight - oldHeight
 
             // TODO: currently duplicated in willPerformScrollCorrection(for:). Remove duplication once LayoutManager becomes Editor.
-            if scrollingUp || isDraggingScroller {
+            if scrollingUp || isDraggingScroller || scrollAnimator.isAnimating {
                 scrollAdjustment += delta
             }
 
@@ -280,8 +280,7 @@ extension TextView {
             performingScrollCorrection = true
             scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
             performingScrollCorrection = false
-            // TODO: do we need this? I think so.
-            // scrollAnimator.didCorrectScroll(by: CGVector(dx: 0, dy: scrollAdjustment))
+            scrollAnimator.didCorrectScroll(by: CGVector(dx: 0, dy: scrollAdjustment))
         }
     }
 }
