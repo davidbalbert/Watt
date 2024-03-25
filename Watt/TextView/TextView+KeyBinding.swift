@@ -372,21 +372,21 @@ extension TextView {
     // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: scrollOffset.x,
             y: 0
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollAnimator.scroll(to: point)
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        let viewport = visibleRect
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
-            y: layoutManager.contentHeight - viewport.height
+            x: scrollOffset.x,
+            y: frame.height - viewport.height
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollAnimator.scroll(to: point)
     }
 
 

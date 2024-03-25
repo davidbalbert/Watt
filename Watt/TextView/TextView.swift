@@ -146,6 +146,9 @@ class TextView: NSView, ClipViewDelegate {
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointTimer: Timer?
 
+    lazy var scrollAnimator: ScrollAnimator = {
+        ScrollAnimator(self)
+    }()
     var autoscroller: Autoscroller?
 
     var transaction: Transaction = Transaction()

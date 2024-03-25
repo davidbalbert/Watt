@@ -280,6 +280,8 @@ extension TextView {
             performingScrollCorrection = true
             scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
             performingScrollCorrection = false
+            // TODO: do we need this? I think so.
+            // scrollAnimator.didCorrectScroll(by: CGVector(dx: 0, dy: scrollAdjustment))
         }
     }
 }
