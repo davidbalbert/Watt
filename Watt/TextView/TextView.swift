@@ -250,7 +250,7 @@ class TextView: NSView, ClipViewDelegate {
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
         if let scrollView {
-            NotificationCenter.default.addObserver(self, selector: #selector(clipViewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+            NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
             NotificationCenter.default.addObserver(self, selector: #selector(willStartLiveScroll(_:)), name: NSScrollView.willStartLiveScrollNotification, object: scrollView)
             NotificationCenter.default.addObserver(self, selector: #selector(didEndLiveScroll(_:)), name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
         }
