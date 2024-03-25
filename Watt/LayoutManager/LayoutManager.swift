@@ -91,6 +91,14 @@ class LayoutManager {
             layers.append(layer)
             block(layer, prevAlignmentFrame)
 
+            // TODO: This isn't quite right. We're trying to account for the situation where
+            // when we're scrolling up, scroll correction moves the viewport down to account
+            // for growing lines above us, but that's not the only time we perform scroll
+            // correction. We also do it when scrolling to the beginning or end of the
+            // document. Try setting the initial estimate of each line to 5000, and then
+            // scrolling to the end of the document. We don't get what we want. We need
+            // something more principled. This will probably be easier once LayoutManager
+            // becomes Editor.
             if willPerformScrollCorrection {
                 let oldHeight = prevAlignmentFrame.height
                 let newHeight = line.alignmentFrame.height
