@@ -12,7 +12,6 @@ import StandardKeyBindingResponder
 protocol LayoutManagerDelegate: AnyObject {
     // Text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    func willPerformScrollCorrection(for layoutManager: LayoutManager) -> Bool
 
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
@@ -24,6 +23,7 @@ protocol LayoutManagerDelegate: AnyObject {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
+    func layoutManager(_ layoutManager: LayoutManager, rectDidResizeFrom old: CGRect, to new: CGRect)
 
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer
     func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer)
@@ -80,7 +80,6 @@ class LayoutManager {
             return
         }
 
-        let willPerformScrollCorrection = delegate.willPerformScrollCorrection(for: self)
         var viewportBounds = delegate.viewportBounds(for: self)
         let start = startOfFirstLine(intersecting: viewportBounds)
 
@@ -91,19 +90,9 @@ class LayoutManager {
             layers.append(layer)
             block(layer, prevAlignmentFrame)
 
-            // TODO: This isn't quite right. We're trying to account for the situation where
-            // when we're scrolling up, scroll correction moves the viewport down to account
-            // for growing lines above us, but that's not the only time we perform scroll
-            // correction. We also do it when scrolling to the beginning or end of the
-            // document. Try setting the initial estimate of each line to 5000, and then
-            // scrolling to the end of the document. We don't get what we want. We need
-            // something more principled. This will probably be easier once LayoutManager
-            // becomes Editor.
-            if willPerformScrollCorrection {
                 let oldHeight = prevAlignmentFrame.height
                 let newHeight = line.alignmentFrame.height
                 viewportBounds.origin.y += newHeight - oldHeight
-            }
 
             return line.alignmentFrame.maxY <= viewportBounds.maxY
         }
@@ -531,12 +520,13 @@ class LayoutManager {
             let oldHeight = heights[hi]
             let newHeight = line.alignmentFrame.height
 
-            if oldHeight != newHeight {
-                heights[hi] = newHeight
-            }
-
             var old = line.alignmentFrame
             old.size.height = oldHeight
+
+            if oldHeight != newHeight {
+                heights[hi] = newHeight
+                delegate?.layoutManager(self, rectDidResizeFrom: old, to: line.alignmentFrame)
+            }
 
             return (line, nil, old)
         }
@@ -829,7 +819,11 @@ extension LayoutManager: BufferDelegate {
             assert(start == newLineRange.upperBound)
         }
 
+        let oldRect = CGRect(x: 0, y: minY, width: textContainer.width, height: oldMaxY - minY)
+        let newRect = CGRect(x: 0, y: minY, width: textContainer.width, height: newMaxY - minY)
+
         delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
+        delegate?.layoutManager(self, rectDidResizeFrom: oldRect, to: newRect)
         delegate?.didInvalidateLayout(for: self)
     }
 

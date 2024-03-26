@@ -73,29 +73,10 @@ extension TextView {
     }
 
     @objc func viewDidScroll(_ notification: Notification) {
-        // As part of textLayout, we may end up calling NSView.scroll(_:) in order to change our
-        // scroll offset in response to a change in document height. In that case, we're in the
-        // middle of committing a transaction, and starting a new one would panic.
-        if performingScrollCorrection {
-            return
-        }
-
         transaction {
             schedule(.textLayout)
             schedule(.selectionLayout)
             schedule(.insertionPointLayout)
         }
-    }
-
-    @objc func willStartLiveScroll(_ notification: Notification) {
-        guard let scrollView = notification.object as? NSScrollView else {
-            return
-        }
-
-        isDraggingScroller = scrollView.verticalScroller?.hitPart == .knob
-    }
-
-    @objc func didEndLiveScroll(_ notification: Notification) {
-        isDraggingScroller = false
     }
 }

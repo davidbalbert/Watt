@@ -153,11 +153,6 @@ class TextView: NSView, ClipViewDelegate {
 
     var transaction: Transaction = Transaction()
 
-    // HACK: See layoutTextLayer() for context.
-    var previousVisibleRect: CGRect = .zero
-    var isDraggingScroller: Bool = false
-    var performingScrollCorrection: Bool = false
-
     override init(frame frameRect: NSRect) {
         layoutManager = LayoutManager()
         lineNumberView = LineNumberView()
@@ -218,6 +213,10 @@ class TextView: NSView, ClipViewDelegate {
         removeLineNumberView()
     }
 
+    override func viewDidMoveToSuperview() {
+        scrollAnimator.viewDidMoveToSuperview()
+    }
+
     // This is a custom method on ClipViewDelegate. Normally we'd use
     // viewDidMoveToSuperview, but when we're added to a clip view,
     // that's called too early – specifically, it's called before the
@@ -246,16 +245,11 @@ class TextView: NSView, ClipViewDelegate {
 
     override func viewDidMoveToWindow() {
         NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSScrollView.didEndLiveScrollNotification, object: nil)
-
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
         if let scrollView {
             NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
-            NotificationCenter.default.addObserver(self, selector: #selector(willStartLiveScroll(_:)), name: NSScrollView.willStartLiveScrollNotification, object: scrollView)
-            NotificationCenter.default.addObserver(self, selector: #selector(didEndLiveScroll(_:)), name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
         }
 
         if let window {

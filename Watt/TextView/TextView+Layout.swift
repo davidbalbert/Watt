@@ -54,9 +54,9 @@ extension TextView {
         }
 
         let currentHeight = frame.height
-        let clipviewHeight = scrollView.contentSize.height
+        let clipViewHeight = scrollView.contentSize.height
         let inset = computedTextContainerInset
-        let newHeight = round(max(clipviewHeight, layoutManager.contentHeight + inset.top + inset.bottom))
+        let newHeight = round(max(clipViewHeight, layoutManager.contentHeight + inset.top + inset.bottom))
 
         if abs(currentHeight - newHeight) > 1e-10 {
             setFrameSize(CGSize(width: frame.width, height: newHeight))
@@ -120,12 +120,6 @@ extension TextView {
 extension TextView: LayoutManagerDelegate {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
         textContainerVisibleRect
-    }
-
-    func willPerformScrollCorrection(for layoutManager: LayoutManager) -> Bool {
-        // TODO: currently duplicated between here and layoutTextLayer(). Remove duplication once LayoutManager becomes Editor.
-        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
-        return scrollingUp || isDraggingScroller || scrollAnimator.isAnimating
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
@@ -206,6 +200,13 @@ extension TextView: LayoutManagerDelegate {
         lineNumberView.lineCount = new.lines.count
     }
 
+    func layoutManager(_ layoutManager: LayoutManager, rectDidResizeFrom old: CGRect, to new: CGRect) {
+        let old = convertFromTextContainer(old)
+        let new = convertFromTextContainer(new)
+
+        scrollAnimator.rectInDocumentViewDidChange(from: old, to: new)
+    }
+
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
@@ -231,9 +232,6 @@ extension TextView {
             return
         }
 
-        let scrollingUp = visibleRect.minY < previousVisibleRect.minY
-        var scrollAdjustment: CGFloat = 0
-
         let updateLineNumbers = lineNumberView.superview != nil
         if updateLineNumbers {
             lineNumberView.beginUpdates()
@@ -242,17 +240,8 @@ extension TextView {
         var lineno: Int?
 
         var layers: [CALayer] = []
-        layoutManager.layoutText { layer, prevAlignmentFrame in
+        layoutManager.layoutText { layer, _ in
             layers.append(layer)
-
-            let oldHeight = prevAlignmentFrame.height
-            let newHeight = layer.line.alignmentFrame.height
-            let delta = newHeight - oldHeight
-
-            // TODO: currently duplicated in willPerformScrollCorrection(for:). Remove duplication once LayoutManager becomes Editor.
-            if scrollingUp || isDraggingScroller || scrollAnimator.isAnimating {
-                scrollAdjustment += delta
-            }
 
             if updateLineNumbers {
                 let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: layer.line.range.lowerBound)
@@ -272,16 +261,7 @@ extension TextView {
             lineNumberView.endUpdates()
         }
 
-        previousVisibleRect = visibleRect
         updateFrameHeightIfNeeded()
-
-        if scrollAdjustment != 0 {
-            let current = scrollOffset
-            performingScrollCorrection = true
-            scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
-            performingScrollCorrection = false
-            scrollAnimator.didCorrectScroll(by: CGVector(dx: 0, dy: scrollAdjustment))
-        }
     }
 }
 
