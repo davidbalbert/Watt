@@ -788,7 +788,12 @@ extension LayoutManager: BufferDelegate {
         let oldRange = Range(r, in: old)
         let newRange = Range(r.lowerBound..<(r.lowerBound + count), in: new)
 
+        let minY = heights.yOffset(upThroughPosition: r.lowerBound)
+        let oldMaxY = heights.height(upThroughPosition: r.upperBound)
+
         heights.replaceSubrange(r, with: new[newRange])
+
+        let newMaxY = heights.height(upThroughPosition: r.lowerBound + count)
 
         removeLineLayers(touching: oldRange)
 
