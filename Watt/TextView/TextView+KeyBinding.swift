@@ -391,6 +391,16 @@ extension TextView {
         // N.b. after forcing layout for the end of the document, frame.height probably won't be correct
         // yet, so we'll have to either use layoutManager.contentHeight + inset.top + inset.bottom, or
         // structure things in another way so that frame.height is correct.
+        //
+        // A different way to solve this would be to smear height changes over time. Rather than having
+        // a discontinuous height change, store a delta, and either in each frame of the scroll animation,
+        // or if we're not scrolling, each tick of a timer, update the height of the document by a
+        // of the delta. I think this would require some sort of offsetting of the document contents by
+        // the same delta (negative? positive?) so that you don't end up with things like the last paragraph
+        // cut off past the end of the document and slowly moving up into view. This is probably tricky to
+        // get right.
+        //
+        // It's also possible that with good enough height estimtes this just won't be a problem.
         let viewport = visibleRect
         let point = CGPoint(
             x: scrollOffset.x,
