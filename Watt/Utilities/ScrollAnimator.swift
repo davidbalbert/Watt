@@ -20,9 +20,6 @@ class ScrollAnimator {
     private(set) var scrollOffset: CGPoint
     private(set) var presentation: PresentationProperties
 
-    // A unit point representing the position of the dragged scroller knobs.
-    private var absoluteUnitOffset: CGPoint?
-
     private var isScrollCorrectionScheduled: Bool
 
     private var animation: SpringAnimation<CGPoint>?
@@ -54,8 +51,6 @@ class ScrollAnimator {
 
         isDraggingScroller = false
         isScrollCorrectionScheduled = false
-
-        absoluteUnitOffset = nil
 
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
@@ -170,38 +165,9 @@ class ScrollAnimator {
 
         assert(scrollView == view?.enclosingScrollView)
 
-        if !isDraggingScroller {
-            return
-        }
-
-        // scrollView encloses view, so it must have a document view
-        assert(scrollView.documentView != nil)
-        guard let documentSize = scrollView.documentView?.frame.size else {
-            return
-        }
-
-        let viewport = scrollView.contentView.bounds
-
-        let unitx: CGFloat
-        if let v = scrollView.horizontalScroller?.floatValue {
-            unitx = CGFloat(v)
-        } else {
-            let maxX = max(documentSize.width - viewport.width, 0)
-            assert(maxX > 0 || scrollOffset.x == 0)
-            unitx = maxX == 0 ? 0 : scrollOffset.x / maxX
-        }
-
-        let unity: CGFloat
-        if let v = scrollView.verticalScroller?.floatValue {
-            unity = CGFloat(v)
-        } else {
-            let maxY = max(documentSize.height - viewport.height, 0)
-            assert(maxY > 0 || scrollOffset.y == 0)
-            unity = maxY == 0 ? 0 : scrollOffset.y / maxY
-        }
-
-        absoluteUnitOffset = CGPoint(x: unitx, y: unity)
+        if isDraggingScroller {
         scheduleScrollCorrection()
+    }
     }
 
     @objc func didEndLiveScroll(_ notification: Notification) {
@@ -229,9 +195,11 @@ class ScrollAnimator {
             return
         }
 
-        if let absoluteUnitOffset {
-            defer { self.absoluteUnitOffset = nil }
-
+        // Dragging a scroller is equivalent to telling the scroll view "please set your offset to this
+        // fixed percentage through the document." In this case, scroll correction just consists of
+        // reading the percentage out of the scrollers and setting the new origin if the document size
+        // has changed.
+        if isDraggingScroller {
             assert(!isAnimating)
             assert(scrollView.documentView != nil)
 
@@ -241,8 +209,8 @@ class ScrollAnimator {
 
             let viewport = scrollView.contentView.bounds
             let offset = NSPoint(
-                x: absoluteUnitOffset.x * (documentSize.width - viewport.width),
-                y: absoluteUnitOffset.y * (documentSize.height - viewport.height)
+                x: CGFloat(scrollView.horizontalScroller?.floatValue ?? 0) * (documentSize.width - viewport.width),
+                y: CGFloat(scrollView.verticalScroller?.floatValue ?? 0) * (documentSize.height - viewport.height)
             )
 
             if viewport.origin != offset {
