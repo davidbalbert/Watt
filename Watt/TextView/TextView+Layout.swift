@@ -238,7 +238,7 @@ extension TextView {
         var lineno: Int?
 
         var layers: [CALayer] = []
-        layoutManager.layoutText { layer, _ in
+        layoutManager.layoutText { layer in
             layers.append(layer)
 
             if updateLineNumbers {
