@@ -42,7 +42,7 @@ class ScrollAnimator {
             viewDidMoveToSuperview()
         }
     }
-    
+
     func viewDidMoveToSuperview() {
         NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: nil)
@@ -112,8 +112,15 @@ class ScrollAnimator {
 
         assert(presentation.scrollOffset == scrollView.contentView.bounds.origin)
 
-        let dx = old.minX >= scrollOffset.x ? 0 : new.width - old.width
-        let dy = old.minY >= scrollOffset.y ? 0 : new.height - old.height
+        // When animating upwards, any size change with an origin above the viewport contributes
+        // to scroll correction. When animating downwards, size changes with origins in the viewport
+        // also contribute.
+        let viewport = scrollView.contentView.bounds
+        let anchorX = scrollOffset.x > presentation.scrollOffset.x ? 1.0 : 0.0
+        let anchorY = scrollOffset.y > presentation.scrollOffset.y ? 1.0 : 0.0
+
+        let dx = old.minX >= scrollOffset.x + (anchorX*viewport.width) ? 0 : new.width - old.width
+        let dy = old.minY >= scrollOffset.y + (anchorY*viewport.height) ? 0 : new.height - old.height
 
         if dx == 0 && dy == 0 {
             return
@@ -158,9 +165,12 @@ class ScrollAnimator {
             return
         }
 
+        // From the didLiveScrollNotification docs: "Some user-initiated scrolls (for example, scrolling
+        // using legacy mice) are not bracketed by a "willStart/didEnd” notification pair."
+        animation?.stop()
+        animation = nil
+
         assert(scrollView == view?.enclosingScrollView)
-        assert(!isAnimating)
-//        assert(scrollView.contentView.bounds.origin == scrollOffset)
 
         if !isDraggingScroller {
             return
@@ -247,6 +257,7 @@ class ScrollAnimator {
         if offset != scrollOffset {
             if isAnimating {
                 animateScroll(to: scrollOffset)
+                assert(offset == presentation.scrollOffset)
             } else {
                 scrollView.documentView?.scroll(scrollOffset)
             }
