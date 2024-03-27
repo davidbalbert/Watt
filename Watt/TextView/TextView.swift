@@ -91,9 +91,7 @@ class TextView: NSView, ClipViewDelegate {
             layoutManager.buffer
         }
         set {
-            transaction {
-                layoutManager.buffer = newValue
-            }
+            layoutManager.buffer = newValue
         }
     }
 
@@ -103,10 +101,8 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             setTypingAttributes()
 
-            transaction {
-                schedule(.selectionLayout)
-                schedule(.insertionPointLayout)
-            }
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
             updateInsertionPointTimer()
         }
     }
@@ -142,6 +138,30 @@ class TextView: NSView, ClipViewDelegate {
     let textLayer: CALayer = CALayer()
     let insertionPointLayer: CALayer = CALayer()
 
+    var needsTextLayout: Bool = false {
+        didSet {
+            if needsTextLayout {
+                needsLayout = true
+            }
+        }
+    }
+    var needsSelectionLayout: Bool = false {
+        didSet {
+            if needsSelectionLayout {
+                needsLayout = true
+            }
+        }
+    }
+    var needsInsertionPointLayout: Bool = false {
+        didSet {
+            if needsInsertionPointLayout {
+                needsLayout = true
+            }
+        }
+    }
+
+    var performingLayout: Bool = false
+
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointTimer: Timer?
@@ -150,8 +170,6 @@ class TextView: NSView, ClipViewDelegate {
         ScrollAnimator(self)
     }()
     var autoscroller: Autoscroller?
-
-    var transaction: Transaction = Transaction()
 
     override init(frame frameRect: NSRect) {
         layoutManager = LayoutManager()
@@ -235,11 +253,9 @@ class TextView: NSView, ClipViewDelegate {
         let widthChanged = oldSize.width != clipView.frame.width
 
         if heightChanged || (widthChanged && textContainer.width < .greatestFiniteMagnitude) {
-            transaction {
-                schedule(.textLayout)
-                schedule(.selectionLayout)
-                schedule(.insertionPointLayout)
-            }
+            needsTextLayout = true
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
         }
     }
 
@@ -256,11 +272,9 @@ class TextView: NSView, ClipViewDelegate {
             NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
             NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
 
-            transaction {
-                schedule(.textLayout)
-                schedule(.selectionLayout)
-                schedule(.insertionPointLayout)
-            }
+            needsTextLayout = true
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
         }
     }
 }

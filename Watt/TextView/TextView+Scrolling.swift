@@ -73,10 +73,8 @@ extension TextView {
     }
 
     @objc func viewDidScroll(_ notification: Notification) {
-        transaction {
-            schedule(.textLayout)
-            schedule(.selectionLayout)
-            schedule(.insertionPointLayout)
-        }
+        needsTextLayout = true
+        needsSelectionLayout = true
+        needsInsertionPointLayout = true
     }
 }

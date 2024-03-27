@@ -32,11 +32,9 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes)
         }
 
-        transaction {
-            replaceSubrange(range, with: attrRope)
-            print("insertText - ", terminator: "")
-            unmarkText()
-        }
+        replaceSubrange(range, with: attrRope)
+        print("insertText - ", terminator: "")
+        unmarkText()
     }
 
     override func doCommand(by selector: Selector) {
@@ -59,26 +57,24 @@ extension TextView: NSTextInputClient {
             attrRope = AttributedRope(string as! String, attributes: typingAttributes.merging(markedTextAttributes))
         }
 
-        transaction {
-            replaceSubrange(range, with: attrRope)
+        replaceSubrange(range, with: attrRope)
 
-            let start = buffer.index(fromOldIndex: range.lowerBound)
-            let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
-            let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
+        let start = buffer.index(fromOldIndex: range.lowerBound)
+        let anchor = buffer.utf16.index(start, offsetBy: selectedRange.lowerBound)
+        let head = buffer.utf16.index(anchor, offsetBy: selectedRange.length)
 
-            let markedRange: Range<Buffer.Index>?
-            if attrRope.count == 0 {
-                markedRange = nil
-            } else {
-                let end = buffer.index(start, offsetBy: attrRope.count)
-                markedRange = start..<end
-            }
+        let markedRange: Range<Buffer.Index>?
+        if attrRope.count == 0 {
+            markedRange = nil
+        } else {
+            let end = buffer.index(start, offsetBy: attrRope.count)
+            markedRange = start..<end
+        }
 
-            if anchor == head {
-                selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
-            } else {
-                selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
-            }
+        if anchor == head {
+            selection = Selection(caretAt: anchor, affinity: anchor == buffer.endIndex ? .upstream : .downstream, granularity: .character, xOffset: nil, markedRange: markedRange)
+        } else {
+            selection = Selection(anchor: anchor, head: head, granularity: .character, xOffset: nil, markedRange: markedRange)
         }
     }
 
@@ -87,13 +83,11 @@ extension TextView: NSTextInputClient {
 
         selection = selection.unmarked
 
-        // TODO: if we're the only one who calls unmarkText(), we can remove
-        // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
-        transaction {
-            schedule(.textLayout)
-            schedule(.selectionLayout)
-            schedule(.insertionPointLayout)
-        }
+        // TODO: if we're the only one who calls unmarkText(), we can remove these layout calls because
+        // we already schedule layout in didInvalidateLayout(for layoutManager: LayoutManager).
+        needsTextLayout = true
+        needsSelectionLayout = true
+        needsInsertionPointLayout = true
     }
 
     func selectedRange() -> NSRange {
@@ -207,10 +201,8 @@ extension TextView {
 
         let undoContents = AttributedRope(buffer[r])
 
-        transaction {
-            buffer.replaceSubrange(r, with: s)
-            updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
-        }
+        buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 
@@ -227,10 +219,8 @@ extension TextView {
 
         let undoContents = String(buffer[r])
 
-        transaction {
-            buffer.replaceSubrange(r, with: s)
-            updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
-        }
+        buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 

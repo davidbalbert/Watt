@@ -32,6 +32,23 @@ extension TextView {
             insertionPointLayer.bounds = layer.bounds
             layer.addSublayer(insertionPointLayer)
         }
+
+        // Selection and insertion point layout require up to date text layout,
+        // so this must be first.
+        if needsTextLayout {
+            needsTextLayout = false
+            layoutTextLayer()
+        }
+
+        if needsSelectionLayout {
+            needsSelectionLayout = false
+            layoutSelectionLayer()
+        }
+
+        if needsInsertionPointLayout {
+            needsInsertionPointLayout = false
+            layoutInsertionPointLayer()
+        }
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -123,11 +140,9 @@ extension TextView: LayoutManagerDelegate {
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
-        transaction {
-            schedule(.textLayout)
-            schedule(.insertionPointLayout)
-            schedule(.selectionLayout)
-        }
+        needsTextLayout = true
+        needsInsertionPointLayout = true
+        needsSelectionLayout = true
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
@@ -175,13 +190,11 @@ extension TextView: LayoutManagerDelegate {
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {
         lineNumberView.lineCount = buffer.lines.count
 
-        transaction {
-            schedule(.textLayout)
-            schedule(.insertionPointLayout)
-            schedule(.selectionLayout)
+        selection = Selection(atStartOf: buffer)
 
-            selection = Selection(atStartOf: buffer)
-        }
+        needsTextLayout = true
+        needsInsertionPointLayout = true
+        needsSelectionLayout = true
 
         inputContext?.invalidateCharacterCoordinates()
         updateFrameHeightIfNeeded()
