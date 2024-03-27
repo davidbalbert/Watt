@@ -18,11 +18,10 @@ class ScrollAnimator {
         var scrollOffset: CGPoint
     }
     private(set) var scrollOffset: CGPoint
-
     private(set) var presentation: PresentationProperties
 
     // A unit point representing the position of the dragged scroller knobs.
-    var requestedUnitScrollOffset: CGPoint?
+    private var absoluteUnitOffset: CGPoint?
 
     private var isScrollCorrectionScheduled: Bool
 
@@ -56,7 +55,7 @@ class ScrollAnimator {
         isDraggingScroller = false
         isScrollCorrectionScheduled = false
 
-        requestedUnitScrollOffset = nil
+        absoluteUnitOffset = nil
 
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
@@ -193,7 +192,7 @@ class ScrollAnimator {
             unity = maxY == 0 ? 0 : scrollOffset.y / maxY
         }
 
-        requestedUnitScrollOffset = CGPoint(x: unitx, y: unity)
+        absoluteUnitOffset = CGPoint(x: unitx, y: unity)
         scheduleScrollCorrection()
     }
 
@@ -222,8 +221,8 @@ class ScrollAnimator {
             return
         }
 
-        if let requestedUnitScrollOffset {
-            defer { self.requestedUnitScrollOffset = nil }
+        if let absoluteUnitOffset {
+            defer { self.absoluteUnitOffset = nil }
 
             assert(!isAnimating)
             assert(scrollView.documentView != nil)
@@ -234,8 +233,8 @@ class ScrollAnimator {
 
             let viewport = scrollView.contentView.bounds
             let offset = NSPoint(
-                x: requestedUnitScrollOffset.x * (documentSize.width - viewport.width),
-                y: requestedUnitScrollOffset.y * (documentSize.height - viewport.height)
+                x: absoluteUnitOffset.x * (documentSize.width - viewport.width),
+                y: absoluteUnitOffset.y * (documentSize.height - viewport.height)
             )
 
             if viewport.origin != offset {
