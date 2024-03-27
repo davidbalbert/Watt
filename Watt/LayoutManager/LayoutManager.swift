@@ -23,7 +23,7 @@ protocol LayoutManagerDelegate: AnyObject {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
-    func layoutManager(_ layoutManager: LayoutManager, rectDidResizeFrom old: CGRect, to new: CGRect)
+    func layoutManager(_ layoutManager: LayoutManager, rect: CGRect, didResizeTo new: CGSize)
 
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer
     func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer)
@@ -525,7 +525,7 @@ class LayoutManager {
 
             if oldHeight != newHeight {
                 heights[hi] = newHeight
-                delegate?.layoutManager(self, rectDidResizeFrom: old, to: line.alignmentFrame)
+                delegate?.layoutManager(self, rect: old, didResizeTo: line.alignmentFrame.size)
             }
 
             return (line, nil, old)
@@ -824,11 +824,11 @@ extension LayoutManager: BufferDelegate {
             assert(start == newLineRange.upperBound)
         }
 
-        let oldRect = CGRect(x: 0, y: minY, width: textContainer.width, height: oldMaxY - minY)
-        let newRect = CGRect(x: 0, y: minY, width: textContainer.width, height: newMaxY - minY)
+        let rect = CGRect(x: 0, y: minY, width: textContainer.width, height: oldMaxY - minY)
+        let newSize = CGSize(width: textContainer.width, height: newMaxY - minY)
 
         delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
-        delegate?.layoutManager(self, rectDidResizeFrom: oldRect, to: newRect)
+        delegate?.layoutManager(self, rect: rect, didResizeTo: newSize)
         delegate?.didInvalidateLayout(for: self)
     }
 

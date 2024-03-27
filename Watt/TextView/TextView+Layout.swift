@@ -200,11 +200,9 @@ extension TextView: LayoutManagerDelegate {
         lineNumberView.lineCount = new.lines.count
     }
 
-    func layoutManager(_ layoutManager: LayoutManager, rectDidResizeFrom old: CGRect, to new: CGRect) {
-        let old = convertFromTextContainer(old)
-        let new = convertFromTextContainer(new)
-
-        scrollAnimator.rectInDocumentViewDidChange(from: old, to: new)
+    func layoutManager(_ layoutManager: LayoutManager, rect: CGRect, didResizeTo newSize: CGSize) {
+        let rect = convertFromTextContainer(rect)
+        scrollAnimator.documentRect(rect, didResizeTo: newSize)
     }
 
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {

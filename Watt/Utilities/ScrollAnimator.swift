@@ -103,9 +103,7 @@ class ScrollAnimator {
         animation = spring
     }
 
-    func rectInDocumentViewDidChange(from old: NSRect, to new: NSRect) {
-        precondition(old.origin == new.origin, "old and new rects must share an origin")
-
+    func documentRect(_ rect: NSRect, didResizeTo newSize: NSSize) {
         guard let scrollView = view?.enclosingScrollView else {
             return
         }
@@ -119,8 +117,8 @@ class ScrollAnimator {
         let anchorX = scrollOffset.x > presentation.scrollOffset.x ? 1.0 : 0.0
         let anchorY = scrollOffset.y > presentation.scrollOffset.y ? 1.0 : 0.0
 
-        let dx = old.minX >= scrollOffset.x + (anchorX*viewport.width) ? 0 : new.width - old.width
-        let dy = old.minY >= scrollOffset.y + (anchorY*viewport.height) ? 0 : new.height - old.height
+        let dx = rect.minX >= scrollOffset.x + (anchorX*viewport.width) ? 0 : newSize.width - rect.width
+        let dy = rect.minY >= scrollOffset.y + (anchorY*viewport.height) ? 0 : newSize.height - rect.height
 
         if dx == 0 && dy == 0 {
             return
