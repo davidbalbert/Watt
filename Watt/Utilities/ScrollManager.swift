@@ -35,6 +35,8 @@ class ScrollManager {
     private(set) var scrollOffset: CGPoint
     private(set) var presentation: PresentationProperties
 
+    private var delta: CGVector
+
     private var isScrollCorrectionScheduled: Bool
 
     private var animation: SpringAnimation<CGPoint>?
@@ -50,6 +52,7 @@ class ScrollManager {
         self.isDraggingScroller = false
         self.scrollOffset = .zero
         self.presentation = PresentationProperties(scrollOffset: .zero)
+        self.delta = .zero
         self.isScrollCorrectionScheduled = false
 
         if view.superview != nil {
@@ -72,6 +75,7 @@ class ScrollManager {
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
         presentation.scrollOffset = offset
+        delta = .zero
 
         if let scrollView = view?.enclosingScrollView {
             NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
@@ -135,6 +139,8 @@ class ScrollManager {
         if dx == 0 && dy == 0 {
             return
         }
+
+        delta += CGVector(dx: dx, dy: dy)
 
         delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
 
@@ -209,6 +215,8 @@ class ScrollManager {
             return
         }
 
+        defer { delta = .zero }
+
         isScrollCorrectionScheduled = false
         guard let scrollView = view?.enclosingScrollView else {
             return
@@ -244,10 +252,8 @@ class ScrollManager {
         let viewport = scrollView.contentView.bounds
         if viewport.origin != scrollOffset {
             if isAnimating {
+                scrollView.documentView?.scroll(presentation.scrollOffset + delta)
                 animateScroll(to: scrollOffset)
-                assert(viewport.origin == presentation.scrollOffset)
-
-                let delta = CGVector(dx: presentation.scrollOffset.x - viewport.origin.x, dy: presentation.scrollOffset.y - viewport.origin.y)
                 delegate?.scrollManager(self, didCorrectScrollBy: delta)
             } else {
                 scrollView.documentView?.scroll(scrollOffset)
