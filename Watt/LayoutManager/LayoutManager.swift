@@ -35,6 +35,9 @@ extension LayoutManagerDelegate {
     }
 }
 
+var n = 0.0
+var m = 0.0
+
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
 
@@ -51,9 +54,6 @@ class LayoutManager {
 
     var heights: Heights
 
-    // invariant: sorted by line.range.lowerBound
-    var lineLayers: [LineLayer]
-
     var textContainer: TextContainer {
         didSet {
             if textContainer != oldValue {
@@ -62,11 +62,17 @@ class LayoutManager {
         }
     }
 
+    // invariant: sorted by line.range.lowerBound
+    var lineLayers: [LineLayer]
+
+    var scrollCorrection: CGVector
+
     init() {
-        heights = Heights()
-        lineLayers = []
-        textContainer = TextContainer()
         buffer = Buffer()
+        heights = Heights()
+        textContainer = TextContainer()
+        lineLayers = []
+        scrollCorrection = .zero
 
         buffer.addDelegate(self)
     }
@@ -80,20 +86,21 @@ class LayoutManager {
             return
         }
 
-        let viewportBounds = delegate.viewportBounds(for: self)
-        let start = startOfFirstLine(intersecting: viewportBounds)
+        let viewport = delegate.viewportBounds(for: self)
+        let start = startOfFirstLine(intersecting: viewport)
 
         var layers: [LineLayer] = []
-        var height: CGFloat = 0
         enumerateLines(startingAt: start) { line, existingLayer in
+            n += 1
             let layer = existingLayer ?? delegate.layoutManager(self, createLayerForLine: line)
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer)
 
-            height += line.alignmentFrame.height - max(viewportBounds.minY - line.alignmentFrame.minY, 0)
-            return height <= viewportBounds.height
+            return line.alignmentFrame.maxY <= viewport.minY + scrollCorrection.dy + viewport.height
         }
+        m += 1
+        print("!", n, n/m)
         lineLayers = layers
     }
 
@@ -766,6 +773,18 @@ class LayoutManager {
             x: point.x - frag.origin.x,
             y: point.y - frag.origin.y
         )
+    }
+}
+
+// MARK: - ScrollManagerDelegate
+
+extension LayoutManager: ScrollManagerDelegate {
+    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {
+        scrollCorrection += delta
+    }
+
+    func scrollManager(_ scrollManager: ScrollManager, didCorrectScrollBy delta: CGVector) {
+        scrollCorrection = .zero
     }
 }
 

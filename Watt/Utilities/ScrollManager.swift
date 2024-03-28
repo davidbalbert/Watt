@@ -8,6 +8,21 @@
 import Cocoa
 import Motion
 
+protocol ScrollManagerDelegate: AnyObject {
+    // Called once for every call to documentRect(_:didResizeTo:) that performs a scroll correction.
+    // Can be called multiple times for each call to scrollmanager(_:didCorrectScrollBy:).
+    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector)
+
+    // Called once per run loop tick where scroll correction was performed. One call to this method
+    // can correspond to multiple calls to scrollManager(_:willCorrectScrollBy:).
+    func scrollManager(_ scrollManager: ScrollManager, didCorrectScrollBy delta: CGVector)
+}
+
+extension ScrollManagerDelegate {
+    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {}
+    func scrollManager(_ scrollManager: ScrollManager, didCorrectScrollBy delta: CGVector) {}
+}
+
 @MainActor
 class ScrollManager {
     private(set) weak var view: NSView?
@@ -27,6 +42,8 @@ class ScrollManager {
     var isAnimating: Bool {
         animation != nil
     }
+
+    weak var delegate: ScrollManagerDelegate?
 
     init(_ view: NSView) {
         self.view = view
@@ -118,6 +135,8 @@ class ScrollManager {
         if dx == 0 && dy == 0 {
             return
         }
+
+        delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
 
         scrollOffset = CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy)
         scheduleScrollCorrection()
@@ -215,17 +234,25 @@ class ScrollManager {
 
             if viewport.origin != offset {
                 scrollView.documentView?.scroll(offset)
+
+                let delta = CGVector(dx: offset.x - viewport.origin.x, dy: offset.y - viewport.origin.y)
+                delegate?.scrollManager(self, didCorrectScrollBy: delta)
             }
             return
         }
 
-        let offset = scrollView.contentView.bounds.origin
-        if offset != scrollOffset {
+        let viewport = scrollView.contentView.bounds
+        if viewport.origin != scrollOffset {
             if isAnimating {
                 animateScroll(to: scrollOffset)
-                assert(offset == presentation.scrollOffset)
+                assert(viewport.origin == presentation.scrollOffset)
+
+                let delta = CGVector(dx: presentation.scrollOffset.x - viewport.origin.x, dy: presentation.scrollOffset.y - viewport.origin.y)
+                delegate?.scrollManager(self, didCorrectScrollBy: delta)
             } else {
                 scrollView.documentView?.scroll(scrollOffset)
+                let delta = CGVector(dx: scrollOffset.x - viewport.origin.x, dy: scrollOffset.y - viewport.origin.y)
+                delegate?.scrollManager(self, didCorrectScrollBy: delta)
             }
         }
     }

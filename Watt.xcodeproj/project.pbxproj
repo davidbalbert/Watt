@@ -15,6 +15,7 @@
 		63206D2D2BA8E8F400CAFBC4 /* Autoscroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */; };
 		63206D362BAB635500CAFBC4 /* Motion in Frameworks */ = {isa = PBXBuildFile; productRef = 63206D352BAB635500CAFBC4 /* Motion */; };
 		63206D382BAB707E00CAFBC4 /* ScrollManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D372BAB707E00CAFBC4 /* ScrollManager.swift */; };
+		63206D3A2BB5C65500CAFBC4 /* CGVector+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */; };
 		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
@@ -137,6 +138,7 @@
 		63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Scrolling.swift"; sourceTree = "<group>"; };
 		63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Autoscroller.swift; sourceTree = "<group>"; };
 		63206D372BAB707E00CAFBC4 /* ScrollManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollManager.swift; sourceTree = "<group>"; };
+		63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGVector+Extensions.swift"; sourceTree = "<group>"; };
 		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
@@ -335,6 +337,7 @@
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
+				63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */,
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
 				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
 				63DD20E12B76B59300E55747 /* Logger+Extensions.swift */,
@@ -723,6 +726,7 @@
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */,
 				63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */,
+				63206D3A2BB5C65500CAFBC4 /* CGVector+Extensions.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */,
 				63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */,

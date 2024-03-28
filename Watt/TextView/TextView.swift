@@ -191,8 +191,9 @@ class TextView: NSView, ClipViewDelegate {
         layerContentsRedrawPolicy = .onSetNeedsDisplay
 
         layoutManager.buffer = buffer
-
         layoutManager.delegate = self
+
+        scrollManager.delegate = layoutManager
 
         lineNumberView.lineCount = buffer.lines.count
         lineNumberView.font = font
