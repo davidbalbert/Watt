@@ -1,5 +1,5 @@
 //
-//  ScrollAnimator.swift
+//  ScrollManager.swift
 //  Watt
 //
 //  Created by David Albert on 3/20/24.
@@ -9,7 +9,7 @@ import Cocoa
 import Motion
 
 @MainActor
-class ScrollAnimator {
+class ScrollManager {
     private(set) weak var view: NSView?
     private(set) var isDraggingScroller: Bool
 
@@ -166,8 +166,8 @@ class ScrollAnimator {
         assert(scrollView == view?.enclosingScrollView)
 
         if isDraggingScroller {
-        scheduleScrollCorrection()
-    }
+            scheduleScrollCorrection()
+        }
     }
 
     @objc func didEndLiveScroll(_ notification: Notification) {

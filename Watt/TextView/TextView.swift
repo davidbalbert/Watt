@@ -166,8 +166,8 @@ class TextView: NSView, ClipViewDelegate {
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointTimer: Timer?
 
-    lazy var scrollAnimator: ScrollAnimator = {
-        ScrollAnimator(self)
+    lazy var scrollManager: ScrollManager = {
+        ScrollManager(self)
     }()
     var autoscroller: Autoscroller?
 
@@ -232,7 +232,7 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func viewDidMoveToSuperview() {
-        scrollAnimator.viewDidMoveToSuperview()
+        scrollManager.viewDidMoveToSuperview()
     }
 
     // This is a custom method on ClipViewDelegate. Normally we'd use

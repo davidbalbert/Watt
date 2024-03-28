@@ -14,7 +14,7 @@
 		63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */; };
 		63206D2D2BA8E8F400CAFBC4 /* Autoscroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */; };
 		63206D362BAB635500CAFBC4 /* Motion in Frameworks */ = {isa = PBXBuildFile; productRef = 63206D352BAB635500CAFBC4 /* Motion */; };
-		63206D382BAB707E00CAFBC4 /* ScrollAnimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D372BAB707E00CAFBC4 /* ScrollAnimator.swift */; };
+		63206D382BAB707E00CAFBC4 /* ScrollManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D372BAB707E00CAFBC4 /* ScrollManager.swift */; };
 		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
@@ -136,7 +136,7 @@
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
 		63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Scrolling.swift"; sourceTree = "<group>"; };
 		63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Autoscroller.swift; sourceTree = "<group>"; };
-		63206D372BAB707E00CAFBC4 /* ScrollAnimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollAnimator.swift; sourceTree = "<group>"; };
+		63206D372BAB707E00CAFBC4 /* ScrollManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollManager.swift; sourceTree = "<group>"; };
 		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
@@ -288,7 +288,7 @@
 				637E58532B8415A400C498EE /* DragAndDrop.swift */,
 				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
 				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
-				63206D372BAB707E00CAFBC4 /* ScrollAnimator.swift */,
+				63206D372BAB707E00CAFBC4 /* ScrollManager.swift */,
 				63B8B1752A9F890100F32C2C /* Utilities.swift */,
 				63A618712A0EAF2000E70B0E /* Weak.swift */,
 			);
@@ -709,7 +709,7 @@
 				6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */,
 				632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */,
 				63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */,
-				63206D382BAB707E00CAFBC4 /* ScrollAnimator.swift in Sources */,
+				63206D382BAB707E00CAFBC4 /* ScrollManager.swift in Sources */,
 				63DD20DB2B7278E400E55747 /* CheckedContinuationReference.swift in Sources */,
 				637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */,
 				63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */,

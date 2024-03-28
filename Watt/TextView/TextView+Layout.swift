@@ -215,7 +215,7 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: LayoutManager, rect: CGRect, didResizeTo newSize: CGSize) {
         let rect = convertFromTextContainer(rect)
-        scrollAnimator.documentRect(rect, didResizeTo: newSize)
+        scrollManager.documentRect(rect, didResizeTo: newSize)
     }
 
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
