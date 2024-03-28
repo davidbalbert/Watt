@@ -35,9 +35,6 @@ extension LayoutManagerDelegate {
     }
 }
 
-var n = 0.0
-var m = 0.0
-
 class LayoutManager {
     weak var delegate: LayoutManagerDelegate?
 
@@ -91,16 +88,12 @@ class LayoutManager {
 
         var layers: [LineLayer] = []
         enumerateLines(startingAt: start) { line, existingLayer in
-            n += 1
             let layer = existingLayer ?? delegate.layoutManager(self, createLayerForLine: line)
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer)
-
             return line.alignmentFrame.maxY <= viewport.minY + scrollCorrection.dy + viewport.height
         }
-        m += 1
-        print("!", n, n/m)
         lineLayers = layers
     }
 
@@ -783,7 +776,6 @@ extension LayoutManager: ScrollManagerDelegate {
         scrollCorrection += delta
     }
 
-    func scrollManager(_ scrollManager: ScrollManager, didCorrectScrollBy delta: CGVector) {
     func scrollManagerDidCorrectScroll(_ scrollManager: ScrollManager) {
         scrollCorrection = .zero
     }

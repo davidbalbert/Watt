@@ -35,6 +35,8 @@ class ScrollManager {
     private(set) var scrollOffset: CGPoint
     private(set) var presentation: PresentationProperties
 
+    private var prevPresentationScrollOffset: CGPoint
+
     private var delta: CGVector
 
     private var isScrollCorrectionScheduled: Bool
@@ -52,6 +54,7 @@ class ScrollManager {
         self.isDraggingScroller = false
         self.scrollOffset = .zero
         self.presentation = PresentationProperties(scrollOffset: .zero)
+        self.prevPresentationScrollOffset = .zero
         self.delta = .zero
         self.isScrollCorrectionScheduled = false
 
@@ -75,6 +78,7 @@ class ScrollManager {
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
         presentation.scrollOffset = offset
+        prevPresentationScrollOffset = offset
         delta = .zero
 
         if let scrollView = view?.enclosingScrollView {
@@ -129,10 +133,14 @@ class ScrollManager {
         // When animating upwards, any size change with an origin above the viewport contributes
         // to scroll correction. When animating downwards, size changes with origins in the viewport
         // also contribute.
-        let viewport = scrollView.contentView.bounds
-        let anchorX = scrollOffset.x > presentation.scrollOffset.x ? 1.0 : 0.0
-        let anchorY = scrollOffset.y > presentation.scrollOffset.y ? 1.0 : 0.0
+        let movingRight = presentation.scrollOffset.x > prevPresentationScrollOffset.x
+        let movingDown = presentation.scrollOffset.y > prevPresentationScrollOffset.y
 
+        let viewport = scrollView.contentView.bounds
+        let anchorX = movingRight ? 1.0 : 0.0
+        let anchorY = movingDown ? 1.0 : 0.0
+
+        // TODO: I think this should actually be maxX and maxY, but that jumps when scrolling up. See https://dave.is/worklog/2023/07/24/adjusting-scroll-offset-when-document-height-changes/
         let dx = rect.minX >= scrollOffset.x + (anchorX*viewport.width) ? 0 : newSize.width - rect.width
         let dy = rect.minY >= scrollOffset.y + (anchorY*viewport.height) ? 0 : newSize.height - rect.height
 
@@ -154,6 +162,8 @@ class ScrollManager {
         }
 
         assert(scrollView.contentView == (notification.object as? NSView))
+
+        prevPresentationScrollOffset = presentation.scrollOffset
 
         let offset = scrollView.contentView.bounds.origin
         if isAnimating {
