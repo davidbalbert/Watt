@@ -175,26 +175,26 @@ class ScrollManager {
         }
 
         if let animation {
-        // When animating upwards, any size change with an origin above the viewport contributes
-        // to scroll correction. When animating downwards, size changes with origins in the viewport
-        // also contribute.
+            // When animating upwards, any size change with an origin above the viewport contributes
+            // to scroll correction. When animating downwards, size changes with origins in the viewport
+            // also contribute.
             let movingRight = animation.toValue.x > scrollOffset.x
             let movingDown = animation.toValue.y > scrollOffset.y
 
-        let viewport = scrollView.contentView.bounds
+            let viewport = scrollView.contentView.bounds
             let cutoffX = movingRight ? viewport.maxX : viewport.minX
             let cutoffY = movingDown ? viewport.maxY : viewport.minY
 
             let dx = rect.maxX <= cutoffX ? newSize.width - rect.width : 0
             let dy = rect.maxY < cutoffY ? newSize.height - rect.height : 0
 
-        if dx == 0 && dy == 0 {
-            return
-        }
+            if dx == 0 && dy == 0 {
+                return
+            }
 
             needsScrollCorrection = true
-        delta += CGVector(dx: dx, dy: dy)
-        delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
+            delta += CGVector(dx: dx, dy: dy)
+            delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
         }
 
 
@@ -234,7 +234,7 @@ class ScrollManager {
         isLiveScrolling = true
 
         isDraggingScroller = scrollView.horizontalScroller?.hitPart == .knob || scrollView.verticalScroller?.hitPart == .knob
-        }
+    }
 
     @objc func didLiveScroll(_ notification: Notification) {
         // From the didLiveScrollNotification docs: "Some user-initiated scrolls (for example, scrolling
@@ -263,7 +263,7 @@ class ScrollManager {
         isDraggingScroller = false
 
         prevLiveScrollOffset = nil
-        }
+    }
 
     private func observe() {
         // We always want scroll correction to run after layout so that we can take into account any resizing
