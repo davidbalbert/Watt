@@ -36,6 +36,7 @@ class ScrollManager {
 
     private(set) var scrollOffset: CGPoint
     private var prevScrollOffset: CGPoint
+    private var prevLiveScrollOffset: CGPoint?
     private var delta: CGVector
 
     private var needsScrollCorrection: Bool
@@ -95,6 +96,10 @@ class ScrollManager {
         }
     }
 
+    // If you're changing your view's frame directly in one of the below notifications, make sure to call
+    // ScrollManager.viewDidMoveToSuperview() before attaching your own observers. ScrollManager needs its
+    // observers to be called first so that its state can be correctly set up for any calls
+    // to documentRect(_:didResizeTo:)
     func viewDidMoveToSuperview() {
         NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: nil)
@@ -113,6 +118,7 @@ class ScrollManager {
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
         prevScrollOffset = offset
+        prevLiveScrollOffset = nil
         delta = .zero
 
         if let scrollView = view?.enclosingScrollView {
@@ -191,8 +197,9 @@ class ScrollManager {
         delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
         }
 
-        let dx = rect.maxX <= prevScrollOffset.x ? newSize.width - rect.width : 0
-        let dy = rect.maxY <= prevScrollOffset.y ? newSize.height - rect.height : 0
+
+        let dx = rect.maxX <= (prevLiveScrollOffset ?? scrollOffset).x ? newSize.width - rect.width : 0
+        let dy = rect.maxY <= (prevLiveScrollOffset ?? scrollOffset).y ? newSize.height - rect.height : 0
 
         if dx == 0 && dy == 0 {
             return
@@ -210,6 +217,7 @@ class ScrollManager {
 
         assert(scrollView.contentView == (notification.object as? NSView))
 
+        prevLiveScrollOffset = nil
         prevScrollOffset = scrollOffset
         scrollOffset = scrollView.contentView.bounds.origin
     }
@@ -239,6 +247,7 @@ class ScrollManager {
         }
 
         didLiveScroll = true
+        prevLiveScrollOffset = prevScrollOffset
 
         assert(scrollView == view?.enclosingScrollView)
 
@@ -253,7 +262,7 @@ class ScrollManager {
         didLiveScroll = false
         isDraggingScroller = false
 
-        prevScrollOffset = scrollOffset
+        prevLiveScrollOffset = nil
         }
 
     private func observe() {
@@ -270,7 +279,7 @@ class ScrollManager {
         // We used a scroll wheel and didn't get willBeginLiveScroll. Reset scrolling here.
         if didLiveScroll && !isLiveScrolling {
             didLiveScroll = false
-            prevScrollOffset = scrollOffset
+            prevLiveScrollOffset = nil
             assert(!isDraggingScroller)
         }
     }
