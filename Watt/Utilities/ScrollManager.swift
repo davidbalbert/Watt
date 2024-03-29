@@ -197,6 +197,22 @@ class ScrollManager {
         }
 
 
+        // If we're scrolling, the goal is to have no jump between the previous frame and this frame.
+        // If we're scrolling up (which is the case where this generally matters), rects that will
+        // cause a jump are those that are fully above the viewport. But if we're forcing layout because
+        // we're scrolling up, all rects that are being laid out are by definition in the viewport this
+        // frame. So we have to look at the previous frame to see if we should apply the correction.
+        //
+        // If we're not scrolling and the document changed size, e.g. because of an edit, just use the
+        // current frame.
+        //
+        // I'm less sure about using prevLiveScrollOffset when we're scrolling down. In general, scrolling
+        // down will only cause layout below the viewport, and that shouldn't cause a scroll correction
+        // while we're not animating. So this means when scrolling down, the only corrections we should get
+        // are from edits in the document. When we're scrolling down, prevLiveScrollOffset.y will be
+        // less than scrollOffset.y, which means we're being more restrictive in when we'll do a scroll
+        // correction than we otherwise would be if we weren't scrolling. Not sure whether this will
+        // cause any issues.
         let dx = rect.maxX <= (prevLiveScrollOffset ?? scrollOffset).x ? newSize.width - rect.width : 0
         let dy = rect.maxY <= (prevLiveScrollOffset ?? scrollOffset).y ? newSize.height - rect.height : 0
 
