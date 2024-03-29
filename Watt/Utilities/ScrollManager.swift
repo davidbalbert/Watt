@@ -166,6 +166,7 @@ class ScrollManager {
             return
         }
 
+        assert(scrollOffset == scrollView.contentView.bounds.origin)
         // If we're dragging the scroller, we're requesting an absolute percent through the document.
         // If layout changed at all while dragging, we're going to be in the wrong place, and need
         // to correct.
