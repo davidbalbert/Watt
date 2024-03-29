@@ -777,7 +777,8 @@ extension LayoutManager: ScrollManagerDelegate {
         scrollCorrection += delta
     }
 
-    func scrollManagerDidCorrectScroll(_ scrollManager: ScrollManager) {
+    // Called after layout
+    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager) {
         scrollCorrection = .zero
     }
 }

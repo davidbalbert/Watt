@@ -233,6 +233,12 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func viewDidMoveToSuperview() {
+        NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
+
+        if let scrollView {
+            NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+        }
+
         scrollManager.viewDidMoveToSuperview()
     }
 
@@ -261,17 +267,12 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     override func viewDidMoveToWindow() {
-        NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
-        if let scrollView {
-            NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll(_:)), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
-        }
-
         if let window {
-            NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
-            NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey), name: NSWindow.didBecomeKeyNotification, object: window)
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey), name: NSWindow.didResignKeyNotification, object: window)
 
             needsTextLayout = true
             needsSelectionLayout = true

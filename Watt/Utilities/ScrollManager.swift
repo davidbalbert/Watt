@@ -9,18 +9,24 @@ import Cocoa
 import Motion
 
 protocol ScrollManagerDelegate: AnyObject {
-    // Called once for every call to documentRect(_:didResizeTo:) that performs a scroll correction.
-    // Can be called multiple times for each call to scrollmanager(_:didCorrectScrollBy:).
+    // Called once for every call to documentRect(_:didResizeTo:) that queues up a scroll correction.
     func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector)
 
-    // Called once per run loop tick where scroll correction was performed. One call to this method
-    // can correspond to multiple calls to scrollManager(_:willCorrectScrollBy:).
-    func scrollManagerDidPerformScrollCorrection(_ scrollManager: ScrollManager)
+    // Called once per run loop tick directly before scroll correction is performed – i.e. before
+    // NSView.scroll(_:) is called on the documentView. This method is called regardless of whether
+    // NSView.scroll(_:) is actually called, and can correspond to multiple calls to
+    // scrollManager(_:willCorrectScrollBy:).
+    func scrollManagerWillCommitScrollCorrection(_ scrollManager: ScrollManager)
+
+    // Same semantics as scrollManagerWillCommitScrollCorrection(_:), but called after a possible call
+    // to NSView.scroll(_:) rather than before.
+    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager)
 }
 
 extension ScrollManagerDelegate {
     func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {}
-    func scrollManagerDidPerformScrollCorrection(_ scrollManager: ScrollManager) {}
+    func scrollManagerWillCommitScrollCorrection(_ scrollManager: ScrollManager) {}
+    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager) {}
 }
 
 @MainActor
@@ -33,6 +39,9 @@ class ScrollManager {
     private var delta: CGVector
 
     private var needsScrollCorrection: Bool
+
+    var isLiveScrolling: Bool
+    var didLiveScroll: Bool
 
     private var animation: SpringAnimation<CGPoint>?
 
@@ -48,7 +57,7 @@ class ScrollManager {
 
     // We use a run loop observer, rather than DispatchQueue.main.async because we want to be able to wait
     // until after layout has been performed to do scroll correction. While this is possible to do with
-    // libdispatch – we'd just have to reschedule performScrollCorrection() if layout hasn't been performed
+    // DispatchQueue – we'd just have to reschedule performScrollCorrection() if layout hasn't been performed
     // yet – it's a bit clearer if we just check every tick of the run loop.
     private var observer: CFRunLoopObserver?
 
@@ -60,13 +69,16 @@ class ScrollManager {
         self.delta = .zero
         self.needsScrollCorrection = false
 
+        self.isLiveScrolling = false
+        self.didLiveScroll = false
+
         var context = CFRunLoopObserverContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
 
         // .beforeSources is after .beforeTimers, and layout is run on .beforeTimers, so we use .beforeSources so that we
         // can run as early as possible after layout occurs.
         let observer = CFRunLoopObserverCreate(kCFAllocatorDefault, CFRunLoopActivity.beforeSources.rawValue, true, 0, { observer, activity, info in
-            let manager = Unmanaged<ScrollManager>.fromOpaque(info!).takeUnretainedValue()
-            manager.performScrollCorrection()
+            let scrollManager = Unmanaged<ScrollManager>.fromOpaque(info!).takeUnretainedValue()
+            scrollManager.observe()
         }, &context)
 
         CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
@@ -94,6 +106,9 @@ class ScrollManager {
 
         isDraggingScroller = false
         needsScrollCorrection = false
+
+        isLiveScrolling = false
+        didLiveScroll = false
 
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
@@ -153,29 +168,39 @@ class ScrollManager {
             return
         }
 
+        if let animation {
         // When animating upwards, any size change with an origin above the viewport contributes
         // to scroll correction. When animating downwards, size changes with origins in the viewport
         // also contribute.
-        let movingRight = scrollOffset.x > prevScrollOffset.x
-        let movingDown = scrollOffset.y > prevScrollOffset.y
+            let movingRight = animation.toValue.x > scrollOffset.x
+            let movingDown = animation.toValue.y > scrollOffset.y
 
-        let anchorX = movingRight ? 1.0 : 0.0
-        let anchorY = movingDown ? 1.0 : 0.0
-
-        assert(scrollOffset == scrollView.contentView.bounds.origin)
         let viewport = scrollView.contentView.bounds
+            let cutoffX = movingRight ? viewport.maxX : viewport.minX
+            let cutoffY = movingDown ? viewport.maxY : viewport.minY
 
-        let dx = rect.maxX <= (animationDestination ?? prevScrollOffset).x + (anchorX*viewport.width) ? newSize.width - rect.width : 0
-        let dy = rect.maxY <= (animationDestination ?? prevScrollOffset).y + (anchorY*viewport.height) ? newSize.height - rect.height : 0
+            let dx = rect.maxX <= cutoffX ? newSize.width - rect.width : 0
+            let dy = rect.maxY < cutoffY ? newSize.height - rect.height : 0
 
         if dx == 0 && dy == 0 {
             return
         }
 
+            needsScrollCorrection = true
         delta += CGVector(dx: dx, dy: dy)
-
         delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
+        }
+
+        let dx = rect.maxX <= prevScrollOffset.x ? newSize.width - rect.width : 0
+        let dy = rect.maxY <= prevScrollOffset.y ? newSize.height - rect.height : 0
+
+        if dx == 0 && dy == 0 {
+            return
+        }
+
         needsScrollCorrection = true
+        delta += CGVector(dx: dx, dy: dy)
+        delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
     }
 
     @objc func viewDidScroll(_ notification: Notification) {
@@ -198,18 +223,22 @@ class ScrollManager {
             return
         }
 
-        isDraggingScroller = scrollView.horizontalScroller?.hitPart == .knob || scrollView.verticalScroller?.hitPart == .knob
-    }
+        isLiveScrolling = true
 
-    @objc func didLiveScroll(_ notification: Notification) {
-        guard let scrollView = notification.object as? NSScrollView else {
-            return
+        isDraggingScroller = scrollView.horizontalScroller?.hitPart == .knob || scrollView.verticalScroller?.hitPart == .knob
         }
 
+    @objc func didLiveScroll(_ notification: Notification) {
         // From the didLiveScrollNotification docs: "Some user-initiated scrolls (for example, scrolling
         // using legacy mice) are not bracketed by a "willStart/didEnd” notification pair."
         animation?.stop()
         animation = nil
+
+        guard let scrollView = notification.object as? NSScrollView else {
+            return
+        }
+
+        didLiveScroll = true
 
         assert(scrollView == view?.enclosingScrollView)
 
@@ -219,14 +248,15 @@ class ScrollManager {
     }
 
     @objc func didEndLiveScroll(_ notification: Notification) {
-        isDraggingScroller = false
-    }
 
-    private func performScrollCorrection() {
-        if !needsScrollCorrection {
-            return
+        isLiveScrolling = false
+        didLiveScroll = false
+        isDraggingScroller = false
+
+        prevScrollOffset = scrollOffset
         }
 
+    private func observe() {
         // We always want scroll correction to run after layout so that we can take into account any resizing
         // that happens during layout. Layout happens in a .beforeTimers observer, and we run in a .beforeSources
         // observer, which happens later. But there may be any number of iterations through run loop between when
@@ -235,14 +265,26 @@ class ScrollManager {
             return
         }
 
-        defer { delta = .zero }
+        performScrollCorrectionIfNecessary()
+
+        // We used a scroll wheel and didn't get willBeginLiveScroll. Reset scrolling here.
+        if didLiveScroll && !isLiveScrolling {
+            didLiveScroll = false
+            prevScrollOffset = scrollOffset
+            assert(!isDraggingScroller)
+        }
+    }
+
+    private func performScrollCorrectionIfNecessary() {
+        if !needsScrollCorrection {
+            return
+        }
+
         needsScrollCorrection = false
 
         guard let scrollView = view?.enclosingScrollView else {
             return
         }
-
-        defer { delegate?.scrollManagerDidPerformScrollCorrection(self) }
 
         // Dragging a scroller is equivalent to telling the scroll view "please set your offset to this
         // fixed percentage through the document." In this case, scroll correction just consists of
@@ -250,8 +292,14 @@ class ScrollManager {
         // has changed.
         if isDraggingScroller {
             assert(!isAnimating)
-            assert(scrollView.documentView != nil)
 
+            // Ignore delta because we're scrolling to an absolute position.
+            delta = .zero
+
+            delegate?.scrollManagerWillCommitScrollCorrection(self)
+            defer { delegate?.scrollManagerDidCommitScrollCorrection(self) }
+
+            assert(scrollView.documentView != nil)
             guard let documentSize = scrollView.documentView?.frame.size else {
                 return
             }
@@ -268,11 +316,22 @@ class ScrollManager {
             return
         }
 
-        if delta != .zero {
-            scrollView.documentView?.scroll(scrollOffset + delta)
+
+        delegate?.scrollManagerWillCommitScrollCorrection(self)
+
+        // documentView?.scroll(_:) can cause additional calls to documentRect(_:didResizeTo), which can request
+        // further scroll correction and increment delta. If we do `delta = .zero` after calling scroll(_:), we'd
+        // throw out those extra deltas.
+        let d = delta
+        delta = .zero
+
+        if d != .zero {
+            scrollView.documentView?.scroll(scrollOffset + d)
             if let animation {
-                animateScroll(to: animation.toValue + delta)
+                animateScroll(to: animation.toValue + d)
             }
         }
+
+        delegate?.scrollManagerDidCommitScrollCorrection(self)
     }
 }
