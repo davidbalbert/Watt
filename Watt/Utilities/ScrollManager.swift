@@ -50,10 +50,6 @@ class ScrollManager {
         animation != nil
     }
 
-    var animationDestination: CGPoint? {
-        animation?.toValue
-    }
-
     weak var delegate: ScrollManagerDelegate?
 
     // We use a run loop observer, rather than DispatchQueue.main.async because we want to be able to wait
@@ -179,15 +175,15 @@ class ScrollManager {
             // When animating upwards, any size change with an origin above the viewport contributes
             // to scroll correction. When animating downwards, size changes with origins in the viewport
             // also contribute.
-            let movingRight = animation.toValue.x > scrollOffset.x
-            let movingDown = animation.toValue.y > scrollOffset.y
+            let animatingRight = animation.toValue.x >= scrollOffset.x
+            let animatingDown = animation.toValue.y >= scrollOffset.y
 
             let viewport = scrollView.contentView.bounds
-            let cutoffX = movingRight ? viewport.maxX : viewport.minX
-            let cutoffY = movingDown ? viewport.maxY : viewport.minY
+            let cutoffX = animatingRight ? (animation.toValue.x + viewport.width + delta.dx) : viewport.minX
+            let cutoffY = animatingDown ? (animation.toValue.y + viewport.height + delta.dy) : viewport.minY
 
             let dx = rect.maxX <= cutoffX ? newSize.width - rect.width : 0
-            let dy = rect.maxY < cutoffY ? newSize.height - rect.height : 0
+            let dy = rect.maxY <= cutoffY ? newSize.height - rect.height : 0
 
             if dx == 0 && dy == 0 {
                 return
@@ -196,6 +192,8 @@ class ScrollManager {
             needsScrollCorrection = true
             delta += CGVector(dx: dx, dy: dy)
             delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
+
+            return
         }
 
 
