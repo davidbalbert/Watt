@@ -15,12 +15,12 @@ protocol ScrollManagerDelegate: AnyObject {
 
     // Called once per run loop tick where scroll correction was performed. One call to this method
     // can correspond to multiple calls to scrollManager(_:willCorrectScrollBy:).
-    func scrollManagerDidCorrectScroll(_ scrollManager: ScrollManager)
+    func scrollManagerDidPerformScrollCorrection(_ scrollManager: ScrollManager)
 }
 
 extension ScrollManagerDelegate {
     func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {}
-    func scrollManagerDidCorrectScroll(_ scrollManager: ScrollManager) {}
+    func scrollManagerDidPerformScrollCorrection(_ scrollManager: ScrollManager) {}
 }
 
 @MainActor
@@ -28,18 +28,11 @@ class ScrollManager {
     private(set) weak var view: NSView?
     private(set) var isDraggingScroller: Bool
 
-    // Think model and presentation layers in Core Animation
-    struct PresentationProperties {
-        var scrollOffset: CGPoint
-    }
     private(set) var scrollOffset: CGPoint
-    private(set) var presentation: PresentationProperties
-
-    private var prevPresentationScrollOffset: CGPoint
-
+    private var prevScrollOffset: CGPoint
     private var delta: CGVector
 
-    private var isScrollCorrectionScheduled: Bool
+    private var needsScrollCorrection: Bool
 
     private var animation: SpringAnimation<CGPoint>?
 
@@ -47,19 +40,39 @@ class ScrollManager {
         animation != nil
     }
 
+    var animationDestination: CGPoint? {
+        animation?.toValue
+    }
+
     weak var delegate: ScrollManagerDelegate?
+
+    private var observer: CFRunLoopObserver?
 
     init(_ view: NSView) {
         self.view = view
         self.isDraggingScroller = false
         self.scrollOffset = .zero
-        self.presentation = PresentationProperties(scrollOffset: .zero)
-        self.prevPresentationScrollOffset = .zero
+        self.prevScrollOffset = .zero
         self.delta = .zero
-        self.isScrollCorrectionScheduled = false
+        self.needsScrollCorrection = false
+
+        var context = CFRunLoopObserverContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
+        let observer = CFRunLoopObserverCreate(kCFAllocatorDefault, CFRunLoopActivity.beforeSources.rawValue, true, 0, { observer, activity, info in
+            let manager = Unmanaged<ScrollManager>.fromOpaque(info!).takeUnretainedValue()
+            manager.performScrollCorrection()
+        }, &context)
+
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+        self.observer = observer
 
         if view.superview != nil {
             viewDidMoveToSuperview()
+        }
+    }
+
+    deinit {
+        if let observer {
+            CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
         }
     }
 
@@ -73,12 +86,11 @@ class ScrollManager {
         animation = nil
 
         isDraggingScroller = false
-        isScrollCorrectionScheduled = false
+        needsScrollCorrection = false
 
         let offset = view?.enclosingScrollView?.contentView.bounds.origin ?? .zero
         scrollOffset = offset
-        presentation.scrollOffset = offset
-        prevPresentationScrollOffset = offset
+        prevScrollOffset = offset
         delta = .zero
 
         if let scrollView = view?.enclosingScrollView {
@@ -94,20 +106,18 @@ class ScrollManager {
             return
         }
 
-        scrollOffset = point
-
         let velocity = animation?.velocity ?? .zero
         animation?.stop()
 
-        assert(presentation.scrollOffset == scrollView.contentView.bounds.origin)
+        assert(scrollOffset == scrollView.contentView.bounds.origin)
         let spring = SpringAnimation(
-            initialValue: presentation.scrollOffset,
+            initialValue: scrollOffset,
             response: 0.2,
             dampingRatio: 1.0,
             environment: scrollView
         )
 
-        spring.toValue = scrollOffset
+        spring.toValue = point
         spring.velocity = velocity
         spring.resolvingEpsilon = 0.000001
 
@@ -128,21 +138,28 @@ class ScrollManager {
             return
         }
 
-        assert(presentation.scrollOffset == scrollView.contentView.bounds.origin)
+        // If we're dragging the scroller, we're requesting an absolute percent through the document.
+        // If layout changed at all while dragging, we're going to be in the wrong place, and need
+        // to correct.
+        if isDraggingScroller {
+            needsScrollCorrection = true
+            return
+        }
 
         // When animating upwards, any size change with an origin above the viewport contributes
         // to scroll correction. When animating downwards, size changes with origins in the viewport
         // also contribute.
-        let movingRight = presentation.scrollOffset.x > prevPresentationScrollOffset.x
-        let movingDown = presentation.scrollOffset.y > prevPresentationScrollOffset.y
+        let movingRight = scrollOffset.x > prevScrollOffset.x
+        let movingDown = scrollOffset.y > prevScrollOffset.y
 
-        let viewport = scrollView.contentView.bounds
         let anchorX = movingRight ? 1.0 : 0.0
         let anchorY = movingDown ? 1.0 : 0.0
 
-        // TODO: I think this should actually be maxX and maxY, but that jumps when scrolling up. See https://dave.is/worklog/2023/07/24/adjusting-scroll-offset-when-document-height-changes/
-        let dx = rect.minX >= scrollOffset.x + (anchorX*viewport.width) ? 0 : newSize.width - rect.width
-        let dy = rect.minY >= scrollOffset.y + (anchorY*viewport.height) ? 0 : newSize.height - rect.height
+        assert(scrollOffset == scrollView.contentView.bounds.origin)
+        let viewport = scrollView.contentView.bounds
+
+        let dx = rect.maxX <= (animationDestination ?? prevScrollOffset).x + (anchorX*viewport.width) ? newSize.width - rect.width : 0
+        let dy = rect.maxY <= (animationDestination ?? prevScrollOffset).y + (anchorY*viewport.height) ? newSize.height - rect.height : 0
 
         if dx == 0 && dy == 0 {
             return
@@ -151,9 +168,7 @@ class ScrollManager {
         delta += CGVector(dx: dx, dy: dy)
 
         delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
-
-        scrollOffset = CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy)
-        scheduleScrollCorrection()
+        needsScrollCorrection = true
     }
 
     @objc func viewDidScroll(_ notification: Notification) {
@@ -163,23 +178,14 @@ class ScrollManager {
 
         assert(scrollView.contentView == (notification.object as? NSView))
 
-        prevPresentationScrollOffset = presentation.scrollOffset
-
-        let offset = scrollView.contentView.bounds.origin
-        if isAnimating {
-            presentation.scrollOffset = offset
-        } else {
-            scrollOffset = offset
-            presentation.scrollOffset = offset
-        }
+        prevScrollOffset = scrollOffset
+        scrollOffset = scrollView.contentView.bounds.origin
     }
 
     @objc func willStartLiveScroll(_ notification: Notification) {
         // If the user interrupts the scroll for any reason, stop the animation.
         animation?.stop()
         animation = nil
-
-        scrollOffset = presentation.scrollOffset
 
         guard let scrollView = notification.object as? NSScrollView else {
             return
@@ -201,7 +207,7 @@ class ScrollManager {
         assert(scrollView == view?.enclosingScrollView)
 
         if isDraggingScroller {
-            scheduleScrollCorrection()
+            needsScrollCorrection = true
         }
     }
 
@@ -209,28 +215,27 @@ class ScrollManager {
         isDraggingScroller = false
     }
 
-    private func scheduleScrollCorrection() {
-        if isScrollCorrectionScheduled {
+    private func performScrollCorrection() {
+        if !needsScrollCorrection {
             return
         }
 
-        isScrollCorrectionScheduled = true
-        DispatchQueue.main.async { [weak self] in
-            self?.performScrollCorrection()
-        }
-    }
-
-    private func performScrollCorrection() {
-        if !isScrollCorrectionScheduled {
+        // We always want scroll correction to run after layout so that we can take into account any resizing
+        // that happens during layout. Layout happens in a .beforeTimers observer, and we run in a .beforeSources
+        // observer, which happens later. But there may be any number of iterations through run loop between when
+        // needsScrollCorrection is set and layout is run. So if layout hasn't happened yet, bail early.
+        if let view, view.needsLayout {
             return
         }
 
         defer { delta = .zero }
+        needsScrollCorrection = false
 
-        isScrollCorrectionScheduled = false
         guard let scrollView = view?.enclosingScrollView else {
             return
         }
+
+        defer { delegate?.scrollManagerDidPerformScrollCorrection(self) }
 
         // Dragging a scroller is equivalent to telling the scroll view "please set your offset to this
         // fixed percentage through the document." In this case, scroll correction just consists of
@@ -252,20 +257,14 @@ class ScrollManager {
 
             if viewport.origin != offset {
                 scrollView.documentView?.scroll(offset)
-                delegate?.scrollManagerDidCorrectScroll(self)
             }
             return
         }
 
-        let viewport = scrollView.contentView.bounds
-        if viewport.origin != scrollOffset {
-            if isAnimating {
-                scrollView.documentView?.scroll(presentation.scrollOffset + delta)
-                animateScroll(to: scrollOffset)
-                delegate?.scrollManagerDidCorrectScroll(self)
-            } else {
-                scrollView.documentView?.scroll(scrollOffset)
-                delegate?.scrollManagerDidCorrectScroll(self)
+        if delta != .zero {
+            scrollView.documentView?.scroll(scrollOffset + delta)
+            if let animation {
+                animateScroll(to: animation.toValue + delta)
             }
         }
     }
