@@ -46,6 +46,10 @@ class ScrollManager {
 
     weak var delegate: ScrollManagerDelegate?
 
+    // We use a run loop observer, rather than DispatchQueue.main.async because we want to be able to wait
+    // until after layout has been performed to do scroll correction. While this is possible to do with
+    // libdispatch – we'd just have to reschedule performScrollCorrection() if layout hasn't been performed
+    // yet – it's a bit clearer if we just check every tick of the run loop.
     private var observer: CFRunLoopObserver?
 
     init(_ view: NSView) {
@@ -57,6 +61,9 @@ class ScrollManager {
         self.needsScrollCorrection = false
 
         var context = CFRunLoopObserverContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
+
+        // .beforeSources is after .beforeTimers, and layout is run on .beforeTimers, so we use .beforeSources so that we
+        // can run as early as possible after layout occurs.
         let observer = CFRunLoopObserverCreate(kCFAllocatorDefault, CFRunLoopActivity.beforeSources.rawValue, true, 0, { observer, activity, info in
             let manager = Unmanaged<ScrollManager>.fromOpaque(info!).takeUnretainedValue()
             manager.performScrollCorrection()
