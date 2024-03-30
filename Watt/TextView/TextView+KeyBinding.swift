@@ -376,7 +376,7 @@ extension TextView {
             y: 0
         )
 
-        scrollManager.animateScroll(to: point, anchor: .topLeading)
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
@@ -407,7 +407,7 @@ extension TextView {
             y: frame.height
         )
 
-        scrollManager.animateScroll(to: point, anchor: .bottomLeading)
+        scrollManager.animateScroll(to: point, viewportAnchor: .bottomLeading)
     }
 
 

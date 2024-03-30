@@ -163,7 +163,7 @@ class ScrollManager {
         }
     }
 
-    func animateScroll(to point: NSPoint, anchor: Anchor) {
+    func animateScroll(to point: NSPoint, viewportAnchor anchor: Anchor) {
         guard let scrollView = view?.enclosingScrollView else {
             return
         }
