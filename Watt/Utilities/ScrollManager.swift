@@ -154,11 +154,8 @@ class ScrollManager {
             spring.velocity
         }
 
-        func scrollDestination(in viewport: CGRect) -> CGPoint {
-            CGPoint(
-                x: spring.toValue.x - (viewport.width * anchor.x),
-                y: spring.toValue.y - (viewport.height * anchor.y)
-            )
+        var toValue: CGPoint {
+            spring.toValue
         }
 
         func stop() {
@@ -269,19 +266,21 @@ class ScrollManager {
         animation?.stop()
 
         assert(scrollOffset == scrollView.contentView.bounds.origin)
+
+        let viewport = scrollView.contentView.bounds
+        let start = CGPoint(
+            x: scrollOffset.x + (viewport.width * anchor.x),
+            y: scrollOffset.y + (viewport.height * anchor.y)
+        )
+
         let spring = SpringAnimation(
-            initialValue: scrollOffset,
+            initialValue: start,
             response: 0.2,
             dampingRatio: 1.0,
             environment: scrollView
         )
 
-        let viewport = scrollView.contentView.bounds
-
-        spring.toValue = CGPoint(
-            x: point.x + (viewport.width * anchor.x),
-            y: point.y + (viewport.height * anchor.y)
-        )
+        spring.toValue = point
         spring.velocity = velocity
         spring.resolvingEpsilon = 0.000001
 
@@ -324,8 +323,7 @@ class ScrollManager {
         if let animation {
             // TODO: make it so the contents of the viewport never jump in short animations. See notes at
             // the top of the file for more info.
-            let viewport = scrollView.contentView.bounds
-            let destination = animation.scrollDestination(in: viewport)
+            let destination = animation.toValue
             cutoff = CGPoint(
                 x: destination.x + delta.dx,
                 y: destination.y + delta.dy
@@ -489,8 +487,7 @@ class ScrollManager {
         if d != .zero {
             scrollView.documentView?.scroll(scrollOffset + d)
             if let animation {
-                let viewport = scrollView.contentView.bounds
-                animateScroll(to: animation.scrollDestination(in: viewport) + d, viewportAnchor: animation.anchor)
+                animateScroll(to: animation.toValue + d, viewportAnchor: animation.anchor)
             }
         }
 
