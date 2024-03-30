@@ -432,7 +432,8 @@ class ScrollManager {
 
         performScrollCorrectionIfNecessary()
 
-        // We used a scroll wheel and didn't get willBeginLiveScroll. Reset scrolling here.
+        // If we scrolled using a scroll wheel or another "legacy" input method that doesn't cause
+        // willStartLiveScroll and didEndLiveScroll to be called, reset scrolling state here.
         if didLiveScroll && !isLiveScrolling {
             didLiveScroll = false
             prevLiveScrollOffset = nil
