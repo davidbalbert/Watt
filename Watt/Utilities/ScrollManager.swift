@@ -413,7 +413,6 @@ class ScrollManager {
     }
 
     @objc func didEndLiveScroll(_ notification: Notification) {
-
         isLiveScrolling = false
         didLiveScroll = false
         isDraggingScroller = false
