@@ -248,8 +248,6 @@ class ScrollManager {
             // less than scrollOffset.y, which means we're being more restrictive in when we'll do a scroll
             // correction than we otherwise would be if we weren't scrolling. Not sure whether this will
             // cause any issues.
-
-            // TODO: get rid of prevLiveScrollOffset and do scrollOffset + delta?
             cutoff = prevLiveScrollOffset ?? scrollOffset
         }
 
