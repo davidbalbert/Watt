@@ -275,23 +275,29 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        guard let viewport = scrollView?.contentView.bounds else {
+            return
+        }
+
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: scrollOffset.x,
             y: viewport.minY - viewport.height
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        guard let viewport = scrollView?.contentView.bounds else {
+            return
+        }
+
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: scrollOffset.x,
             y: viewport.maxY
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollLineUp(_ sender: Any?) {
@@ -365,11 +371,6 @@ extension TextView {
 
 
 
-    // TODO: without better height estimates, or a full asyncronous layout pass,
-    // scrollToBeginningOfDocument and scrollToEndOfDocument often don't actually
-    // put you at the beginning or the end.
-    //
-    // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
         let point = CGPoint(
             x: scrollOffset.x,
