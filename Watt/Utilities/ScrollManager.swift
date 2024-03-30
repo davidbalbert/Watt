@@ -392,7 +392,7 @@ class ScrollManager {
             scrollView.documentView?.scroll(scrollOffset + d)
             if let animation {
                 let viewport = scrollView.contentView.bounds
-                animateScroll(to: animation.scrollDestination(in: viewport) + d, anchor: animation.anchor)
+                animateScroll(to: animation.scrollDestination(in: viewport) + d, viewportAnchor: animation.anchor)
             }
         }
 
