@@ -173,6 +173,7 @@ class ScrollManager {
 
     private var needsScrollCorrection: Bool
 
+    // "Live scrolling" is when the user scrolls using an input device like a mouse, trackpad, etc.
     var isLiveScrolling: Bool
     var didLiveScroll: Bool
 
@@ -389,8 +390,13 @@ class ScrollManager {
     @objc func didLiveScroll(_ notification: Notification) {
         // From the didLiveScrollNotification docs: "Some user-initiated scrolls (for example, scrolling
         // using legacy mice) are not bracketed by a "willStart/didEnd” notification pair."
-        animation?.stop()
-        animation = nil
+        //
+        // isLiveScrolling will be false if the user scrolls with a scroll wheel or other input methods that
+        // don't trigger willStart/didEnd.
+        if !isLiveScrolling {
+            animation?.stop()
+            animation = nil
+        }
 
         guard let scrollView = notification.object as? NSScrollView else {
             return
