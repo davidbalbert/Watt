@@ -8,6 +8,103 @@
 import Cocoa
 import Motion
 
+// Animation notes:
+//
+// Doing scroll correction while animating turns out to be difficult. Here's what you want:
+//
+// 1. The animation takes the same amount of time, no matter how much the document's size
+//    changes during animation.
+// 2. No contents jumping in the viewport.
+//
+// Right now, we prioritize #1 over #2. We do this by making sure the distance between the
+// current viewport and the animation's destination viewport always remains the same during
+// scroll correction. We apply the same delta to both viewports and only make a rect
+// contribute to the delta if the rect's maxY is <= to the destination viewport, ignoring
+// the current viewport entirely.
+//
+// For rects that change size above both the current and destination viewports, this is not
+// a problem. But if a rect changes size between the two viewports, the contents of the
+// viewport will appear to jump.
+//
+// This isn't a problem for long distances, but for short animations – i.e. scrolling by a
+// line or a paragraph, it can be easily detectable. I'm not sure how much this will matter
+// in practice.
+//
+// To illustrate, here are some diagrams. In each, the current viewport has a solid outline
+// and the destination viewport has a dashed outline.
+//
+// In examples a, b, and c, a correction is applied to both viewports because
+// rect.maxY <= targetViewport.minY. In example d, no correction is applied because the new
+// rect is below the target viewport. In examples b and c this causes the contents within
+// the current viewport to move undesirably.
+//
+//     Animating down
+//
+//     A. New rect above both viewports ✅      b. New rect in between viewports ❌
+//     ┌───────────────┐  ┌───────────────┐     ┌───────────────┐  ┌───────────────┐
+//     │               │  ├───────────────┤     │               │  │               │
+//     │               │  │   New rect    │     │               │  │               │
+//     │  ┌─────────┐  │  ├───────────────┤     │  ┌─────────┐  │  │               │
+//     │  │x        │  │  │               │     │  │x        │  │  │   x           │  ◀── Viewport jumps
+//     │  │         │  │  │  ┌─────────┐  │     │  │         │  │  │  ┌─────────┐  │      unnecessarily
+//     │  │         │  │  │  │x        │  │     │  │         │  │  │  │         │  │
+//     │  └─────────┘  │  │  │         │  │     │  └─────────┘  │  │  │         │  │
+// │   │               │  │  │         │  │     │               │  │  │         │  │
+// │   │               │  │  └─────────┘  │     │               │  │  └─────────┘  │
+// ▼   │  ┌ ─ ─ ─ ─ ┐  │  │               │     │  ┌ ─ ─ ─ ─ ┐  │  ├───────────────┤
+//     │               │  │               │     │               │  │   New rect    │
+//     │  │         │  │  │  ┌ ─ ─ ─ ─ ┐  │     │  │         │  │  ├───────────────┤
+//     │               │  │               │     │               │  │  ┌ ─ ─ ─ ─ ┐  │
+//     │  └ ─ ─ ─ ─ ┘  │  │  │         │  │     │  └ ─ ─ ─ ─ ┘  │  │               │
+//     │               │  │               │     │               │  │  │         │  │
+//     │               │  │  └ ─ ─ ─ ─ ┘  │     │               │  │               │
+//     └───────────────┘  │               │     └───────────────┘  │  └ ─ ─ ─ ─ ┘  │
+//                        │               │                        │               │
+//                        └───────────────┘                        │               │
+//                                                                 └───────────────┘
+//     Animating up
+//
+//     c. New rect above both viewports ✅      d. New rect in between viewports ❌
+//     ┌───────────────┐  ┌───────────────┐     ┌───────────────┐  ┌───────────────┐
+//     │               │  ├───────────────┤     │               │  │               │
+//     │               │  │   New rect    │     │               │  │               │
+//     │  ┌ ─ ─ ─ ─ ┐  │  ├───────────────┤     │  ┌ ─ ─ ─ ─ ┐  │  │  ┌ ─ ─ ─ ─ ┐  │
+//     │               │  │               │     │               │  │               │
+//     │  │         │  │  │  ┌ ─ ─ ─ ─ ┐  │     │  │         │  │  │  │         │  │
+//     │               │  │               │     │               │  │               │
+//     │  └ ─ ─ ─ ─ ┘  │  │  │         │  │     │  └ ─ ─ ─ ─ ┘  │  │  └ ─ ─ ─ ─ ┘  │
+//  ▲  │               │  │               │     │               │  ├───────────────┤
+//  │  │               │  │  └ ─ ─ ─ ─ ┘  │     │               │  │   New rect    │
+//  │  │  ┌─────────┐  │  │               │     │               │  ├───────────────┤
+//     │  │x        │  │  │               │     │  ┌─────────┐  │  │  ┌─────────┐  │
+//     │  │         │  │  │  ┌─────────┐  │     │  │x        │  │  │  │         │  │
+//     │  │         │  │  │  │x        │  │     │  │         │  │  │  │x        │  │   ◀──Content jumps in
+//     │  └─────────┘  │  │  │         │  │     │  │         │  │  │  │         │  │      viewport
+//     │               │  │  │         │  │     │  └─────────┘  │  │  └─────────┘  │
+//     │               │  │  └─────────┘  │     │               │  │               │
+//     └───────────────┘  │               │     └───────────────┘  │               │
+//                        │               │                        │               │
+//                        └───────────────┘                        └───────────────┘
+//
+//
+// A possible solution:
+//
+// 1. Have two deltas: delta and animDelta. The former applies to the current viewport, and
+//    the latter applies to the target.
+// 2. When a rect changes, it contributes to delta if rect.maxY <= currentViewport.minY and
+//    contributes to animDelta if rect.maxY <= targetViewport.minY.
+// 3. Instead of just copying over velocity from the existing animation, use
+//    Motion.SpringFunction to compute the velocity as if the distance from the original
+//    viewport (at the start of the animation) and the target viewport had been incremented
+//    by delta:
+//
+//        let spring = SpringFunction(response: 0.2, dampingRatio: 1.0)
+//        spring.solve(
+//            dt: currentTime - startTime,
+//            x0: (targetViewport + animDelta) - (originalViewport + delta),
+//            velocity: &velocity
+//        )
+
 protocol ScrollManagerDelegate: AnyObject {
     // Called once for every call to documentRect(_:didResizeTo:) that queues up a scroll correction.
     func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector)
@@ -225,6 +322,8 @@ class ScrollManager {
 
         let cutoff: CGPoint
         if let animation {
+            // TODO: make it so the contents of the viewport never jump in short animations. See notes at
+            // the top of the file for more info.
             let viewport = scrollView.contentView.bounds
             let destination = animation.scrollDestination(in: viewport)
             cutoff = CGPoint(
@@ -250,7 +349,6 @@ class ScrollManager {
             // cause any issues.
             cutoff = prevLiveScrollOffset ?? scrollOffset
         }
-
 
         let dx = rect.maxX <= cutoff.x ? newSize.width - rect.width : 0
         let dy = rect.maxY <= cutoff.y ? newSize.height - rect.height : 0
