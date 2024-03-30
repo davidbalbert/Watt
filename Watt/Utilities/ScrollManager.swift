@@ -31,6 +31,44 @@ extension ScrollManagerDelegate {
 
 @MainActor
 class ScrollManager {
+    // A unit point for determining the part of the viewport anchored for an animated scroll
+    struct Anchor {
+        let x: CGFloat
+        let y: CGFloat
+
+        static let topLeading = Anchor(x: 0, y: 0)
+        static let top = Anchor(x: 0.5, y: 0)
+        static let topTrailing = Anchor(x: 1, y: 0)
+
+        static let leading = Anchor(x: 0, y: 0.5)
+        static let center = Anchor(x: 0.5, y: 0.5)
+        static let trailing = Anchor(x: 1, y: 0.5)
+
+        static let bottomLeading = Anchor(x: 0, y: 1)
+        static let bottom = Anchor(x: 0.5, y: 1)
+        static let bottomTrailing = Anchor(x: 1, y: 1)
+    }
+
+    struct Animation {
+        var spring: SpringAnimation<CGPoint>
+        var anchor: Anchor
+
+        var velocity: CGPoint {
+            spring.velocity
+        }
+
+        func scrollDestination(in viewport: CGRect) -> CGPoint {
+            CGPoint(
+                x: spring.toValue.x - (viewport.width * anchor.x),
+                y: spring.toValue.y - (viewport.height * anchor.y)
+            )
+        }
+
+        func stop() {
+            spring.stop()
+        }
+    }
+
     private(set) weak var view: NSView?
     private(set) var isDraggingScroller: Bool
 
@@ -44,7 +82,7 @@ class ScrollManager {
     var isLiveScrolling: Bool
     var didLiveScroll: Bool
 
-    private var animation: SpringAnimation<CGPoint>?
+    private var animation: Animation?
 
     var isAnimating: Bool {
         animation != nil
@@ -54,8 +92,8 @@ class ScrollManager {
 
     // We use a run loop observer, rather than DispatchQueue.main.async because we want to be able to wait
     // until after layout has been performed to do scroll correction. While this is possible to do with
-    // DispatchQueue – we'd just have to reschedule performScrollCorrection() if layout hasn't been performed
-    // yet – it's a bit clearer if we just check every tick of the run loop.
+    // DispatchQueue – we'd just have to reschedule performScrollCorrectionIfNecessary() if layout hasn't
+    // been performed yet – it's a bit clearer if we just check every tick of the run loop.
     private var observer: CFRunLoopObserver?
 
     init(_ view: NSView) {
@@ -125,7 +163,7 @@ class ScrollManager {
         }
     }
 
-    func animateScroll(to point: NSPoint) {
+    func animateScroll(to point: NSPoint, anchor: Anchor) {
         guard let scrollView = view?.enclosingScrollView else {
             return
         }
@@ -141,12 +179,25 @@ class ScrollManager {
             environment: scrollView
         )
 
-        spring.toValue = point
+        let viewport = scrollView.contentView.bounds
+
+        spring.toValue = CGPoint(
+            x: point.x + (viewport.width * anchor.x),
+            y: point.y + (viewport.height * anchor.y)
+        )
         spring.velocity = velocity
         spring.resolvingEpsilon = 0.000001
 
         spring.onValueChanged() { [weak self] value in
-            self?.view?.enclosingScrollView?.documentView?.scroll(value)
+            guard let scrollView = self?.view?.enclosingScrollView else {
+                return
+            }
+            let viewport = scrollView.contentView.bounds
+            let offset = CGPoint(
+                x: value.x - (viewport.width * anchor.x),
+                y: value.y - (viewport.height * anchor.y)
+            )
+            scrollView.documentView?.scroll(offset)
         }
 
         spring.completion = { [weak self] in
@@ -154,9 +205,10 @@ class ScrollManager {
         }
 
         spring.start()
-        animation = spring
+        animation = Animation(spring: spring, anchor: anchor)
     }
 
+    // Assumes the new rect has the same origin. In other words, rect always grows down and right.
     func documentRect(_ rect: NSRect, didResizeTo newSize: NSSize) {
         guard let scrollView = view?.enclosingScrollView else {
             return
@@ -172,19 +224,12 @@ class ScrollManager {
         }
 
         if let animation {
-            // When animating upwards, any size change with an origin above the viewport contributes
-            // to scroll correction. When animating downwards, size changes with origins in the viewport
-            // also contribute.
-            let animatingRight = animation.toValue.x >= scrollOffset.x
-            let animatingDown = animation.toValue.y >= scrollOffset.y
-
             let viewport = scrollView.contentView.bounds
+            let destination = animation.scrollDestination(in: viewport)
 
-            let cutoffX = animatingRight ? (animation.toValue.x + viewport.width + delta.dx) : (viewport.minX + delta.dx)
-            let cutoffY = animatingDown ? (animation.toValue.y + viewport.height + delta.dy) : (viewport.minY + delta.dy)
+            let dx = rect.maxX <= destination.x + delta.dx ? newSize.width - rect.width : 0
+            let dy = rect.maxY <= destination.y + delta.dy ? newSize.height - rect.height : 0
 
-            let dx = rect.maxX <= cutoffX ? newSize.width - rect.width : 0
-            let dy = rect.maxY <= cutoffY ? newSize.height - rect.height : 0
 
             if dx == 0 && dy == 0 {
                 return
@@ -353,7 +398,8 @@ class ScrollManager {
         if d != .zero {
             scrollView.documentView?.scroll(scrollOffset + d)
             if let animation {
-                animateScroll(to: animation.toValue + d)
+                let viewport = scrollView.contentView.bounds
+                animateScroll(to: animation.scrollDestination(in: viewport) + d, anchor: animation.anchor)
             }
         }
 
