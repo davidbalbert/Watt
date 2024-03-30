@@ -92,7 +92,6 @@ class LayoutManager {
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer)
-            return line.alignmentFrame.maxY <= viewport.minY + scrollCorrection.dy + viewport.height
             return line.alignmentFrame.maxY <= viewport.maxY + scrollCorrection.dy
         }
         lineLayers = layers
