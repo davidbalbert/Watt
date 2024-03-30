@@ -280,7 +280,7 @@ extension TextView {
         }
 
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: viewport.minX,
             y: viewport.minY - viewport.height
         )
 
@@ -293,7 +293,7 @@ extension TextView {
         }
 
         let point = CGPoint(
-            x: scrollOffset.x,
+            x: viewport.minX,
             y: viewport.maxY
         )
 
@@ -332,17 +332,16 @@ extension TextView {
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
 
         let target = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: frame.minY
         )
 
-        // Not sure why this isn't animating. I thought it might have been due to only
-        // scrolling by a short distance, but I tried adding longer distances and it
-        // still didn't scroll. But other calls in this file are definitely animating,
-        // so something else is going on. I'll have to look into it.
-        animator().scroll(convertFromTextContainer(target))
+        scrollManager.animateScroll(to: convertFromTextContainer(target), viewportAnchor: .topLeading)
     }
 
+    // TODO: this doesn't correctly take into account text container insets, so when you invoke this from the
+    // top of the scroll view, the first line you get to can be cut off. I'm not sure why this is. scrollLineUp
+    // doesn't have the same problem when invoking it from the bottom of the scroll view.
     override func scrollLineDown(_ sender: Any?) {
         let viewport = textContainerVisibleRect
 
@@ -361,12 +360,11 @@ extension TextView {
 
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
         let target = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: frame.maxY - viewport.height
         )
 
-        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
-        animator().scroll(convertFromTextContainer(target))
+        scrollManager.animateScroll(to: convertFromTextContainer(target), viewportAnchor: .topLeading)
     }
 
 

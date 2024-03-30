@@ -44,10 +44,6 @@ extension TextView {
         return scrollView.contentView.bounds.origin
     }
 
-    var textContainerScrollOffset: CGPoint {
-        convertToTextContainer(scrollOffset)
-    }
-
     func scrollIndexToVisible(_ index: Buffer.Index) {
         guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
             return
