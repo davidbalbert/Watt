@@ -179,8 +179,9 @@ class ScrollManager {
             let animatingDown = animation.toValue.y >= scrollOffset.y
 
             let viewport = scrollView.contentView.bounds
-            let cutoffX = animatingRight ? (animation.toValue.x + viewport.width + delta.dx) : viewport.minX
-            let cutoffY = animatingDown ? (animation.toValue.y + viewport.height + delta.dy) : viewport.minY
+
+            let cutoffX = animatingRight ? (animation.toValue.x + viewport.width + delta.dx) : (viewport.minX + delta.dx)
+            let cutoffY = animatingDown ? (animation.toValue.y + viewport.height + delta.dy) : (viewport.minY + delta.dy)
 
             let dx = rect.maxX <= cutoffX ? newSize.width - rect.width : 0
             let dy = rect.maxY <= cutoffY ? newSize.height - rect.height : 0
