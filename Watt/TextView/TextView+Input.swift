@@ -83,8 +83,6 @@ extension TextView: NSTextInputClient {
 
         selection = selection.unmarked
 
-        // TODO: if we're the only one who calls unmarkText(), we can remove these layout calls because
-        // we already schedule layout in didInvalidateLayout(for layoutManager: LayoutManager).
         needsTextLayout = true
         needsSelectionLayout = true
         needsInsertionPointLayout = true

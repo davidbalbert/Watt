@@ -202,10 +202,10 @@ class ScrollManager {
         }
     }
 
-    // If you're changing your view's frame directly in one of the below notifications, make sure to call
-    // ScrollManager.viewDidMoveToSuperview() before attaching your own observers. ScrollManager needs its
-    // observers to be called first so that its state can be correctly set up for any calls
-    // to documentRect(_:didResizeTo:)
+    // If you're changing your view's frame directly in an observer for one of the below notifications,
+    // make sure to call ScrollManager.viewDidMoveToSuperview() before attaching your own observers.
+    // ScrollManager needs its observers to be called first so that its state can be correctly set up
+    // for any calls to documentRect(_:didResizeTo:)
     func viewDidMoveToSuperview() {
         NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSScrollView.willStartLiveScrollNotification, object: nil)
