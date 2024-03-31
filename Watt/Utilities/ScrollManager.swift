@@ -105,27 +105,6 @@ import Motion
 //            velocity: &velocity
 //        )
 
-protocol ScrollManagerDelegate: AnyObject {
-    // Called once for every call to documentRect(_:didResizeTo:) that queues up a scroll correction.
-    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector)
-
-    // Called once per run loop tick directly before scroll correction is performed – i.e. before
-    // NSView.scroll(_:) is called on the documentView. This method is called regardless of whether
-    // NSView.scroll(_:) is actually called, and can correspond to multiple calls to
-    // scrollManager(_:willCorrectScrollBy:).
-    func scrollManagerWillCommitScrollCorrection(_ scrollManager: ScrollManager)
-
-    // Same semantics as scrollManagerWillCommitScrollCorrection(_:), but called after a possible call
-    // to NSView.scroll(_:) rather than before.
-    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager)
-}
-
-extension ScrollManagerDelegate {
-    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {}
-    func scrollManagerWillCommitScrollCorrection(_ scrollManager: ScrollManager) {}
-    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager) {}
-}
-
 @MainActor
 class ScrollManager {
     // A unit point for determining the part of the viewport anchored for an animated scroll
@@ -182,8 +161,6 @@ class ScrollManager {
     var isAnimating: Bool {
         animation != nil
     }
-
-    weak var delegate: ScrollManagerDelegate?
 
     // We use a run loop observer, rather than DispatchQueue.main.async because we want to be able to wait
     // until after layout has been performed to do scroll correction. While this is possible to do with
@@ -358,7 +335,6 @@ class ScrollManager {
 
         needsScrollCorrection = true
         delta += CGVector(dx: dx, dy: dy)
-        delegate?.scrollManager(self, willCorrectScrollBy: CGVector(dx: dx, dy: dy))
     }
 
     @objc func viewDidScroll(_ notification: Notification) {
@@ -461,9 +437,6 @@ class ScrollManager {
             // Ignore delta because we're scrolling to an absolute position.
             delta = .zero
 
-            delegate?.scrollManagerWillCommitScrollCorrection(self)
-            defer { delegate?.scrollManagerDidCommitScrollCorrection(self) }
-
             assert(scrollView.documentView != nil)
             guard let documentSize = scrollView.documentView?.frame.size else {
                 return
@@ -481,9 +454,6 @@ class ScrollManager {
             return
         }
 
-
-        delegate?.scrollManagerWillCommitScrollCorrection(self)
-
         // documentView?.scroll(_:) can cause additional calls to documentRect(_:didResizeTo), which can request
         // further scroll correction and increment delta. If we do `delta = .zero` after calling scroll(_:), we'd
         // throw out those extra deltas.
@@ -496,7 +466,5 @@ class ScrollManager {
                 animateScroll(to: animation.toValue + d, viewportAnchor: animation.anchor)
             }
         }
-
-        delegate?.scrollManagerDidCommitScrollCorrection(self)
     }
 }

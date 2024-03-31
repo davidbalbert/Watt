@@ -62,14 +62,11 @@ class LayoutManager {
     // invariant: sorted by line.range.lowerBound
     var lineLayers: [LineLayer]
 
-    var scrollCorrection: CGVector
-
     init() {
         buffer = Buffer()
         heights = Heights()
         textContainer = TextContainer()
         lineLayers = []
-        scrollCorrection = .zero
 
         buffer.addDelegate(self)
     }
@@ -92,7 +89,12 @@ class LayoutManager {
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
             block(layer)
-            return line.alignmentFrame.maxY <= viewport.maxY + max(0, scrollCorrection.dy)
+
+            // I used to have `<= viewport.maxY + max(0, scrollCorrection.dy)` here. I thought it was necessary
+            // in case we performed scroll correction and the viewport moved down (and thus we had more space
+            // we needed to layout and fill). But it seems like it doesn't make a difference. I'm sure it did at
+            // some point. I'm not sure why it doesn't make a difference now.
+            return line.alignmentFrame.maxY <= viewport.maxY
         }
         lineLayers = layers
     }
@@ -768,19 +770,6 @@ class LayoutManager {
             x: point.x - frag.origin.x,
             y: point.y - frag.origin.y
         )
-    }
-}
-
-// MARK: - ScrollManagerDelegate
-
-extension LayoutManager: ScrollManagerDelegate {
-    func scrollManager(_ scrollManager: ScrollManager, willCorrectScrollBy delta: CGVector) {
-        scrollCorrection += delta
-    }
-
-    // Called after layout
-    func scrollManagerDidCommitScrollCorrection(_ scrollManager: ScrollManager) {
-        scrollCorrection = .zero
     }
 }
 
