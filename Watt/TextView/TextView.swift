@@ -253,6 +253,8 @@ class TextView: NSView, ClipViewDelegate {
         addLineNumberView()
     }
 
+    // Necessary (as opposed to observing boundsDidChangeNotification) because
+    // we need to know both the old size and new size of the clip view.
     func clipView(_ clipView: ClipView, frameSizeDidChangeFrom oldSize: NSSize) {
         let heightChanged = oldSize.height != clipView.frame.height
         let widthChanged = oldSize.width != clipView.frame.width
