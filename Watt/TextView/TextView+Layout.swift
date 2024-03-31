@@ -7,7 +7,7 @@
 
 import Cocoa
 
-extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
+extension TextView {
     override func layout() {
         // If we need to call setNeedsLayout on our subviews, do it here,
         // before calling super.layout()
@@ -32,23 +32,23 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
             insertionPointLayer.bounds = layer.bounds
             layer.addSublayer(insertionPointLayer)
         }
-    }
 
-    func layoutSublayers(of layer: CALayer) {
-        switch layer {
-        case textLayer:
+        // Selection and insertion point layout require up to date text layout,
+        // so this must be first.
+        if needsTextLayout {
+            needsTextLayout = false
             layoutTextLayer()
-        case selectionLayer:
-            layoutSelectionLayer()
-        case insertionPointLayer:
-            layoutInsertionPointLayer()
-        default:
-            break
         }
-    }
 
-    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
-        true
+        if needsSelectionLayout {
+            needsSelectionLayout = false
+            layoutSelectionLayer()
+        }
+
+        if needsInsertionPointLayout {
+            needsInsertionPointLayout = false
+            layoutInsertionPointLayer()
+        }
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -62,23 +62,6 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
         if layoutManager.textContainer.size.width != width {
             layoutManager.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
-
-            // This isn't needed when this function is called from
-            // setFrameSize, but it is needed when the line number
-            // view is added, removed, or resized due to the number
-            // of lines in the document changing.
-            //
-            // In the former case, AppKit will resize the view's
-            // layer, which will trigger the resizing of these layers
-            // due to their autoresizing masks.
-            //
-            // In the latter case, because the line number view floats
-            // above the text view, the text view's frame size doesn't
-            // change when the line number view's size changes, but we
-            // do need to re-layout our text.
-            selectionLayer.setNeedsLayout()
-            textLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
         }
     }
 
@@ -88,9 +71,9 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
         }
 
         let currentHeight = frame.height
-        let clipviewHeight = scrollView.contentSize.height
+        let clipViewHeight = scrollView.contentSize.height
         let inset = computedTextContainerInset
-        let newHeight = round(max(clipviewHeight, layoutManager.contentHeight + inset.top + inset.bottom))
+        let newHeight = round(max(clipViewHeight, layoutManager.contentHeight + inset.top + inset.bottom))
 
         if abs(currentHeight - newHeight) > 1e-10 {
             setFrameSize(CGSize(width: frame.width, height: newHeight))
@@ -145,88 +128,21 @@ extension TextView: CALayerDelegate, NSViewLayerContentScaleDelegate {
 
         return CGRect(x: x, y: y, width: maxX - x, height: maxY - y)
     }
-}
-
-// MARK: - Scrolling
-
-extension TextView {
-    override func prepareContent(in rect: NSRect) {
-        super.prepareContent(in: rect)
-
-        selectionLayer.setNeedsLayout()
-        textLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
-    }
-
-    var scrollView: NSScrollView? {
-        if let enclosingScrollView, enclosingScrollView.documentView == self {
-            return enclosingScrollView
-        }
-
-        return nil
-    }
-
-    var scrollOffset: CGPoint {
-        guard let scrollView else {
-            return .zero
-        }
-
-        return scrollView.contentView.bounds.origin
-    }
-
-    var textContainerScrollOffset: CGPoint {
-        convertToTextContainer(scrollOffset)
-    }
 
     var textContainerVisibleRect: CGRect {
         convertToTextContainer(clampToTextContainer(visibleRect))
-    }
-
-    func scrollIndexToVisible(_ index: Buffer.Index) {
-        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToVisible(viewRect)
-    }
-
-    func scrollIndexToCenter(_ index: Buffer.Index) {
-        guard let rect = layoutManager.caretRect(for: index, affinity: index == buffer.endIndex ? .upstream : .downstream) else {
-            return
-        }
-
-        let viewRect = convertFromTextContainer(rect)
-        scrollToCenter(viewRect)
-    }
-
-    func scrollToCenter(_ rect: NSRect) {
-        let dx = rect.midX - visibleRect.midX
-        let dy = rect.midY - visibleRect.midY
-        scroll(CGPoint(x: scrollOffset.x + dx, y: scrollOffset.y + dy))
     }
 }
 
 extension TextView: LayoutManagerDelegate {
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
-        var bounds: CGRect
-        if preparedContentRect.intersects(visibleRect) {
-            bounds = preparedContentRect.union(visibleRect)
-        } else {
-            bounds = visibleRect
-        }
-
-        return convertToTextContainer(clampToTextContainer(bounds))
-    }
-
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect {
         textContainerVisibleRect
     }
 
     func didInvalidateLayout(for layoutManager: LayoutManager) {
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
+        needsTextLayout = true
+        needsInsertionPointLayout = true
+        needsSelectionLayout = true
 
         updateInsertionPointTimer()
         inputContext?.invalidateCharacterCoordinates()
@@ -273,7 +189,15 @@ extension TextView: LayoutManagerDelegate {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer) {
         lineNumberView.lineCount = buffer.lines.count
+
         selection = Selection(atStartOf: buffer)
+
+        needsTextLayout = true
+        needsInsertionPointLayout = true
+        needsSelectionLayout = true
+
+        inputContext?.invalidateCharacterCoordinates()
+        updateFrameHeightIfNeeded()
     }
 
     // TODO: once we're showing the same Buffer in more than one TextView, editing the text in one TextView
@@ -289,9 +213,16 @@ extension TextView: LayoutManagerDelegate {
         lineNumberView.lineCount = new.lines.count
     }
 
+    func layoutManager(_ layoutManager: LayoutManager, rect: CGRect, didResizeTo newSize: CGSize) {
+        let rect = convertFromTextContainer(rect)
+        scrollManager.documentRect(rect, didResizeTo: newSize)
+    }
+
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer {
         let l = LineLayer(line: line)
         l.anchorPoint = .zero
+        // Bounds origin is always (0, 0), so setNeedsDisplay() will only be called when the
+        // layer's size changes due window resize.
         l.needsDisplayOnBoundsChange = true
         l.delegate = self // LineLayerDelegate + NSViewLayerContentScaleDelegate
         l.contentsScale = window?.backingScaleFactor ?? 1.0
@@ -308,7 +239,10 @@ extension TextView: LayoutManagerDelegate {
 
 extension TextView {
     func layoutTextLayer() {
-        var scrollAdjustment: CGFloat = 0
+        if window == nil {
+            return
+        }
+
         let updateLineNumbers = lineNumberView.superview != nil
         if updateLineNumbers {
             lineNumberView.beginUpdates()
@@ -317,27 +251,8 @@ extension TextView {
         var lineno: Int?
 
         var layers: [CALayer] = []
-        layoutManager.layoutText { layer, prevAlignmentFrame in
+        layoutManager.layoutText { layer in
             layers.append(layer)
-
-            let oldHeight = prevAlignmentFrame.height
-            let newHeight = layer.line.alignmentFrame.height
-            let delta = newHeight - oldHeight
-            let oldMaxY = layer.line.origin.y + oldHeight
-
-            // TODO: I don't know why I have to use the previous frame's
-            // visible rect here. My best guess is that it has something
-            // to do with the fact that I'm doing deferred layout of my
-            // sublayers (e.g. textLayer.setNeedsLayout(), etc.). I tried
-            // changing the deferred layout calls in prepareContent(in:)
-            // to immediate layout calls, but it didn't seem to fix the
-            // problem. On the other hand, I'm not sure if I've totally
-            // gotten scroll correction right here anyways (there are
-            // sometimes things that look like jumps during scrolling).
-            // I'll come back to this later.
-            if oldMaxY <= previousVisibleRect.minY && delta != 0 {
-                scrollAdjustment += delta
-            }
 
             if updateLineNumbers {
                 let n = lineno ?? buffer.lines.distance(from: buffer.startIndex, to: layer.line.range.lowerBound)
@@ -357,19 +272,13 @@ extension TextView {
             lineNumberView.endUpdates()
         }
 
-        previousVisibleRect = visibleRect
-
-        // Adjust scroll offset.
-        // TODO: is it possible to move this into prepareContent(in:) directly?
-        // That way it would only happen when we scroll. It's also possible
-        // that would let us get rid of previousVisibleRect, but according to
-        // the comment below, I tried that, so I'm doubtful.
-        if scrollAdjustment != 0 {
-            let current = scrollOffset
-            scroll(CGPoint(x: current.x, y: current.y + scrollAdjustment))
-        }
-
         updateFrameHeightIfNeeded()
+    }
+}
+
+extension TextView: NSViewLayerContentScaleDelegate {
+    func layer(_ layer: CALayer, shouldInheritContentsScale newScale: CGFloat, from window: NSWindow) -> Bool {
+        true
     }
 }
 
@@ -384,6 +293,10 @@ extension TextView: LineLayerDelegate {
 
 extension TextView {
     func layoutSelectionLayer() {
+        if window == nil {
+            return
+        }
+
         selectionLayer.sublayers = nil
 
         layoutManager.layoutSelections { rect in
@@ -400,6 +313,7 @@ extension TextView {
         l.delegate = self // SelectionLayerDelegate +  NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.isOpaque = true
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 
@@ -411,6 +325,10 @@ extension TextView {
 
 extension TextView {
     func layoutInsertionPointLayer() {
+        if window == nil {
+            return
+        }
+
         insertionPointLayer.sublayers = nil
 
         layoutManager.layoutInsertionPoints { rect in
@@ -427,6 +345,7 @@ extension TextView {
         l.delegate = self // InsertionPointLayerDelegate + NSViewLayerContentScaleDelegate
         l.needsDisplayOnBoundsChange = true
         l.contentsScale = window?.backingScaleFactor ?? 1.0
+        l.isOpaque = true
         l.bounds = CGRect(origin: .zero, size: rect.size)
         l.position = convertFromTextContainer(rect.origin)
 

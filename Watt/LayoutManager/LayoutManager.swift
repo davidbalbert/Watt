@@ -10,10 +10,9 @@ import CoreText
 import StandardKeyBindingResponder
 
 protocol LayoutManagerDelegate: AnyObject {
-    // Text container coordinates. Includes overdraw.
+    // Text container coordinates.
     func viewportBounds(for layoutManager: LayoutManager) -> CGRect
-    // Text container coordinates. No overdraw.
-    func visibleRect(for layoutManager: LayoutManager) -> CGRect
+
     func didInvalidateLayout(for layoutManager: LayoutManager)
     func defaultAttributes(for layoutManager: LayoutManager) -> AttributedRope.Attributes
 
@@ -24,6 +23,7 @@ protocol LayoutManagerDelegate: AnyObject {
 
     func layoutManager(_ layoutManager: LayoutManager, bufferDidReload buffer: Buffer)
     func layoutManager(_ layoutManager: LayoutManager, buffer: Buffer, contentsDidChangeFrom old: Rope, to new: Rope, withDelta delta: BTreeDelta<Rope>)
+    func layoutManager(_ layoutManager: LayoutManager, rect: CGRect, didResizeTo new: CGSize)
 
     func layoutManager(_ layoutManager: LayoutManager, createLayerForLine line: Line) -> LineLayer
     func layoutManager(_ layoutManager: LayoutManager, positionLineLayer layer: LineLayer)
@@ -51,9 +51,6 @@ class LayoutManager {
 
     var heights: Heights
 
-    // invariant: sorted by line.range.lowerBound
-    var lineLayers: [LineLayer]
-
     var textContainer: TextContainer {
         didSet {
             if textContainer != oldValue {
@@ -62,11 +59,14 @@ class LayoutManager {
         }
     }
 
+    // invariant: sorted by line.range.lowerBound
+    var lineLayers: [LineLayer]
+
     init() {
-        heights = Heights()
-        lineLayers = []
-        textContainer = TextContainer()
         buffer = Buffer()
+        heights = Heights()
+        textContainer = TextContainer()
+        lineLayers = []
 
         buffer.addDelegate(self)
     }
@@ -75,21 +75,26 @@ class LayoutManager {
         heights.contentHeight
     }
 
-    func layoutText(using block: (_ layer: LineLayer, _ prevAlignmentFrame: CGRect) -> Void) {
+    func layoutText(using block: (LineLayer) -> Void) {
         guard let delegate else {
             return
         }
 
-        let viewportBounds = delegate.viewportBounds(for: self)
-        let viewportRange = characterRange(intersecting: viewportBounds)
+        let viewport = delegate.viewportBounds(for: self)
+        let start = startOfFirstLine(intersecting: viewport)
 
         var layers: [LineLayer] = []
-        enumerateLines(in: viewportRange) { line, existingLayer, prevAlignmentFrame in
+        enumerateLines(startingAt: start) { line, existingLayer in
             let layer = existingLayer ?? delegate.layoutManager(self, createLayerForLine: line)
             delegate.layoutManager(self, positionLineLayer: layer)
             layers.append(layer)
-            block(layer, prevAlignmentFrame)
-            return true
+            block(layer)
+
+            // I used to have `<= viewport.maxY + max(0, scrollCorrection.dy)` here. I thought it was necessary
+            // in case we performed scroll correction and the viewport moved down (and thus we had more space
+            // we needed to layout and fill). But it seems like it doesn't make a difference. I'm sure it did at
+            // some point. I'm not sure why it doesn't make a difference now.
+            return line.alignmentFrame.maxY <= viewport.maxY
         }
         lineLayers = layers
     }
@@ -186,7 +191,7 @@ class LayoutManager {
     }
 
     func enumerateTextSegments(in range: Range<Buffer.Index>, type: SegmentType, using block: (Range<Buffer.Index>, CGRect) -> Bool) {
-        enumerateLines(in: range) { line, _, _ in
+        enumerateLines(startingAt: range.lowerBound) { line, _ in
             for frag in line.lineFragments {
                 let rangesOverlap = range.overlaps(frag.range) || range.isEmpty && frag.range.contains(range.lowerBound)
                 let atEndOfDocument = frag.range.upperBound == buffer.endIndex && frag.range.upperBound == range.lowerBound
@@ -241,25 +246,17 @@ class LayoutManager {
     //   range - the range of the line in buffer
     //   line - the line
     //   previousBounds - The (possibly estimated) bounds of the line before layout was performed. If the line was already laid out, this is equal to line.typographicBounds.
-    func enumerateLines(in range: Range<Buffer.Index>, using block: (_ line: Line, _ layer: LineLayer?, _ prevAlignmentFrame: CGRect) -> Bool) {
-        var i = buffer.lines.index(roundingDown: range.lowerBound)
-
-        let end: Buffer.Index
-        if range.upperBound == buffer.endIndex {
-            end = buffer.endIndex
-        } else if buffer.lines.isBoundary(range.upperBound) && range.upperBound > i {
-            end = range.upperBound
-        } else {
-            end = buffer.lines.index(after: range.upperBound)
-        }
+    func enumerateLines(startingAt index: Buffer.Index, using block: (_ line: Line, _ layer: LineLayer?) -> Bool) {
+        var i = buffer.lines.index(roundingDown: index)
+        let end = buffer.endIndex
 
         var y = heights.yOffset(upThroughPosition: i.position)
 
         while i < end {
             let next = buffer.lines.index(after: i)
-            let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: true)
 
-            let stop = !block(line, layer, prevAlignmentFrame)
+            let stop = !block(line, layer)
 
             if stop {
                 return
@@ -270,9 +267,9 @@ class LayoutManager {
         }
 
         if i == buffer.endIndex && buffer.lines.isBoundary(i) {
-            let (line, layer, prevAlignmentFrame) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: true)
 
-            _ = block(line, layer, prevAlignmentFrame)
+            _ = block(line, layer)
         }
     }
 
@@ -457,7 +454,7 @@ class LayoutManager {
 
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let (line, existingLayer, _) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
+        let (line, existingLayer) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: false)
 
         if existingLayer == nil, let delegate {
             let viewportBounds = delegate.viewportBounds(for: self)
@@ -502,7 +499,7 @@ class LayoutManager {
         }
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (line: Line, layer: LineLayer?, prevAlignmentFrame: CGRect) {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint, performScrollCorrection: Bool) -> (Line, LineLayer?) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
@@ -513,7 +510,7 @@ class LayoutManager {
             assert(Range(unvalidatedRange: layer.line.range) == intRange)
 
             layer.line.origin.y = point.y
-            return (layer.line, layer, layer.line.alignmentFrame)
+            return (layer.line, layer)
         } else {
             assert(lineLayers.allSatisfy { !$0.line.range.overlaps(range) })
 
@@ -523,14 +520,17 @@ class LayoutManager {
             let oldHeight = heights[hi]
             let newHeight = line.alignmentFrame.height
 
-            if oldHeight != newHeight {
-                heights[hi] = newHeight
-            }
-
             var old = line.alignmentFrame
             old.size.height = oldHeight
 
-            return (line, nil, old)
+            if oldHeight != newHeight {
+                heights[hi] = newHeight
+                if performScrollCorrection {
+                    delegate?.layoutManager(self, rect: old, didResizeTo: line.alignmentFrame.size)
+                }
+            }
+
+            return (line, nil)
         }
     }
 
@@ -683,6 +683,13 @@ class LayoutManager {
         return (glyphOrigin, typographicBounds)
     }
 
+    func startOfFirstLine(intersecting rect: CGRect) -> Buffer.Index {
+        let byteOffset = heights.position(upThroughYOffset: rect.minY)
+        let i = buffer.utf8.index(at: byteOffset)
+        assert(buffer.lines.isBoundary(i))
+        return i
+    }
+
     // Returns the range of the buffer contained by rect. The start
     // and end of the range are rounded down and up to the nearest line
     // boundary respectively, so that if you were to lay out those lines,
@@ -717,7 +724,6 @@ class LayoutManager {
         heights = Heights(rope: buffer.text)
         lineLayers = []
         delegate?.layoutManager(self, bufferDidReload: buffer)
-        delegate?.didInvalidateLayout(for: self)
     }
 
     // MARK: - Converting coordinates
@@ -853,7 +859,7 @@ extension LayoutManager: TextLayoutDataSource {
     }
 
     var viewportSize: CGSize {
-        delegate?.visibleRect(for: self).size ?? .zero
+        delegate?.viewportBounds(for: self).size ?? .zero
     }
 
     // Enumerating over the first line fragment of each string:

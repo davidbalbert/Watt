@@ -8,19 +8,6 @@
 import Cocoa
 
 class TextView: NSView, ClipViewDelegate {
-    class func scrollableTextView() -> NSScrollView {
-        let textView = Self()
-
-        let scrollView = NSScrollView()
-        scrollView.contentView = ClipView()
-        scrollView.hasVerticalScroller = true
-        scrollView.documentView = textView
-
-        textView.autoresizingMask = [.width, .height]
-
-        return scrollView
-    }
-
     override var isFlipped: Bool {
         true
     }
@@ -50,8 +37,10 @@ class TextView: NSView, ClipViewDelegate {
 
     var theme: Theme = .system {
         didSet {
+            defaultAttributes.foregroundColor = theme.foregroundColor
             layoutManager.invalidateLayout()
             needsDisplay = true
+            
             lineNumberView.textColor = theme.lineNumberColor
             lineNumberView.backgroundColor = theme.backgroundColor
         }
@@ -112,8 +101,8 @@ class TextView: NSView, ClipViewDelegate {
         didSet {
             setTypingAttributes()
 
-            selectionLayer.setNeedsLayout()
-            insertionPointLayer.setNeedsLayout()
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
             updateInsertionPointTimer()
         }
     }
@@ -149,12 +138,38 @@ class TextView: NSView, ClipViewDelegate {
     let textLayer: CALayer = CALayer()
     let insertionPointLayer: CALayer = CALayer()
 
+    var needsTextLayout: Bool = false {
+        didSet {
+            if needsTextLayout {
+                needsLayout = true
+            }
+        }
+    }
+    var needsSelectionLayout: Bool = false {
+        didSet {
+            if needsSelectionLayout {
+                needsLayout = true
+            }
+        }
+    }
+    var needsInsertionPointLayout: Bool = false {
+        didSet {
+            if needsInsertionPointLayout {
+                needsLayout = true
+            }
+        }
+    }
+
+    var performingLayout: Bool = false
+
     var selectionLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointLayerCache: WeakDictionary<CGRect, CALayer> = WeakDictionary()
     var insertionPointTimer: Timer?
 
-    // HACK: See layoutTextLayer() for context.
-    var previousVisibleRect: CGRect = .zero
+    lazy var scrollManager: ScrollManager = {
+        ScrollManager(self)
+    }()
+    var autoscroller: Autoscroller?
 
     override init(frame frameRect: NSRect) {
         layoutManager = LayoutManager()
@@ -173,8 +188,9 @@ class TextView: NSView, ClipViewDelegate {
     }
 
     func commonInit() {
-        layoutManager.buffer = buffer
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
 
+        layoutManager.buffer = buffer
         layoutManager.delegate = self
 
         lineNumberView.lineCount = buffer.lines.count
@@ -214,6 +230,16 @@ class TextView: NSView, ClipViewDelegate {
         removeLineNumberView()
     }
 
+    override func viewDidMoveToSuperview() {
+        NotificationCenter.default.removeObserver(self, name: NSView.boundsDidChangeNotification, object: nil)
+
+        if let scrollView {
+            NotificationCenter.default.addObserver(self, selector: #selector(viewDidScroll), name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+        }
+
+        scrollManager.viewDidMoveToSuperview()
+    }
+
     // This is a custom method on ClipViewDelegate. Normally we'd use
     // viewDidMoveToSuperview, but when we're added to a clip view,
     // that's called too early – specifically, it's called before the
@@ -223,19 +249,34 @@ class TextView: NSView, ClipViewDelegate {
     // has had a chance to update its geometry.
     //
     // If we don't do this, the LineNumberView is flipped upside down.
-    func viewDidMoveToClipView() {
+    func viewDidMoveToClipView(_ clipView: ClipView) {
         addLineNumberView()
+    }
+
+    // Necessary (as opposed to observing boundsDidChangeNotification) because
+    // we need to know both the old size and new size of the clip view.
+    func clipView(_ clipView: ClipView, frameSizeDidChangeFrom oldSize: NSSize) {
+        let heightChanged = oldSize.height != clipView.frame.height
+        let widthChanged = oldSize.width != clipView.frame.width
+
+        if heightChanged || (widthChanged && textContainer.width < .greatestFiniteMagnitude) {
+            needsTextLayout = true
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
+        }
     }
 
     override func viewDidMoveToWindow() {
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: nil)
 
-        guard let window else {
-            return
-        }
+        if let window {
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey), name: NSWindow.didBecomeKeyNotification, object: window)
+            NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey), name: NSWindow.didResignKeyNotification, object: window)
 
-        NotificationCenter.default.addObserver(self, selector: #selector(windowDidBecomeKey(_:)), name: NSWindow.didBecomeKeyNotification, object: window)
-        NotificationCenter.default.addObserver(self, selector: #selector(windowDidResignKey(_:)), name: NSWindow.didResignKeyNotification, object: window)
+            needsTextLayout = true
+            needsSelectionLayout = true
+            needsInsertionPointLayout = true
+        }
     }
 }

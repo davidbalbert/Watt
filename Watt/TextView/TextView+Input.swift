@@ -33,7 +33,6 @@ extension TextView: NSTextInputClient {
         }
 
         replaceSubrange(range, with: attrRope)
-
         print("insertText - ", terminator: "")
         unmarkText()
     }
@@ -84,11 +83,9 @@ extension TextView: NSTextInputClient {
 
         selection = selection.unmarked
 
-        // TODO: if we're the only one who calls unmarkText(), we can remove
-        // these layout calls, because we already do layout in didInvalidateLayout(for layoutManager: LayoutManager)
-        textLayer.setNeedsLayout()
-        selectionLayer.setNeedsLayout()
-        insertionPointLayer.setNeedsLayout()
+        needsTextLayout = true
+        needsSelectionLayout = true
+        needsInsertionPointLayout = true
     }
 
     func selectedRange() -> NSRange {
@@ -203,6 +200,7 @@ extension TextView {
         let undoContents = AttributedRope(buffer[r])
 
         buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 
@@ -210,8 +208,6 @@ extension TextView {
             let u = Range(undoRange, in: target.buffer)
             target.replaceSubrange(u, with: undoContents)
         }
-
-        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func replaceSubrange(_ subrange: Range<Buffer.Index>, with s: String) {
@@ -222,6 +218,7 @@ extension TextView {
         let undoContents = String(buffer[r])
 
         buffer.replaceSubrange(r, with: s)
+        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
 
         let undoRange = r.lowerBound.position..<(r.lowerBound.position + s.count)
 
@@ -229,8 +226,6 @@ extension TextView {
             let u = Range(undoRange, in: target.buffer)
             target.replaceSubrange(u, with: undoContents)
         }
-
-        updateStateAfterReplacingSubrange(r, withStringOfCount: s.count)
     }
 
     func updateStateAfterReplacingSubrange(_ subrange: Range<Buffer.Index>, withStringOfCount count: Int) {

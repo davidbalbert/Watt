@@ -415,6 +415,8 @@ extension Heights {
     func yOffset(upThroughPosition offset: Int) -> CGFloat {
         precondition(offset >= 0 && offset <= root.count, "Position out of bounds")
 
+        // I forget exactly why we special case offset == root.count, but I think it's probably
+        // to deal with empty last lines.
         if offset == root.count {
             let i = endIndex
             let (leaf, _) = i.read()!
@@ -424,6 +426,11 @@ extension Heights {
         }
 
         return root.count(.heights, upThrough: offset, edge: .leading)
+    }
+
+    func height(upThroughPosition offset: Int) -> CGFloat {
+        precondition(offset >= 0 && offset <= root.count, "Position out of bounds")
+        return root.count(.heights, upThrough: offset, edge: .trailing)
     }
 
     func position(upThroughYOffset yOffset: CGFloat) -> Int {

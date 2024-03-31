@@ -275,23 +275,29 @@ extension TextView {
 
 
     override func scrollPageUp(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        guard let viewport = scrollView?.contentView.bounds else {
+            return
+        }
+
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: viewport.minY - viewport.height
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollPageDown(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        guard let viewport = scrollView?.contentView.bounds else {
+            return
+        }
+
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: viewport.maxY
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollLineUp(_ sender: Any?) {
@@ -326,17 +332,16 @@ extension TextView {
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
 
         let target = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: frame.minY
         )
 
-        // Not sure why this isn't animating. I thought it might have been due to only
-        // scrolling by a short distance, but I tried adding longer distances and it
-        // still didn't scroll. But other calls in this file are definitely animating,
-        // so something else is going on. I'll have to look into it.
-        animator().scroll(convertFromTextContainer(target))
+        scrollManager.animateScroll(to: convertFromTextContainer(target), viewportAnchor: .topLeading)
     }
 
+    // TODO: this doesn't correctly take into account text container insets, so when you invoke this from the
+    // top of the scroll view, the first line you get to can be cut off. I'm not sure why this is. scrollLineUp
+    // doesn't have the same problem when invoking it from the bottom of the scroll view.
     override func scrollLineDown(_ sender: Any?) {
         let viewport = textContainerVisibleRect
 
@@ -355,38 +360,52 @@ extension TextView {
 
         let frame = layoutManager.convert(targetFrag.alignmentFrame, from: targetLine)
         let target = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: viewport.minX,
             y: frame.maxY - viewport.height
         )
 
-        // not sure why this isn't animating? Maybe it doesn't animate for short changes?
-        animator().scroll(convertFromTextContainer(target))
+        scrollManager.animateScroll(to: convertFromTextContainer(target), viewportAnchor: .topLeading)
     }
 
 
 
-    // TODO: without better height estimates, or a full asyncronous layout pass,
-    // scrollToBeginningOfDocument and scrollToEndOfDocument often don't actually
-    // put you at the beginning or the end.
-    //
-    // I wonder if there's another way around this.
     override func scrollToBeginningOfDocument(_ sender: Any?) {
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
+            x: scrollOffset.x,
             y: 0
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .topLeading)
     }
 
     override func scrollToEndOfDocument(_ sender: Any?) {
-        let viewport = textContainerVisibleRect
+        // TODO: if the scroll animation is slow enough, and the heights for the lines at the bottom of
+        // the document haven't yet been laid out, you can see a jump at the final frame as the 2nd
+        // to last line of Moby Dick is laid out.
+        //
+        // The solution is to make sure we've laid out the text in the viewport at the bottom of the
+        // document at least once. I want to find a general solution to this problem so we're not just
+        // hard coding things here.
+        //
+        // N.b. after forcing layout for the end of the document, frame.height probably won't be correct
+        // yet, so we'll have to either use layoutManager.contentHeight + inset.top + inset.bottom, or
+        // structure things in another way so that frame.height is correct.
+        //
+        // A different way to solve this would be to smear height changes over time. Rather than having
+        // a discontinuous height change, store a delta, and either in each frame of the scroll animation,
+        // or if we're not scrolling, each tick of a timer, update the height of the document by a
+        // of the delta. I think this would require some sort of offsetting of the document contents by
+        // the same delta (negative? positive?) so that you don't end up with things like the last paragraph
+        // cut off past the end of the document and slowly moving up into view. This is probably tricky to
+        // get right.
+        //
+        // It's also possible that with good enough height estimtes this just won't be a problem.
         let point = CGPoint(
-            x: textContainerScrollOffset.x,
-            y: layoutManager.contentHeight - viewport.height
+            x: scrollOffset.x,
+            y: frame.height
         )
 
-        animator().scroll(convertFromTextContainer(point))
+        scrollManager.animateScroll(to: point, viewportAnchor: .bottomLeading)
     }
 
 

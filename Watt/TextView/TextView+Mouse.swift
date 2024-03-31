@@ -29,54 +29,34 @@ extension TextView {
             selection = SelectionNavigator(selection).selection(for: .paragraph, enclosing: point, dataSource: layoutManager)
         }
 
-        var mouseEvent = event
-        var done = false
-        NSEvent.startPeriodicEvents(afterDelay: 0.1, withPeriod: 0.05)
+        var lastRoundedLocation: CGPoint?
+        autoscroller = Autoscroller(self, event: event) { [weak self] locationInView in
+            guard let self else { return }
+            let roundedLocation = locationInView.rounded()
+            defer { lastRoundedLocation = roundedLocation }
 
-        while !done {
-            guard let nextEvent = NSApp.nextEvent(matching: [.leftMouseUp, .leftMouseDragged, .periodic], until: .distantFuture, inMode: .eventTracking, dequeue: true) else {
-                print("Unexpected nil event, should not expire")
-                continue
+            if lastRoundedLocation == roundedLocation {
+                return
             }
 
-            switch nextEvent.type {
-            case .periodic:
-                autoscroll(with: mouseEvent)
-                extendSelection(with: mouseEvent)
-                // Don't dispatch periodic events to NSApp. Doesn't really matter in practice, but
-                // NSApp doesn't normally receive periodic events, so let's not rock the boat.
-                continue
-            case .leftMouseUp:
-                done = true
-            case .leftMouseDragged:
-                mouseEvent = nextEvent
-            default:
-                print("Unexpected event type \(nextEvent.type)")
-            }
-
-            NSApp.sendEvent(nextEvent)
+            let clamped = locationInView.clamped(to: visibleRect)
+            let point = convertToTextContainer(clamped)
+            selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
         }
-
-        NSEvent.stopPeriodicEvents()
+        autoscroller?.start()
     }
 
     override func mouseDragged(with event: NSEvent) {
         if inputContext?.handleEvent(event) ?? false {
             return
         }
-
-        extendSelection(with: event)
-    }
-
-    func extendSelection(with event: NSEvent) {
-        let locationInView = convert(event.locationInWindow, from: nil)
-        let clamped = locationInView.clamped(to: visibleRect)
-        let point = convertToTextContainer(clamped)
-        selection = SelectionNavigator(selection).selection(extendingTo: point, dataSource: layoutManager)
+        autoscroller?.update(with: event)
     }
 
     override func mouseUp(with event: NSEvent) {
         inputContext?.handleEvent(event)
+        autoscroller?.stop()
+        autoscroller = nil
     }
 
     override func cursorUpdate(with event: NSEvent) {

@@ -11,6 +11,11 @@
 		6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D2FF2A9B769100B8A077 /* AttributedRope.swift */; };
 		6315D3022A9BD00F00B8A077 /* AttributedRopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */; };
 		631FD2652A696D27005FA854 /* Heights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631FD2642A696D27005FA854 /* Heights.swift */; };
+		63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */; };
+		63206D2D2BA8E8F400CAFBC4 /* Autoscroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */; };
+		63206D362BAB635500CAFBC4 /* Motion in Frameworks */ = {isa = PBXBuildFile; productRef = 63206D352BAB635500CAFBC4 /* Motion */; };
+		63206D382BAB707E00CAFBC4 /* ScrollManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D372BAB707E00CAFBC4 /* ScrollManager.swift */; };
+		63206D3A2BB5C65500CAFBC4 /* CGVector+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */; };
 		63267C292B97BF0B00F6E968 /* BTreeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63267C282B97BF0B00F6E968 /* BTreeTests.swift */; };
 		63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63286AE12A13DF5D00839B25 /* ClipView.swift */; };
 		632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632A73712B87C69F009F38C3 /* Range+Extensions.swift */; };
@@ -130,6 +135,10 @@
 		6315D2FF2A9B769100B8A077 /* AttributedRope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributedRope.swift; sourceTree = "<group>"; };
 		6315D3012A9BD00F00B8A077 /* AttributedRopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AttributedRopeTests.swift; path = WattTests/AttributedRopeTests.swift; sourceTree = SOURCE_ROOT; };
 		631FD2642A696D27005FA854 /* Heights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Heights.swift; sourceTree = "<group>"; };
+		63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TextView+Scrolling.swift"; sourceTree = "<group>"; };
+		63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Autoscroller.swift; sourceTree = "<group>"; };
+		63206D372BAB707E00CAFBC4 /* ScrollManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrollManager.swift; sourceTree = "<group>"; };
+		63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGVector+Extensions.swift"; sourceTree = "<group>"; };
 		63267C282B97BF0B00F6E968 /* BTreeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BTreeTests.swift; sourceTree = "<group>"; };
 		63286AE12A13DF5D00839B25 /* ClipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipView.swift; sourceTree = "<group>"; };
 		632A73712B87C69F009F38C3 /* Range+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Range+Extensions.swift"; sourceTree = "<group>"; };
@@ -247,6 +256,7 @@
 				63F30E672AA90012009929F7 /* TreeSitter in Frameworks */,
 				63DD20E72B76BBE500E55747 /* OrderedCollections in Frameworks */,
 				63359A3E2AA9115100082762 /* TreeSitterC in Frameworks */,
+				63206D362BAB635500CAFBC4 /* Motion in Frameworks */,
 				63E32EB22AF3F51600EDB062 /* StandardKeyBindingResponder in Frameworks */,
 				635F815B2AA9198200553E23 /* TreeSitterObjC in Frameworks */,
 			);
@@ -270,6 +280,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		63206D2B2BA8E73000CAFBC4 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */,
+				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
+				63206D2C2BA8E8F400CAFBC4 /* Autoscroller.swift */,
+				63DD20DA2B7278E400E55747 /* CheckedContinuationReference.swift */,
+				637E58532B8415A400C498EE /* DragAndDrop.swift */,
+				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
+				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
+				63206D372BAB707E00CAFBC4 /* ScrollManager.swift */,
+				63B8B1752A9F890100F32C2C /* Utilities.swift */,
+				63A618712A0EAF2000E70B0E /* Weak.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
 		63359A392AA9081B00082762 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -310,6 +337,7 @@
 				637BC1432A156B820089A34D /* CGPoint+Extensions.swift */,
 				637BC1412A156B620089A34D /* CGRect+Extensions.swift */,
 				637BC1452A156B9B0089A34D /* CGSize+Extensions.swift */,
+				63206D392BB5C65500CAFBC4 /* CGVector+Extensions.swift */,
 				63820B8C2A7164A500CC7458 /* Collection+Extensions.swift */,
 				6396DD252B433775000F85D1 /* Comparable+Extensions.swift */,
 				63DD20E12B76B59300E55747 /* Logger+Extensions.swift */,
@@ -328,6 +356,7 @@
 		636E850F2B6AAD7C00772ECE /* TextView */ = {
 			isa = PBXGroup;
 			children = (
+				63286AE12A13DF5D00839B25 /* ClipView.swift */,
 				635B36AE2AAE5424002FAE70 /* Highlighter.swift */,
 				637867802A1BEA960039960E /* InsertionPointLayer.swift */,
 				635B36AC2AAE4D7F002FAE70 /* Language.swift */,
@@ -341,6 +370,7 @@
 				63A618752A0FD61B00E70B0E /* TextView+LineNumbers.swift */,
 				637867722A1BD1E10039960E /* TextView+Mouse.swift */,
 				6396DD2D2B45A5DE000F85D1 /* TextView+Pasteboard.swift */,
+				63206D292BA74AF600CAFBC4 /* TextView+Scrolling.swift */,
 				637867702A17F7460039960E /* TextView+Selection.swift */,
 				635B36B02AAFCD95002FAE70 /* Theme.swift */,
 				635F815C2AA9E51900553E23 /* TreeSitter.swift */,
@@ -409,21 +439,10 @@
 			children = (
 				6356588F2ACD9D5400F1DC63 /* Themes */,
 				6372889829FD8E1A005B95E5 /* Watt.entitlements */,
-				63C2C0452B4DF34D00BFB976 /* SimpleProxy.h */,
 				63C2C04A2B4DF86100BFB976 /* Watt-Bridging-Header.h */,
-				63C2C0462B4DF34D00BFB976 /* SimpleProxy.m */,
 				6372889729FD8E1A005B95E5 /* Info.plist */,
 				6372888B29FD8E19005B95E5 /* AppDelegate.swift */,
-				63DD20DA2B7278E400E55747 /* CheckedContinuationReference.swift */,
-				63286AE12A13DF5D00839B25 /* ClipView.swift */,
-				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
-				637E58532B8415A400C498EE /* DragAndDrop.swift */,
-				63A95D832B5462D60032E8B9 /* FSEvents.swift */,
-				63C2C03E2B4D95EB00BFB976 /* OutlineViewDiffableDataSource.swift */,
 				63A95D872B55B9D70032E8B9 /* UserDefaults+Keys.swift */,
-				63B8B1752A9F890100F32C2C /* Utilities.swift */,
-				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
-				63A618712A0EAF2000E70B0E /* Weak.swift */,
 				63A618612A0C3AE200E70B0E /* Moby Dick.txt */,
 				6372889229FD8E1A005B95E5 /* Assets.xcassets */,
 				636E84662B683F3A00772ECE /* Localizable.xcstrings */,
@@ -434,6 +453,7 @@
 				6372889429FD8E1A005B95E5 /* MainMenu.xib */,
 				636E85102B6AADC900772ECE /* Rope */,
 				636E850F2B6AAD7C00772ECE /* TextView */,
+				63206D2B2BA8E73000CAFBC4 /* Utilities */,
 				63C2C04E2B4F3B8E00BFB976 /* Workspace */,
 			);
 			path = Watt;
@@ -449,6 +469,7 @@
 				63D5463F2AFC304B00C72CDE /* LayoutManagerTests.swift */,
 				63F0468E2A65D417001B8DA8 /* RopeTests.swift */,
 				6315D2FD2A96630F00B8A077 /* SpansTests.swift */,
+				63B8B1772A9F8A3A00F32C2C /* UtilitiesTest.swift */,
 				634A70A32B1F7A0A00BDD0D3 /* Support */,
 			);
 			path = WattTests;
@@ -475,9 +496,11 @@
 		63C2C04E2B4F3B8E00BFB976 /* Workspace */ = {
 			isa = PBXGroup;
 			children = (
+				6364DDA02B6C403400886DE3 /* ContainerViewController.swift */,
 				63C2C04F2B4F3BB700BFB976 /* Dirent.swift */,
 				63D280882B5B275900CDCF04 /* DirentTextField.swift */,
 				6364DDA22B6C408700886DE3 /* DocumentPaneViewController.swift */,
+				63DD20D82B71A53200E55747 /* Window.swift */,
 				6364DD9E2B6C3BB000886DE3 /* WindowController.swift */,
 				63C541EA2B486210001C370B /* Workspace.swift */,
 				636DD5302B599E150064C989 /* Workspace+LoadRequest.swift */,
@@ -485,7 +508,6 @@
 				63D280AA2B605A2A00CDCF04 /* WorkspacePasteboardWriter.swift */,
 				63DC933C2B473BB5001018FE /* WorkspaceViewController.swift */,
 				6364DD962B6C05C300886DE3 /* WorkspaceWindowController.swift */,
-				63DD20D82B71A53200E55747 /* Window.swift */,
 			);
 			path = Workspace;
 			sourceTree = "<group>";
@@ -513,6 +535,7 @@
 				63E32EB12AF3F51600EDB062 /* StandardKeyBindingResponder */,
 				63C2C0412B4D97E700BFB976 /* Tree */,
 				63DD20E62B76BBE500E55747 /* OrderedCollections */,
+				63206D352BAB635500CAFBC4 /* Motion */,
 			);
 			productName = Watt;
 			productReference = 6372888829FD8E19005B95E5 /* Watt.app */;
@@ -596,6 +619,7 @@
 				634A70A02B1F79CB00BDD0D3 /* XCRemoteSwiftPackageReference "CwlPreconditionTesting" */,
 				63C2C0402B4D97E700BFB976 /* XCRemoteSwiftPackageReference "Tree" */,
 				63DD20E52B76BBE500E55747 /* XCRemoteSwiftPackageReference "swift-collections" */,
+				63206D342BAB635500CAFBC4 /* XCRemoteSwiftPackageReference "Motion" */,
 			);
 			productRefGroup = 6372888929FD8E19005B95E5 /* Products */;
 			projectDirPath = "";
@@ -646,6 +670,7 @@
 				6315D3002A9B769100B8A077 /* AttributedRope.swift in Sources */,
 				63D280892B5B275900CDCF04 /* DirentTextField.swift in Sources */,
 				63286AE22A13DF5D00839B25 /* ClipView.swift in Sources */,
+				63206D2A2BA74AF600CAFBC4 /* TextView+Scrolling.swift in Sources */,
 				63A95D842B5462D60032E8B9 /* FSEvents.swift in Sources */,
 				63DD20D92B71A53200E55747 /* Window.swift in Sources */,
 				637BC1422A156B620089A34D /* CGRect+Extensions.swift in Sources */,
@@ -654,6 +679,7 @@
 				6364DDA82B6C49C700886DE3 /* DocumentViewController.swift in Sources */,
 				6346D1952A06EC2900CFB7EE /* TextContainer.swift in Sources */,
 				6396DD262B433781000F85D1 /* Comparable+Extensions.swift in Sources */,
+				63206D2D2BA8E8F400CAFBC4 /* Autoscroller.swift in Sources */,
 				63B8B1762A9F890100F32C2C /* Utilities.swift in Sources */,
 				63F25BE12A689D2400DEACCF /* Line.swift in Sources */,
 				637867872A1FB2C50039960E /* NSRange+Extensions.swift in Sources */,
@@ -686,6 +712,7 @@
 				6378677D2A1BE3FE0039960E /* LineNumberLayer.swift in Sources */,
 				632A73722B87C69F009F38C3 /* Range+Extensions.swift in Sources */,
 				63F0468A2A65D3EA001B8DA8 /* BTree.swift in Sources */,
+				63206D382BAB707E00CAFBC4 /* ScrollManager.swift in Sources */,
 				63DD20DB2B7278E400E55747 /* CheckedContinuationReference.swift in Sources */,
 				637867812A1BEA960039960E /* InsertionPointLayer.swift in Sources */,
 				63F25BE52A68A27600DEACCF /* LineFragment.swift in Sources */,
@@ -699,6 +726,7 @@
 				63F25BD92A683CC500DEACCF /* Buffer.swift in Sources */,
 				63DD20DF2B73CFF200E55747 /* NSObject+Extensions.m in Sources */,
 				63DD20E22B76B59300E55747 /* Logger+Extensions.swift in Sources */,
+				63206D3A2BB5C65500CAFBC4 /* CGVector+Extensions.swift in Sources */,
 				637867712A17F7460039960E /* TextView+Selection.swift in Sources */,
 				6364DD972B6C05C300886DE3 /* WorkspaceWindowController.swift in Sources */,
 				63D280902B5EC14D00CDCF04 /* NSFilePromiseReceiver+Extensions.swift in Sources */,
@@ -1074,6 +1102,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		63206D342BAB635500CAFBC4 /* XCRemoteSwiftPackageReference "Motion" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/b3ll/Motion";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tree-sitter/tree-sitter-c";
@@ -1117,6 +1153,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		63206D352BAB635500CAFBC4 /* Motion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 63206D342BAB635500CAFBC4 /* XCRemoteSwiftPackageReference "Motion" */;
+			productName = Motion;
+		};
 		63359A3D2AA9115100082762 /* TreeSitterC */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 63359A3C2AA9115100082762 /* XCRemoteSwiftPackageReference "tree-sitter-c" */;

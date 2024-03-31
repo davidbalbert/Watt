@@ -15,7 +15,17 @@ extension CGPoint: Hashable {
 }
 
 extension CGPoint {
+    static func + (lhs: CGPoint, rhs: CGVector) -> CGPoint {
+        CGPoint(x: lhs.x + rhs.dx, y: lhs.y + rhs.dy)
+    }
+}
+
+extension CGPoint {
     func clamped(to rect: CGRect) -> CGPoint {
         CGPoint(x: x.clamped(to: rect.minX...rect.maxX), y: y.clamped(to: rect.minY...rect.maxY))
+    }
+
+    func rounded() -> CGPoint {
+        CGPoint(x: x.rounded(), y: y.rounded())
     }
 }
