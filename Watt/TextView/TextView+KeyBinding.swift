@@ -400,7 +400,6 @@ extension TextView {
         // get right.
         //
         // It's also possible that with good enough height estimtes this just won't be a problem.
-        let viewport = visibleRect
         let point = CGPoint(
             x: scrollOffset.x,
             y: frame.height
