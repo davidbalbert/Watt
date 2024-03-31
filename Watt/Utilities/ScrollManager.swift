@@ -235,6 +235,24 @@ class ScrollManager {
         }
     }
 
+    // Scrolls point to coincide with the point in the viewport specified by viewportAnchor, compensating
+    // for changes in document size during the scroll. viewportAnchor is a unit point.
+    //
+    // N.b. scrolling to ((x, y), .topLeading) is not the same as scrolling to ((x, y + viewport.height), .bottomLeading).
+    // The difference lies in how they handle vertical scroll correction: the former will offset point.y for any vertical
+    // changes in document size that are fully above y. The latter will do the same, but for any size changes above
+    // y + viewport.height. 
+    //
+    // Put another way, .topLeading will offset point for any layout that happens above the viewport, while .bottomLeading
+    // will offset points for any layout that happens above **or within** the viewport.
+    //
+    // Most of the time you want .topLeading. For other positions, consider scrolling to the bottom of the document. With
+    // If you animate .topLeading, the viewport origin will advance until scrollOrigin.y == documentHeight - viewportHeight,
+    // but once that happens, laying out the final viewport location might cause documentHeight to grow, and then the
+    // viewport will no longer be at the bottom. If you use animate .bottomLeading, when the viewport's origin reaches the
+    // same location, any layout of the contents of the viewport will contribute to further scroll correction (possibly
+    // triggering extra layout passes), until the last line is laid out. The result is that at the end of the animation,
+    // the bottom of the viewport will be at the bottom of the document.
     func animateScroll(to point: NSPoint, viewportAnchor anchor: Anchor) {
         guard let scrollView = view?.enclosingScrollView else {
             return
