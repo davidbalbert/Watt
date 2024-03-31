@@ -252,7 +252,7 @@ class LayoutManager {
 
         while i < end {
             let next = buffer.lines.index(after: i)
-            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<next, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: true)
 
             let stop = !block(line, layer)
 
@@ -265,7 +265,7 @@ class LayoutManager {
         }
 
         if i == buffer.endIndex && buffer.lines.isBoundary(i) {
-            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y))
+            let (line, layer) = layoutLineIfNecessary(from: buffer, inRange: i..<i, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: true)
 
             _ = block(line, layer)
         }
@@ -452,7 +452,7 @@ class LayoutManager {
 
         let y = heights.yOffset(upThroughPosition: content.startIndex.position)
 
-        let (line, existingLayer) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y))
+        let (line, existingLayer) = layoutLineIfNecessary(from: buffer, inRange: content.startIndex..<content.endIndex, atPoint: CGPoint(x: 0, y: y), performScrollCorrection: false)
 
         if existingLayer == nil, let delegate {
             let viewportBounds = delegate.viewportBounds(for: self)
@@ -497,7 +497,7 @@ class LayoutManager {
         }
     }
 
-    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint) -> (Line, LineLayer?) {
+    func layoutLineIfNecessary(from buffer: Buffer, inRange range: Range<Buffer.Index>, atPoint point: CGPoint, performScrollCorrection: Bool) -> (Line, LineLayer?) {
         assert(range.lowerBound == buffer.lines.index(roundingDown: range.lowerBound))
         assert(range.upperBound == buffer.endIndex || range.upperBound == buffer.lines.index(roundingDown: range.upperBound))
 
@@ -523,7 +523,9 @@ class LayoutManager {
 
             if oldHeight != newHeight {
                 heights[hi] = newHeight
-                delegate?.layoutManager(self, rect: old, didResizeTo: line.alignmentFrame.size)
+                if performScrollCorrection {
+                    delegate?.layoutManager(self, rect: old, didResizeTo: line.alignmentFrame.size)
+                }
             }
 
             return (line, nil)
@@ -799,12 +801,7 @@ extension LayoutManager: BufferDelegate {
         let oldRange = Range(r, in: old)
         let newRange = Range(r.lowerBound..<(r.lowerBound + count), in: new)
 
-        let minY = heights.yOffset(upThroughPosition: r.lowerBound)
-        let oldMaxY = heights.height(upThroughPosition: r.upperBound)
-
         heights.replaceSubrange(r, with: new[newRange])
-
-        let newMaxY = heights.height(upThroughPosition: r.lowerBound + count)
 
         removeLineLayers(touching: oldRange)
 
@@ -835,11 +832,7 @@ extension LayoutManager: BufferDelegate {
             assert(start == newLineRange.upperBound)
         }
 
-        let rect = CGRect(x: 0, y: minY, width: textContainer.width, height: oldMaxY - minY)
-        let newSize = CGSize(width: textContainer.width, height: newMaxY - minY)
-
         delegate?.layoutManager(self, buffer: buffer, contentsDidChangeFrom: old, to: new, withDelta: delta)
-        delegate?.layoutManager(self, rect: rect, didResizeTo: newSize)
         delegate?.didInvalidateLayout(for: self)
     }
 
