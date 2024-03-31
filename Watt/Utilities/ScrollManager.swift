@@ -301,6 +301,11 @@ class ScrollManager {
     }
 
     // Assumes the new rect has the same origin. In other words, rect always grows down and right.
+    //
+    // Scroll correction is only performed if rect is fully above the viewport origin (or the origin of
+    // the animation's destination viewport if an animation is in progress). This means that you may
+    // have unexpected results if rect is partially within the viewport and the size change occurred
+    // fully above the viewport.
     func documentRect(_ rect: NSRect, didResizeTo newSize: NSSize) {
         guard let scrollView = view?.enclosingScrollView else {
             return
