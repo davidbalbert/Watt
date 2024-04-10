@@ -76,6 +76,10 @@ final class LayoutManagerTests: XCTestCase {
 
     func testYOffsetAfterSplittingLine() {
         class Delegate: NSObject, LayoutManagerDelegate {
+            func layoutManager(_ layoutManager: Watt.LayoutManager, rect: CGRect, didResizeTo new: CGSize) {
+
+            }
+            
             func viewportBounds(for layoutManager: LayoutManager) -> CGRect {
                 CGRect(x: 0, y: 0, width: 100, height: 100)
             }
@@ -106,7 +110,7 @@ final class LayoutManagerTests: XCTestCase {
         let delegate = Delegate()
         l.delegate = delegate
         // ensures layout info is cached
-        l.layoutText { _, _ in }
+        l.layoutText { _ in }
 
         XCTAssertEqual(l.lineLayers.count, 1)
 
@@ -114,7 +118,7 @@ final class LayoutManagerTests: XCTestCase {
         b.replaceSubrange(b.index(at: 11)..<b.index(at: 11), with: "\n")
 
         // ensures layout info is cached
-        l.layoutText { _, _ in }
+        l.layoutText { _ in }
 
         XCTAssertEqual(l.lineLayers.count, 2)
         XCTAssertEqual(b.text, "0123456789w\nrap")
