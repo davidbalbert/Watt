@@ -505,4 +505,38 @@ final class SpansTests: XCTestCase {
         XCTAssertEqual(Span(range: 2..<3, data: 4), iter.next())
         XCTAssertNil(iter.next())
     }
+
+    func testBuilderAppendSingleEqualSpan() {
+        var b1 = SpansBuilder<Int>(totalCount: 256)
+        for i in stride(from: 0, through: 255, by: 2) {
+            b1.add(i, covering: i..<i+2)
+        }
+        let s1 = b1.build()
+
+        XCTAssertEqual(256, s1.upperBound)
+        XCTAssertEqual(128, s1.count)
+        XCTAssertEqual(254..<256, s1.last?.range)
+        XCTAssertEqual(254, s1.last?.data)
+
+        var b2 = SpansBuilder<Int>(totalCount: 2)
+        b2.add(254, covering: 0..<2)
+        let s2 = b2.build()
+
+        var d = BTreeDeltaBuilder<Spans<Int>>(s1.upperBound)
+        d.replaceSubrange(256..<256, with: s2)
+
+        let delta = d.build()
+
+        XCTAssertEqual(256, delta.baseCount)
+        XCTAssertEqual(2, delta.elements.count)
+        XCTAssertEqual(.copy(0, 256), delta.elements[0])
+        XCTAssertEqual(.insert(s2.root), delta.elements[1])
+
+        let s3 = s1.applying(delta: delta)
+        
+        XCTAssertEqual(258, s3.upperBound)
+        XCTAssertEqual(128, s3.count)
+        XCTAssertEqual(254..<258, s3.last?.range)
+        XCTAssertEqual(254, s3.last?.data)
+    }
 }

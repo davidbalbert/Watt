@@ -95,7 +95,7 @@ struct SpansLeaf<T>: BTreeLeaf {
                 }
                 next.count -= delta
 
-                assert(next.spans[0].range.lowerBound == 0)
+                assert(next.spans.isEmpty || next.spans[0].range.lowerBound == 0)
             }
             spans.append(left)
             count = max(count, left.range.upperBound)
