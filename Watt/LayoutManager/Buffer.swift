@@ -322,7 +322,10 @@ extension Buffer: HighlighterDelegate {
 extension Buffer: TextContent {
     func index(ofParagraphBoundaryBefore i: Buffer.Index) -> Buffer.Index {
         var j = i
-        if lines.isBoundary(j) {
+        // endIndex is always a boundary in lines. If we didn't check for
+        // j == endIndex, index(ofParagraphBoundaryBefore: endIndex) would always
+        // return endIndex.
+        if j == endIndex || lines.isBoundary(j) {
             j = index(before: j)
         }
 
