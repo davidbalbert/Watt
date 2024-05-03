@@ -7,7 +7,7 @@
 
 A high performance text editor for macOS. Not ready for production use.
 
-See [this YouTube playlist](https://www.youtube.com/playlist?list=PLlwwvfE7L-7mSr2D5aONsutyHO4-xYC5Z), for info on how Watt works.
+See [this YouTube playlist](https://www.youtube.com/playlist?list=PLlwwvfE7L-7mSr2D5aONsutyHO4-xYC5Z) for info on how Watt works.
 
 ## Features
 
