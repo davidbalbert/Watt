@@ -66,8 +66,8 @@ class LineNumberView: NSView, CALayerDelegate, NSViewLayerContentScaleDelegate {
     }
 
     override var intrinsicContentSize: NSSize {
-        // max(1000, ...) -> minimum 4 digits worth of space
-        let lineCount = max(1000, lineCount)
+        // max(10, ...) -> minimum 2 digits worth of space
+        let lineCount = max(10, lineCount)
         let maxDigits = floor(log10(Double(lineCount))) + 1
 
         let characters: [UniChar] = Array("0123456789".utf16)
