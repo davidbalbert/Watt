@@ -250,8 +250,8 @@ class Workspace {
             try FileManager.default.contentsOfDirectory(at: actualURL, includingPropertiesForKeys: Dirent.resourceKeys)
         }
 
-        let children = try urls.map { try Dirent(for: $0) }.sorted()
-        try updateChildren(of: url, to: children)
+        var children = try urls.map { try Dirent(for: $0) }.sorted()
+        try updateChildren(of: url, to: &children)
         loaded.insert(url)
 
         return children
@@ -331,7 +331,7 @@ class Workspace {
         }
     }
 
-    func updateChildren(of url: URL, to newChildren: consuming [Dirent]) throws {
+    func updateChildren(of url: URL, to newChildren: inout [Dirent]) throws {
         try root.updateDescendant(withURL: url) { dirent in
             let pairs = dirent._children?.enumerated().map { ($0.element.url, $0.offset) } ?? []
             let urlToIndex = Dictionary(uniqueKeysWithValues: pairs)
